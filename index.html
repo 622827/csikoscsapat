@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Negyedéves számláló</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #eef1f6;
+    --ink: #14213d;
+    --muted: #5b6784;
+    --accent: #1f3fbf;
+    --track: #d3d9e8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101626;
+      --ink: #eef1f8;
+      --muted: #97a3c2;
+      --accent: #7f9bff;
+      --track: #26304d;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+  }
+  main { width: 100%; max-width: 1100px; }
+  .quarter { color: var(--muted); font-size: clamp(1rem, 2.2vw, 1.4rem); margin: 0 0 8px; }
+  .number {
+    font-size: clamp(5rem, 24vw, 20rem);
+    font-weight: 700;
+    line-height: .95;
+    letter-spacing: -0.04em;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    margin: 0;
+  }
+  .goal { font-size: clamp(1.2rem, 3.5vw, 2.4rem); font-weight: 600; margin: 8px 0 32px; }
+  .goal span { color: var(--muted); font-weight: 400; }
+  .bar { height: 20px; background: var(--track); border-radius: 10px; overflow: hidden; }
+  .fill { height: 100%; width: 0; background: var(--accent); border-radius: 10px; transition: width 1.2s ease-out; }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px 40px; margin-top: 20px; font-size: clamp(1rem, 2vw, 1.25rem); }
+  .facts b { font-weight: 700; }
+  .facts span { color: var(--muted); }
+  @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <p class="quarter" id="quarter"></p>
+  <h1 class="number" id="number">0</h1>
+  <p class="goal"><span>a</span> <span id="target-text"></span></p>
+  <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="bar">
+    <div class="fill" id="fill"></div>
+  </div>
+  <div class="facts">
+    <div><b id="left"></b> <span>hiányzik</span></div>
+    <div><b id="days"></b> <span>nap van hátra</span></div>
+    <div><b id="pace"></b> <span>naponta kell a célhoz</span></div>
+  </div>
+</main>
+
+<script>
+  // ====== EZT A KÉT SORT ÍRD ÁT ======
+  var CURRENT = 0;        // jelenlegi szám
+  var LABEL = "ES";       // a mértékegység felirata
+  // ===================================
+  var TARGET = 11000;     // negyedéves vállalás
+
+  var nf = new Intl.NumberFormat("hu-HU");
+  var now = new Date();
+  // A termelési hónap zárása a következő hónap első keddje.
+  // A negyedév zárása így a negyedévet követő hónap első keddje.
+  function firstTuesday(year, month) {
+    var d = new Date(year, month, 1);
+    var offset = (2 - d.getDay() + 7) % 7;
+    return new Date(year, month, 1 + offset, 23, 59, 59);
+  }
+  var qEnd = null, q = 0, qYear = now.getFullYear();
+  for (var y = now.getFullYear() - 1; y <= now.getFullYear() + 1 && !qEnd; y++) {
+    for (var i = 0; i < 4; i++) {
+      var close = firstTuesday(y, i * 3 + 3);
+      if (close >= now) { qEnd = close; q = i; qYear = y; break; }
+    }
+  }
+  var daysLeft = Math.max(0, Math.ceil((qEnd - now) / 86400000));
+  var left = Math.max(0, TARGET - CURRENT);
+  var pct = Math.min(100, CURRENT / TARGET * 100);
+  var closeText = qEnd.toLocaleDateString("hu-HU", { year: "numeric", month: "long", day: "numeric" });
+
+  document.getElementById("quarter").textContent = qYear + " " + (q + 1) + ". negyedév, zárás: " + closeText + " (kedd)";
+  document.getElementById("target-text").textContent = nf.format(TARGET) + " " + LABEL + "-es vállalásból";
+  document.getElementById("left").textContent = nf.format(left) + " " + LABEL;
+  document.getElementById("days").textContent = daysLeft;
+  document.getElementById("pace").textContent = daysLeft > 0 ? nf.format(Math.ceil(left / daysLeft)) + " " + LABEL : "–";
+  document.getElementById("bar").setAttribute("aria-valuenow", Math.round(pct));
+
+  var numEl = document.getElementById("number");
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce || CURRENT === 0) {
+    numEl.textContent = nf.format(CURRENT);
+    document.getElementById("fill").style.width = pct + "%";
+  } else {
+    var start = null, dur = 1200;
+    requestAnimationFrame(function step(t) {
+      if (!start) start = t;
+      var p = Math.min(1, (t - start) / dur);
+      numEl.textContent = nf.format(Math.round(CURRENT * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) requestAnimationFrame(step);
+    });
+    requestAnimationFrame(function () { document.getElementById("fill").style.width = pct + "%"; });
+  }
+</script>
+</body>
+</html>
