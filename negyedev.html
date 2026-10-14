@@ -137,6 +137,8 @@
   @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
 
 
+  .basis { margin: 6px 0 0; color: var(--muted); font-size: .92rem; line-height: 1.5; }
+  .basis b { color: var(--ink); }
   .topnav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; background: var(--bg); border-bottom: 1px solid var(--track); }
   .topnav .in { max-width: 1100px; margin: 0 auto; padding: 0 16px; height: 56px; display: flex; align-items: center; gap: 20px; }
   .topnav .brand { font-weight: 700; color: var(--ink); text-decoration: none; white-space: nowrap; font-size: 1.05rem; margin: 0; }
@@ -170,7 +172,6 @@
 </head>
 <body>
 <nav class="topnav" aria-label="Főmenü"><div class="in"><a class="brand" href="index.html">Csikós BL csapat</a><ul><li><a href="index.html">Kezdőlap</a></li><li><a href="negyedev.html" aria-current="page">Negyedéves cél</a></li><li><a href="verseny.html">Versenyállások</a></li><li><a href="cegbemutato.html">Cégbemutató</a></li><li><a href="https://docs.google.com/spreadsheets/d/1YKwZYWzi1nBNX3HQCDXUlKeovPqnMce0A4C4hnYFaHY/edit" target="_blank" rel="noopener">Pipeline ↗</a></li></ul></div></nav>
-<button class="add-btn" id="add-btn" type="button">Szerződést köttöttem!</button>
 
 <main>
   <p class="quarter" id="quarter"></p>
@@ -201,43 +202,15 @@
     <div id="line-pace"></div>
   </div>
 
-  <p class="cap">Mérföldkövek</p>
-  <ol class="ms-list" id="ms-list"></ol>
-  <p class="ms-empty" id="ms-empty">Még nincs rögzített szerződés.</p>
+  <p class="basis" id="basis"></p>
   <p class="status" id="status" role="status"></p>
 </main>
 
-<dialog id="dlg" aria-labelledby="dlg-title">
-  <div class="dlg-body">
-    <h2 id="dlg-title">Szerződést köttöttem!</h2>
-    <p class="dlg-note" id="dlg-note" hidden>Teszt mód: a bejegyzés csak ezen a böngészőn látszik, amíg nincs adatbázis bekötve.</p>
-    <form id="form" novalidate>
-      <div class="field">
-        <label for="f-es">Hány ES?</label>
-        <input id="f-es" type="number" inputmode="numeric" min="1" max="100000" step="1" required>
-      </div>
-      <div class="field">
-        <label for="f-name">Hogy hívnak?</label>
-        <input id="f-name" type="text" maxlength="40" autocomplete="name" required>
-      </div>
-      <div class="field" id="pw-field">
-        <label for="f-pw">Jelszó</label>
-        <input id="f-pw" type="password" autocomplete="current-password" maxlength="100" required>
-      </div>
-      <p class="dlg-error" id="dlg-error" role="alert"></p>
-      <div class="dlg-actions">
-        <button type="button" class="btn" id="cancel-btn">Mégse</button>
-        <button type="submit" class="btn primary" id="save-btn">Mentés</button>
-      </div>
-    </form>
-  </div>
-</dialog>
-
 <script>
-  // ====== EZT A HÁROM SORT ÍRD ÁT ======
-  var CURRENT = 0;        // kézi alapérték: az űrlapon rögzített szerződések ehhez adódnak hozzá
+  // ====== BEÁLLÍTÁSOK ======
+  var PREVIOUS = 0;       // az előző (lezárt) hónapok ES-e, kézzel megadva; az aktuális hónapot a táblázat adja
   var LABEL = "ES";       // a mértékegység felirata
-  var API_URL = "https://script.google.com/macros/s/AKfycbwGuLkHaMIuSc5JN8NI6hobuxVQs0A7Hs5jGtwqfxW7o_ugImqJPsN5U8O2uxWIlrWfzA/exec";       // a Google Apps Script webalkalmazás címe (lásd az útmutatót)
+  var TOTAL_URL = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";   // a verseny-szkript címe (a pipeline-táblázatot olvassa)
   // =====================================
   var COMMIT = 11000;     // vállalás
   var GOAL = 12500;       // cél (az egységsáv vége)
@@ -338,134 +311,51 @@
     });
   }
 
-  /* ---- Szerződések (mérföldkövek) ---- */
-  function normalize(items) {
-    return (items || []).map(function (i) {
-      return { t: new Date(i.t), name: String(i.name || "").slice(0, 40), es: Math.floor(Number(i.es)) };
-    }).filter(function (e) {
-      return e.name && e.es > 0 && !isNaN(e.t) && e.t > qStart && e.t <= qEnd;
-    }).sort(function (a, b) { return a.t - b.t; });
+  /* ---- Az érték: az előző hónapok kézzel megadva + az aktuális hónap a pipeline-táblázatból ----
+     Az aktuális hónap = az első negyedéves hónap, amelynek a zárása még nem járt le.
+     Az aktuális hónapból csak a "100% Leadva" és a "Befizetett" ES számít (az elszámolt és a szerződés kész nem). */
+  var MONTH_NAME = ["január","február","március","április","május","június","július","augusztus","szeptember","október","november","december"];
+  function closeOf(m) { return firstTuesday(Math.floor(m / 100), m % 100); }   // m: ÉÉÉÉHH; a következő hónap első kedd
+
+  function applyData(d) {
+    var by = (d.counter || {}), months = (d.months || Object.keys(by).map(Number)).slice().sort();
+    var cur = months[months.length - 1];
+    for (var i = 0; i < months.length; i++) { if (closeOf(months[i]) >= now) { cur = months[i]; break; } }
+    var c = by[cur] || { settled: 0, pending: 0 };
+    var total = PREVIOUS + c.pending;
+    var nm = MONTH_NAME[(cur % 100) - 1];
+    var rows = [];
+    if (PREVIOUS > 0) rows.push("<b>Előző hónapok</b> (kézzel megadva): " + nf.format(PREVIOUS) + " " + LABEL);
+    rows.push("<b>" + nm.charAt(0).toUpperCase() + nm.slice(1) + "</b> (aktuális hónap): 100% leadva / befizetett " + nf.format(c.pending) + " " + LABEL);
+    $("basis").innerHTML = rows.join("<br>");
+    renderTotals(total);
+    animateNumber(total);
+    $("status").textContent = "";
   }
 
-  function renderMilestones(list) {
-    var ol = $("ms-list");
-    ol.textContent = "";
-    var bar = $("bar");
-    Array.prototype.slice.call(bar.querySelectorAll(".ms-tick")).forEach(function (n) { n.remove(); });
-
-    list.forEach(function (e) {
-      var tick = document.createElement("div");
-      tick.className = "ms-tick";
-      tick.style.left = Math.min(100, e.cum / GOAL * 100) + "%";
-      tick.title = e.name + " +" + e.es + " " + LABEL;
-      bar.appendChild(tick);
-    });
-
-    list.slice().reverse().forEach(function (e, idx) {
-      var li = document.createElement("li");
-      if (idx === 0) li.className = "latest";
-      function cell(cls, text) { var s = document.createElement("span"); s.className = cls; s.textContent = text; li.appendChild(s); }
-      cell("ms-name", e.name);
-      cell("ms-es", "+" + nf.format(e.es) + " " + LABEL);
-      cell("ms-total", "→ " + nf.format(e.cum) + " " + LABEL);
-      cell("ms-date", shortDate(e.t));
-      ol.appendChild(li);
-    });
-    $("ms-empty").hidden = list.length > 0;
+  function load() {
+    if (!TOTAL_URL) { $("status").textContent = "Az adatforrás még nincs bekötve."; return; }
+    if (!$("basis").innerHTML) $("status").textContent = "Az adatok betöltése… Az első betöltés akár fél percig is tarthat.";
+    var ctl = typeof AbortController === "function" ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, 90000) : null;
+    fetch(TOTAL_URL + (TOTAL_URL.indexOf("?") > -1 ? "&" : "?") + "_=" + Date.now(), ctl ? { signal: ctl.signal } : undefined)
+      .then(function (r) { if (timer) clearTimeout(timer); return r.json(); })
+      .then(function (d) {
+        if (d.error) throw new Error(d.error);
+        if (!d.counter) throw new Error("a szkript még nem a legújabb verzió (nincs benne counter adat)");
+        applyData(d);
+      })
+      .catch(function (e) {
+        if (timer) clearTimeout(timer);
+        if (!$("basis").innerHTML) $("status").textContent = "Az adatok betöltése most nem sikerült" + (e && e.message ? ": " + e.message : "") + ". Frissítsd az oldalt egy perc múlva.";
+      });
   }
-
-  function refresh(items) {
-    var list = normalize(items);
-    var run = CURRENT;
-    list.forEach(function (e) { run += e.es; e.cum = run; });
-    renderTotals(run);
-    animateNumber(run);
-    renderMilestones(list);
-  }
-
-  /* ---- Tárolás: Google Apps Script, vagy teszt módban a böngésző ---- */
-  var LOCAL_KEY = "csikoscsapat-szerzodesek";
-  function readLocal() { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || "[]"); } catch (e) { return []; } }
-  function writeLocal(items) { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(items)); } catch (e) {} }
-
-  function loadEntries() {
-    if (!API_URL) { refresh(readLocal()); return; }
-    fetch(API_URL + (API_URL.indexOf("?") > -1 ? "&" : "?") + "_=" + Date.now())
-      .then(function (r) { return r.json(); })
-      .then(function (d) { $("status").textContent = ""; refresh(d.items); })
-      .catch(function () { $("status").textContent = "Az adatok betöltése most nem sikerült."; });
-  }
-
-  function saveEntry(name, es, pw) {
-    if (!API_URL) {
-      var items = readLocal();
-      items.push({ t: new Date().toISOString(), name: name, es: es });
-      writeLocal(items);
-      return Promise.resolve();
-    }
-    return fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ name: name, es: es, password: pw })
-    }).then(function (r) { return r.json(); }).then(function (d) {
-      if (!d.ok) { var se = new Error(d.error || "Mentési hiba"); se.fromServer = true; throw se; }
-    }).catch(function (err) {
-      if (err.fromServer) throw err;
-      // Lehet, hogy a mentés sikerült, csak a választ nem sikerült kiolvasni: ellenőrizzük a listát.
-      return new Promise(function (res) { setTimeout(res, 1500); })
-        .then(function () { return fetch(API_URL + (API_URL.indexOf("?") > -1 ? "&" : "?") + "_=" + Date.now()); })
-        .then(function (r) { return r.json(); })
-        .then(function (d) {
-          var ok = (d.items || []).some(function (i) {
-            return i.name === name && Number(i.es) === es && Date.now() - new Date(i.t) < 120000;
-          });
-          if (!ok) throw err;
-        });
-    });
-  }
-
-  /* ---- Ablak ---- */
-  var dlg = $("dlg"), form = $("form");
-  $("dlg-note").hidden = !!API_URL;
-  $("pw-field").hidden = !API_URL;
-
-  $("add-btn").addEventListener("click", function () {
-    form.reset();
-    $("dlg-error").textContent = "";
-    $("save-btn").disabled = false;
-    dlg.showModal();
-    $("f-es").focus();
-  });
-  $("cancel-btn").addEventListener("click", function () { dlg.close(); });
-  dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
-
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    var es = Number($("f-es").value);
-    var name = $("f-name").value.trim().slice(0, 40);
-    var err = $("dlg-error");
-    if (!(es >= 1 && es <= 100000) || Math.floor(es) !== es) { err.textContent = "Adj meg egy egész számot 1 és 100 000 között."; $("f-es").focus(); return; }
-    if (!name) { err.textContent = "Írd be a neved."; $("f-name").focus(); return; }
-    var pw = $("f-pw").value;
-    if (API_URL && !pw) { err.textContent = "Add meg a jelszót."; $("f-pw").focus(); return; }
-    err.textContent = "";
-    $("save-btn").disabled = true;
-    saveEntry(name, es, pw).then(function () {
-      dlg.close();
-      loadEntries();
-    }).catch(function (e2) {
-      err.textContent = (e2 && e2.fromServer) ? e2.message : "Nem sikerült menteni. Próbáld újra egy perc múlva.";
-      $("save-btn").disabled = false;
-    });
-  });
 
   /* ---- Indulás ---- */
-  renderTotals(CURRENT);
-  loadEntries();
-  if (API_URL) {
-    setInterval(loadEntries, 60000);
-    document.addEventListener("visibilitychange", function () { if (!document.hidden) loadEntries(); });
-  }
+  renderTotals(0);
+  load();
+  setInterval(load, 300000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) load(); });
 </script>
 <script>
   (function () {
