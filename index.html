@@ -136,7 +136,7 @@
   // ====== EZT A LISTÁT SZERKESZD: új link = új sor ======
   var LINKS = [
     { title: "Számláló", desc: "Negyedéves állás a 11 000 ES-es vállaláshoz és a 12 500 ES-es célhoz.", href: "negyedev.html" },
-    { title: "Cégbemutató", desc: "OVB Magyarország – elemző segédlet (9 dia).", href: "cegbemutato.pdf" },
+    { title: "Cégbemutató", desc: "OVB Magyarország – elemző segédlet (9 dia).", href: "cegbemutato.html" },
     { title: "Versenyállás", desc: "Q4 verseny: havi rangsorok, pontok és a kvalifikáció állása.", href: "verseny.html" },
     { title: "Pipeline és dicsőségfal", desc: "A csapat Google-táblázata minden munkatárs lapjával.",
       href: "https://docs.google.com/spreadsheets/d/1YKwZYWzi1nBNX3HQCDXUlKeovPqnMce0A4C4hnYFaHY/edit" }
@@ -197,7 +197,7 @@
   LINKS.forEach(function (l) {
     var li = el("li"), a = el("a");
     a.href = l.href;
-    if (/^https?:/.test(l.href) || /\.pdf$/i.test(l.href)) { a.target = "_blank"; a.rel = "noopener"; }
+    if (/^https?:/.test(l.href)) { a.target = "_blank"; a.rel = "noopener"; }
     a.appendChild(el("b", "", l.title));
     a.appendChild(el("span", "", l.desc));
     li.appendChild(a); ul.appendChild(li);
