@@ -105,9 +105,20 @@
   .zm .panel .n { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-weight: 700; }
   .zm .panel li.past { opacity: .5; } .zm .panel li.next .n { color: var(--accent); }
   @media (max-width: 640px) { .zm > button { padding: 8px 10px; } .zm .lbl { display: none; } }
+
+  /* betöltés-jelző: vékony futó csík az oldal tetején */
+  .ldbar { position: fixed; left: 0; right: 0; top: 0; height: 4px; z-index: 1000; overflow: hidden; opacity: 0; pointer-events: none; transition: opacity .4s; }
+  body.loading .ldbar { opacity: 1; }
+  .ldbar::before { content: ""; position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; border-radius: 4px; background: var(--hot, var(--accent)); animation: ldmove 1.15s ease-in-out infinite; }
+  @keyframes ldmove { 0% { left: -40%; } 100% { left: 100%; } }
+  @keyframes ldpulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+  @media (prefers-reduced-motion: reduce) { .ldbar::before { animation-duration: 3s; } body.loading .ldp { animation: none !important; } }
+  body.loading #meta { animation: ldpulse 1.2s ease-in-out infinite; }
 </style>
 </head>
 <body>
+<div class="ldbar" aria-hidden="true"></div>
+
 <nav class="topnav" aria-label="Főmenü"><div class="in"><a class="brand" href="index.html">Csikós BL csapat</a><ul><li><a href="index.html">Kezdőlap</a></li><li><a href="negyedev.html">Negyedéves cél</a></li><li><a href="verseny.html" aria-current="page">Versenyállások</a></li><li><a href="cegbemutato.html">Cégbemutató</a></li><li><a href="https://docs.google.com/spreadsheets/d/1YKwZYWzi1nBNX3HQCDXUlKeovPqnMce0A4C4hnYFaHY/edit" target="_blank" rel="noopener">Pipeline ↗</a></li></ul></div></nav>
 <main>
   <h1>Q4 verseny</h1>
@@ -309,16 +320,19 @@
       showMsg(p); return;
     }
     if ($("content").hidden) $("meta").textContent = "Az állás betöltése… Az első betöltés akár fél percig is tarthat.";
+    document.body.classList.add("loading");
     var ctl = typeof AbortController === "function" ? new AbortController() : null;
     var timer = ctl ? setTimeout(function () { ctl.abort(); }, 90000) : null;
     fetch(API_URL + (API_URL.indexOf("?") > -1 ? "&" : "?") + "_=" + Date.now(), ctl ? { signal: ctl.signal } : undefined)
       .then(function (r) { if (timer) clearTimeout(timer); return r.json(); })
       .then(function (d) {
+        document.body.classList.remove("loading");
         if (d.error) throw new Error(d.error);
         if (!d.people) throw new Error("a megadott cím nem a versenyállás szkriptjéé (nincs benne people adat)");
         render(d);
       })
       .catch(function (e) {
+        document.body.classList.remove("loading");
         if (timer) clearTimeout(timer);
         if ($("content").hidden) {
           $("meta").textContent = "";

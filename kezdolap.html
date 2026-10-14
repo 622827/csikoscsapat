@@ -125,9 +125,19 @@
     .side { position: static; order: -1; }
     .side-in { max-height: none; }
   }
+
+  /* betöltés-jelző: vékony futó csík az oldal tetején */
+  .ldbar { position: fixed; left: 0; right: 0; top: 0; height: 4px; z-index: 1000; overflow: hidden; opacity: 0; pointer-events: none; transition: opacity .4s; }
+  body.loading .ldbar { opacity: 1; }
+  .ldbar::before { content: ""; position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; border-radius: 4px; background: var(--hot, var(--accent)); animation: ldmove 1.15s ease-in-out infinite; }
+  @keyframes ldmove { 0% { left: -40%; } 100% { left: 100%; } }
+  @keyframes ldpulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+  @media (prefers-reduced-motion: reduce) { .ldbar::before { animation-duration: 3s; } body.loading .ldp { animation: none !important; } }
 </style>
 </head>
 <body class="home">
+<div class="ldbar" aria-hidden="true"></div>
+
 <nav class="topnav" aria-label="Főmenü"><div class="in"><a class="brand" href="index.html">Csikós BL csapat</a><ul><li><a href="index.html" aria-current="page">Kezdőlap</a></li><li><a href="negyedev.html">Negyedéves cél</a></li><li><a href="verseny.html">Versenyállások</a></li><li><a href="cegbemutato.html">Cégbemutató</a></li><li><a href="https://docs.google.com/spreadsheets/d/1YKwZYWzi1nBNX3HQCDXUlKeovPqnMce0A4C4hnYFaHY/edit" target="_blank" rel="noopener">Pipeline ↗</a></li></ul></div></nav>
 <main>
   <div class="layout">
@@ -167,14 +177,16 @@
       button: "Jelentkezési kérdőív", href: "https://forms.gle/EAXgmNpgyr2QyGxg8" }
   ];
   function loadMissing(el) {
+    document.body.classList.add("loading"); el.textContent = "Betöltés…";
     fetch(SURVEY_API + "?kerdoiv=1&_=" + Date.now())
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (d.error || !d.missing) return;
+        document.body.classList.remove("loading");
+        if (d.error || !d.missing) { el.textContent = ""; return; }
         if (d.missing.length === 0) { el.textContent = "Mindenki kitöltötte, köszönjük!"; return; }
         el.textContent = "Még nem töltötte ki (" + d.missing.length + "/" + d.total + "): " + d.missing.join(", ");
       })
-      .catch(function () {});
+      .catch(function () { document.body.classList.remove("loading"); el.textContent = ""; });
   }
   (function () {
     var box = document.getElementById("news");
