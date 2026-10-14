@@ -44,6 +44,9 @@
   .qual .own { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
   .qual .rec { position: absolute; top: 0; bottom: 0; background: var(--soft); }
   .qual .min { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--ink); opacity: .8; transform: translateX(-1px); }
+  .qual p.lbl { margin: 10px 0 4px; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+  .qual p.lbl:first-child { margin-top: 0; }
+  .qual .bar + p { margin-top: 5px; }
   .qual p { margin: 6px 0 0; font-size: .88rem; color: var(--muted); }
   .qual p b { color: var(--ink); }
   .ok { color: var(--ok); font-weight: 700; }
@@ -94,7 +97,7 @@
 
 <script>
   // ====== EZT AZ EGY SORT ÍRD ÁT ======
-  var API_URL = "";       // a versenyállás Google Apps Script webalkalmazás címe
+  var API_URL = "https://script.google.com/macros/s/AKfycbwGuLkHaMIuSc5JN8NI6hobuxVQs0A7Hs5jGtwqfxW7o_ugImqJPsN5U8O2uxWIlrWfzA/exec";       // a versenyállás Google Apps Script webalkalmazás címe
   // ====================================
 
   var POINTS = [28, 21, 15, 10, 6];
@@ -157,6 +160,13 @@
     var prizeCount = 0;
     rows.forEach(function (r) { if (r.qualified && prizeCount < WINNERS) { r.prize = true; prizeCount++; } });
 
+    var curMonth = MONTHS[MONTHS.length - 1];
+    for (var ci = 0; ci < MONTHS.length; ci++) {
+      var cy = Math.floor(MONTHS[ci] / 100), cmo = MONTHS[ci] % 100;
+      if (new Date() <= firstTuesday(cy, cmo)) { curMonth = MONTHS[ci]; break; }
+    }
+    var topCamp = people.reduce(function (mx, p) { return Math.max(mx, p.camp[curMonth] || 0); }, 0);
+
     var ol = $("stand"); ol.textContent = "";
     rows.forEach(function (r, i) {
       var li = el("li", "row" + (r.prize ? " prize" : ""));
@@ -174,18 +184,34 @@
       li.appendChild(pts);
 
       var q = el("div", "qual");
-      var bar = el("div", "bar");
-      var own = el("div", "own"); own.style.width = Math.min(100, r.own / r.need * 100) + "%";
-      bar.appendChild(own);
-      q.appendChild(bar);
-
-      var note = el("p");
-      note.appendChild(el("b", "", nf.format(r.own) + " ES"));
-      note.appendChild(document.createTextNode(" / " + nf.format(r.need) + " ES" +
+      // 1) az aktuális hónap kampányegységei (a hónap éllovasához viszonyítva)
+      var cm = r.p.camp[curMonth] || 0;
+      q.appendChild(el("p", "lbl", MONTH_NAME[curMonth] + " – kampányegység"));
+      var bar1 = el("div", "bar");
+      var f1 = el("div", "own"); f1.style.width = (cm / topCamp * 100) + "%"; bar1.appendChild(f1);
+      q.appendChild(bar1);
+      var n1 = el("p"); n1.appendChild(el("b", "", nf.format(cm) + " ES"));
+      n1.appendChild(document.createTextNode(topCamp > 0 ? " · a hónap éllovasa: " + nf.format(topCamp) + " ES" : " · még nincs elszámolt kampányegység"));
+      q.appendChild(n1);
+      // 2) összes egység a kvalifikációig
+      q.appendChild(el("p", "lbl", "Összes egység a kvalifikációig"));
+      var bar2 = el("div", "bar");
+      var f2 = el("div", "own"); f2.style.width = Math.min(100, r.own / r.need * 100) + "%"; bar2.appendChild(f2);
+      var out = r.p.outlook || 0;
+      if (out > 0 && r.own < r.need) {
+        var rec = el("div", "rec");
+        rec.style.left = Math.min(100, r.own / r.need * 100) + "%";
+        rec.style.width = Math.min(100 - Math.min(100, r.own / r.need * 100), out / r.need * 100) + "%";
+        bar2.appendChild(rec);
+      }
+      q.appendChild(bar2);
+      var n2 = el("p");
+      n2.appendChild(el("b", "", nf.format(r.own) + " ES"));
+      n2.appendChild(document.createTextNode(" / " + nf.format(r.need) + " ES" +
         (r.rec > 0 ? " (" + r.rec + " munkatárs: -" + nf.format(r.credit) + ")" : "") + " · "));
-      if (r.qualified) note.appendChild(el("span", "ok", "kvalifikált"));
-      else note.appendChild(document.createTextNode("még " + nf.format(r.need - r.own) + " ES kell"));
-      q.appendChild(note);
+      if (r.qualified) n2.appendChild(el("span", "ok", "kvalifikált"));
+      else n2.appendChild(document.createTextNode("még " + nf.format(r.need - r.own) + " ES kell" + (out > 0 ? ", kilátásban " + nf.format(out) : "")));
+      q.appendChild(n2);
       li.appendChild(q);
       ol.appendChild(li);
     });
