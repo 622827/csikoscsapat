@@ -188,6 +188,10 @@
         <label for="f-name">Hogy hívnak?</label>
         <input id="f-name" type="text" maxlength="40" autocomplete="name" required>
       </div>
+      <div class="field" id="pw-field">
+        <label for="f-pw">Jelszó</label>
+        <input id="f-pw" type="password" autocomplete="current-password" maxlength="100" required>
+      </div>
       <p class="dlg-error" id="dlg-error" role="alert"></p>
       <div class="dlg-actions">
         <button type="button" class="btn" id="cancel-btn">Mégse</button>
@@ -201,7 +205,7 @@
   // ====== EZT A HÁROM SORT ÍRD ÁT ======
   var CURRENT = 0;        // kézi alapérték: az űrlapon rögzített szerződések ehhez adódnak hozzá
   var LABEL = "ES";       // a mértékegység felirata
-  var API_URL = "https://script.google.com/macros/s/AKfycbwGuLkHaMIuSc5JN8NI6hobuxVQs0A7Hs5jGtwqfxW7o_ugImqJPsN5U8O2uxWIlrWfzA/exec";       // a Google Apps Script webalkalmazás címe (lásd az útmutatót)
+  var API_URL = "";       // a Google Apps Script webalkalmazás címe (lásd az útmutatót)
   // =====================================
   var COMMIT = 11000;     // vállalás
   var GOAL = 12500;       // cél (az egységsáv vége)
@@ -360,7 +364,7 @@
       .catch(function () { $("status").textContent = "Az adatok betöltése most nem sikerült."; });
   }
 
-  function saveEntry(name, es) {
+  function saveEntry(name, es, pw) {
     if (!API_URL) {
       var items = readLocal();
       items.push({ t: new Date().toISOString(), name: name, es: es });
@@ -370,10 +374,11 @@
     return fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ name: name, es: es })
+      body: JSON.stringify({ name: name, es: es, password: pw })
     }).then(function (r) { return r.json(); }).then(function (d) {
-      if (!d.ok) throw new Error(d.error || "Mentési hiba");
+      if (!d.ok) { var se = new Error(d.error || "Mentési hiba"); se.fromServer = true; throw se; }
     }).catch(function (err) {
+      if (err.fromServer) throw err;
       // Lehet, hogy a mentés sikerült, csak a választ nem sikerült kiolvasni: ellenőrizzük a listát.
       return new Promise(function (res) { setTimeout(res, 1500); })
         .then(function () { return fetch(API_URL + (API_URL.indexOf("?") > -1 ? "&" : "?") + "_=" + Date.now()); })
@@ -390,6 +395,7 @@
   /* ---- Ablak ---- */
   var dlg = $("dlg"), form = $("form");
   $("dlg-note").hidden = !!API_URL;
+  $("pw-field").hidden = !API_URL;
 
   $("add-btn").addEventListener("click", function () {
     form.reset();
@@ -408,13 +414,15 @@
     var err = $("dlg-error");
     if (!(es >= 1 && es <= 100000) || Math.floor(es) !== es) { err.textContent = "Adj meg egy egész számot 1 és 100 000 között."; $("f-es").focus(); return; }
     if (!name) { err.textContent = "Írd be a neved."; $("f-name").focus(); return; }
+    var pw = $("f-pw").value;
+    if (API_URL && !pw) { err.textContent = "Add meg a jelszót."; $("f-pw").focus(); return; }
     err.textContent = "";
     $("save-btn").disabled = true;
-    saveEntry(name, es).then(function () {
+    saveEntry(name, es, pw).then(function () {
       dlg.close();
       loadEntries();
-    }).catch(function () {
-      err.textContent = "Nem sikerült menteni. Próbáld újra egy perc múlva.";
+    }).catch(function (e2) {
+      err.textContent = (e2 && e2.fromServer) ? e2.message : "Nem sikerült menteni. Próbáld újra egy perc múlva.";
       $("save-btn").disabled = false;
     });
   });
