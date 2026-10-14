@@ -101,28 +101,58 @@
   .zm .panel .n { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-weight: 700; }
   .zm .panel li.past { opacity: .5; } .zm .panel li.next .n { color: var(--accent); }
   @media (max-width: 640px) { .zm > button { padding: 8px 10px; } .zm .lbl { display: none; } }
+
+  main { max-width: 1240px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 40px; align-items: start; }
+  .side { position: sticky; top: 76px; align-self: start; }
+  .side-in { background: var(--card); border-radius: 14px; padding: 16px 18px 8px; max-height: calc(100vh - 100px); overflow: auto; }
+  .side h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 6px; }
+  .side .closes { border-top: 0; }
+  .side .closes li { grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; padding: 11px 0; font-size: 1rem; border-bottom: 1px solid var(--track); align-items: center; }
+  .side .closes li:last-child { border-bottom: 0; }
+  .side .closes .m { color: var(--ink); }
+  .side .closes .d { grid-column: 1; grid-row: 2; font-size: .88rem; }
+  .side .closes .n { grid-column: 2; grid-row: 1 / span 2; font-weight: 700; color: var(--ink); }
+  .side .closes li.q .m::after { content: " (negyedéves)"; }
+  .side .closes li.ev .m::before { content: "★ "; color: var(--hot); }
+  .side .closes li.ev .m { color: var(--ink); }
+  body.home .zm { display: none; }
+  body.home .topnav .in { max-width: 1240px; padding: 0 0; }
+  body.home .topnav { padding: 0 24px; }
+  .hero { margin-top: clamp(24px, 5vw, 56px); }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+    .side { position: static; order: -1; }
+    .side-in { max-height: none; }
+  }
 </style>
 </head>
-<body>
+<body class="home">
 <nav class="topnav" aria-label="Főmenü"><div class="in"><a class="brand" href="index.html">Csikós BL csapat</a><ul><li><a href="index.html" aria-current="page">Kezdőlap</a></li><li><a href="negyedev.html">Negyedéves cél</a></li><li><a href="verseny.html">Versenyállások</a></li><li><a href="cegbemutato.html">Cégbemutató</a></li><li><a href="https://docs.google.com/spreadsheets/d/1YKwZYWzi1nBNX3HQCDXUlKeovPqnMce0A4C4hnYFaHY/edit" target="_blank" rel="noopener">Pipeline ↗</a></li></ul></div></nav>
 <main>
-  <div class="news" id="news"></div>
+  <div class="layout">
+    <div class="col">
+      <div class="news" id="news"></div>
 
-  <div class="hero">
-    <p class="lbl" id="h-lbl"></p>
-    <h1 class="when" id="h-when"></h1>
-    <p class="left" id="h-left"></p>
+      <div class="hero">
+        <p class="lbl" id="h-lbl"></p>
+        <h1 class="when" id="h-when"></h1>
+        <p class="left" id="h-left"></p>
+      </div>
+
+      <section>
+        <h2>Gyorslinkek</h2>
+        <ul class="links" id="links"></ul>
+      </section>
+    </div>
+
+    <aside class="side" aria-label="Fontos események">
+      <div class="side-in">
+        <h2>Fontos események</h2>
+        <ol class="closes" id="closes"></ol>
+      </div>
+    </aside>
   </div>
-
-  <section>
-    <h2>Zárások</h2>
-    <ol class="closes" id="closes"></ol>
-  </section>
-
-  <section>
-    <h2>Gyorslinkek</h2>
-    <ul class="links" id="links"></ul>
-  </section>
 </main>
 
 <script>
@@ -210,10 +240,25 @@
   if (!sameDay(next.date, now) && n0 > 1) $("h-left").appendChild(el("span", "", " van hátra"));
   else if (n0 === 1) $("h-left").appendChild(el("span", "", " van a zárás"));
 
+  // Egyéb fontos események (szerkeszd: új esemény = új sor)
+  var EVENTS = [
+    { date: new Date(2027, 3, 22, 23, 59, 59), title: "Erdély incentive út", dateText: "2027. április 22–25." }
+  ];
+
   var list = $("closes");
-  var shown = all.slice(Math.max(0, nextIdx - 1), nextIdx + 4);
-  shown.forEach(function (c, i) {
-    var past = c.date < now;
+  var items = all.slice(Math.max(0, nextIdx - 1), nextIdx + 4).map(function (c) { return { date: c.date, close: c }; });
+  EVENTS.forEach(function (ev) { if (ev.date >= now) items.push({ date: ev.date, ev: ev }); });
+  items.sort(function (x, y) { return x.date - y.date; });
+  items.forEach(function (it) {
+    var past = it.date < now;
+    if (it.ev) {
+      var lie = el("li", "ev");
+      lie.appendChild(el("span", "m", it.ev.title));
+      lie.appendChild(el("span", "d", it.ev.dateText));
+      lie.appendChild(el("span", "n", sameDay(it.date, now) ? "ma" : daysTo(it.date) + " nap"));
+      list.appendChild(lie); return;
+    }
+    var c = it.close;
     var li = el("li", (past ? "past " : "") + (c === next ? "next " : "") + (c.quarter ? "q" : ""));
     li.appendChild(el("span", "m", monthAdj[c.month].charAt(0).toUpperCase() + monthAdj[c.month].slice(1) + " zárás"));
     li.appendChild(el("span", "d", fmt(c.date)));
