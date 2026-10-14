@@ -13,6 +13,8 @@
     --ink: #003366;
     --muted: #336699;
     --accent: #003366;
+    --csk: #006666;
+    --frk: #cc0066;
     --on-accent: #ffffff;
     --time: #6699cc;
     --track: #e5e5e5;
@@ -24,6 +26,8 @@
       --ink: #ffffff;
       --muted: #6699cc;
       --accent: #ff99cc;
+      --csk: #66cccc;
+      --frk: #ff99cc;
       --on-accent: #001f3d;
       --time: #336699;
       --track: #00305a;
@@ -137,6 +141,26 @@
   @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
 
 
+
+  .teams { margin-top: 28px; }
+  .teams h2 { font-size: 1.1rem; margin: 0 0 12px; }
+  .team { margin-bottom: 18px; }
+  .fill.units { display: flex; overflow: hidden; }
+  .fill.units .sp { height: 100%; transition: width .8s ease; }
+  .fill.units .sp.csk { background: var(--csk); } .fill.units .sp.frk { background: var(--frk); }
+  .outl { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; display: flex; pointer-events: none; }
+  .outl span { flex: none; } .outl .gap { background: none; }
+  .outl .csk, .outl .frk { opacity: .3; }
+  .outl span { height: 100%; transition: width .8s ease; }
+  .outl .csk { background: var(--csk); } .outl .frk { background: var(--frk); }
+  .team .head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-weight: 700; }
+  .team .head .nm { color: var(--tc); }
+  .team .head .val { font-variant-numeric: tabular-nums; }
+  .team .bar { height: 18px; position: relative; overflow: hidden; }
+  .team .seg { position: absolute; left: 0; top: 0; bottom: 0; background: var(--tc); border-radius: inherit; transition: width .8s ease; }
+  .team .seg.out { opacity: .3; }
+  .team .sub { color: var(--muted); font-size: .92rem; margin-top: 4px; }
+  .team.csk { --tc: var(--csk); } .team.frk { --tc: var(--frk); }
   .basis { margin: 6px 0 0; color: var(--muted); font-size: .92rem; line-height: 1.5; }
   .basis b { color: var(--ink); }
   .topnav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; background: var(--bg); border-bottom: 1px solid var(--track); }
@@ -189,7 +213,8 @@
   <div class="scale units">
     <div class="tag tag-commit" id="tag-commit"></div>
     <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="bar">
-      <div class="fill units" id="fill"></div>
+      <div class="fill units" id="fill"><span class="sp csk" id="sp-csk"></span><span class="sp frk" id="sp-frk"></span></div>
+      <div class="outl" id="outl"><span class="gap" id="ol-gap"></span><span class="csk" id="ol-csk"></span><span class="frk" id="ol-frk"></span></div>
     </div>
     <div class="marker" id="marker"></div>
     <div class="tag tag-goal" id="tag-goal"></div>
@@ -201,6 +226,12 @@
     <div id="line-days"></div>
     <div id="line-pace"></div>
   </div>
+
+  <section class="teams" id="teams" hidden>
+    <h2>Csapatok teljesítménye</h2>
+    <div class="team csk" id="t-csikos"></div>
+    <div class="team frk" id="t-farkas"></div>
+  </section>
 
   <p class="basis" id="basis"></p>
   <p class="status" id="status" role="status"></p>
@@ -277,6 +308,14 @@
     var leftGoal = Math.max(0, GOAL - total);
     var pct = Math.min(100, total / GOAL * 100);
     $("fill").style.width = pct + "%";
+    var tc = lastTeams && lastTeams.csikos ? lastTeams.csikos.done : 0, tf = lastTeams && lastTeams.farkas ? lastTeams.farkas.done : 0;
+    var oc = lastTeams && lastTeams.csikos ? Math.max(0, lastTeams.csikos.outlook - lastTeams.csikos.done) : 0,
+        of = lastTeams && lastTeams.farkas ? Math.max(0, lastTeams.farkas.outlook - lastTeams.farkas.done) : 0;
+    var room = Math.max(0, 100 - pct), ow = Math.min(room, (oc + of) / GOAL * 100), osc = (oc + of) > 0 ? ow / (oc + of) : 0;
+    $("ol-gap").style.width = pct + "%";
+    $("ol-csk").style.width = (oc * osc) + "%"; $("ol-frk").style.width = (of * osc) + "%";
+    if (tc + tf > 0) { $("fill").style.background = "none"; $("sp-csk").style.width = (tc / (tc + tf) * 100) + "%"; $("sp-frk").style.width = (tf / (tc + tf) * 100) + "%"; }
+    else { $("fill").style.background = ""; $("sp-csk").style.width = "0"; $("sp-frk").style.width = "0"; }
     $("bar").setAttribute("aria-valuenow", Math.round(pct));
 
     $("line-commit").innerHTML = leftCommit > 0
@@ -317,7 +356,25 @@
   var MONTH_NAME = ["január","február","március","április","május","június","július","augusztus","szeptember","október","november","december"];
   function closeOf(m) { return firstTuesday(Math.floor(m / 100), m % 100); }   // m: ÉÉÉÉHH; a következő hónap első kedd
 
+  var lastTeams = null;
+  function renderTeams(t) {
+    lastTeams = t || null;
+    if (!t) return;
+    var defs = [["csikos", "Csikós csapat"], ["farkas", "Farkas csapat"]], any = false;
+    defs.forEach(function (d) {
+      var x = t[d[0]], el = $("t-" + d[0]);
+      if (!x) { el.innerHTML = ""; return; }
+      any = true;
+      var max = Math.max(x.goal, x.outlook, x.done, 1);
+      el.innerHTML = '<div class="head"><span class="nm">' + d[1] + '</span><span class="val">' + nf.format(x.done) + ' / ' + nf.format(x.goal) + ' ' + LABEL + '</span></div>' +
+        '<div class="bar"><div class="seg out" style="width:' + Math.min(100, x.outlook / max * 100) + '%"></div><div class="seg" style="width:' + Math.min(100, x.done / max * 100) + '%"></div></div>' +
+        '<div class="sub">Kilátás: ' + nf.format(x.outlook) + ' · Hiányzik a célból: ' + nf.format(x.missing) + '</div>';
+    });
+    $("teams").hidden = !any;
+  }
+
   function applyData(d) {
+    renderTeams(d.teams);
     var by = (d.counter || {}), months = (d.months || Object.keys(by).map(Number)).slice().sort();
     var cur = months[months.length - 1];
     for (var i = 0; i < months.length; i++) { if (closeOf(months[i]) >= now) { cur = months[i]; break; } }
