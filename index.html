@@ -58,11 +58,24 @@
     .closes .d { grid-column: 1; grid-row: 2; font-size: .92rem; }
     .closes .n { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
   }
+
+  .news { margin: clamp(20px, 4vw, 32px) 0 0; display: grid; gap: 12px; }
+  .news .item { background: var(--card); border-left: 6px solid var(--accent); border-radius: 12px;
+                padding: 18px 20px; display: grid; gap: 6px 20px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .news .tag { font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin: 0; }
+  .news h2 { margin: 0; font-size: clamp(1.2rem, 2.6vw, 1.6rem); }
+  .news p.txt { margin: 0; color: var(--muted); font-size: 1.02rem; }
+  .news .btn { background: var(--accent); color: #fff; text-decoration: none; font-weight: 700; padding: 12px 20px;
+               border-radius: 10px; white-space: nowrap; }
+  @media (prefers-color-scheme: dark) { .news .btn { color: #101626; } }
+  @media (max-width: 600px) { .news .item { grid-template-columns: 1fr; } .news .btn { text-align: center; } }
 </style>
 </head>
 <body>
 <main>
   <p class="brand">Csikós BL csapat</p>
+
+  <div class="news" id="news"></div>
 
   <div class="hero">
     <p class="lbl" id="h-lbl"></p>
@@ -82,6 +95,29 @@
 </main>
 
 <script>
+  // ====== HÍREK: új hír = új blokk, törlés = a blokk törlése ======
+  var NEWS = [
+    { tag: "Fontos – töltsd ki!", title: "2027. Erdély incentive kérdőív",
+      text: "Egy perc az egész: írd meg, szeretnél-e jönni Erdélybe (2027. április 22–25.), és hogy autóval vagy repülővel csatlakoznál.",
+      button: "Kitöltöm a kérdőívet", href: "https://forms.gle/LHhF8DjfFepu2SQb6" }
+  ];
+  (function () {
+    var box = document.getElementById("news");
+    NEWS.forEach(function (n) {
+      var item = document.createElement("div"); item.className = "item";
+      var left = document.createElement("div");
+      var t = document.createElement("p"); t.className = "tag"; t.textContent = n.tag; left.appendChild(t);
+      var h = document.createElement("h2"); h.textContent = n.title; left.appendChild(h);
+      var p = document.createElement("p"); p.className = "txt"; p.textContent = n.text; left.appendChild(p);
+      item.appendChild(left);
+      if (n.href) {
+        var a = document.createElement("a"); a.className = "btn"; a.href = n.href; a.target = "_blank"; a.rel = "noopener";
+        a.textContent = n.button || "Megnyitom"; item.appendChild(a);
+      }
+      box.appendChild(item);
+    });
+  })();
+
   // ====== EZT A LISTÁT SZERKESZD: új link = új sor ======
   var LINKS = [
     { title: "Számláló", desc: "Negyedéves állás a 11 000 ES-es vállaláshoz és a 12 500 ES-es célhoz.", href: "negyedev.html" },
