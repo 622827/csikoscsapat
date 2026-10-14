@@ -13,6 +13,7 @@
     --ink: #14213d;
     --muted: #5b6784;
     --accent: #1f3fbf;
+    --time: #8791ab;
     --track: #d3d9e8;
   }
   @media (prefers-color-scheme: dark) {
@@ -21,6 +22,7 @@
       --ink: #eef1f8;
       --muted: #97a3c2;
       --accent: #7f9bff;
+      --time: #6b7799;
       --track: #26304d;
     }
   }
@@ -45,11 +47,34 @@
     font-variant-numeric: tabular-nums;
     margin: 0;
   }
-  .goal { font-size: clamp(1.2rem, 3.5vw, 2.4rem); font-weight: 600; margin: 8px 0 32px; }
+  .goal { font-size: clamp(1.1rem, 3vw, 2.2rem); font-weight: 600; margin: 8px 0 8px; }
   .goal span { color: var(--muted); font-weight: 400; }
+
+  .cap { color: var(--muted); font-size: .85rem; letter-spacing: .06em; text-transform: uppercase; margin: 20px 0 0; }
+
+  .scale { position: relative; }
   .bar { height: 20px; background: var(--track); border-radius: 10px; overflow: hidden; }
-  .fill { height: 100%; width: 0; background: var(--accent); border-radius: 10px; transition: width 1.2s ease-out; }
-  .facts { display: flex; flex-wrap: wrap; gap: 8px 40px; margin-top: 20px; font-size: clamp(1rem, 2vw, 1.25rem); }
+  .fill { height: 100%; width: 0; border-radius: 10px; transition: width 1.2s ease-out; }
+  .fill.units { background: var(--accent); }
+  .fill.time { background: var(--time); }
+  .tag { position: absolute; font-size: clamp(.85rem, 1.8vw, 1.1rem); white-space: nowrap; line-height: 1.25; }
+  .tag b { font-weight: 700; }
+  .tag span { color: var(--muted); }
+
+  /* idősáv */
+  .scale.time { padding: 8px 0 78px; }
+  .tick { position: absolute; top: 2px; height: 32px; width: 3px; background: var(--ink); border-radius: 2px; transform: translateX(-50%); }
+  .tick.last { transform: translateX(-100%); }
+  .tick-label { top: 40px; transform: translateX(-50%); text-align: center; font-size: clamp(.78rem, 1.6vw, 1rem); }
+  .tick-label.last { transform: translateX(-100%); text-align: right; }
+
+  /* egységsáv */
+  .scale.units { padding: 40px 0 36px; }
+  .marker { position: absolute; top: 30px; bottom: 26px; width: 3px; background: var(--ink); border-radius: 2px; transform: translateX(-50%); }
+  .tag-commit { top: 0; transform: translateX(calc(-100% + 2px)); text-align: right; }
+  .tag-goal { bottom: 0; right: 0; text-align: right; }
+
+  .facts { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; font-size: clamp(1rem, 2vw, 1.25rem); }
   .facts b { font-weight: 700; }
   .facts span { color: var(--muted); }
   @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
@@ -59,14 +84,30 @@
 <main>
   <p class="quarter" id="quarter"></p>
   <h1 class="number" id="number">0</h1>
-  <p class="goal"><span>a</span> <span id="target-text"></span></p>
-  <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="bar">
-    <div class="fill" id="fill"></div>
+  <p class="goal" id="goal-text"></p>
+
+  <p class="cap" id="time-cap"></p>
+  <div class="scale time" id="time-scale">
+    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="time-bar">
+      <div class="fill time" id="time-fill"></div>
+    </div>
   </div>
+
+  <p class="cap">Egység</p>
+  <div class="scale units">
+    <div class="tag tag-commit" id="tag-commit"></div>
+    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="bar">
+      <div class="fill units" id="fill"></div>
+    </div>
+    <div class="marker" id="marker"></div>
+    <div class="tag tag-goal" id="tag-goal"></div>
+  </div>
+
   <div class="facts">
-    <div><b id="left"></b> <span>hiányzik</span></div>
-    <div><b id="days"></b> <span>nap van hátra</span></div>
-    <div><b id="pace"></b> <span>naponta kell a célhoz</span></div>
+    <div id="line-commit"></div>
+    <div id="line-goal"></div>
+    <div id="line-days"></div>
+    <div id="line-pace"></div>
   </div>
 </main>
 
@@ -75,12 +116,14 @@
   var CURRENT = 0;        // jelenlegi szám
   var LABEL = "ES";       // a mértékegység felirata
   // ===================================
-  var TARGET = 11000;     // negyedéves vállalás
+  var COMMIT = 11000;     // vállalás
+  var GOAL = 12500;       // cél (az egységsáv vége)
 
   var nf = new Intl.NumberFormat("hu-HU");
   var now = new Date();
+  function $(id) { return document.getElementById(id); }
+
   // A termelési hónap zárása a következő hónap első keddje.
-  // A negyedév zárása így a negyedévet követő hónap első keddje.
   function firstTuesday(year, month) {
     var d = new Date(year, month, 1);
     var offset = (2 - d.getDay() + 7) % 7;
@@ -93,23 +136,73 @@
       if (close >= now) { qEnd = close; q = i; qYear = y; break; }
     }
   }
+  // A negyedév kezdete az előző negyedév zárása (a negyedév első hónapjának első keddje).
+  var qStart = firstTuesday(qYear, q * 3);
+  var span = qEnd - qStart;
+  var elapsed = Math.min(1, Math.max(0, (now - qStart) / span));
+
   var daysLeft = Math.max(0, Math.ceil((qEnd - now) / 86400000));
-  var left = Math.max(0, TARGET - CURRENT);
-  var pct = Math.min(100, CURRENT / TARGET * 100);
-  var closeText = qEnd.toLocaleDateString("hu-HU", { year: "numeric", month: "long", day: "numeric" });
+  var leftCommit = Math.max(0, COMMIT - CURRENT);
+  var leftGoal = Math.max(0, GOAL - CURRENT);
+  var pct = Math.min(100, CURRENT / GOAL * 100);
+  var commitPct = COMMIT / GOAL * 100;
 
-  document.getElementById("quarter").textContent = qYear + " " + (q + 1) + ". negyedév, zárás: " + closeText + " (kedd)";
-  document.getElementById("target-text").textContent = nf.format(TARGET) + " " + LABEL + "-es vállalásból";
-  document.getElementById("left").textContent = nf.format(left) + " " + LABEL;
-  document.getElementById("days").textContent = daysLeft;
-  document.getElementById("pace").textContent = daysLeft > 0 ? nf.format(Math.ceil(left / daysLeft)) + " " + LABEL : "–";
-  document.getElementById("bar").setAttribute("aria-valuenow", Math.round(pct));
+  var monthShort = ["jan.", "febr.", "márc.", "ápr.", "máj.", "jún.", "júl.", "aug.", "szept.", "okt.", "nov.", "dec."];
+  function shortDate(d) { return monthShort[d.getMonth()] + " " + d.getDate() + "."; }
 
-  var numEl = document.getElementById("number");
+  $("quarter").textContent = qYear + " " + (q + 1) + ". negyedév";
+  $("goal-text").innerHTML = "<span>vállalás</span> " + nf.format(COMMIT) + " " + LABEL +
+    ", <span>cél</span> " + nf.format(GOAL) + " " + LABEL;
+
+  /* ---- Idősáv: a zárások az idő arányában, alattuk hol kellene tartanunk ---- */
+  $("time-cap").textContent = "Idő (" + shortDate(qStart) + " – " + shortDate(qEnd) + ")";
+  var ticks = "";
+  for (var k = 0; k < 3; k++) {
+    var m = q * 3 + k;
+    var cd = firstTuesday(qYear, m + 1);
+    var pos = Math.min(1, Math.max(0, (cd - qStart) / span));
+    var expected = Math.round(COMMIT * pos / 10) * 10;
+    var last = pos > 0.97 ? " last" : "";
+    var done = cd < now ? ' style="opacity:.55"' : "";
+    ticks += '<div class="tick' + last + '" style="left:' + (pos * 100) + '%"' + done + '></div>' +
+      '<div class="tag tick-label' + last + '" style="left:' + (pos * 100) + '%"' + done + '>' +
+      '<b>' + monthShort[m] + ' zárás</b><br><span>' + shortDate(cd) + '</span><br>' +
+      '<span>kb.</span> <b>' + nf.format(expected) + ' ' + LABEL + '</b></div>';
+  }
+  $("time-scale").insertAdjacentHTML("beforeend", ticks);
+  $("time-bar").setAttribute("aria-valuenow", Math.round(elapsed * 100));
+
+  /* ---- Egységsáv: vállalás és cél ---- */
+  $("marker").style.left = commitPct + "%";
+  $("tag-commit").style.left = commitPct + "%";
+  $("tag-commit").innerHTML = "<b>" + nf.format(COMMIT) + "</b> <span>vállalás</span>";
+  $("tag-goal").innerHTML = "<b>" + nf.format(GOAL) + "</b> <span>cél</span>";
+  $("bar").setAttribute("aria-valuenow", Math.round(pct));
+
+  /* ---- Alsó sorok ---- */
+  $("line-commit").innerHTML = leftCommit > 0
+    ? "<span>A vállalásig hátravan:</span> <b>" + nf.format(leftCommit) + " " + LABEL + "</b>"
+    : "<b>A vállalás teljesítve</b>";
+  $("line-goal").innerHTML = "<span>A célig hátravan:</span> <b>" + nf.format(leftGoal) + " " + LABEL + "</b>";
+  $("line-days").innerHTML = "<b>" + daysLeft + "</b> <span>nap van hátra</span>";
+  if (daysLeft > 0) {
+    $("line-pace").innerHTML = leftCommit > 0
+      ? "<span>naponta</span> <b>" + nf.format(Math.ceil(leftCommit / daysLeft)) + " " + LABEL + "</b> <span>a vállalás teljesítéséhez.</span>"
+      : "<span>naponta</span> <b>" + nf.format(Math.ceil(leftGoal / daysLeft)) + " " + LABEL + "</b> <span>a cél teljesítéséhez.</span>";
+  } else {
+    $("line-pace").textContent = "";
+  }
+
+  /* ---- Szám és sávok animációja ---- */
+  var numEl = $("number");
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function setBars() {
+    $("fill").style.width = pct + "%";
+    $("time-fill").style.width = (elapsed * 100) + "%";
+  }
   if (reduce || CURRENT === 0) {
     numEl.textContent = nf.format(CURRENT);
-    document.getElementById("fill").style.width = pct + "%";
+    setBars();
   } else {
     var start = null, dur = 1200;
     requestAnimationFrame(function step(t) {
@@ -118,7 +211,7 @@
       numEl.textContent = nf.format(Math.round(CURRENT * (1 - Math.pow(1 - p, 3))));
       if (p < 1) requestAnimationFrame(step);
     });
-    requestAnimationFrame(function () { document.getElementById("fill").style.width = pct + "%"; });
+    requestAnimationFrame(setBars);
   }
 </script>
 </body>
