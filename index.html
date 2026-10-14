@@ -13,8 +13,10 @@
     --ink: #14213d;
     --muted: #5b6784;
     --accent: #1f3fbf;
+    --on-accent: #ffffff;
     --time: #8791ab;
     --track: #d3d9e8;
+    --card: #ffffff;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -22,13 +24,19 @@
       --ink: #eef1f8;
       --muted: #97a3c2;
       --accent: #7f9bff;
+      --on-accent: #101626;
       --time: #6b7799;
       --track: #26304d;
+      --card: #182038;
     }
   }
   * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
+  html { margin: 0; }
   body {
+    margin: 0;
+    position: relative;
+    min-height: 100vh;
+    min-height: 100dvh;
     background: var(--bg);
     color: var(--ink);
     font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -36,7 +44,17 @@
     place-items: center;
     padding: 24px;
   }
-  main { width: 100%; max-width: 1100px; }
+  main { width: 100%; max-width: 1100px; padding-top: 48px; }
+
+  .add-btn {
+    position: absolute; top: 16px; right: 16px;
+    font: inherit; font-weight: 700; font-size: 1rem;
+    background: var(--accent); color: var(--on-accent);
+    border: 0; border-radius: 999px; padding: 12px 20px; cursor: pointer;
+  }
+  .add-btn:hover { filter: brightness(1.08); }
+  .add-btn:focus-visible, .btn:focus-visible, dialog input:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
   .quarter { color: var(--muted); font-size: clamp(1rem, 2.2vw, 1.4rem); margin: 0 0 8px; }
   .number {
     font-size: clamp(5rem, 24vw, 20rem);
@@ -53,10 +71,11 @@
   .cap { color: var(--muted); font-size: .85rem; letter-spacing: .06em; text-transform: uppercase; margin: 20px 0 0; }
 
   .scale { position: relative; }
-  .bar { height: 20px; background: var(--track); border-radius: 10px; overflow: hidden; }
+  .bar { position: relative; height: 20px; background: var(--track); border-radius: 10px; overflow: hidden; }
   .fill { height: 100%; width: 0; border-radius: 10px; transition: width 1.2s ease-out; }
   .fill.units { background: var(--accent); }
   .fill.time { background: var(--time); }
+  .ms-tick { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--bg); opacity: .85; transform: translateX(-1px); }
   .tag { position: absolute; font-size: clamp(.85rem, 1.8vw, 1.1rem); white-space: nowrap; line-height: 1.25; }
   .tag b { font-weight: 700; }
   .tag span { color: var(--muted); }
@@ -77,10 +96,50 @@
   .facts { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; font-size: clamp(1rem, 2vw, 1.25rem); }
   .facts b { font-weight: 700; }
   .facts span { color: var(--muted); }
+
+  /* mérföldkövek */
+  .ms-list { list-style: none; margin: 8px 0 0; padding: 0; max-height: 340px; overflow-y: auto; border-top: 1px solid var(--track); }
+  .ms-list li {
+    display: grid; grid-template-columns: 1fr auto auto auto; gap: 4px 16px; align-items: baseline;
+    padding: 10px 4px; border-bottom: 1px solid var(--track); font-size: clamp(.95rem, 1.8vw, 1.1rem);
+  }
+  .ms-list li.latest { background: var(--card); }
+  .ms-name { font-weight: 700; overflow-wrap: anywhere; }
+  .ms-es { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .ms-total, .ms-date { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ms-empty { color: var(--muted); margin: 8px 0 0; }
+  .status { color: var(--muted); font-size: .9rem; margin: 8px 0 0; min-height: 1.2em; }
+
+  /* ablak */
+  dialog { border: 1px solid var(--track); border-radius: 18px; padding: 0; background: var(--bg); color: var(--ink); width: min(420px, calc(100vw - 32px)); }
+  dialog::backdrop { background: rgba(10, 15, 30, .55); }
+  .dlg-body { padding: 24px; }
+  .dlg-body h2 { margin: 0 0 16px; font-size: 1.4rem; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-weight: 600; margin-bottom: 6px; }
+  .field input {
+    width: 100%; font: inherit; font-size: 1.1rem; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--muted); background: var(--card); color: var(--ink);
+  }
+  .dlg-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+  .btn { font: inherit; font-weight: 700; border-radius: 999px; padding: 11px 20px; cursor: pointer; border: 1px solid var(--muted); background: transparent; color: var(--ink); }
+  .btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .btn[disabled] { opacity: .6; cursor: default; }
+  .dlg-note { color: var(--muted); font-size: .9rem; margin: 0 0 12px; }
+  .dlg-error { color: #c0392b; font-weight: 600; min-height: 1.2em; margin: 0; }
+  @media (prefers-color-scheme: dark) { .dlg-error { color: #ff8a7a; } }
+
+  @media (max-width: 520px) {
+    .add-btn { font-size: .9rem; padding: 10px 16px; }
+    .ms-list li { grid-template-columns: 1fr auto; }
+    .ms-total, .ms-date { font-size: .85rem; }
+  }
   @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
 </style>
 </head>
 <body>
+<button class="add-btn" id="add-btn" type="button">Szerződést köttöttem!</button>
+
 <main>
   <p class="quarter" id="quarter"></p>
   <h1 class="number" id="number">0</h1>
@@ -109,18 +168,47 @@
     <div id="line-days"></div>
     <div id="line-pace"></div>
   </div>
+
+  <p class="cap">Mérföldkövek</p>
+  <ol class="ms-list" id="ms-list"></ol>
+  <p class="ms-empty" id="ms-empty">Még nincs rögzített szerződés.</p>
+  <p class="status" id="status" role="status"></p>
 </main>
 
+<dialog id="dlg" aria-labelledby="dlg-title">
+  <div class="dlg-body">
+    <h2 id="dlg-title">Szerződést köttöttem!</h2>
+    <p class="dlg-note" id="dlg-note" hidden>Teszt mód: a bejegyzés csak ezen a böngészőn látszik, amíg nincs adatbázis bekötve.</p>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="f-es">Hány ES?</label>
+        <input id="f-es" type="number" inputmode="numeric" min="1" max="100000" step="1" required>
+      </div>
+      <div class="field">
+        <label for="f-name">Hogy hívnak?</label>
+        <input id="f-name" type="text" maxlength="40" autocomplete="name" required>
+      </div>
+      <p class="dlg-error" id="dlg-error" role="alert"></p>
+      <div class="dlg-actions">
+        <button type="button" class="btn" id="cancel-btn">Mégse</button>
+        <button type="submit" class="btn primary" id="save-btn">Mentés</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
 <script>
-  // ====== EZT A KÉT SORT ÍRD ÁT ======
-  var CURRENT = 0;        // jelenlegi szám
+  // ====== EZT A HÁROM SORT ÍRD ÁT ======
+  var CURRENT = 0;        // kézi alapérték: az űrlapon rögzített szerződések ehhez adódnak hozzá
   var LABEL = "ES";       // a mértékegység felirata
-  // ===================================
+  var API_URL = "";       // a Google Apps Script webalkalmazás címe (lásd az útmutatót)
+  // =====================================
   var COMMIT = 11000;     // vállalás
   var GOAL = 12500;       // cél (az egységsáv vége)
 
   var nf = new Intl.NumberFormat("hu-HU");
   var now = new Date();
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   function $(id) { return document.getElementById(id); }
 
   // A termelési hónap zárása a következő hónap első keddje.
@@ -140,21 +228,17 @@
   var qStart = firstTuesday(qYear, q * 3);
   var span = qEnd - qStart;
   var elapsed = Math.min(1, Math.max(0, (now - qStart) / span));
-
   var daysLeft = Math.max(0, Math.ceil((qEnd - now) / 86400000));
-  var leftCommit = Math.max(0, COMMIT - CURRENT);
-  var leftGoal = Math.max(0, GOAL - CURRENT);
-  var pct = Math.min(100, CURRENT / GOAL * 100);
   var commitPct = COMMIT / GOAL * 100;
 
   var monthShort = ["jan.", "febr.", "márc.", "ápr.", "máj.", "jún.", "júl.", "aug.", "szept.", "okt.", "nov.", "dec."];
   function shortDate(d) { return monthShort[d.getMonth()] + " " + d.getDate() + "."; }
 
+  /* ---- Állandó részek ---- */
   $("quarter").textContent = qYear + " " + (q + 1) + ". negyedév";
   $("goal-text").innerHTML = "<span>vállalás</span> " + nf.format(COMMIT) + " " + LABEL +
     ", <span>cél</span> " + nf.format(GOAL) + " " + LABEL;
 
-  /* ---- Idősáv: a zárások az idő arányában, alattuk hol kellene tartanunk ---- */
   $("time-cap").textContent = "Idő (" + shortDate(qStart) + " – " + shortDate(qEnd) + ")";
   var ticks = "";
   for (var k = 0; k < 3; k++) {
@@ -171,47 +255,176 @@
   }
   $("time-scale").insertAdjacentHTML("beforeend", ticks);
   $("time-bar").setAttribute("aria-valuenow", Math.round(elapsed * 100));
+  $("time-fill").style.width = (elapsed * 100) + "%";
 
-  /* ---- Egységsáv: vállalás és cél ---- */
   $("marker").style.left = commitPct + "%";
   $("tag-commit").style.left = commitPct + "%";
   $("tag-commit").innerHTML = "<b>" + nf.format(COMMIT) + "</b> <span>vállalás</span>";
   $("tag-goal").innerHTML = "<b>" + nf.format(GOAL) + "</b> <span>cél</span>";
-  $("bar").setAttribute("aria-valuenow", Math.round(pct));
 
-  /* ---- Alsó sorok ---- */
-  $("line-commit").innerHTML = leftCommit > 0
-    ? "<span>A vállalásig hátravan:</span> <b>" + nf.format(leftCommit) + " " + LABEL + "</b>"
-    : "<b>A vállalás teljesítve</b>";
-  $("line-goal").innerHTML = "<span>A célig hátravan:</span> <b>" + nf.format(leftGoal) + " " + LABEL + "</b>";
-  $("line-days").innerHTML = "<b>" + daysLeft + "</b> <span>nap van hátra</span>";
-  if (daysLeft > 0) {
-    $("line-pace").innerHTML = leftCommit > 0
-      ? "<span>naponta</span> <b>" + nf.format(Math.ceil(leftCommit / daysLeft)) + " " + LABEL + "</b> <span>a vállalás teljesítéséhez.</span>"
-      : "<span>naponta</span> <b>" + nf.format(Math.ceil(leftGoal / daysLeft)) + " " + LABEL + "</b> <span>a cél teljesítéséhez.</span>";
-  } else {
-    $("line-pace").textContent = "";
-  }
-
-  /* ---- Szám és sávok animációja ---- */
-  var numEl = $("number");
-  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  function setBars() {
+  /* ---- A számtól függő részek ---- */
+  function renderTotals(total) {
+    var leftCommit = Math.max(0, COMMIT - total);
+    var leftGoal = Math.max(0, GOAL - total);
+    var pct = Math.min(100, total / GOAL * 100);
     $("fill").style.width = pct + "%";
-    $("time-fill").style.width = (elapsed * 100) + "%";
+    $("bar").setAttribute("aria-valuenow", Math.round(pct));
+
+    $("line-commit").innerHTML = leftCommit > 0
+      ? "<span>A vállalásig hátravan:</span> <b>" + nf.format(leftCommit) + " " + LABEL + "</b>"
+      : "<b>A vállalás teljesítve</b>";
+    $("line-goal").innerHTML = leftGoal > 0
+      ? "<span>A célig hátravan:</span> <b>" + nf.format(leftGoal) + " " + LABEL + "</b>"
+      : "<b>A cél teljesítve</b>";
+    $("line-days").innerHTML = "<b>" + daysLeft + "</b> <span>nap van hátra</span>";
+    if (daysLeft > 0 && leftGoal > 0) {
+      $("line-pace").innerHTML = leftCommit > 0
+        ? "<span>naponta</span> <b>" + nf.format(Math.ceil(leftCommit / daysLeft)) + " " + LABEL + "</b> <span>a vállalás teljesítéséhez.</span>"
+        : "<span>naponta</span> <b>" + nf.format(Math.ceil(leftGoal / daysLeft)) + " " + LABEL + "</b> <span>a cél teljesítéséhez.</span>";
+    } else {
+      $("line-pace").textContent = "";
+    }
   }
-  if (reduce || CURRENT === 0) {
-    numEl.textContent = nf.format(CURRENT);
-    setBars();
-  } else {
-    var start = null, dur = 1200;
+
+  var numEl = $("number");
+  var shown = 0, animToken = 0;
+  function animateNumber(to) {
+    var from = shown, token = ++animToken;
+    if (reduce || from === to) { shown = to; numEl.textContent = nf.format(to); return; }
+    var t0 = null, dur = 900;
     requestAnimationFrame(function step(t) {
-      if (!start) start = t;
-      var p = Math.min(1, (t - start) / dur);
-      numEl.textContent = nf.format(Math.round(CURRENT * (1 - Math.pow(1 - p, 3))));
+      if (token !== animToken) return;
+      if (!t0) t0 = t;
+      var p = Math.min(1, (t - t0) / dur);
+      shown = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3)));
+      numEl.textContent = nf.format(shown);
       if (p < 1) requestAnimationFrame(step);
     });
-    requestAnimationFrame(setBars);
+  }
+
+  /* ---- Szerződések (mérföldkövek) ---- */
+  function normalize(items) {
+    return (items || []).map(function (i) {
+      return { t: new Date(i.t), name: String(i.name || "").slice(0, 40), es: Math.floor(Number(i.es)) };
+    }).filter(function (e) {
+      return e.name && e.es > 0 && !isNaN(e.t) && e.t > qStart && e.t <= qEnd;
+    }).sort(function (a, b) { return a.t - b.t; });
+  }
+
+  function renderMilestones(list) {
+    var ol = $("ms-list");
+    ol.textContent = "";
+    var bar = $("bar");
+    Array.prototype.slice.call(bar.querySelectorAll(".ms-tick")).forEach(function (n) { n.remove(); });
+
+    list.forEach(function (e) {
+      var tick = document.createElement("div");
+      tick.className = "ms-tick";
+      tick.style.left = Math.min(100, e.cum / GOAL * 100) + "%";
+      tick.title = e.name + " +" + e.es + " " + LABEL;
+      bar.appendChild(tick);
+    });
+
+    list.slice().reverse().forEach(function (e, idx) {
+      var li = document.createElement("li");
+      if (idx === 0) li.className = "latest";
+      function cell(cls, text) { var s = document.createElement("span"); s.className = cls; s.textContent = text; li.appendChild(s); }
+      cell("ms-name", e.name);
+      cell("ms-es", "+" + nf.format(e.es) + " " + LABEL);
+      cell("ms-total", "→ " + nf.format(e.cum) + " " + LABEL);
+      cell("ms-date", shortDate(e.t));
+      ol.appendChild(li);
+    });
+    $("ms-empty").hidden = list.length > 0;
+  }
+
+  function refresh(items) {
+    var list = normalize(items);
+    var run = CURRENT;
+    list.forEach(function (e) { run += e.es; e.cum = run; });
+    renderTotals(run);
+    animateNumber(run);
+    renderMilestones(list);
+  }
+
+  /* ---- Tárolás: Google Apps Script, vagy teszt módban a böngésző ---- */
+  var LOCAL_KEY = "csikoscsapat-szerzodesek";
+  function readLocal() { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || "[]"); } catch (e) { return []; } }
+  function writeLocal(items) { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(items)); } catch (e) {} }
+
+  function loadEntries() {
+    if (!API_URL) { refresh(readLocal()); return; }
+    fetch(API_URL + (API_URL.indexOf("?") > -1 ? "&" : "?") + "_=" + Date.now())
+      .then(function (r) { return r.json(); })
+      .then(function (d) { $("status").textContent = ""; refresh(d.items); })
+      .catch(function () { $("status").textContent = "Az adatok betöltése most nem sikerült."; });
+  }
+
+  function saveEntry(name, es) {
+    if (!API_URL) {
+      var items = readLocal();
+      items.push({ t: new Date().toISOString(), name: name, es: es });
+      writeLocal(items);
+      return Promise.resolve();
+    }
+    return fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ name: name, es: es })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok) throw new Error(d.error || "Mentési hiba");
+    }).catch(function (err) {
+      // Lehet, hogy a mentés sikerült, csak a választ nem sikerült kiolvasni: ellenőrizzük a listát.
+      return new Promise(function (res) { setTimeout(res, 1500); })
+        .then(function () { return fetch(API_URL + (API_URL.indexOf("?") > -1 ? "&" : "?") + "_=" + Date.now()); })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var ok = (d.items || []).some(function (i) {
+            return i.name === name && Number(i.es) === es && Date.now() - new Date(i.t) < 120000;
+          });
+          if (!ok) throw err;
+        });
+    });
+  }
+
+  /* ---- Ablak ---- */
+  var dlg = $("dlg"), form = $("form");
+  $("dlg-note").hidden = !!API_URL;
+
+  $("add-btn").addEventListener("click", function () {
+    form.reset();
+    $("dlg-error").textContent = "";
+    $("save-btn").disabled = false;
+    dlg.showModal();
+    $("f-es").focus();
+  });
+  $("cancel-btn").addEventListener("click", function () { dlg.close(); });
+  dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var es = Number($("f-es").value);
+    var name = $("f-name").value.trim().slice(0, 40);
+    var err = $("dlg-error");
+    if (!(es >= 1 && es <= 100000) || Math.floor(es) !== es) { err.textContent = "Adj meg egy egész számot 1 és 100 000 között."; $("f-es").focus(); return; }
+    if (!name) { err.textContent = "Írd be a neved."; $("f-name").focus(); return; }
+    err.textContent = "";
+    $("save-btn").disabled = true;
+    saveEntry(name, es).then(function () {
+      dlg.close();
+      loadEntries();
+    }).catch(function () {
+      err.textContent = "Nem sikerült menteni. Próbáld újra egy perc múlva.";
+      $("save-btn").disabled = false;
+    });
+  });
+
+  /* ---- Indulás ---- */
+  renderTotals(CURRENT);
+  loadEntries();
+  if (API_URL) {
+    setInterval(loadEntries, 60000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) loadEntries(); });
   }
 </script>
 </body>
