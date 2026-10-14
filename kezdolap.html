@@ -133,6 +133,22 @@
   @keyframes ldmove { 0% { left: -40%; } 100% { left: 100%; } }
   @keyframes ldpulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
   @media (prefers-reduced-motion: reduce) { .ldbar::before { animation-duration: 3s; } body.loading .ldp { animation: none !important; } }
+
+  /* beúszó szövegek */
+  @keyframes swimin { from { opacity: 0; transform: translateY(22px); filter: blur(8px); } to { opacity: 1; transform: none; filter: blur(0); } }
+  .news .item, .hero > *, .col section > h2, .links li, .side-in > h2, .side .closes li {
+    animation: swimin .9s cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(var(--i, 0) * 90ms + 80ms);
+  }
+  .news .item:nth-child(1) { --i: 0; } .news .item:nth-child(2) { --i: 1; } .news .item:nth-child(3) { --i: 2; } .news .item:nth-child(4) { --i: 3; }
+  .hero > :nth-child(1) { --i: 2; } .hero > :nth-child(2) { --i: 3; } .hero > :nth-child(3) { --i: 4; }
+  .col section > h2 { --i: 5; }
+  .links li:nth-child(1) { --i: 6; } .links li:nth-child(2) { --i: 7; } .links li:nth-child(3) { --i: 8; } .links li:nth-child(4) { --i: 9; } .links li:nth-child(5) { --i: 10; }
+  .side-in > h2 { --i: 1; }
+  .side .closes li:nth-child(1) { --i: 2; } .side .closes li:nth-child(2) { --i: 3; } .side .closes li:nth-child(3) { --i: 4; }
+  .side .closes li:nth-child(4) { --i: 5; } .side .closes li:nth-child(5) { --i: 6; } .side .closes li:nth-child(n+6) { --i: 7; }
+  @media (prefers-reduced-motion: reduce) {
+    .news .item, .hero > *, .col section > h2, .links li, .side-in > h2, .side .closes li { animation: none; }
+  }
 </style>
 </head>
 <body class="home">
