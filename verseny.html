@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verseny állás</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #eef1f6; --ink: #14213d; --muted: #5b6784; --accent: #1f3fbf; --on-accent: #fff;
+    --soft: #9fb0ee; --track: #d3d9e8; --card: #ffffff; --gold: #b7791f; --gold-bg: #fdf3dc; --ok: #1d7a4a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101626; --ink: #eef1f8; --muted: #97a3c2; --accent: #7f9bff; --on-accent: #101626;
+      --soft: #3d4f8f; --track: #26304d; --card: #182038; --gold: #f2c35b; --gold-bg: #2b2616; --ok: #6fd39b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); padding: 24px;
+         font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1; letter-spacing: -.03em; margin: 8px 0 8px; }
+  h2 { font-size: clamp(1.15rem, 2.6vw, 1.5rem); margin: 36px 0 12px; }
+  .lead { color: var(--muted); font-size: clamp(1rem, 2vw, 1.2rem); margin: 0; max-width: 62ch; }
+  .meta { color: var(--muted); font-size: .9rem; margin: 10px 0 0; min-height: 1.2em; }
+  .msg { background: var(--card); border: 1px solid var(--track); border-radius: 14px; padding: 16px 18px; margin-top: 20px; }
+  a { color: var(--accent); }
+
+  /* összesített állás */
+  .stand { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--track); }
+  .row { display: grid; grid-template-columns: 2.2rem minmax(0, 1.1fr) 5.2rem minmax(0, 1.6fr); gap: 6px 16px;
+         align-items: center; padding: 14px 8px; border-bottom: 1px solid var(--track); }
+  .row.prize { background: var(--gold-bg); }
+  .pos { font-weight: 700; font-size: 1.3rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .row.prize .pos { color: var(--gold); }
+  .who b { display: block; font-size: 1.1rem; overflow-wrap: anywhere; }
+  .who span { color: var(--muted); font-size: .88rem; }
+  .pts { text-align: right; font-weight: 700; font-size: 1.6rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .pts small { display: block; font-size: .75rem; font-weight: 400; color: var(--muted); }
+  .qual .bar { position: relative; height: 14px; background: var(--track); border-radius: 7px; overflow: hidden; }
+  .qual .own { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
+  .qual .rec { position: absolute; top: 0; bottom: 0; background: var(--soft); }
+  .qual .min { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--ink); opacity: .8; transform: translateX(-1px); }
+  .qual p { margin: 6px 0 0; font-size: .88rem; color: var(--muted); }
+  .qual p b { color: var(--ink); }
+  .ok { color: var(--ok); font-weight: 700; }
+  .tag { display: inline-block; font-size: .78rem; font-weight: 700; color: var(--gold); border: 1px solid var(--gold); border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
+
+  /* havi kártyák */
+  .months { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; }
+  .month { background: var(--card); border: 1px solid var(--track); border-radius: 16px; padding: 18px; }
+  .month h3 { margin: 0; font-size: 1.25rem; }
+  .month .st { color: var(--muted); font-size: .9rem; margin: 4px 0 2px; }
+  .month .prod { font-size: .9rem; margin: 0 0 12px; }
+  .month ol { list-style: none; margin: 0; padding: 0; }
+  .month li { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr) auto auto; gap: 8px; padding: 7px 0; border-top: 1px solid var(--track); align-items: baseline; }
+  .month li .r { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .month li .n { overflow-wrap: anywhere; }
+  .month li .e { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .month li .p { font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 700; min-width: 4.2ch; text-align: right; }
+  .empty { color: var(--muted); font-size: .95rem; margin: 6px 0 0; }
+
+  .rules { color: var(--muted); font-size: .92rem; max-width: 70ch; line-height: 1.5; }
+  .rules li { margin-bottom: 4px; }
+
+  @media (max-width: 640px) {
+    body { padding: 16px; }
+    .row { grid-template-columns: 1.8rem minmax(0, 1fr) 4.6rem; }
+    .row .qual { grid-column: 2 / -1; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Q4 verseny</h1>
+  <p class="lead" id="prize"></p>
+  <p class="meta" id="meta" role="status"></p>
+  <div class="msg" id="msg" hidden></div>
+
+  <div id="content" hidden>
+    <h2>Összesített állás</h2>
+    <ol class="stand" id="stand"></ol>
+
+    <h2>Havi rangsorok</h2>
+    <div class="months" id="months"></div>
+
+    <h2>Szabályok röviden</h2>
+    <ul class="rules" id="rules"></ul>
+  </div>
+</main>
+
+<script>
+  // ====== EZT AZ EGY SORT ÍRD ÁT ======
+  var API_URL = "";       // a versenyállás Google Apps Script webalkalmazás címe
+  // ====================================
+
+  var POINTS = [28, 21, 15, 10, 6];
+  var QUALIFY = 1000, RECRUIT_CREDIT = 250, MIN_OWN = 300, WINNERS = 3;
+  var MONTHS = [202610, 202611, 202612];
+  var MONTH_NAME = { 202610: "Október", 202611: "November", 202612: "December" };
+  var CAMPAIGN_TEXT = {
+    202610: "Kampánytermék: megtakarítás és számla",
+    202611: "Kampánytermék: megtakarítás és személybiztosítás",
+    202612: "Kampánytermék: személybiztosítás, egyösszegű, TBS"
+  };
+  var nf = new Intl.NumberFormat("hu-HU");
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+
+  $("prize").textContent = "A díj egy négynapos erdélyi út 2027. április 22–25. között a top 3-nak és a két vezetőnek. Nyerni csak " +
+    nf.format(QUALIFY) + " egységes kvalifikációval lehet.";
+
+  function firstTuesday(year, month) {
+    var d = new Date(year, month, 1);
+    return new Date(year, month, 1 + ((2 - d.getDay() + 7) % 7), 23, 59, 59);
+  }
+  function monthInfo(m) {
+    var y = Math.floor(m / 100), mo = m % 100;            // mo: 1-12
+    var start = new Date(y, mo - 1, 1), close = firstTuesday(y, mo);   // a következő hónap első keddje
+    var now = new Date();
+    var closeTxt = close.toLocaleDateString("hu-HU", { month: "long", day: "numeric" });
+    if (now > close) return "Lezárva (" + closeTxt + ")";
+    if (now >= start) return "Folyamatban, zárás: " + closeTxt;
+    return "Még nem indult";
+  }
+
+  function rankMonth(people, m) {
+    var list = people.filter(function (p) { return (p.camp[m] || 0) > 0; })
+      .sort(function (a, b) { return b.camp[m] - a.camp[m]; });
+    var rank = 0, prev = null;
+    return list.map(function (p, i) {
+      if (p.camp[m] !== prev) { rank = i + 1; prev = p.camp[m]; }
+      return { name: p.name, es: p.camp[m], rank: rank, pts: rank <= POINTS.length ? POINTS[rank - 1] : 0 };
+    });
+  }
+
+  function render(data) {
+    var people = data.people || [];
+    var monthly = {}, points = {};
+    people.forEach(function (p) { points[p.name] = 0; });
+    MONTHS.forEach(function (m) {
+      monthly[m] = rankMonth(people, m);
+      monthly[m].forEach(function (r) { points[r.name] += r.pts; });
+    });
+
+    var rows = people.map(function (p) {
+      var campTotal = MONTHS.reduce(function (s, m) { return s + (p.camp[m] || 0); }, 0);
+      var credit = RECRUIT_CREDIT * (p.recruits || 0);
+      var eff = p.total + credit;
+      return { p: p, pts: points[p.name], camp: campTotal, own: p.total, credit: credit, eff: eff,
+               qualified: eff >= QUALIFY && p.total >= MIN_OWN };
+    }).sort(function (a, b) { return b.pts - a.pts || b.camp - a.camp || b.own - a.own || a.p.name.localeCompare(b.p.name, "hu"); });
+
+    var prizeCount = 0;
+    rows.forEach(function (r) { if (r.qualified && prizeCount < WINNERS) { r.prize = true; prizeCount++; } });
+
+    var ol = $("stand"); ol.textContent = "";
+    rows.forEach(function (r, i) {
+      var li = el("li", "row" + (r.prize ? " prize" : ""));
+      li.appendChild(el("div", "pos", String(i + 1)));
+
+      var who = el("div", "who");
+      var b = el("b", "", r.p.name);
+      if (r.prize) b.appendChild(el("span", "tag", "nyereményzóna"));
+      who.appendChild(b);
+      who.appendChild(el("span", "", "kampányterméken " + nf.format(r.camp) + " ES" +
+        (r.p.outlook > 0 ? ", kilátásban még " + nf.format(r.p.outlook) + " ES" : "")));
+      li.appendChild(who);
+
+      var pts = el("div", "pts", String(r.pts)); pts.appendChild(el("small", "", "pont"));
+      li.appendChild(pts);
+
+      var q = el("div", "qual");
+      var bar = el("div", "bar");
+      var own = el("div", "own"); own.style.width = Math.min(100, r.own / QUALIFY * 100) + "%";
+      bar.appendChild(own);
+      if (r.credit > 0) {
+        var rec = el("div", "rec");
+        rec.style.left = Math.min(100, r.own / QUALIFY * 100) + "%";
+        rec.style.width = Math.max(0, Math.min(100 - r.own / QUALIFY * 100, r.credit / QUALIFY * 100)) + "%";
+        bar.appendChild(rec);
+      }
+      var min = el("div", "min"); min.style.left = (MIN_OWN / QUALIFY * 100) + "%"; bar.appendChild(min);
+      q.appendChild(bar);
+
+      var note = el("p");
+      note.appendChild(el("b", "", nf.format(r.own) + " ES"));
+      if (r.credit > 0) note.appendChild(document.createTextNode(" + " + nf.format(r.credit) + " ES munkatárs"));
+      note.appendChild(document.createTextNode(" / " + nf.format(QUALIFY) + " · "));
+      if (r.qualified) note.appendChild(el("span", "ok", "kvalifikált"));
+      else if (r.own < MIN_OWN) note.appendChild(document.createTextNode("még " + nf.format(MIN_OWN - r.own) + " saját ES kell a " + MIN_OWN + "-hoz"));
+      else note.appendChild(document.createTextNode("még " + nf.format(QUALIFY - r.eff) + " ES kell"));
+      q.appendChild(note);
+      li.appendChild(q);
+      ol.appendChild(li);
+    });
+
+    var box = $("months"); box.textContent = "";
+    MONTHS.forEach(function (m) {
+      var card = el("div", "month");
+      card.appendChild(el("h3", "", MONTH_NAME[m]));
+      card.appendChild(el("p", "st", monthInfo(m)));
+      card.appendChild(el("p", "prod", CAMPAIGN_TEXT[m]));
+      var list = monthly[m];
+      if (!list.length) { card.appendChild(el("p", "empty", "Még nincs elszámolt kampánytétel.")); }
+      else {
+        var ul = el("ol");
+        list.forEach(function (r) {
+          var li = el("li");
+          li.appendChild(el("span", "r", r.rank + "."));
+          li.appendChild(el("span", "n", r.name));
+          li.appendChild(el("span", "e", nf.format(r.es) + " ES"));
+          li.appendChild(el("span", "p", r.pts ? "+" + r.pts : "–"));
+          ul.appendChild(li);
+        });
+        card.appendChild(ul);
+      }
+      box.appendChild(card);
+    });
+
+    var rules = $("rules"); rules.textContent = "";
+    [
+      "Havi pontok: 1. hely 28, 2. hely 21, 3. hely 15, 4. hely 10, 5. hely 6 pont. A három hónap pontjai összeadódnak. Holtversenynél az érintettek ugyanannyi pontot kapnak.",
+      "A havi sorrendet a hónap kampánytermékeinek elszámolt egysége adja. Az igények és a még nem elszámolt tételek nem számítanak, a kilátás csak tájékoztató.",
+      "Kvalifikáció: Q4 alatt " + QUALIFY + " elszámolt egység bármilyen termékből. Egy regisztrált munkatárs " + RECRUIT_CREDIT + " egységet vált ki, de legalább " + MIN_OWN + " saját egység kell (a sávon a függőleges jel).",
+      "A top " + WINNERS + " kvalifikált helyezett nyer. A pontverseny csak a sorrendet adja."
+    ].forEach(function (t) { rules.appendChild(el("li", "", t)); });
+
+    var upd = data.updated ? new Date(data.updated) : null;
+    var txt = upd && !isNaN(upd) ? "Frissítve: " + upd.toLocaleString("hu-HU", { dateStyle: "medium", timeStyle: "short" }) : "";
+    if (data.skipped && data.skipped.length) txt += (txt ? " · " : "") + "Nem olvasható lap: " + data.skipped.join(", ");
+    if (data.demo) txt = "Minta adatok (?demo), nem valódi állás.";
+    $("meta").textContent = txt;
+    $("msg").hidden = true;
+    $("content").hidden = false;
+  }
+
+  function showMsg(html) { var m = $("msg"); m.textContent = ""; m.appendChild(html); m.hidden = false; $("content").hidden = true; }
+
+  var DEMO = {
+    demo: true, updated: new Date().toISOString(),
+    people: [
+      { name: "Minta Anna", total: 640, outlook: 120, recruits: 1, camp: { 202610: 320, 202611: 200, 202612: 0 } },
+      { name: "Minta Béla", total: 410, outlook: 0, recruits: 0, camp: { 202610: 260, 202611: 150, 202612: 0 } },
+      { name: "Minta Csilla", total: 1180, outlook: 300, recruits: 0, camp: { 202610: 500, 202611: 90, 202612: 0 } },
+      { name: "Minta Dani", total: 220, outlook: 80, recruits: 0, camp: { 202610: 120, 202611: 0, 202612: 0 } },
+      { name: "Minta Eszter", total: 90, outlook: 0, recruits: 0, camp: { 202610: 40, 202611: 40, 202612: 0 } }
+    ]
+  };
+
+  function load() {
+    if (/[?&]demo\b/.test(location.search)) { render(DEMO); return; }
+    if (!API_URL) {
+      var p = el("p", "", "Az adatforrás még nincs bekötve: írd be a versenyállás Apps Script webalkalmazás címét az oldal tetején lévő API_URL sorba. Az ?demo végződéssel minta adatokkal megnézheted az oldalt.");
+      showMsg(p); return;
+    }
+    fetch(API_URL + (API_URL.indexOf("?") > -1 ? "&" : "?") + "_=" + Date.now())
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) throw new Error(d.error);
+        render(d);
+      })
+      .catch(function (e) { showMsg(el("p", "", "Az állás betöltése most nem sikerült: " + (e && e.message ? e.message : "ismeretlen hiba") + ". Próbáld újra egy perc múlva.")); });
+  }
+  load();
+  if (API_URL) {
+    setInterval(load, 300000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) load(); });
+  }
+</script>
+</body>
+</html>
