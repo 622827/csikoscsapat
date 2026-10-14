@@ -94,7 +94,7 @@
 
 <script>
   // ====== EZT AZ EGY SORT ÍRD ÁT ======
-  var API_URL = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";       // a versenyállás Google Apps Script webalkalmazás címe
+  var API_URL = "";       // a versenyállás Google Apps Script webalkalmazás címe
   // ====================================
 
   var POINTS = [28, 21, 15, 10, 6];
@@ -149,9 +149,9 @@
     var rows = people.map(function (p) {
       var campTotal = MONTHS.reduce(function (s, m) { return s + (p.camp[m] || 0); }, 0);
       var credit = RECRUIT_CREDIT * (p.recruits || 0);
-      var eff = p.total + credit;
-      return { p: p, pts: points[p.name], camp: campTotal, own: p.total, credit: credit, eff: eff,
-               qualified: eff >= QUALIFY && p.total >= MIN_OWN };
+      var need = Math.max(MIN_OWN, QUALIFY - credit);
+      return { p: p, pts: points[p.name], camp: campTotal, own: p.total, credit: credit, rec: p.recruits || 0, need: need,
+               qualified: p.total >= need };
     }).sort(function (a, b) { return b.pts - a.pts || b.camp - a.camp || b.own - a.own || a.p.name.localeCompare(b.p.name, "hu"); });
 
     var prizeCount = 0;
@@ -175,24 +175,16 @@
 
       var q = el("div", "qual");
       var bar = el("div", "bar");
-      var own = el("div", "own"); own.style.width = Math.min(100, r.own / QUALIFY * 100) + "%";
+      var own = el("div", "own"); own.style.width = Math.min(100, r.own / r.need * 100) + "%";
       bar.appendChild(own);
-      if (r.credit > 0) {
-        var rec = el("div", "rec");
-        rec.style.left = Math.min(100, r.own / QUALIFY * 100) + "%";
-        rec.style.width = Math.max(0, Math.min(100 - r.own / QUALIFY * 100, r.credit / QUALIFY * 100)) + "%";
-        bar.appendChild(rec);
-      }
-      var min = el("div", "min"); min.style.left = (MIN_OWN / QUALIFY * 100) + "%"; bar.appendChild(min);
       q.appendChild(bar);
 
       var note = el("p");
       note.appendChild(el("b", "", nf.format(r.own) + " ES"));
-      if (r.credit > 0) note.appendChild(document.createTextNode(" + " + nf.format(r.credit) + " ES munkatárs"));
-      note.appendChild(document.createTextNode(" / " + nf.format(QUALIFY) + " · "));
+      note.appendChild(document.createTextNode(" / " + nf.format(r.need) + " ES" +
+        (r.rec > 0 ? " (" + r.rec + " munkatárs: -" + nf.format(r.credit) + ")" : "") + " · "));
       if (r.qualified) note.appendChild(el("span", "ok", "kvalifikált"));
-      else if (r.own < MIN_OWN) note.appendChild(document.createTextNode("még " + nf.format(MIN_OWN - r.own) + " saját ES kell a " + MIN_OWN + "-hoz"));
-      else note.appendChild(document.createTextNode("még " + nf.format(QUALIFY - r.eff) + " ES kell"));
+      else note.appendChild(document.createTextNode("még " + nf.format(r.need - r.own) + " ES kell"));
       q.appendChild(note);
       li.appendChild(q);
       ol.appendChild(li);
@@ -225,7 +217,7 @@
     [
       "Havi pontok: 1. hely 28, 2. hely 21, 3. hely 15, 4. hely 10, 5. hely 6 pont. A három hónap pontjai összeadódnak. Holtversenynél az érintettek ugyanannyi pontot kapnak.",
       "A havi sorrendet a hónap kampánytermékeinek elszámolt egysége adja. Az igények és a még nem elszámolt tételek nem számítanak, a kilátás csak tájékoztató.",
-      "Kvalifikáció: Q4 alatt " + QUALIFY + " elszámolt egység bármilyen termékből. Egy regisztrált munkatárs " + RECRUIT_CREDIT + " egységet vált ki, de legalább " + MIN_OWN + " saját egység kell (a sávon a függőleges jel).",
+      "Kvalifikáció: Q4 alatt minimum " + QUALIFY + " egyéni elszámolt ES kell bármilyen termékből. Minden regisztrált munkatárs " + RECRUIT_CREDIT + " ES-sel csökkenti ezt, de legalább " + MIN_OWN + " egyéni ES mindenképp szükséges.",
       "A top " + WINNERS + " kvalifikált helyezett nyer. A pontverseny csak a sorrendet adja."
     ].forEach(function (t) { rules.appendChild(el("li", "", t)); });
 
@@ -257,13 +249,22 @@
       var p = el("p", "", "Az adatforrás még nincs bekötve: írd be a versenyállás Apps Script webalkalmazás címét az oldal tetején lévő API_URL sorba. Az ?demo végződéssel minta adatokkal megnézheted az oldalt.");
       showMsg(p); return;
     }
-    fetch(API_URL + (API_URL.indexOf("?") > -1 ? "&" : "?") + "_=" + Date.now())
-      .then(function (r) { return r.json(); })
+    if ($("content").hidden) $("meta").textContent = "Az állás betöltése… Az első betöltés akár fél percig is tarthat.";
+    var ctl = typeof AbortController === "function" ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, 90000) : null;
+    fetch(API_URL + (API_URL.indexOf("?") > -1 ? "&" : "?") + "_=" + Date.now(), ctl ? { signal: ctl.signal } : undefined)
+      .then(function (r) { if (timer) clearTimeout(timer); return r.json(); })
       .then(function (d) {
         if (d.error) throw new Error(d.error);
         render(d);
       })
-      .catch(function (e) { showMsg(el("p", "", "Az állás betöltése most nem sikerült: " + (e && e.message ? e.message : "ismeretlen hiba") + ". Próbáld újra egy perc múlva.")); });
+      .catch(function (e) {
+        if (timer) clearTimeout(timer);
+        if ($("content").hidden) {
+          $("meta").textContent = "";
+          showMsg(el("p", "", "Az állás betöltése most nem sikerült" + (e && e.name === "AbortError" ? " (túl sokáig tartott)" : e && e.message ? ": " + e.message : "") + ". Frissítsd az oldalt egy perc múlva."));
+        }
+      });
   }
   load();
   if (API_URL) {
