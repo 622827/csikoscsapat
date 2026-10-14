@@ -65,6 +65,8 @@
   .news .tag { font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin: 0; }
   .news h2 { margin: 0; font-size: clamp(1.2rem, 2.6vw, 1.6rem); }
   .news p.txt { margin: 0; color: var(--muted); font-size: 1.02rem; }
+  .news p.miss { margin: 4px 0 0; font-weight: 600; font-size: .98rem; }
+  .news p.miss:empty { display: none; }
   .news .btn { background: var(--accent); color: #fff; text-decoration: none; font-weight: 700; padding: 12px 20px;
                border-radius: 10px; white-space: nowrap; }
   @media (prefers-color-scheme: dark) { .news .btn { color: #101626; } }
@@ -96,11 +98,22 @@
 
 <script>
   // ====== HÍREK: új hír = új blokk, törlés = a blokk törlése ======
+  var SURVEY_API = "https://script.google.com/macros/s/AKfycbxsTMxAtO6Z7EvRNdRXBduYTD9T044_K627ePPqSKHRE22Upe5Ej2DEKSYk38jrrk3B9A/exec";
   var NEWS = [
     { tag: "Fontos – töltsd ki!", title: "2027. Erdély incentive kérdőív",
       text: "Egy perc az egész: írd meg, szeretnél-e jönni Erdélybe (2027. április 22–25.), és hogy autóval vagy repülővel csatlakoznál.",
-      button: "Kitöltöm a kérdőívet", href: "https://forms.gle/LHhF8DjfFepu2SQb6" }
+      button: "Kitöltöm a kérdőívet", href: "https://forms.gle/LHhF8DjfFepu2SQb6", survey: true }
   ];
+  function loadMissing(el) {
+    fetch(SURVEY_API + "?kerdoiv=1&_=" + Date.now())
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error || !d.missing) return;
+        if (d.missing.length === 0) { el.textContent = "Mindenki kitöltötte, köszönjük!"; return; }
+        el.textContent = "Még nem töltötte ki (" + d.missing.length + "/" + d.total + "): " + d.missing.join(", ");
+      })
+      .catch(function () {});
+  }
   (function () {
     var box = document.getElementById("news");
     NEWS.forEach(function (n) {
@@ -109,6 +122,8 @@
       var t = document.createElement("p"); t.className = "tag"; t.textContent = n.tag; left.appendChild(t);
       var h = document.createElement("h2"); h.textContent = n.title; left.appendChild(h);
       var p = document.createElement("p"); p.className = "txt"; p.textContent = n.text; left.appendChild(p);
+      var miss = null;
+      if (n.survey) { miss = document.createElement("p"); miss.className = "miss"; left.appendChild(miss); loadMissing(miss); }
       item.appendChild(left);
       if (n.href) {
         var a = document.createElement("a"); a.className = "btn"; a.href = n.href; a.target = "_blank"; a.rel = "noopener";
