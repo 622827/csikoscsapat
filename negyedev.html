@@ -375,16 +375,18 @@
 
   function applyData(d) {
     renderTeams(d.teams);
-    var by = (d.counter || {}), months = (d.months || Object.keys(by).map(Number)).slice().sort();
-    var cur = months[months.length - 1];
-    for (var i = 0; i < months.length; i++) { if (closeOf(months[i]) >= now) { cur = months[i]; break; } }
-    var c = by[cur] || { settled: 0, pending: 0 };
-    var total = PREVIOUS + c.pending;
-    var nm = MONTH_NAME[(cur % 100) - 1];
-    var rows = [];
-    if (PREVIOUS > 0) rows.push("<b>Előző hónapok</b> (kézzel megadva): " + nf.format(PREVIOUS) + " " + LABEL);
-    rows.push("<b>" + nm.charAt(0).toUpperCase() + nm.slice(1) + "</b> (aktuális hónap): 100% leadva / befizetett " + nf.format(c.pending) + " " + LABEL);
-    $("basis").innerHTML = rows.join("<br>");
+    var t = d.teams || {}, total;
+    if (t.csikos && t.farkas) {
+      total = t.csikos.done + t.farkas.done;   // a dicsőségfal két csapatának teljesítménye
+      $("basis").innerHTML = "<b>Alap:</b> a Csikós és a Farkas csapat teljesítménye a dicsőségfalról (" + nf.format(t.csikos.done) + " + " + nf.format(t.farkas.done) + " " + LABEL + ")";
+    } else {
+      var by = (d.counter || {}), months = (d.months || Object.keys(by).map(Number)).slice().sort();
+      var cur = months[months.length - 1];
+      for (var i = 0; i < months.length; i++) { if (closeOf(months[i]) >= now) { cur = months[i]; break; } }
+      var c = by[cur] || { settled: 0, pending: 0 };
+      total = PREVIOUS + c.pending;
+      $("basis").innerHTML = "A dicsőségfal adata nem érhető el, ezért a pipeline-lapokból számolt érték látszik.";
+    }
     renderTotals(total);
     animateNumber(total);
     $("status").textContent = "";
