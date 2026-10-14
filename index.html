@@ -9,15 +9,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #eef1f6; --ink: #14213d; --muted: #5b6784; --accent: #1f3fbf;
-    --track: #d3d9e8; --card: #ffffff;
+    --bg: #ffffff; --ink: #003366; --muted: #336699; --accent: #003366;
+    --track: #e5e5e5; --card: #e5e5e5; --hot: #ff3399;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #101626; --ink: #eef1f8; --muted: #97a3c2; --accent: #7f9bff; --track: #26304d; --card: #182038; }
+    :root { --bg: #001f3d; --ink: #ffffff; --muted: #6699cc; --accent: #ff99cc; --track: #00305a; --card: #003366; --hot: #ff99cc; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink); padding: 24px;
-         font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+         font-family: "Stag Sans", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
   main { max-width: 1000px; margin: 0 auto; padding: 8px 0 48px; }
   a { color: inherit; }
   a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
@@ -60,7 +60,7 @@
   }
 
   .news { margin: clamp(20px, 4vw, 32px) 0 0; display: grid; gap: 12px; }
-  .news .item { background: var(--card); border-left: 6px solid var(--accent); border-radius: 12px;
+  .news .item { background: var(--card); border-left: 6px solid var(--hot); border-radius: 12px;
                 padding: 18px 20px; display: grid; gap: 6px 20px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
   .news .tag { font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin: 0; }
   .news h2 { margin: 0; font-size: clamp(1.2rem, 2.6vw, 1.6rem); }
@@ -69,7 +69,7 @@
   .news p.miss:empty { display: none; }
   .news .btn { background: var(--accent); color: #fff; text-decoration: none; font-weight: 700; padding: 12px 20px;
                border-radius: 10px; white-space: nowrap; }
-  @media (prefers-color-scheme: dark) { .news .btn { color: #101626; } }
+  @media (prefers-color-scheme: dark) { .news .btn { color: #001f3d; } }
   @media (max-width: 600px) { .news .item { grid-template-columns: 1fr; } .news .btn { text-align: center; } }
 </style>
 </head>

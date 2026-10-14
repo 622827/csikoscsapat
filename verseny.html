@@ -9,18 +9,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #eef1f6; --ink: #14213d; --muted: #5b6784; --accent: #1f3fbf; --on-accent: #fff;
-    --soft: #9fb0ee; --track: #d3d9e8; --card: #ffffff; --gold: #b7791f; --gold-bg: #fdf3dc; --ok: #1d7a4a;
+    --bg: #ffffff; --ink: #003366; --muted: #336699; --accent: #003366; --on-accent: #fff;
+    --soft: #6699cc; --track: #e5e5e5; --card: #e5e5e5; --gold: #cc0066; --gold-bg: #ffe6f2; --ok: #006666;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #101626; --ink: #eef1f8; --muted: #97a3c2; --accent: #7f9bff; --on-accent: #101626;
-      --soft: #3d4f8f; --track: #26304d; --card: #182038; --gold: #f2c35b; --gold-bg: #2b2616; --ok: #6fd39b;
+      --bg: #001f3d; --ink: #ffffff; --muted: #6699cc; --accent: #ff99cc; --on-accent: #001f3d;
+      --soft: #336699; --track: #00305a; --card: #003366; --gold: #ff99cc; --gold-bg: #3a0a2a; --ok: #66cccc;
     }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink); padding: 24px;
-         font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+         font-family: "Stag Sans", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
   main { max-width: 1100px; margin: 0 auto; padding-top: 52px; }
   h1 { font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1; letter-spacing: -.03em; margin: 8px 0 8px; }
   h2 { font-size: clamp(1.15rem, 2.6vw, 1.5rem); margin: 36px 0 12px; }
@@ -77,7 +77,7 @@
 
   .back { position: fixed; top: 14px; left: 14px; z-index: 20; display: inline-flex; align-items: center; gap: 6px;
           padding: 9px 14px; border-radius: 999px; background: var(--card, var(--bg)); color: var(--ink); text-decoration: none;
-          font: 600 .95rem "Instrument Sans", system-ui, sans-serif; box-shadow: 0 1px 6px rgba(0,0,0,.18); }
+          font: 600 .95rem "Stag Sans", "Instrument Sans", system-ui, sans-serif; box-shadow: 0 1px 6px rgba(0,0,0,.18); }
   .back:hover { color: var(--accent); }
   .back:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 </style>
