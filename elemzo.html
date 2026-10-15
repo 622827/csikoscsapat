@@ -532,7 +532,7 @@ H.lakas = () => `
 <div class="card"><h3>1. Önerő, tervezés</h3>
  <div class="grid">
   
-  ${fld("lk_hely", "Jelenlegi lakhely", { t: "s", o: ["Albérletben", "Szülőknél", "Saját ingatlanban", "Egyéb"] })}${M("lk_kiad", "Lakhatás havi kiadása", { u: "Ft/hó" })}
+  ${fld("lk_hely", "Jelenlegi lakhely", { t: "s", o: ["Albérletben", "Szülőknél", "Saját ingatlanban", "Egyéb"] })}<div data-w="lk_hely2" hidden>${fld("lk_hely2", "Egyéb lakhely – mi?")}</div>${M("lk_kiad", "Lakhatás havi kiadása", { u: "Ft/hó" })}
   ${fld("lk_terv", "Tervezett lakás (ingatlan infók, szempontok, tervek)", { t: "ta", r: 2, full: 1 })}
   ${M("lk_ar", "Ingatlan ára")}${M("lk_megl", "Meglévő önerő")}
  </div>
@@ -747,7 +747,7 @@ function copyAll() {
   const bz = []; if (zr(0)) bz.push("KGFB: " + zr(0)); if (zr(1)) bz.push("Lakásbiztosítás: " + zr(1));
   afSet("c_bizt", bz.join("; "));
   if (zr(0)) afCell("auto", 0, 1, [z[0][1], z[0][2] ? "évf.: " + z[0][2] : ""].filter(has).join(", "));
-  if (has(g("lk_hely"))) afSet("megj", "Lakhely: " + g("lk_hely") + (has(g("lk_kiad")) ? ", kiadás: " + g("lk_kiad") + " Ft/hó" : ""));
+  if (has(g("lk_hely"))) afSet("megj", "Lakhely: " + (g("lk_hely") === "Egyéb" && has(g("lk_hely2")) ? g("lk_hely2") : g("lk_hely")) + (has(g("lk_kiad")) ? ", kiadás: " + g("lk_kiad") + " Ft/hó" : ""));
 }
 function summary_() {
   const d = S.d, g = k => d[k];
@@ -756,7 +756,7 @@ function summary_() {
   add("Nyugdíj", "ny_term"); add("Lakás", "lk_term"); add("Befektetés", "bf_term"); add("Zárás", "z_term");
   const fx = (area, t, v) => { if (has(v)) L.push([area, t, v]); };
   fx("Alapadat", "Nettó jövedelem", has(g("c_net")) ? ft(num(g("c_net"))) + "/hó" : ""); fx("Alapadat", "Család nettó jövedelme", has(g("gy_net")) ? ft(num(g("gy_net"))) + "/hó" : "");
-  fx("Egészség", "Hitel", g("eh_hitel") === "Igen" ? ft(num(g("eh_hosszu"))) : ""); fx("Lakás", "Jelenlegi lakhely", g("lk_hely")); fx("Befektetés", "Kockázattűrés", g("bf_koc"));
+  fx("Egészség", "Hitel", g("eh_hitel") === "Igen" ? ft(num(g("eh_hosszu"))) : ""); fx("Lakás", "Jelenlegi lakhely", g("lk_hely") === "Egyéb" && has(g("lk_hely2")) ? g("lk_hely2") : g("lk_hely")); fx("Befektetés", "Kockázattűrés", g("bf_koc"));
   fx("Összegzés", "Folyószámla – tavalyi költség", has(g("z_bankk")) ? (g("z_bank") ? g("z_bank") + ", " : "") + ft(num(g("z_bankk"))) + "/év" : "");
   const box = $('[data-o="gyujto"]');
   if (box) box.innerHTML = L.length ? '<div class="tw"><table class="dt"><thead><tr><th>Terület</th><th>Tétel</th><th style="text-align:left">Adat</th></tr></thead><tbody>' + L.map(x => `<tr><td>${esc(x[0])}</td><td>${esc(x[1])}</td><td style="text-align:left;white-space:normal">${esc(x[2])}</td></tr>`).join("") + "</tbody></table></div>" : '<p class="muted">Még nincs összegyűjtött adat.</p>';
@@ -818,6 +818,7 @@ function compute() {
   show("lk_arany_w", hitel && lnet && tor > lnet * (lnet > 800000 ? .6 : .5));
   out("lk_v4", lnet ? ft(lnet * .04) : "–"); out("lk_vcel", hitel || lnet ? ft(hitel + lnet * 12) : "–");
   const vegt = n("lk_vegt"); out("lk_rafo", hitel ? ft(tor + vegt) : "–");
+  show("lk_hely2", g("lk_hely") === "Egyéb");
   const lm = (g("lk_mod") || "Rövidtáv (hitel)") !== "Hosszútáv (önerőgyűjtés)";
   show("lk_r", lm); show("lk_h", !lm);
   if (hitel > 0) {
