@@ -497,8 +497,8 @@
     ];
     var wrap = e("div", "zm dv"), btn = e("button"), panel = e("div", "panel");
     btn.type = "button"; btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-haspopup", "true");
-    btn.appendChild(e("span", "", "Drive-táblázatok")); btn.appendChild(e("span", "", "▾"));
-    panel.hidden = true; panel.appendChild(e("h3", "", "Drive-táblázatok"));
+    btn.appendChild(e("span", "", "Hasznos linkek")); btn.appendChild(e("span", "", "▾"));
+    panel.hidden = true; panel.appendChild(e("h3", "", "Hasznos linkek"));
     LINKS.forEach(function (l) {
       var a = e("a"); a.href = l.url; a.target = "_blank"; a.rel = "noopener";
       a.appendChild(e("span", "m", l.name)); a.appendChild(e("span", "d", l.sub)); a.appendChild(e("span", "go", "↗"));

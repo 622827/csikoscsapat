@@ -216,6 +216,7 @@
   @media print {
     .topnav, .steps, .nav2, .bar0, details.guide, .xb, .btn, #csk-gate { display: none !important; }
     html.csklock body > *:not(#csk-gate) { visibility: visible !important; }
+    #s_ceg { display: none !important; }
     .sheet { display: block !important; page-break-after: always; }
     main { padding: 0; }
     .card, .kpi { background: #fff !important; border: 1px solid #bbb; }
@@ -250,7 +251,7 @@ const ft = n => (n == null || !isFinite(n)) ? "–" : fnum(n) + "\u00a0Ft";
 const note = t => esc(t).replace(/«([^»]*)»/g, "<em>$1</em>");
 
 const SHEETS = [
-  ["alap", "Alapadatok"], ["nyugdij", "Nyugdíj"], ["lakas", "Lakás"], ["gyermek", "Gyermek"], ["egeszseg", "Egészségügy"],
+  ["ceg", "Cégbemutató"], ["alap", "Alapadatok"], ["nyugdij", "Nyugdíj"], ["lakas", "Lakás"], ["gyermek", "Gyermek"], ["egeszseg", "Egészségügy"],
   ["befektetes", "Befektetés"], ["osszegzes", "Összegzés"], ["zaras", "Zárás"], ["ajanlas", "Ajánláskérés"]
 ];
 
@@ -692,6 +693,19 @@ ${TXT.ajanlas}
 </div>
 <div class="card"><h3>4. Kész – mentés</h3><p class="note" style="margin-top:0">Az elemzés lezárása után mentsd el az adatokat a Drive-ra (szöveges összefoglaló + visszatölthető fájl).</p><button type="button" class="btn pri drv">Mentés a Drive-ra</button></div>`;
 
+TXT.ceg = G("Beszélgetésvezető – Cégbemutató", [
+  ["Bevezetés", ["Fontos tudnod, hogy én nem vagyok egy bank, sem biztosító képviselője. Európa vezető tanácsadó cégének elemzője vagyok, érdekképviselettel foglalkozom. Feladatom a szakértőgárdánk és a családok közti kommunikáció, gyakorlatilag segítjük az ügyfeleinket, hogy a legtöbb támogatást igényeljék.", "Hallottál már az OVB-ről? – Igen / nem. Mondok róla 1–2 fontosabb infót. «Közben kérd meg az ügyfeled, hogy a nézetet állítsa át, hogy lásson téged is – amíg ő beállítja, te meg tudod osztani a képernyőd.»"]],
+  ["A cég", ["A cég több mint fél évszázada működik, Magyarországon több mint 30 éve figyeljük a pénzintézeteket. Piacvezető cégként 17 európai országban közel 5 millió ügyféllel. Magyarországon már több mint 1.000.000 pénzügyi döntésben tudtunk segíteni.", "Gondolom neked is feltűnt, hogy már szinte minden sarkon van egy bank vagy biztosító. – Igen. Összesen több száz pénzügyi cég van, kb. 3000 termékkel, amiből biztos, hogy van olyan, ami számodra a legmegfelelőbb."]],
+  ["Lehetőségek a pénzpiacon", ["Ha bemész egy bankba vagy biztosítóhoz, az ügyintéző csak a saját cége termékeit képviseli; vagy elmehetsz egy brókerhez, aki 2–3 céggel áll kapcsolatban egy területen belül.", "Vagy intézheted rajtunk keresztül, ami úgy működik, mint a booking vagy az árukereső. Ismered? Melyiket használtad utoljára? Hova fogtok utazni? Mit szeretsz benne? Ugyanezt csináljuk, csak pénzügyi területen.", "Neked melyik lenne kényelmesebb: egyesével beszaladni mindenhova, vagy egy emberen keresztül intézni mindent?"]],
+  ["3 lépés", ["1. Igényfelmérés: megnézzük, milyen adókedvezményekre vagy jogosult, és milyen céljaid vannak rövid-, közép- és hosszútávon.", "2. Tanácsadás: a szakértő csapat összepárosítja a célokat a pénzpiac termékeivel, személyre szabott biztonságos portfóliót mutatunk, és az ügyintézést átvállalva tehermentesítünk.", "3. Élethosszig tartó szervizszolgáltatás: bármilyen pénzügyi kérdés esetén mindig ugyanahhoz a szakemberhez fordulhatsz. Megnyugtató lenne?"]],
+  ["Díjazás és ajánlás", ["A szolgáltatás az ügyfeleknek díjmentes. Minket a pénzintézetek fizetnek, annak alapján, hogy minél nagyobb pénzügyi előnyt nyújtunk az ügyfélnek – az az érdekem, hogy minél több támogatást tudj igényelni.", "Ha olyan pénzügyi előnyhöz jutsz, ami jelentős összeg számodra, szívesen ajánlanál az ismerőseidnek? – Igen. Ez az én fizetségem: nem pénzt kérek, hanem ajánlásokat – ahogy egy jó ügyvédet vagy fogorvost is ajánlanál. Szimpatikus? – Igen.", "Két aranyszabály: 1. a beszélgetés során összeírunk 15–20 olyan embert, akinek az adott téma hasznos lehet; 2. csak azután keresem meg őket, hogy te beszéltél velük. Ez így korrekt?"]]
+]);
+H.ceg = () => `
+<h2>Cégbemutató</h2><p class="lead">A beszélgetés nyitása: a cégbemutató diák, mellette a vezetőszöveg.</p>
+${TXT.ceg}
+<div class="card" style="padding:8px"><div class="bar0" style="margin:4px 8px 8px"><span class="muted">Diák – a nyilakkal vagy a billentyűkkel lapozhatsz</span><a class="btn" href="cegbemutato-nomenu.html" target="_blank" rel="noopener">Megnyitás teljes képernyőn ↗</a></div>
+<iframe id="cegf" data-src="cegbemutato-nomenu.html" title="Cégbemutató" style="width:100%;height:min(78vh,760px);border:0;border-radius:12px;background:var(--bg)" allowfullscreen></iframe></div>`;
+
 /* ---------- számolások ---------- */
 function compute() {
   if (!S) return;
@@ -814,6 +828,7 @@ function go(id, noscroll) {
   CUR = id; try { sessionStorage.setItem("csk_ef_tab", id); } catch (e) {}
   $$(".sheet").forEach(s => s.classList.toggle("on", s.id === "s_" + id));
   $$(".steps button").forEach(b => { const on = b.dataset.s === id; b.classList.toggle("on", on); if (on) b.scrollIntoView({ block: "nearest", inline: "center" }); });
+  if (id === "ceg") { const f = $("#cegf"); if (f && !f.getAttribute("src")) { f.addEventListener("load", () => { try { const b = f.contentDocument.querySelector(".back"); if (b) b.style.display = "none"; } catch (e) {} }); f.src = f.dataset.src; } }
   const i = SHEETS.findIndex(s => s[0] === id);
   $("#prev").style.visibility = i > 0 ? "visible" : "hidden"; $("#next").style.visibility = i < SHEETS.length - 1 ? "visible" : "hidden";
   $("#prev").textContent = i > 0 ? "← " + SHEETS[i - 1][1] : ""; $("#next").textContent = i < SHEETS.length - 1 ? SHEETS[i + 1][1] + " →" : "";
@@ -838,7 +853,7 @@ function init() {
   const cur = lsGet(LC);
   if (cur && DB[cur]) S = DB[cur]; else if (Object.keys(DB).length) S = Object.values(DB).sort((a, b) => b.t - a.t)[0]; else { S = newClient(); DB[S.id] = S; persist(); }
   fillAll(); refreshClients();
-  let t0 = "alap"; try { t0 = location.hash.slice(1) || sessionStorage.getItem("csk_ef_tab") || "alap"; } catch (e) {}
+  let t0 = "ceg"; try { t0 = location.hash.slice(1) || sessionStorage.getItem("csk_ef_tab") || "ceg"; } catch (e) {}
   go(t0, true);
   $("#cl").addEventListener("change", e => openClient(e.target.value));
   $("#nw").addEventListener("click", () => { persist(); S = newClient(); DB[S.id] = S; persist(); fillAll(); refreshClients(); go("alap"); });
@@ -911,8 +926,8 @@ document.addEventListener("DOMContentLoaded", init);
     ];
     var wrap = e("div", "zm dv"), btn = e("button"), panel = e("div", "panel");
     btn.type = "button"; btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-haspopup", "true");
-    btn.appendChild(e("span", "", "Drive-táblázatok")); btn.appendChild(e("span", "", "▾"));
-    panel.hidden = true; panel.appendChild(e("h3", "", "Drive-táblázatok"));
+    btn.appendChild(e("span", "", "Hasznos linkek")); btn.appendChild(e("span", "", "▾"));
+    panel.hidden = true; panel.appendChild(e("h3", "", "Hasznos linkek"));
     LINKS.forEach(function (l) {
       var a = e("a"); a.href = l.url; a.target = "_blank"; a.rel = "noopener";
       a.appendChild(e("span", "m", l.name)); a.appendChild(e("span", "d", l.sub)); a.appendChild(e("span", "go", "↗"));
