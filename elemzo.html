@@ -225,6 +225,18 @@
     .pr-h { display: block !important; }
   }
   .pr-h { display: none; }
+
+  .pdfroot { position: fixed; left: -12000px; top: 0; }
+  .pdfin { width: 980px; padding: 24px; box-sizing: border-box; background: #fff; color: #003366; font-family: "Stag Sans", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.45;
+    --bg:#ffffff; --ink:#003366; --muted:#336699; --accent:#003366; --csk:#006666; --frk:#cc0066; --on-accent:#ffffff; --track:#e5e5e5; --card:#f1f1f1; }
+  .pdfin .sheet { display: block !important; columns: 2; column-gap: 16px; }
+  .pdfin .card { break-inside: avoid; }
+  .pdfin .pdfh { column-span: all; }
+  .pdfin .pdfh { font-size: 1rem; padding-bottom: 10px; margin-bottom: 14px; border-bottom: 2px solid #003366; }
+  .pdfin .pv { font-weight: 600; display: block; padding: 4px 0; min-height: 1.3em; overflow-wrap: anywhere; white-space: pre-wrap; }
+  .pdfin .tw { overflow: visible; } .pdfin table.t { min-width: 0; }
+  .pdfin table.t td, .pdfin table.t th { white-space: normal; }
+  .pdfin .chips { grid-template-columns: repeat(2, minmax(0,1fr)); }
 </style>
 </head>
 <body>
@@ -949,36 +961,80 @@ function init() {
 
 /* ---------- mentés Drive-ra ---------- */
 const EF_API = "https://script.google.com/macros/s/AKfycbxsTMxAtO6Z7EvRNdRXBduYTD9T044_K627ePPqSKHRE22Upe5Ej2DEKSYk38jrrk3B9A/exec";
-function summaryText() {
-  const L = ["PÉNZÜGYI ELEMZŐ FÜZET – " + label(S), "Mentve: " + new Date().toLocaleString("hu-HU"), ""];
-  SHEETS.forEach(([id, name]) => {
-    const sec = $("#s_" + id); if (!sec) return; const part = [];
-    $$(".card", sec).forEach(card => {
-      const t = ($("h3", card) || {}).textContent || "", ln = [];
-      $$(".fl", card).forEach(f => { const el = $("input,select,textarea", f); if (!el) return; const v = el.type === "checkbox" ? (el.checked ? "igen" : "") : el.value; if (has(v)) ln.push("  " + $("span", f).textContent.trim() + ": " + v); });
-      $$("table.t:not([data-tk]) tbody tr", card).forEach(r => { const v = $$("input,select", r).map(x => x.value).filter(has); if (v.length) ln.push("  " + ($(".lb", r) || {textContent: ""}).textContent.trim() + ": " + v.join(" | ")); });
-      $$(".chip", card).forEach(c => { const on = $("button.on", c); if (on) ln.push("  " + $("span", c).textContent.trim() + ": " + on.textContent); });
-      $$(".kpi", card).forEach(k => { const v = $(".v", k).textContent.trim(); if (v && v !== "–") ln.push("  » " + $(".k", k).textContent.trim() + ": " + v); });
-      $$("table.t[data-tk]", card).forEach(tb => (S.d[tb.dataset.tk] || []).forEach(r => { if (r.slice(1).some(has) || (!/^1/.test(tb.dataset.lab) && has(r[0]) && r.length > 1)) ln.push("  - " + r.filter(has).join(" | ")); else if (tb.dataset.lab !== "1" && has(r[0])) ln.push("  - " + r[0]); }));
-      $$("table.dt tr", card).forEach(r => { const c = Array.from(r.children).map(x => x.textContent.trim()); if (c.length > 1 && c.slice(1).some(x => x && x !== "–") && !/^\d+$/.test(c[0])) ln.push("  » " + c.join(" | ")); });
-      $$("[data-o=names] li", card).forEach(li => { if (!li.classList.contains("muted")) ln.push("  - " + li.textContent); });
-      if (ln.length) part.push((t ? "[" + t + "]\n" : "") + ln.join("\n"));
-    });
-    if (part.length) { L.push("=== " + name.toUpperCase() + " ==="); L.push(part.join("\n\n")); L.push(""); }
-  });
-  return L.join("\n");
+function loadLibs() {
+  if (window.PDFLib) return Promise.resolve();
+  return new Promise((ok, no) => { const s = document.createElement("script"); s.src = "pdf-lib.min.js"; s.onload = ok; s.onerror = () => no(new Error("A PDF-készítő modul (pdf-lib.min.js) nem töltődött be – töltsd fel a GitHubra.")); document.head.appendChild(s); });
 }
-function driveSave() {
-  persist(); const st = $("#dst"); const btns = $$(".drv"); btns.forEach(b => b.disabled = true);
-  st.textContent = "Mentés a Drive-ra…"; st.style.color = "";
+function printClone(id) {
+  const src = $("#s_" + id), c = src.cloneNode(true); c.removeAttribute("id"); c.classList.add("on");
+  const so = $$("input,textarea,select", src), co = $$("input,textarea,select", c);
+  so.forEach((s, i) => {
+    const e = co[i]; if (!e) return; const sp = document.createElement("span"); sp.className = "pv";
+    if (s.type === "checkbox") sp.textContent = s.checked ? "☑" : "☐"; else sp.textContent = s.value || "—";
+    if (!s.value && s.type !== "checkbox") sp.dataset.e = "1"; e.replaceWith(sp);
+  });
+  const sg = $$("[data-ck],[data-rt]", src), cg = $$("[data-ck],[data-rt]", c);
+  sg.forEach((s, i) => { const e = cg[i]; if (!e) return; const on = $("button.on", s); const sp = document.createElement("span"); sp.className = "pv"; sp.textContent = on ? on.textContent : "—"; if (!on) sp.dataset.e = "1"; e.replaceWith(sp); });
+  $$("details.guide, button, .xb, .bar0, [hidden], .nav2, details > summary", c).forEach(e => { if (e.tagName === "SUMMARY") return; e.remove(); });
+  $$(".note, .warn, .lead, details", c).forEach(e => e.remove());
+  $$(".kpi", c).forEach(k => { const v = $(".v", k); if (v && /^[–-]?$/.test(v.textContent.trim())) k.remove(); });
+  $$(".fl, .chip, .qrow", c).forEach(e => { const p = $$(".pv", e); if (p.length && p.every(x => x.dataset.e)) e.remove(); });
+  $$("tbody tr", c).forEach(r => { if (r.classList.contains("sum")) return; const p = $$(".pv", r); if (p.every(x => x.dataset.e) && !$$(".kpi", r).length) { const o = $$("td.o", r).some(x => /\d/.test(x.textContent)); if (!o) r.remove(); } });
+  $$(".pv", c).forEach(x => { if (x.dataset.e && !x.closest("td, .fl, .chip, .qrow")) x.remove(); });
+  $$(".card", c).forEach(k => { if (!$$(".fl, .chip, .kpi, tr, svg, li, .qrow, .pv, .dt", k).length) k.remove(); });
+  $$("table", c).forEach(t => { if (!$$("tbody tr", t).length) (t.closest(".tw") || t).remove(); });
+  $$("[data-o=names] li.muted", c).forEach(x => x.remove());
+  const w = document.createElement("div"); w.className = "pdfroot"; const inn = document.createElement("div"); inn.className = "pdfin"; inn.appendChild(c); w.appendChild(inn);
+  const h = document.createElement("div"); h.className = "pdfh"; h.innerHTML = "<b>Pénzügyi elemző füzet</b> – " + esc(label(S)) + " – " + esc(SHEETS.find(x => x[0] === id)[1]) + " – " + new Date().toLocaleDateString("hu-HU"); c.prepend(h);
+  document.body.appendChild(w); return w;
+}
+function nodeToCanvas(node, w, h, scale) {
+  const css = [...document.styleSheets].map(s => { try { return [...s.cssRules].map(r => r.cssText).join("\n"); } catch (e) { return ""; } }).join("\n");
+  const xml = new XMLSerializer().serializeToString(node);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml"><style>${css.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</style>${xml}</div></foreignObject></svg>`;
+  return new Promise((ok, no) => {
+    const img = new Image(); img.onload = () => { const c = document.createElement("canvas"); c.width = w * scale; c.height = h * scale; const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.scale(scale, scale); x.drawImage(img, 0, 0); ok(c); };
+    img.onerror = () => no(new Error("A lap képpé alakítása nem sikerült.")); img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  });
+}
+async function sheetPdf(id) {
+  const w = printClone(id), n = $(".pdfin", w);
+  try {
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const W = n.offsetWidth, H = n.offsetHeight, cv = await nodeToCanvas(n, W, H, 2);
+    let jpg; try { jpg = cv.toDataURL("image/jpeg", 0.9); } catch (e) { throw new Error("Ez a böngésző nem engedi a PDF-készítést – használj Chrome-ot vagy Operát."); }
+    const bytes = Uint8Array.from(atob(jpg.split(",")[1]), c => c.charCodeAt(0));
+    const { PDFDocument } = window.PDFLib, pdf = await PDFDocument.create(), pg = pdf.addPage([595.28, 841.89]);
+    const im = await pdf.embedJpg(bytes), m = 24, aw = 595.28 - 2 * m, ah = 841.89 - 2 * m, r = H / W;
+    let pw = aw, ph = aw * r; if (ph > ah) { ph = ah; pw = ah / r; }
+    pg.drawImage(im, { x: (595.28 - pw) / 2, y: 841.89 - m - ph, width: pw, height: ph });
+    return await pdf.saveAsBase64();
+  } finally { w.remove(); }
+}
+function post(body) {
   let t = ""; try { t = localStorage.getItem("csk_token") || ""; } catch (e) {}
-  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 40000);
-  fetch(EF_API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ t, efsave: { id: S.id, name: label(S), json: JSON.stringify(S), text: summaryText() } }), signal: ctl.signal })
-    .then(r => r.json()).then(d => {
-      if (d && d.ok) { st.innerHTML = "✓ Elmentve a Drive-ra – <a href=\"" + d.folder + "\" target=\"_blank\" rel=\"noopener\">mappa megnyitása</a>"; st.style.color = "var(--csk)"; }
-      else { st.textContent = d && d.error === "auth" ? "Lejárt a belépés, lépj be újra." : "Nem sikerült: " + ((d && d.error) || "ismeretlen hiba"); st.style.color = "var(--frk)"; }
-    }).catch(() => { st.textContent = "Nem sikerült csatlakozni a mentéshez, próbáld újra."; st.style.color = "var(--frk)"; })
-    .finally(() => { clearTimeout(to); btns.forEach(b => b.disabled = false); });
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 60000);
+  return fetch(EF_API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(Object.assign({ t }, body)), signal: ctl.signal }).then(r => r.json()).finally(() => clearTimeout(to));
+}
+async function driveSave() {
+  persist(); const st = $("#dst"), btns = $$(".drv"); btns.forEach(b => b.disabled = true); st.style.color = "";
+  const ids = SHEETS.map(s => s[0]).filter(id => id !== "ceg" && (sheetFilled(id) || (id === "alap" && $$("#s_alap [data-o=gyujto] tr").length > 1)));
+  try {
+    if (!ids.length) throw new Error("Még nincs kitöltött lap, amit menteni lehetne.");
+    st.textContent = "PDF-készítő betöltése…"; await loadLibs();
+    let folder = "";
+    for (let i = 0; i < ids.length; i++) {
+      const nm = SHEETS.find(s => s[0] === ids[i])[1]; st.textContent = "Mentés a Drive-ra: " + nm + " (" + (i + 1) + "/" + ids.length + ")…";
+      const b64 = await sheetPdf(ids[i]);
+      const d = await post({ efsave: { id: S.id, name: label(S), pdf: { name: String(SHEETS.findIndex(s => s[0] === ids[i]) ).padStart(2, "0") + " " + nm + ".pdf", b64 } } });
+      if (!d || !d.ok) { if (d && d.error === "auth") throw new Error("Lejárt a belépés, lépj be újra."); throw new Error((d && d.error) || "ismeretlen hiba"); }
+      folder = d.folder;
+    }
+    const d2 = await post({ efsave: { id: S.id, name: label(S), json: JSON.stringify(S) } });
+    if (d2 && d2.ok) folder = d2.folder;
+    st.innerHTML = "✓ Elmentve a Drive-ra (" + ids.length + " PDF) – <a href=\"" + folder + "\" target=\"_blank\" rel=\"noopener\">mappa megnyitása</a>"; st.style.color = "var(--csk)";
+  } catch (e) { st.textContent = "Nem sikerült: " + (e.name === "AbortError" ? "időtúllépés, próbáld újra." : e.message); st.style.color = "var(--frk)"; }
+  finally { btns.forEach(b => b.disabled = false); }
 }
 document.addEventListener("click", e => { if (e.target.closest(".drv")) driveSave(); });
 document.addEventListener("DOMContentLoaded", init);
