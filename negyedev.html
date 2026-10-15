@@ -508,43 +508,6 @@
 <script>
   (function () {
     var host = document.querySelector(".topnav .in"); if (!host) return;
-    var now = new Date();
-    function ft(y, m) { var d = new Date(y, m, 1); return new Date(y, m, 1 + ((2 - d.getDay() + 7) % 7), 23, 59, 59); }
-    var adj = ["januári","februári","márciusi","áprilisi","májusi","júniusi","júliusi","augusztusi","szeptemberi","októberi","novemberi","decemberi"];
-    var all = [];
-    for (var y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) for (var m = 0; m < 12; m++) {
-      var pm = (m + 11) % 12; all.push({ date: ft(y, m), month: pm, quarter: pm % 3 === 2 });
-    }
-    all.sort(function (a, b) { return a.date - b.date; });
-    var ni = 0; while (ni < all.length && all[ni].date < now) ni++;
-    function days(d) { return Math.max(0, Math.ceil((d - now) / 86400000)); }
-    function same(a, b) { return a.toDateString() === b.toDateString(); }
-    function word(d) { return same(d, now) ? "ma" : days(d) === 1 ? "holnap" : days(d) + " nap"; }
-    function e(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
-    var wrap = e("div", "zm"), btn = e("button"), panel = e("div", "panel");
-    btn.type = "button"; btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-haspopup", "true");
-    btn.appendChild(e("span", "lbl", "Zárások")); btn.appendChild(e("span", "badge", word(all[ni].date))); btn.appendChild(e("span", "", "▾"));
-    btn.title = "Következő zárás: " + all[ni].date.toLocaleDateString("hu-HU", { month: "long", day: "numeric" });
-    panel.hidden = true; panel.appendChild(e("h3", "", "Zárások"));
-    var ol = e("ol");
-    all.slice(Math.max(0, ni - 1), ni + 4).forEach(function (c, i) {
-      var past = c.date < now, li = e("li", (past ? "past " : "") + (c === all[ni] ? "next" : ""));
-      li.appendChild(e("span", "m", adj[c.month].charAt(0).toUpperCase() + adj[c.month].slice(1) + " zárás" + (c.quarter ? " (negyedéves)" : "")));
-      li.appendChild(e("span", "d", c.date.toLocaleDateString("hu-HU", { year: "numeric", month: "long", day: "numeric" }) + ", kedd"));
-      li.appendChild(e("span", "n", past ? "lezárva" : word(c.date)));
-      ol.appendChild(li);
-    });
-    panel.appendChild(ol); wrap.appendChild(btn); wrap.appendChild(panel); host.appendChild(wrap);
-    function set(open) { panel.hidden = !open; btn.setAttribute("aria-expanded", open ? "true" : "false"); }
-    btn.addEventListener("click", function (ev) { ev.stopPropagation(); set(panel.hidden); });
-    document.addEventListener("click", function (ev) { if (!wrap.contains(ev.target)) set(false); });
-    document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") set(false); });
-    var a = document.querySelector('.topnav [aria-current="page"]'); if (a && a.scrollIntoView) { try { a.scrollIntoView({ inline: "center", block: "nearest" }); } catch (x) {} }
-  })();
-</script>
-<script>
-  (function () {
-    var host = document.querySelector(".topnav .in"); if (!host) return;
     function e(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
     var LINKS = [
       { name: "Csikós Pipeline", sub: "Google Táblázat", url: "https://docs.google.com/spreadsheets/d/1YKwZYWzi1nBNX3HQCDXUlKeovPqnMce0A4C4hnYFaHY/edit" },
