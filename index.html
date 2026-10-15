@@ -183,6 +183,17 @@
   /* az OVB-logós zárások ne legyenek rózsaszínek: a következő zárás csak félkövér */
   .side .closes li.next .m, .side .closes li.next .n { color: var(--ink); }
   .side .closes li.next .m { font-weight: 800; }
+
+  /* negyedéves állás a főoldalon */
+  .qc { display: block; text-decoration: none; color: inherit; margin: 0 0 40px; }
+  .qc .qlbl { color: var(--muted); font-size: clamp(1rem, 2.2vw, 1.4rem); margin: 0 0 8px; }
+  .qc .qnum { font-size: clamp(4.5rem, 18vw, 12rem); font-weight: 700; line-height: .95; letter-spacing: -.04em; color: var(--accent); font-variant-numeric: tabular-nums; margin: 0; }
+  .qc .qnum.busy { animation: ldpulse 1.2s ease-in-out infinite; }
+  .qc .qgoal { font-size: clamp(1.1rem, 3vw, 2.2rem); font-weight: 600; margin: 8px 0 0; }
+  .qc .qgoal span { color: var(--muted); font-weight: 400; }
+  .qc:hover .qnum { filter: brightness(1.1); }
+  .qc:focus-visible { outline: 3px solid var(--ink); outline-offset: 6px; border-radius: 8px; }
+  .qc { animation: swimin .9s cubic-bezier(.2, .7, .2, 1) both; animation-delay: .6s; }
 </style>
 </head>
 <body class="home">
@@ -200,10 +211,11 @@
         <p class="left" id="h-left"></p>
       </div>
 
-      <section>
-        <h2>Gyorslinkek</h2>
-        <ul class="links" id="links"></ul>
-      </section>
+      <a class="qc" id="qc" href="negyedev.html" aria-label="Negyedéves cél">
+        <p class="qlbl" id="q-lbl"></p>
+        <p class="qnum busy" id="q-num">0</p>
+        <p class="qgoal" id="q-goal"></p>
+      </a>
     </div>
 
     <aside class="side" aria-label="Struktúra naptár">
@@ -257,14 +269,6 @@
     });
   })();
 
-  // ====== EZT A LISTÁT SZERKESZD: új link = új sor ======
-  var LINKS = [
-    { title: "Negyedéves cél", desc: "Negyedéves állás a 11 000 ES-es vállaláshoz és a 12 500 ES-es célhoz.", href: "negyedev.html" },
-    { title: "Versenyállások", desc: "Q4 verseny: havi rangsorok, pontok és a kvalifikáció állása.", href: "verseny.html" },
-    { title: "Pipeline és dicsőségfal", desc: "A csapat Google-táblázata minden munkatárs lapjával.",
-      href: "https://docs.google.com/spreadsheets/d/1YKwZYWzi1nBNX3HQCDXUlKeovPqnMce0A4C4hnYFaHY/edit" }
-  ];
-  // =====================================================
 
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
@@ -308,7 +312,7 @@
   // Egyéb fontos események (szerkeszd: új esemény = új sor)
   var EVENTS = [
     { date: new Date(2027, 3, 22, 23, 59, 59), cat: "csk", title: "Erdély incentive út", dateText: "2027. április 22–25." },
-    { date: new Date(2026, 9, 17, 23, 59, 59), cat: "ovb", title: "Negyedéves szeminárium és kiértékelés", dateText: "2026. október 17. · Esztergom Grand Hotel" },
+    { date: new Date(2026, 9, 17, 23, 59, 59), cat: "ovb", title: "Negyedéves szeminárium", dateText: "2026. október 17. · Esztergom Grand Hotel" },
     { date: new Date(2026, 9, 22, 23, 59, 59), cat: "igaz", title: "Jótékonysági est", dateText: "2026. október 22. · Red and Black Bar" },
     { date: new Date(2026, 9, 24, 23, 59, 59), cat: "ovb", title: "Szeminárium beépítési nap", dateText: "2026. október 24. · Károly krt-i iroda" },
     { date: new Date(2026, 9, 26, 23, 59, 59), cat: "igaz", title: "Igazgatósági VIP vacsora", dateText: "2026. október 26." },
@@ -371,15 +375,35 @@
     })
     .catch(function () {});
 
-  var ul = $("links");
-  LINKS.forEach(function (l) {
-    var li = el("li"), a = el("a");
-    a.href = l.href;
-    if (/^https?:/.test(l.href)) { a.target = "_blank"; a.rel = "noopener"; }
-    a.appendChild(el("b", "", l.title));
-    a.appendChild(el("span", "", l.desc));
-    li.appendChild(a); ul.appendChild(li);
-  });
+
+  // ====== NEGYEDÉVES ÁLLÁS (a Negyedéves cél oldal felső fele) ======
+  var Q_COMMIT = 11000, Q_GOAL = 12500, Q_LABEL = "ES";   // ugyanaz, mint a negyedev.html-ben
+  (function () {
+    var nf = new Intl.NumberFormat("hu-HU");
+    $("q-lbl").textContent = now.getFullYear() + " " + (Math.floor(now.getMonth() / 3) + 1) + ". negyedév";
+    $("q-goal").innerHTML = "<span>vállalás</span> " + nf.format(Q_COMMIT) + " " + Q_LABEL + ", <span>cél</span> " + nf.format(Q_GOAL) + " " + Q_LABEL;
+    var numEl = $("q-num"), token = 0;
+    function animateTo(to) {
+      var from = 0, t0 = null, my = ++token;
+      numEl.classList.remove("busy");
+      if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) { numEl.textContent = nf.format(to); return; }
+      requestAnimationFrame(function step(t) {
+        if (my !== token) return;
+        if (t0 === null) t0 = t;
+        var k = Math.min(1, (t - t0) / 1400), e = 1 - Math.pow(1 - k, 3);
+        numEl.textContent = nf.format(Math.round(from + (to - from) * e));
+        if (k < 1) requestAnimationFrame(step);
+      });
+    }
+    fetch(CAL_API + "?_=" + Date.now())
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var t = d && d.teams;
+        if (!t || !t.csikos || !t.farkas) throw new Error("nincs csapat-adat");
+        animateTo(t.csikos.done + t.farkas.done);   // a dicsőségfal két csapatának összege
+      })
+      .catch(function () { numEl.classList.remove("busy"); numEl.textContent = "–"; });
+  })();
 </script>
 <script>
   (function () {
