@@ -269,8 +269,9 @@
 
   // kategória: a táblázat G oszlopa, ha üres, a megnevezésből tippeli
   function plain(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
-  var RULES = [["csapatep", "Csapatépítő"], ["potlas", "Pótlás"], ["pipeline", "Pipeline hiány"], ["csob", "CSOB hiány"], ["szombati", "Szombati oktatás"], ["szb", "Szombati oktatás"],
-    ["jegyzet", "Heti admin / jegyzet"], ["admin", "Heti admin / jegyzet"], ["sportnap", "Sportnap"], ["vip", "VIP"], ["321", "321 hiány"]];
+  var CATS = ["Jegyzet hiány", "Oktatás jelenlét", "Heti admin bünti", "Utazás/program", "Egyéb", "Vezetői hozzájárulás"];
+  var RULES = [["jegyzet", "Jegyzet hiány"], ["admin", "Heti admin bünti"], ["szombati", "Oktatás jelenlét"], ["szb", "Oktatás jelenlét"], ["oktatas", "Oktatás jelenlét"], ["jelenlet", "Oktatás jelenlét"],
+    ["utaz", "Utazás/program"], ["program", "Utazás/program"], ["csapatep", "Utazás/program"], ["sportnap", "Utazás/program"], ["vezet", "Vezetői hozzájárulás"], ["hozzajarul", "Vezetői hozzájárulás"]];
   function cat(x) {
     if (x.kat) return x.kat;
     var p = plain(x.nev);
@@ -416,12 +417,10 @@
       f.tip = field("Típus", sel([["Bevétel", "Befizetés / bekérő (bevétel)"], ["Kiadás", "Kiadás"]], x.tipus || "Bevétel"));
       f.ossz = field("Összeg (Ft)", inp("text", x.osszeg || "", { inputmode: "numeric", placeholder: "pl. 10000" }));
       f.dat = field("Dátum", inp("date", x.datum || today()));
-      f.kat = field("Kategória (üresen hagyva automatikus)", inp("text", x.kat || "", { list: "dl-kat", placeholder: x.id ? cat(x) : "pl. Csapatépítő" }));
+      var ko = CATS.slice(); if (x.kat && ko.indexOf(x.kat) < 0) ko.unshift(x.kat);
+      f.kat = field("Kategória", sel([["", "Automatikus (a megnevezés alapján)"]].concat(ko.map(function (k) { return [k, k]; })), x.kat || ""));
       f.megj = field("Megjegyzés", inp("text", x.megj || ""));
       var cl = el("label", "chk"); f.paid = inp("checkbox"); f.paid.checked = !!x.fizetve; cl.appendChild(f.paid); cl.appendChild(document.createTextNode("Már ki van fizetve")); fields.appendChild(cl);
-      var dl = el("datalist"); dl.id = "dl-kat"; var seen = {};
-      S.tetelek.map(cat).concat(RULES.map(function (r) { return r[1]; })).forEach(function (k) { if (!seen[k]) { seen[k] = 1; var o = el("option"); o.value = k; dl.appendChild(o); } });
-      fields.appendChild(dl);
     }, function () {
       var o = num(f.ossz.value);
       if (!f.nev.value.trim()) return Promise.reject(new Error("Add meg a megnevezést."));
