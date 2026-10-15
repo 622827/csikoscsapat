@@ -125,9 +125,35 @@
     .side { position: static; order: -1; }
     .side-in { max-height: none; }
   }
+
+  /* betöltés-jelző: vékony futó csík az oldal tetején */
+  .ldbar { position: fixed; left: 0; right: 0; top: 0; height: 4px; z-index: 1000; overflow: hidden; opacity: 0; pointer-events: none; transition: opacity .4s; }
+  body.loading .ldbar { opacity: 1; }
+  .ldbar::before { content: ""; position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; border-radius: 4px; background: var(--hot, var(--accent)); animation: ldmove 1.15s ease-in-out infinite; }
+  @keyframes ldmove { 0% { left: -40%; } 100% { left: 100%; } }
+  @keyframes ldpulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+  @media (prefers-reduced-motion: reduce) { .ldbar::before { animation-duration: 3s; } body.loading .ldp { animation: none !important; } }
+
+  /* beúszó szövegek */
+  @keyframes swimin { from { opacity: 0; transform: translateY(22px); filter: blur(8px); } to { opacity: 1; transform: none; filter: blur(0); } }
+  .news .item, .hero > *, .col section > h2, .links li, .side-in > h2, .side .closes li {
+    animation: swimin .9s cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(var(--i, 0) * 90ms + 80ms);
+  }
+  .news .item:nth-child(1) { --i: 0; } .news .item:nth-child(2) { --i: 1; } .news .item:nth-child(3) { --i: 2; } .news .item:nth-child(4) { --i: 3; }
+  .hero > :nth-child(1) { --i: 2; } .hero > :nth-child(2) { --i: 3; } .hero > :nth-child(3) { --i: 4; }
+  .col section > h2 { --i: 5; }
+  .links li:nth-child(1) { --i: 6; } .links li:nth-child(2) { --i: 7; } .links li:nth-child(3) { --i: 8; } .links li:nth-child(4) { --i: 9; } .links li:nth-child(5) { --i: 10; }
+  .side-in > h2 { --i: 1; }
+  .side .closes li:nth-child(1) { --i: 2; } .side .closes li:nth-child(2) { --i: 3; } .side .closes li:nth-child(3) { --i: 4; }
+  .side .closes li:nth-child(4) { --i: 5; } .side .closes li:nth-child(5) { --i: 6; } .side .closes li:nth-child(n+6) { --i: 7; }
+  @media (prefers-reduced-motion: reduce) {
+    .news .item, .hero > *, .col section > h2, .links li, .side-in > h2, .side .closes li { animation: none; }
+  }
 </style>
 </head>
 <body class="home">
+<div class="ldbar" aria-hidden="true"></div>
+
 <nav class="topnav" aria-label="Főmenü"><div class="in"><a class="brand" href="index.html">Csikós BL csapat</a><ul><li><a href="index.html" aria-current="page">Kezdőlap</a></li><li><a href="negyedev.html">Negyedéves cél</a></li><li><a href="verseny.html">Versenyállások</a></li><li><a href="cegbemutato.html">Cégbemutató</a></li><li><a href="https://docs.google.com/spreadsheets/d/1YKwZYWzi1nBNX3HQCDXUlKeovPqnMce0A4C4hnYFaHY/edit" target="_blank" rel="noopener">Pipeline ↗</a></li></ul></div></nav>
 <main>
   <div class="layout">
@@ -161,17 +187,22 @@
   var NEWS = [
     { tag: "Fontos – töltsd ki!", title: "2027. Erdély incentive kérdőív",
       text: "Egy perc az egész: írd meg, szeretnél-e jönni Erdélybe (2027. április 22–25.), és hogy autóval vagy repülővel csatlakoznál.",
-      button: "Kitöltöm a kérdőívet", href: "https://forms.gle/LHhF8DjfFepu2SQb6", survey: true }
+      button: "Kitöltöm a kérdőívet", href: "https://forms.gle/LHhF8DjfFepu2SQb6", survey: true },
+    { tag: "Jelentkezés október 30-ig", title: "Pozsonyi adventi vásár – dec. 12.",
+      text: "Közös buszos utazás Pozsonyba, kb. 13 000 Ft / fő. Most az előzetes létszámfelmérés zajlik: a jelentkezés fizetéssel válik véglegessé.",
+      button: "Jelentkezési kérdőív", href: "https://forms.gle/EAXgmNpgyr2QyGxg8" }
   ];
   function loadMissing(el) {
+    document.body.classList.add("loading"); el.textContent = "Betöltés…";
     fetch(SURVEY_API + "?kerdoiv=1&_=" + Date.now())
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (d.error || !d.missing) return;
+        document.body.classList.remove("loading");
+        if (d.error || !d.missing) { el.textContent = ""; return; }
         if (d.missing.length === 0) { el.textContent = "Mindenki kitöltötte, köszönjük!"; return; }
         el.textContent = "Még nem töltötte ki (" + d.missing.length + "/" + d.total + "): " + d.missing.join(", ");
       })
-      .catch(function () {});
+      .catch(function () { document.body.classList.remove("loading"); el.textContent = ""; });
   }
   (function () {
     var box = document.getElementById("news");
@@ -242,7 +273,8 @@
 
   // Egyéb fontos események (szerkeszd: új esemény = új sor)
   var EVENTS = [
-    { date: new Date(2027, 3, 22, 23, 59, 59), title: "Erdély incentive út", dateText: "2027. április 22–25." }
+    { date: new Date(2027, 3, 22, 23, 59, 59), title: "Erdély incentive út", dateText: "2027. április 22–25." },
+    { date: new Date(2026, 11, 12, 23, 59, 59), title: "Pozsonyi adventi vásár", dateText: "2026. december 12. · jelentkezés okt. 30-ig", href: "https://forms.gle/EAXgmNpgyr2QyGxg8" }
   ];
 
   var list = $("closes");
@@ -253,7 +285,8 @@
     var past = it.date < now;
     if (it.ev) {
       var lie = el("li", "ev");
-      lie.appendChild(el("span", "m", it.ev.title));
+      if (it.ev.href) { var ea = el("a", "m", it.ev.title); ea.href = it.ev.href; ea.target = "_blank"; ea.rel = "noopener"; ea.style.color = "inherit"; lie.appendChild(ea); }
+      else lie.appendChild(el("span", "m", it.ev.title));
       lie.appendChild(el("span", "d", it.ev.dateText));
       lie.appendChild(el("span", "n", sameDay(it.date, now) ? "ma" : daysTo(it.date) + " nap"));
       list.appendChild(lie); return;
