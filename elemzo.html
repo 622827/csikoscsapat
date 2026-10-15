@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- BELÉPÉS: jelszó a Google Apps Scriptben (nem az oldalon) -->
+<style>
+  html.csklock body > *:not(#csk-gate) { visibility: hidden !important; }
+  html.csklock body { overflow: hidden; }
+  #csk-gate { position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 24px;
+    background: var(--bg, #fff); color: var(--ink, #003366); font-family: "Stag Sans", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; visibility: visible; }
+  #csk-gate form { width: 100%; max-width: 360px; }
+  #csk-gate h1 { font-size: clamp(2rem, 8vw, 2.8rem); letter-spacing: -.03em; line-height: 1; margin: 0 0 8px; }
+  #csk-gate p { color: var(--muted, #336699); margin: 0 0 22px; }
+  #csk-gate input { width: 100%; font: inherit; font-size: 1.1rem; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--track, #e5e5e5); background: var(--card, #e5e5e5); color: inherit; }
+  #csk-gate input:focus { outline: 3px solid var(--accent, #003366); outline-offset: 2px; }
+  #csk-gate button { width: 100%; margin-top: 12px; font: inherit; font-weight: 700; font-size: 1.05rem; padding: 14px; border: 0; border-radius: 12px; cursor: pointer; background: var(--accent, #003366); color: var(--on-accent, #fff); }
+  #csk-gate button[disabled] { opacity: .6; cursor: wait; }
+  #csk-gate .err { color: var(--hot, #cc0066); min-height: 1.4em; margin: 10px 0 0; font-size: .95rem; }
+</style>
+<script>
+(function () {
+  var API = "https://script.google.com/macros/s/AKfycbxsTMxAtO6Z7EvRNdRXBduYTD9T044_K627ePPqSKHRE22Upe5Ej2DEKSYk38jrrk3B9A/exec";
+  var K = "csk_token", tok = "", root = document.documentElement, of = window.fetch.bind(window);
+  function ckGet() { var m = document.cookie.match(/(?:^|; )csk_token=([^;]*)/); return m ? decodeURIComponent(m[1]) : ""; }
+  function ckSet(v) {
+    var h = location.hostname.replace(/^www\./, ""), dom = /^[\d.]+$|^localhost$/.test(h) || !h ? "" : "; domain=." + h;
+    document.cookie = "csk_token=" + (v ? encodeURIComponent(v) : "") + dom + "; path=/; max-age=" + (v ? 31536000 : 0) + "; SameSite=Lax" + (location.protocol === "https:" ? "; Secure" : "");
+  }
+  try { tok = localStorage.getItem(K) || ""; } catch (e) {}
+  if (!tok) tok = ckGet();
+  if (tok) { try { localStorage.setItem(K, tok); } catch (e) {} ckSet(tok); }
+  if (!tok) root.classList.add("csklock");
+
+  window.fetch = function (u, o) {
+    var s = typeof u === "string" ? u : (u && u.url) || "";
+    if (s.indexOf("AKfycbxsTMxAtO6Z") < 0 || s.indexOf("login=") > -1) return of(u, o);
+    s += (s.indexOf("?") > -1 ? "&" : "?") + "t=" + encodeURIComponent(tok);
+    return of(s, o).then(function (r) {
+      r.clone().json().then(function (d) { if (d && d.error === "auth") lock(); }).catch(function () {});
+      return r;
+    });
+  };
+
+  function lock() {
+    try { localStorage.removeItem(K); } catch (e) {} ckSet("");
+    tok = ""; root.classList.add("csklock"); build();
+  }
+  function build() {
+    if (document.getElementById("csk-gate")) return;
+    if (!document.body) { document.addEventListener("DOMContentLoaded", build); return; }
+    var g = document.createElement("div"); g.id = "csk-gate";
+    g.innerHTML = '<form autocomplete="on"><h1>Csikós csapat</h1><p>Add meg a jelszót a belépéshez.</p>' +
+      '<input type="password" id="csk-pw" placeholder="Jelszó" autocomplete="current-password" autofocus>' +
+      '<button type="submit">Belépés</button><p class="err" id="csk-err" role="alert"></p></form>';
+    document.body.appendChild(g);
+    var f = g.querySelector("form"), pw = g.querySelector("#csk-pw"), btn = g.querySelector("button"), er = g.querySelector("#csk-err");
+    setTimeout(function () { pw.focus(); }, 50);
+    f.addEventListener("submit", function (ev) {
+      ev.preventDefault(); if (!pw.value) return;
+      btn.disabled = true; er.textContent = "";
+      of(API + "?login=" + encodeURIComponent(pw.value) + "&_=" + Date.now())
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d && d.ok && d.token) { try { localStorage.setItem(K, d.token); } catch (e) {} ckSet(d.token); location.reload(); }
+          else { er.textContent = "Hibás jelszó."; btn.disabled = false; pw.select(); }
+        })
+        .catch(function () { er.textContent = "Nem sikerült csatlakozni, próbáld újra."; btn.disabled = false; });
+    });
+  }
+  if (!tok) build();
+})();
+</script>
+<title>Pénzügyi elemző füzet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#ffffff; --ink:#003366; --muted:#336699; --accent:#003366; --csk:#006666; --frk:#cc0066; --on-accent:#ffffff; --time:#6699cc; --track:#e5e5e5; --card:#e5e5e5; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#001f3d; --ink:#ffffff; --muted:#6699cc; --accent:#ff99cc; --csk:#66cccc; --frk:#ff99cc; --on-accent:#001f3d; --time:#336699; --track:#00305a; --card:#003366; } }
+  * { box-sizing: border-box; }
+  .topnav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; background: var(--bg); border-bottom: 1px solid var(--track); }
+  .topnav .in { max-width: 1100px; margin: 0 auto; padding: 0 16px; height: 56px; display: flex; align-items: center; gap: 20px; }
+  .topnav .brand { font-weight: 700; color: var(--ink); text-decoration: none; white-space: nowrap; font-size: 1.05rem; margin: 0; }
+  .topnav ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: 1; }
+  .topnav ul::-webkit-scrollbar { display: none; }
+  .topnav li a { display: block; padding: 8px 14px; border-radius: 999px; color: var(--ink); text-decoration: none; font-weight: 600;
+                 font-size: .95rem; white-space: nowrap; }
+  .topnav li a:hover { background: var(--track); }
+  .topnav li a[aria-current="page"] { background: var(--accent); color: var(--on-accent, #fff); }
+  .topnav a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  @media (max-width: 640px) { .topnav .brand { display: none; } .topnav .in { gap: 0; padding: 0 8px; } }
+
+  .zm { position: relative; margin-left: auto; flex: none; }
+  .zm > button { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; border: 0; cursor: pointer;
+                 background: var(--card); color: var(--ink); font: inherit; font-weight: 700; font-size: .95rem; white-space: nowrap; }
+  .zm > button:hover { filter: brightness(.96); }
+  .zm > button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .zm .badge { background: var(--accent); color: var(--on-accent, #fff); border-radius: 999px; padding: 2px 9px; font-size: .82rem; }
+  .zm .panel { position: absolute; right: 0; top: calc(100% + 10px); width: min(340px, calc(100vw - 16px)); background: var(--bg); color: var(--ink);
+               border: 1px solid var(--track); border-radius: 14px; box-shadow: 0 8px 28px rgba(0,0,0,.22); padding: 8px 14px 12px; }
+  .zm .panel[hidden] { display: none; }
+  .zm .panel h3 { margin: 6px 0 4px; font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .zm .panel ol { list-style: none; margin: 0; padding: 0; }
+  .zm .panel li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; padding: 9px 0; border-bottom: 1px solid var(--track); }
+  .zm .panel li:last-child { border-bottom: 0; }
+  .zm .panel .m { font-weight: 700; } .zm .panel .d { color: var(--muted); font-size: .88rem; grid-column: 1; }
+  .zm .panel .n { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-weight: 700; }
+  .zm .panel li.past { opacity: .5; } .zm .panel li.next .n { color: var(--accent); }
+  .zm.dv { margin-left: auto; } .zm.dv + .zm { margin-left: 8px; }
+  body.home .zm.dv { display: block; }
+  .zm.dv .panel { width: min(300px, calc(100vw - 16px)); }
+  .zm.dv .panel a { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; padding: 10px 0; color: inherit; text-decoration: none; border-bottom: 1px solid var(--track); }
+  .zm.dv .panel a:last-child { border-bottom: 0; }
+  .zm.dv .panel a:hover .m { color: var(--accent); }
+  .zm.dv .panel a .go { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-weight: 700; color: var(--accent); }
+  @media (max-width: 640px) { .zm > button { padding: 8px 10px; } .zm .lbl { display: none; } }
+  main { max-width: 1100px; margin: 0 auto; padding: 76px 16px 56px; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Stag Sans", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.45; }
+  :root { --hot: var(--frk); }
+  h1 { font-size: clamp(1.7rem, 4.5vw, 2.4rem); letter-spacing: -.02em; margin: 0; line-height: 1.1; }
+  h2 { font-size: clamp(1.25rem, 3vw, 1.6rem); margin: 0 0 4px; letter-spacing: -.01em; }
+  h3 { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  p { margin: 0 0 8px; }
+  .muted { color: var(--muted); }
+  .bar0 { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .bar0 .tl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .btn { font: inherit; font-weight: 600; font-size: .9rem; border: 1px solid var(--track); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 7px 14px; cursor: pointer; white-space: nowrap; }
+  .btn:hover { background: var(--track); }
+  .btn.pri { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .btn.pri:hover { filter: brightness(1.1); }
+  .btn.bad { color: var(--frk); }
+  select, input[type=text], input:not([type]), textarea { font: inherit; color: inherit; background: var(--card); border: 2px solid var(--track); border-radius: 10px; padding: 9px 11px; width: 100%; min-width: 0; }
+  textarea { resize: vertical; }
+  select { width: auto; max-width: 100%; }
+  .fl select { width: 100%; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .steps { position: sticky; top: 56px; z-index: 30; background: var(--bg); margin: 0 -16px 18px; padding: 8px 16px; border-bottom: 1px solid var(--track); display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .steps::-webkit-scrollbar { display: none; }
+  .steps button { font: inherit; font-weight: 600; font-size: .92rem; border: 0; background: var(--card); color: var(--ink); border-radius: 999px; padding: 8px 14px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 7px; }
+  .steps button .n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--bg); font-size: .78rem; }
+  .steps button.has .n { background: var(--csk); color: #fff; }
+  .steps button.on { background: var(--accent); color: var(--on-accent); }
+  .steps button.on .n { background: var(--on-accent); color: var(--accent); }
+  .sheet { display: none; }
+  .sheet.on { display: block; }
+  .lead { color: var(--muted); margin: 0 0 14px; }
+  .card { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 14px; min-width: 0; }
+  .card > h3:first-child { margin-top: 0; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .grid.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .fl { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .fl > span:first-child { font-weight: 600; font-size: .88rem; }
+  .fl .inp { position: relative; display: block; }
+  .fl .inp input { padding-right: 46px; }
+  .fl .inp i { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-style: normal; font-size: .85rem; pointer-events: none; }
+  .card input, .card select, .card textarea { background: var(--bg); }
+  .fl.full { grid-column: 1 / -1; }
+  .res { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin: 4px 0 0; }
+  .kpi { background: var(--bg); border-radius: 12px; padding: 11px 13px; min-width: 0; }
+  .kpi .k { color: var(--muted); font-size: .82rem; }
+  .kpi .v { font-size: 1.28rem; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .kpi.hl { background: var(--accent); color: var(--on-accent); } .kpi.hl .k { color: inherit; opacity: .8; }
+  .kpi .v.in { color: var(--csk); } .kpi .v.out { color: var(--frk); }
+  .kpi.hl .v { color: inherit; }
+  .note { font-size: .86rem; color: var(--muted); margin-top: 8px; }
+  .warn { background: var(--bg); border-left: 4px solid var(--frk); border-radius: 8px; padding: 9px 12px; margin-top: 10px; font-size: .92rem; }
+  .warn[hidden] { display: none; }
+  .chips { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); }
+  .chip { flex-wrap: wrap; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--bg); border-radius: 12px; padding: 7px 8px 7px 12px; }
+  .chip > span:first-child { font-weight: 600; font-size: .92rem; }
+  .seg2 { display: inline-flex; background: var(--track); border-radius: 999px; padding: 2px; flex: none; }
+  .seg2 button { font: inherit; font-size: .8rem; font-weight: 600; border: 0; background: none; color: var(--ink); padding: 5px 10px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .seg2 button.on { background: var(--accent); color: var(--on-accent); }
+  .tw { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+  table.t { width: 100%; border-collapse: collapse; min-width: 520px; }
+  table.t th { text-align: left; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 4px 6px 6px; white-space: nowrap; }
+  table.t td { padding: 3px 4px; vertical-align: middle; }
+  table.t td input, table.t td select { padding: 7px 9px; }
+  table.t td.lb { font-weight: 600; padding-right: 8px; white-space: nowrap; }
+  table.t td.o { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+  table.t td.x { width: 30px; }
+  table.t tr.sum td { border-top: 2px solid var(--track); font-weight: 700; padding-top: 8px; }
+  .xb { border: 0; background: none; color: var(--frk); cursor: pointer; font-size: 1rem; padding: 4px; }
+  table.dt { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  table.dt th, table.dt td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--track); white-space: nowrap; }
+  table.dt th:first-child, table.dt td:first-child { text-align: left; }
+  table.dt th { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  details.guide { background: var(--card); border-radius: 16px; margin-bottom: 14px; }
+  details.guide > summary { cursor: pointer; font-weight: 700; padding: 13px 16px; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  details.guide > summary::-webkit-details-marker { display: none; }
+  details.guide > summary::after { content: "▾"; transition: transform .15s; }
+  details.guide[open] > summary::after { transform: rotate(180deg); }
+  details.guide .gb { padding: 0 16px 14px; columns: 2 340px; column-gap: 28px; }
+  details.guide h4 { margin: 12px 0 4px; font-size: .95rem; color: var(--accent); break-after: avoid; }
+  details.guide h4:first-child { margin-top: 0; }
+  details.guide ul { margin: 0 0 6px; padding-left: 18px; }
+  details.guide li { margin: 0 0 5px; break-inside: avoid; }
+  details.guide em, .note-i { color: var(--muted); font-style: italic; }
+  .nav2 { display: flex; justify-content: space-between; gap: 12px; margin-top: 22px; }
+  .svgc { width: 100%; height: auto; display: block; background: var(--bg); border-radius: 12px; }
+  .lg { display: flex; gap: 16px; flex-wrap: wrap; font-size: .85rem; margin-top: 6px; }
+  .lg i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+  .rate { display: flex; flex-wrap: wrap; gap: 4px; }
+  .rate button { font: inherit; font-weight: 700; width: 36px; height: 36px; border-radius: 10px; border: 0; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .rate button.on { background: var(--accent); color: var(--on-accent); }
+  .rate button.low.on { background: var(--frk); color: #fff; }
+  .qrow { padding: 10px 0; border-bottom: 1px solid var(--track); }
+  .qrow:last-child { border-bottom: 0; }
+  .qrow > div:first-child { font-weight: 600; margin-bottom: 6px; }
+  .nm { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  .tag { display: inline-block; font-size: .75rem; font-weight: 700; background: var(--track); border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
+  .names li { margin-bottom: 3px; }
+  @media (max-width: 640px) { .grid.g2, .grid.g3 { grid-template-columns: 1fr; } details.guide .gb { columns: 1; } }
+  @media print {
+    .topnav, .steps, .nav2, .bar0, details.guide, .xb, .btn, #csk-gate { display: none !important; }
+    html.csklock body > *:not(#csk-gate) { visibility: visible !important; }
+    .sheet { display: block !important; page-break-after: always; }
+    main { padding: 0; }
+    .card, .kpi { background: #fff !important; border: 1px solid #bbb; }
+    body { background: #fff; color: #000; }
+    .kpi.hl { color: #000; background: #eee !important; }
+    .pr-h { display: block !important; }
+  }
+  .pr-h { display: none; }
+</style>
+</head>
+<body>
+<nav class="topnav" aria-label="Főmenü"><div class="in"><a class="brand" href="index.html">Csikós BL csapat</a><ul><li><a href="index.html">Kezdőlap</a></li><li><a href="negyedev.html">Negyedéves cél</a></li><li><a href="verseny.html">Versenyállások</a></li><li><a href="csapatkassza.html">Csapatkassza</a></li><li><a href="elemzo.html" aria-current="page">Elemző füzet</a></li><li><a href="cegbemutato.html">Cégbemutató</a></li></ul></div></nav>
+<main>
+<div class="bar0"><div><h1>Pénzügyi elemző füzet</h1><div class="muted">Ügyfél: <b id="pn"></b></div></div>
+<div class="tl"><select id="cl" aria-label="Ügyfél"></select><button class="btn" id="nw" type="button">+ Új ügyfél</button><button class="btn" id="gd" type="button">Beszélgetésvezető szövegek</button><button class="btn pri drv" type="button">Mentés a Drive-ra</button><button class="btn" id="ex" type="button">Exportálás</button><button class="btn" id="im" type="button">Importálás</button><button class="btn" id="pr" type="button">Nyomtatás / PDF</button><button class="btn bad" id="dl" type="button">Törlés</button><input type="file" id="imf" accept=".json,application/json" hidden></div></div>
+<div id="dst" class="note" role="status" style="margin:-6px 0 10px"></div>
+<nav class="steps" id="steps" aria-label="Lapok"></nav>
+<div id="sheets"></div>
+<div class="nav2"><button class="btn" id="prev" type="button"></button><button class="btn pri" id="next" type="button"></button></div>
+<p class="note" style="margin-top:20px">Az ügyfél adatai csak ezen a böngészőn (ezen az eszközön) tárolódnak, a szerverre nem kerülnek. Másik eszközre vagy mentésként az „Exportálás” gombbal vihető át, az „Importálás” gombbal tölthető vissza. Az adatok tájékoztató jellegűek és nem minősülnek ajánlattételnek.</p>
+</main>
+<script>
+const AFT={"5": 3.68927916666667, "6": 4.792879166666666, "7": 5.9395, "8": 7.1308375, "9": 8.3686375, "10": 11.5, "11": 12, "12": 12.73145, "13": 14.187620833333334, "14": 15.700579166666667, "15": 17.791025, "16": 19.4444875, "17": 21.162429166666666, "18": 22.9473625, "19": 24.801908333333333, "20": 27.543895833333334, "21": 29.57765, "22": 31.690720833333334, "23": 33.886183333333335, "24": 36.167254166666666, "25": 40.8648125, "26": 43.417995833333336, "27": 46.07074583333333, "28": 48.82694583333333, "29": 51.6906125, "30": 58.71682083333334, "31": 61.966120833333335, "32": 65.34212083333334, "33": 68.84975, "34": 72.49416666666667, "35": 82.45666666666666, "36": 86.63245833333333, "37": 90.970275, "38": 95.4772375, "39": 100.15994166666667, "40": 113.92857916666667, "41": 119.33076666666666},COEF=[0.2079, 0.372, 0.54465, 0.6452, 0.7157, 0.77165, 0.8197, 0.86315, 0.92, 1.11025, 1.1496, 1.18917, 1.22926, 1.27013, 1.4112, 1.452, 1.49447, 1.53865, 1.58465, 1.7752, 1.84366, 1.915, 1.98944, 2.06705, 2.06705, 2.06705, 2.06705, 2.06705, 2.06705, 2.06705],MM=[1.0096665, 1.0157139, 1.0222404, 1.0306869, 1.0401938, 1.0500797, 1.0602466, 1.0706489, 1.0910754, 1.0908663, 1.1026063, 1.1144371, 1.1263611, 1.138482, 1.1502689, 1.1633074, 1.1765288, 1.1898906, 1.2034429, 1.2145294, 1.2289037, 1.2435053, 1.2583739, 1.2734697, 1.2734697, 1.2734697, 1.2734697, 1.2734697, 1.2734697, 1.2734697],RISK={"15": 0.070558, "16": 0.070558, "17": 0.070558, "18": 0.070558, "19": 0.070558, "20": 0.070558, "21": 0.076908, "22": 0.083825, "23": 0.091375, "24": 0.0996, "25": 0.108558, "26": 0.118333, "27": 0.128983, "28": 0.140592, "29": 0.153242, "30": 0.167033, "31": 0.182067, "32": 0.19845, "33": 0.216317, "34": 0.235783, "35": 0.257, "36": 0.280133, "37": 0.305342, "38": 0.332825, "39": 0.362783, "40": 0.395433, "41": 0.431017, "42": 0.469808, "43": 0.512092, "44": 0.558183, "45": 0.608417, "46": 0.663175, "47": 0.722858, "48": 0.787917, "49": 0.858833, "50": 0.936125, "51": 1.020375, "52": 1.112208, "53": 1.212308, "54": 1.321417, "55": 1.440342, "56": 1.569975, "57": 1.711275, "58": 1.865292, "59": 2.033167, "60": 2.21615, "61": 2.4156, "62": 2.633008, "63": 2.869975, "64": 3.128275, "65": 3.409825, "66": 3.716708, "67": 4.051208, "68": 4.415817, "69": 4.813242, "70": 5.246433, "71": 5.718617, "72": 6.233292, "73": 6.794283, "74": 7.405767, "75": 8.072292, "76": 8.798792, "77": 9.590683, "78": 10.45385, "79": 11.394692, "80": 12.420217},CRIT={"3": 1.06693, "4": 1.06693, "5": 1.06693, "6": 1.06693, "7": 1.06693, "8": 1.06693, "9": 1.06693, "10": 1.06693, "11": 1.06693, "12": 1.06693, "13": 1.06693, "14": 1.06693, "15": 1.06693, "16": 1.06693, "17": 1.06693, "18": 1.06693, "19": 1.06693, "20": 1.06693, "21": 1.16296, "22": 1.26762, "23": 1.38171, "24": 1.50606, "25": 1.64161, "26": 1.78935, "27": 1.95039, "28": 2.12593, "29": 2.31726, "30": 2.52581, "31": 2.75314, "32": 3.00092, "33": 3.271, "34": 3.56539, "35": 3.88628, "36": 4.23604, "37": 4.61729, "38": 5.03284, "39": 5.4858, "40": 5.97952, "41": 6.51768, "42": 7.10427, "43": 7.74365, "44": 8.44058, "45": 9.20024, "46": 10.02826, "47": 10.9308, "48": 11.91457, "49": 12.98688, "50": 14.1557, "51": 15.42972, "52": 16.81839, "53": 18.33205, "54": 19.98193, "55": 21.7803, "56": 23.74053, "57": 25.87718, "58": 28.20612, "59": 30.74468, "60": 33.5117, "61": 36.52775, "62": 39.81525, "63": 43.39862, "64": 47.3045, "65": 51.5619, "66": 56.20247, "67": 61.26069, "68": 66.77416, "69": 72.78383, "70": 79.33437};
+
+/* ---------- segédfüggvények ---------- */
+const $ = (s, r) => (r || document).querySelector(s), $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const num = v => { if (typeof v === "number") return isFinite(v) ? v : 0; const x = parseFloat(String(v == null ? "" : v).replace(/[\s ]/g, "").replace(",", ".")); return isFinite(x) ? x : 0; };
+const has = v => v !== undefined && v !== null && String(v).trim() !== "";
+const fnum = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0");
+const ft = n => (n == null || !isFinite(n)) ? "–" : fnum(n) + "\u00a0Ft";
+const note = t => esc(t).replace(/«([^»]*)»/g, "<em>$1</em>");
+
+const SHEETS = [
+  ["alap", "Alapadatok"], ["nyugdij", "Nyugdíj"], ["lakas", "Lakás"], ["gyermek", "Gyermek"], ["egeszseg", "Egészségügy"],
+  ["befektetes", "Befektetés"], ["osszegzes", "Összegzés"], ["zaras", "Zárás"], ["ajanlas", "Ajánláskérés"]
+];
+
+/* ---------- állapot ---------- */
+const LS = "csk_ef_v1", LC = "csk_ef_cur";
+let DB = {}, S = null;
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function load() { try { DB = JSON.parse(lsGet(LS) || "{}") || {}; } catch (e) { DB = {}; } }
+function persist() { if (S) { S.t = Date.now(); DB[S.id] = S; } lsSet(LS, JSON.stringify(DB)); if (S) lsSet(LC, S.id); }
+let pt = null; function persistSoon() { clearTimeout(pt); pt = setTimeout(persist, 250); }
+function newClient() { const id = "c" + Date.now().toString(36); return { id, t: Date.now(), d: { ny_havi: "55000", lk_mod: "Rövidtáv (hitel)" } }; }
+function label(c) { return (c.d.c_nev && c.d.c_nev.trim()) || "Névtelen ügyfél"; }
+
+/* ---------- űrlap-elemek ---------- */
+function fld(k, l, o) {
+  o = o || {};
+  const w = o.full ? " full" : "";
+  if (o.t === "ta") return `<label class="fl${w}"><span>${esc(l)}</span><textarea data-k="${k}" rows="${o.r || 3}" placeholder="${esc(o.ph || "")}"></textarea></label>`;
+  if (o.t === "s") return `<label class="fl${w}"><span>${esc(l)}</span><select data-k="${k}"><option value=""></option>${o.o.map(x => `<option>${esc(x)}</option>`).join("")}</select></label>`;
+  if (o.t === "c") return `<label class="fl${w}" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" data-k="${k}" style="width:20px;height:20px;flex:none"><span style="font-weight:600">${esc(l)}</span></label>`;
+  return `<label class="fl${w}"><span>${esc(l)}</span><span class="inp"><input data-k="${k}"${o.m ? ' class="money"' : ""}${o.n || o.m ? ' inputmode="decimal"' : ""}${o.ph ? ` placeholder="${esc(o.ph)}"` : ""}${o.u ? `>` + `<i>${esc(o.u)}</i>` : ">"}</span></label>`;
+}
+const M = (k, l, o) => fld(k, l, Object.assign({ m: 1, u: "Ft" }, o));
+function chip(k, l, a, b) { a = a || "Fontos"; b = b || "Nem fontos"; return `<div class="chip"><span>${esc(l)}</span><span class="seg2" data-ck="${k}"><button type="button" data-v="${a}">${a}</button><button type="button" data-v="${b}">${b}</button></span></div>`; }
+function yn(k, l) { return chip(k, l, "Igen", "Nem"); }
+function kpi(id, k, o) { o = o || {}; return `<div class="kpi${o.hl ? " hl" : ""}"><div class="k">${esc(k)}</div><div class="v ${o.c || ""}" data-o="${id}">–</div></div>`; }
+function names(prefix, n, hint) {
+  let h = ""; for (let i = 1; i <= n; i++) h += `<input data-k="${prefix}${i}" placeholder="Név">`;
+  return `<div class="card"><h3>Kinek lehet még hasznos?</h3><div class="nm">${h}</div>${hint ? `<p class="note">${esc(hint)}</p>` : ""}</div>`;
+}
+/* táblázat: cols = [[cím, típus(t|m|n|o), szélesség?]], fixed = rögzített első oszlop-címkék */
+function tbl(k, cols, fixed, o) {
+  o = o || {};
+  return `<div class="tw"><table class="t" data-tk="${k}" data-cols='${JSON.stringify(cols)}' data-fixed='${JSON.stringify(fixed || [])}' data-add="${o.add ? 1 : 0}" data-lab="${o.lab ? 1 : 0}" data-sum="${o.sum || ""}" data-init="${o.init || 0}"></table></div>` +
+    (o.add ? `<button type="button" class="btn" data-addrow="${k}" style="margin-top:8px">+ Új sor</button>` : "");
+}
+function renderTables() {
+  $$("table.t[data-tk]").forEach(t => {
+    const k = t.dataset.tk, cols = JSON.parse(t.dataset.cols), fixed = JSON.parse(t.dataset.fixed), lab = t.dataset.lab === "1";
+    let rows = S.d[k];
+    if (!Array.isArray(rows)) {
+      rows = fixed.map(f => lab ? [f] : [f]); const ex = +t.dataset.init || 0; for (let i = 0; i < ex; i++) rows.push([""]);
+      S.d[k] = rows;
+    }
+    const nl = lab ? 1 : 0; // ha lab: az első oszlop a rögzített címke
+    let h = "<thead><tr>" + cols.map(c => `<th>${esc(c[0])}</th>`).join("") + (t.dataset.add === "1" ? "<th></th>" : "") + "</tr></thead><tbody>";
+    rows.forEach((row, r) => {
+      const isFixed = lab && r < fixed.length;
+      h += "<tr>";
+      cols.forEach((c, ci) => {
+        if (lab && ci === 0 && isFixed) { h += `<td class="lb">${esc(fixed[r])}</td>`; return; }
+        if (c[1] === "o") { h += `<td class="o" data-o="${k}_${r}">–</td>`; return; }
+        const val = row[ci] == null ? "" : row[ci];
+        if (c[1] === "s") { h += `<td><select data-tk="${k}" data-r="${r}" data-c="${ci}"><option value=""></option>${c[2].map(x => `<option${x === val ? " selected" : ""}>${esc(x)}</option>`).join("")}</select></td>`; return; }
+        h += `<td><input data-tk="${k}" data-r="${r}" data-c="${ci}" value="${esc(val)}"${c[1] === "m" ? ' class="money" inputmode="decimal"' : c[1] === "n" ? ' inputmode="decimal"' : ""}></td>`;
+      });
+      if (t.dataset.add === "1") h += (!lab || r >= fixed.length) ? `<td class="x"><button type="button" class="xb" data-delrow="${k}" data-r="${r}" title="Sor törlése">✕</button></td>` : "<td></td>";
+      h += "</tr>";
+    });
+    if (t.dataset.sum) h += `<tr class="sum"><td colspan="${cols.length - 1}">Összesen</td><td class="o" data-o="${k}_sum">–</td></tr>`;
+    t.innerHTML = h + "</tbody>";
+  });
+}
+
+/* ---------- kitöltés / olvasás ---------- */
+function fillAll() {
+  renderTables();
+  $$("[data-k]").forEach(el => {
+    const v = S.d[el.dataset.k];
+    if (el.type === "checkbox") el.checked = v === "1"; else el.value = v == null ? "" : v;
+    if (el.classList.contains("money") && has(el.value)) el.value = fmtMoney(el.value);
+  });
+  $$("[data-ck]").forEach(g => { const v = S.d[g.dataset.ck]; $$("button", g).forEach(b => b.classList.toggle("on", b.dataset.v === v)); });
+  $$("[data-rt]").forEach(g => { const v = S.d[g.dataset.rt]; $$("button", g).forEach(b => b.classList.toggle("on", b.dataset.v === v)); });
+  compute();
+}
+function fmtMoney(v) { const n = num(v); return n ? fnum(n) : String(v); }
+document.addEventListener("input", ev => {
+  const el = ev.target; if (!S) return;
+  if (el.dataset && el.dataset.k) { S.d[el.dataset.k] = el.type === "checkbox" ? (el.checked ? "1" : "") : el.value; }
+  else if (el.dataset && el.dataset.tk) {
+    const rows = S.d[el.dataset.tk], r = +el.dataset.r, c = +el.dataset.c; while (rows[r].length <= c) rows[r].push("");
+    rows[r][c] = el.value;
+  } else return;
+  persistSoon(); compute();
+});
+document.addEventListener("change", ev => { if (ev.target.type === "checkbox" || ev.target.tagName === "SELECT") { const e = new Event("input", { bubbles: true }); ev.target.dispatchEvent(e); } });
+document.addEventListener("focusout", ev => { const el = ev.target; if (el.classList && el.classList.contains("money") && has(el.value)) el.value = fmtMoney(el.value); });
+document.addEventListener("click", ev => {
+  const b = ev.target.closest("button"); if (!b || !S) return;
+  const g = b.closest("[data-ck]");
+  if (g) { const k = g.dataset.ck; S.d[k] = S.d[k] === b.dataset.v ? "" : b.dataset.v; $$("button", g).forEach(x => x.classList.toggle("on", x.dataset.v === S.d[k])); persistSoon(); compute(); return; }
+  const rt = b.closest("[data-rt]");
+  if (rt) { const k = rt.dataset.rt; S.d[k] = S.d[k] === b.dataset.v ? "" : b.dataset.v; $$("button", rt).forEach(x => x.classList.toggle("on", x.dataset.v === S.d[k])); persistSoon(); compute(); return; }
+  if (b.dataset.addrow) { const rows = S.d[b.dataset.addrow]; rows.push([""]); persistSoon(); fillAll(); const last = $$(`table[data-tk="${b.dataset.addrow}"] tbody tr`).pop(); const i = last && $("input", last); if (i) i.focus(); return; }
+  if (b.dataset.delrow) { S.d[b.dataset.delrow].splice(+b.dataset.r, 1); persistSoon(); fillAll(); return; }
+});
+
+/* ---------- kimenetek ---------- */
+function out(id, txt, cls) { $$(`[data-o="${id}"]`).forEach(e => { e.textContent = txt; if (cls !== undefined) { e.classList.remove("in", "out"); if (cls) e.classList.add(cls); } }); }
+function show(id, on) { $$(`[data-w="${id}"]`).forEach(e => { e.hidden = !on; }); }
+function AF(y) { y = Math.floor(y); if (!(y >= 5)) return null; if (y > 41) y = 41; return AFT[y]; }
+function pmt(P, kamat, ev) { const r = kamat / 12, n = ev * 12; if (!P || !n) return 0; return r ? P * r / (1 - Math.pow(1 + r, -n)) : P / n; }
+function chart(id, xs, series, o) {
+  o = o || {}; const W = 640, H = 260, L = 64, R = 12, T = 12, B = 30;
+  let max = 0, min = 0; series.forEach(s => s.v.forEach(y => { if (y > max) max = y; if (y < min) min = y; }));
+  if (max === min) max = min + 1;
+  const sx = i => L + (xs.length <= 1 ? 0 : i * (W - L - R) / (xs.length - 1)), sy = y => T + (max - y) * (H - T - B) / (max - min);
+  let g = "";
+  for (let i = 0; i <= 4; i++) { const y = min + (max - min) * i / 4, yy = sy(y); g += `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="var(--track)"/><text x="${L - 6}" y="${yy + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${y >= 1e6 || y <= -1e6 ? (y / 1e6).toFixed(1).replace(".", ",") + " M" : fnum(y / 1e3) + " e"}</text>`; }
+  if (min < 0) g += `<line x1="${L}" x2="${W - R}" y1="${sy(0)}" y2="${sy(0)}" stroke="var(--muted)" stroke-dasharray="4 3"/>`;
+  const step = Math.ceil(xs.length / 10);
+  xs.forEach((x, i) => { if (i % step === 0 || i === xs.length - 1) g += `<text x="${sx(i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--muted)">${x}</text>`; });
+  series.forEach(s => { g += `<polyline fill="none" stroke="${s.c}" stroke-width="3" stroke-linejoin="round" points="${s.v.map((y, i) => sx(i).toFixed(1) + "," + sy(y).toFixed(1)).join(" ")}"/>`; });
+  if (o.mark != null) g += `<line x1="${sx(o.mark)}" x2="${sx(o.mark)}" y1="${T}" y2="${H - B}" stroke="var(--muted)" stroke-dasharray="3 3"/>`;
+  const el = $(`[data-chart="${id}"]`); if (!el) return;
+  el.innerHTML = `<svg class="svgc" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.alt || "Diagram")}">${g}</svg><div class="lg">${series.map(s => `<span><i style="background:${s.c}"></i>${esc(s.n)}</span>`).join("")}</div>`;
+}
+
+/* ---------- beszélgetésvezető szövegek ---------- */
+function G(title, secs) {
+  return `<details class="guide"><summary>${esc(title)}</summary><div class="gb">` + secs.map(s => `<h4>${esc(s[0])}</h4><ul>${s[1].map(x => `<li>${note(x)}</li>`).join("")}</ul>`).join("") + `</div></details>`;
+}
+const TXT = {
+  nyugdij: G("Beszélgetésvezető – Nyugdíj", [
+    ["Bevezetés", ["Neked milyen képek jutnak eszedbe, ha a gondtalan jövődet képzeled el? Utazgatnál, sportolnál, mit csinálnál? Melyik képpel tudsz azonosulni? «Mélyítő kérdések»"]],
+    ["Nyugdíjbomba", ["Te hogyan látod a mostani idősek helyzetét? Hallottad már a „nyugdíjbomba” kifejezést? Egy pontosan belőhető dátum van, ameddig a rendszer fenntartható: 2040. Addig 2 millió ember megy nyugdíjba.", "Mennyi az átlagnyugdíj Magyarországon? Kb. 255.000 Ft.", "Ma 3 aktív korú jut egy nyugdíjasra, 2040-re 2,3, 2060-ra 1,7. Szerinted ez mire lesz elég?", "«Fiataloknak:» milyen érzés lenne, ha a szüleid holnap felhívnának, hogy ennyi nyugdíjat kaptak? Kihez fordulnának?", "«40-eseknek:» meg tudnád ebből valósítani az álmaidat? A nagykorú gyermek köteles eltartani a rászoruló szülőjét (a tartás a gyermek jövedelmének akár a felét is elérheti). «Ha van gyereke:» biztos vagyok benne, hogy te sem tennél a gyermekeid vállára ilyen terhet!"]],
+    ["Számok a kalkulátorban", ["Hány éves vagy? Mennyi most a nettó béred? Ennyire is vagy bejelentve? Van kiegészítő jövedelmed?", "«Ha vállalkozó:» milyen formában (KATA, átalányadó, Kft.)? Főállásban vagy munka mellett? Mekkora összeg után fizetsz járulékot? Mióta vállalkozol? A céged mellett teszel félre magadnak is? «KATA-nál a nyugdíjalap havi 108.000 Ft – nagyon alacsony nyugdíj jön ki belőle.»", "«Várható nyugdíj a jelenlegi jövedelemhez képest: 35 év alatt legfeljebb 20%, 35–44 évesen 30%, 45 év felett 40%.»", "Ha most lennél 65 éves, és ebből kellene megélned, mit csinálnál? Az említett életszínvonalhoz mekkora havi összegre lenne szükséged? «Ha nem tud válaszolni: elég lenne a mostani fizetésed? – Igen. Akkor számoljunk azzal!»", "A KSH szerint a férfiak kb. 14, a nők kb. 18 évet töltenek nyugdíjban, ezért ezzel szorozzuk a hiányzó összeget. Van már nyugdíjcélú megtakarításod? «Ha igen, havonta mennyi.»"]],
+    ["Megoldás", ["Ha tegnaptól elkezdted volna, havi kb. 135.000 Ft kellene. Ha bruttó 8%-ot hozó helyen gyűjtöd, ennél jóval kevesebb. A tudatosan gondoskodókat az állam támogatja – a te esetedben ez x millió Ft, havi 55.000 Ft-tal tudod maximálisan kihasználni. «A három számot egyben mondd el, és csak utána kérdezz! Maximum évi 130.000 Ft.»", "«Ha kevesebbet mond:» nem az a kérdés, mekkora összeget különítünk el, hanem hogy mikortól kezdünk el magunkra gondolni. Mi az az összeg, amit már most is biztonsággal el tudsz különíteni?"]],
+    ["Szempontadó kérdések", ["Államtól független: nyugodtabb lennél, ha az állam nem látna rá, és nem tudná módosítani a feltételeket?", "Szüneteltethető: segítség lenne, ha nehézség esetén megnyomhatnál egy „pause” gombot?", "Hibrid megoldás: a félretett összeg egy része fixen a nyugdíjra megy, a másikhoz előbb is hozzáférhetsz. Milyen arányban osztanád?", "Nyugdíjkorhatár: fontos, hogy ha megemelik, akkor is akkor férj hozzá a pénzedhez, amikor te szeretnél nyugdíjba menni?", "Deviza: értékállóbb devizában (pl. euró) különítsd el? Van olyan szempont, amit nem említettem? «Írd fel megjegyzésbe.»"]],
+    ["Összegzés", ["Keresünk egy olyan programot, ami elérhetővé teszi az x millió Ft támogatást és a szempontjaid szerint működik. Így el tudod különíteni ezt az összeget ettől a hónaptól?"]],
+    ["Ajánláskérés", ["Szerinted melyik korosztályt érinti a nyugdíjhelyzet? Kik az alkalmazott ismerőseid (ők csak az állami nyugdíjra számíthatnak)? Kik a vállalkozó ismerőseid (ők még arra sem)?"]]
+  ]),
+  lakas_r: G("Beszélgetésvezető – Lakás, rövidtáv (hitel)", [
+    ["Jelenlegi helyzet", ["Hány éves vagy? Mennyi a nettó, bejelentett fizetésed? «Ha párban vásárolnak, mindkettőjükét kérd el.»", "Jelenleg hol laksz, kikkel? Milyen kiadással jár (bérleti díj, rezsi, ad-e haza)? «Ha a párjával él: felezitek? A következő 10 évben szeretnél ezen változtatni?»"]],
+    ["Tervezett ingatlan", ["Milyen ingatlannal kapcsolatos terveid vannak? «Álmodoztatás: elhelyezkedés, típus, méret, érték, különlegességek.»", "Ha meghívnál magadhoz, mit látnék belülről? Kényelem vagy design a fontosabb? Mennyibe kerül jelen árak szerint?"]],
+    ["Cél meghatározása", ["Hány éven belül tervezel elköltözni? «Azonnal, vagy pár éven belül.»", "Nézegettél már ilyen ingatlanokat? Ismered a vásárlás feladatait, kötelezettségeit? Van, aki segít (ingatlan-szakjogász, ingatlanos)? Szívesen ajánlok megbízhatót."]],
+    ["Önerő és támogatások", ["Teljesen önerőből, vagy részben hitelből? Általában a vételár legalább 20%-a kell önerőként, első lakásnál már 10% is elég lehet. Ebből mennyi van meg?", "Vársz segítséget a családodtól, munkahelyi támogatásból? Babaváró? «Max. 11 millió Ft, a feleség életkorára korhatár vonatkozik.» Első lakásnál van államilag támogatott, fix 3%-os kamatozású hitel is.", "Mikorra szeretnéd megvenni? «Gyűjtési időtáv.» Látszik, mennyi a hiányzó összeg, amit hitelből kell pótolnunk."]],
+    ["Hitel", ["Mi a legkésőbbi, amikor kifizetnéd? «Futamidő. A törlesztő a nettó jövedelem legfeljebb 50%-a lehet (800 ezer Ft felett 60%) hosszú kamatrögzítésnél.»", "Mennyire fontos, hogy a törlesztőd ne változzon? Ismered a lehetőségeket, hogy előbb megszabadulj a hiteledtől? Egy hitel futamideje átlagosan 20–25 év: (életkor + futamidő + önerőgyűjtés ideje) éves korodig fizetnéd – akarod?", "Okos hitel: nem a bank jár jól, hanem a saját megtakarításunk gyarapításával előbb kifizetjük a tartozást. Várható törlesztő + végtörlesztésre szánt összeg lesz a havi ráfordítás. Ez belefér? «Ha nem: növeljük a futamidőt.»", "A diagramon látszik, ahol a két vonal összeér, ott fizethető ki teljesen a hitel. Kit ismersz, aki a hitelt előbb letudta, és még megspórolt pénze is maradt?"]],
+    ["Szempontok a megtakarításhoz", ["Nagy pénzintézetnél legyen biztonságban? Tudtok rá extrában pénzt tenni? Alkalmazkodjon az időtávhoz? Szüneteltethető legyen vész esetén? Szabadabb felhasználás? Kamatadó? Államtól független? Értékállóbb deviza? Egyéb szempont: «megjegyzésbe».", "Ha találunk ilyen programot, van-e akadálya, hogy a következő alkalommal élj vele?"]],
+    ["Hiteltörlesztő védelme", ["Szerinted mi miatt dől be a legtöbb hitel? A hitelek közel fele azért, mert az adós kritikus betegség miatt hosszabb időre kiesik a munkából. Volt a családban kritikus betegség (agyvérzés, infarktus)?", "A bankok az államilag támogatott hiteleknél kötelesek tájékoztatni a hitelfedezeti biztosításról – sokan összehasonlítás nélkül kötik. Minél fiatalabban, annál olcsóbb. «Szükséges védelem: a hitel összege + 1 év kieső kereset.»", "A törlesztő után évente akár 104–116.000 Ft-ot is visszaigényelhet, amit a megtakarításhoz pluszban hozzátehet. «Ajánláskérés előtt kérjük el a meglévő szolgáltatásokat!»"]],
+    ["Ajánláskérés", ["Kik az ismerőseid, akik albérletben laknak / saját ingatlanban laknak / a szülőknél laknak, de már dolgoznak / akikről tudod, hogy van lakáshitelük? (És ki még?)"]]
+  ]),
+  lakas_h: G("Beszélgetésvezető – Lakás, hosszútáv (önerőgyűjtés)", [
+    ["Jelenlegi helyzet és terv", ["Hány éves vagy? Mennyi a nettó, bejelentett fizetésed? Hol laksz, kikkel, milyen kiadással? «Párnál mindkettejük fizetése.»", "Milyen ingatlannal kapcsolatos terveid vannak? Ha meghívnál magadhoz, mit látnék belülről? Mennyibe kerül jelen árak szerint?"]],
+    ["Cél meghatározása", ["Hány éven belül tervezel elköltözni oda? «Azonnal / pár éven belül / 10+ év – 10+ évnél az ehhez szükséges felkészülés a fontos.»", "Szuper, az idő velünk dolgozik. Teljesen önerőből, vagy részben hitelből? Tudod, hogy a hitelhez mennyi önerő kell?"]],
+    ["Önerő és támogatások", ["Általában a vételár legalább 20%-a, első lakásnál már 10% is elég lehet. Vársz segítséget a családtól, munkahelyi támogatásból, babavárótól? «Max. 11 millió Ft.» Ezt vehetjük fix segítségnek, biztos összegeknek?", "Van már kimondottan lakásra félretett pénzed? «Meglévő önerő – elég-e az önerőhöz?»", "«Ha nem elég:» a nettó fizetésedbe beleférjen, de ne vállald túl magad. Mennyit tudsz havonta rászánni? A korábban beszélt időtávig tervezed félretenni? Otthon/bankban tárolod, vagy termeljen is valamennyit?"]],
+    ["Okos hitel gondolkodásmód", ["Ha majd felveszed a hitelt, cél lesz, hogy minél hamarabb megszabadulj tőle? A legtudatosabb ügyfeleim általában havi 30–40.000 Ft-ot tesznek félre erre. Neked mi az az összeg, ami kényelmesen beleférne? «Hitelt itt még nem kalkulálunk!»"]],
+    ["Szempontadó kérdések", ["Nagy pénzintézetnél legyen biztonságban? Tudtok rá extrában pénzt tenni? Alkalmazkodjon az időtávhoz? Szüneteltethető legyen vész esetén? Szabadabb felhasználás? Értékállóbb deviza? Egyéb szempont «megjegyzésbe».", "Van-e akadálya annak, hogy következő alkalomtól élj egy ilyennel?"]],
+    ["Hiteltörlesztő védelme", ["A hitelek közel fele kritikus betegség miatti hosszabb kiesés miatt dől be. Volt a családban agyvérzés, infarktus? Minél fiatalabban köti meg valaki a védelmet, annál olcsóbb, és a hitelfelvételnél is előnyben lesz. «Ajánláskérés előtt kérjük el a meglévő szolgáltatásokat!»"]],
+    ["Ajánláskérés", ["Kik laknak albérletben / saját lakásban / még otthon vagy barátnál, de már dolgoznak? Kiről tudod, hogy van hitele? Ki tervezhet befektetési lakást? Ki foglalkozik lakás adásvétellel munkaként?"]]
+  ]),
+  gyermek: G("Beszélgetésvezető – Gyermek", [
+    ["Bevezetés", ["Anno mi jelentette számodra a kihívást, amikor kirepültél otthonról? Kaptál a családtól támogatást? Hogyan oldottad meg? A saját gyermeked életét hogyan képzeled el?"]],
+    ["Ha már van gyermek / a közeljövőben terveznek", ["Van gyerkőc, aki még nem töltötte be az 5. életévét? Hogy hívják, mikor született? Mennyit költötök csecsemőápolási termékre (pelenka, babakozmetikum, cumisüvegre, tápszer)? Havi szinten mekkora összeg? Ebből megnézzük a maximálisan igényelhető adókedvezményt.", "«Ha ovis, 3+ éves:» a ruházkodási és taneszköz-kiadásokból is jár adókedvezmény. Nagyságrendileg havi mekkora kiadás? «Ha havira nem tudja, időszakosan, pl. negyedévente.»", "Van gyermek, aki már betöltötte az 5. évét, de a 18-at még nem? Iskolakezdéssel, tanulmányi kiadással kapcsolatban fontos lenne a visszaigénylés? Mennyi egy évkezdés?", "Van gyermek, aki már betöltötte a 18-at? «25 év alatti, Magyarországon tanuló hallgató.» Fontos lenne az egyetemi tanulmányokból, albérlet- vagy kollégiumi díjból visszaigényelni? Mennyi egy évkezdés?", "Mennyi a teljes család nettó havi bevétele?"]],
+    ["Célok", ["Szeretnéd a tanulmányaiban segíteni? «Egy önköltséges képzés ma legalább 350.000 Ft félévente, sok szakon 700 ezer – 1 millió Ft.» Hány év múlva lesz szükség rá?", "Az esküvőjében támogatnátok? «Ma 3–8 millió forintba is kerülhet.» Jogosítvány? «Kb. 400.000 Ft.» Ingatlan: önerő, pár évnyi albérleti díj, vagy saját ingatlan? Életkezdéshez nagyobb összeg? Hány évesen adnád oda?", "A táblázat összegzi időtáv arányában a szükséges összeget. Ez havi x összegből megoldható. Rászánható? Alapból mennyire gondoltatok? Ebből az összegből x%-kal tudnátok támogatni."]],
+    ["Szempontadó kérdések", ["Államtól független? Szülő rendelkezzen a pénzzel (vagy egy összegben utalják a 18. születésnapra)? Lejárat előtt is felhasználható? Védett gyerekprogram (ha veletek bármi történik, a szolgáltató végigviszi)? Plusz befizetési lehetőség (szülő, nagyszülő)? Szüneteltethető? Örökölhető? Deviza?", "Van olyan szempont, amit nem említettem? «Megjegyzésbe.» Ezek közül melyik a legfontosabb?"]],
+    ["Összegzés", ["«Visszamondjuk az igényeket.» Ha találunk egy olyan programot, ami nagy pénzintézetnél van, ti rendelkeztek a pénz felett, és akár előbb is hozzáférhető az összeg, van-e akadálya, hogy következő alkalommal elkezdjétek x összeggel?"]],
+    ["Ha még csak tervezik", ["Kiszámoltátok, hogyan változik a jövedelmetek a GYES-GYED idejében? Mikorra tervezitek a gyermeket? Fontos lenne a szülésnél rögtön egy 200.000 Ft-os támogatást igényelni? «Töltsd ki a táblázat első sorát.»"]],
+    ["Ajánláskérés", ["Kik terveznek gyereket / házasodtak vagy házasodnak / várnak gyermeket / akiknek most született / óvodás / általános iskolás / középiskolás / egyetemista korú gyermeke van?"]]
+  ]),
+  egeszseg: G("Beszélgetésvezető – Egészség", [
+    ["Bevezetés", ["A statisztikák szerint minden második ember életében előfordul valamilyen egészségügyi vészhelyzet. Neked vagy a környezetedben volt hasonlóra példa (baleset, betegség, huzamosabb kiesés)? Hogyan birkózott meg a nehézségekkel?", "Volt valakinek kritikus betegsége (daganatos, szív- és érrendszeri)? A halálesetek több mint felét szív- és érrendszeri vagy daganatos betegség okozza, minden negyedik ember daganatos betegségben hal meg.", "«Ha van gyereke:» ha valami történne veled, a családod hogyan oldaná meg a mindennapi kiadásokat? «Ha van hitele:» mekkora összeget vettél fel? A jelzáloghitelek közel fele súlyos betegség miatt dől be."]],
+    ["Mélyítő kérdések", ["Számodra mi okozná a legnagyobb problémát: ellátás színvonala / kieső jövedelem / felmerülő egészségügyi költségek / várólista / hosszas felépülés melletti életszínvonal fenntartása?", "Mi adná a legnagyobb biztonságot egy hasonló helyzetben? «Az üres mezőbe írd fel.»"]],
+    ["Kérdések", ["Inkább az állami vagy a magán egészségügyi szolgáltatást szoktad igénybe venni? Hány évnyi tartalékra lenne szüksége a családodnak? Dohányzol? «Ha igen: mennyit naponta, és milyet – elektromos vagy hagyományos.»", "Milyen magas vagy, hány kiló? Van meglévő betegséged, amiről van orvosi papírod? «Típusát megjegyzésbe.» Sportolsz, vagy sportoltál igazolt sportolóként? «Ha 5 éven belül volt igazolt sportoló, megjegyzésbe – a biztosító vizsgálja. Hobbiszintű sport nem számít.»", "Van olyan szempont, amit nem említettem? «Megjegyzésbe.»"]],
+    ["Összegzés", ["«Visszamondjuk az igényeket.» A te esetedben a szükséges védelem X millió Ft, amihez a ráfordítandó összeg X ezer Ft. Beleférne havi szinten? «Ha nem: mi az, ami beleférne?»", "Ha találunk megoldást, ami gondoskodik a pénzügyi biztonságodról baleset vagy betegség esetén (a fontos szempontok), érdekelne, hogyan működik?"]],
+    ["Ajánláskérés", ["Kik végeznek veszélyes munkát? Kik felelnek másokért (eltart gyereket, idős szülőt)? Kik járnak sokat magánorvoshoz? Kik panaszkodtak az egészségügyre?"]]
+  ]),
+  befektetes: G("Beszélgetésvezető – Vagyonépítés, befektetés", [
+    ["Ha már van megtakarítása", ["Milyen formában tartod (állampapír, értékpapírszámla, más)? Mekkora összegben? Mikor jár le? «Az Excelbe vezesd fel a meglévő befektetéseket.»", "Mi alapján választottad? Mi számít számodra jó hozamnak? Szeretnéd folyamatosan látni, hogyan teljesít a pénzed?", "Az EU eljárást indított az állampapírok adómentessége miatt; hivatalos döntés még nincs. Fontos, hogy bármilyen változás jön, a megtakarításaidat ne érintse a kamatadó? «Ma a kamatadó 28%.»", "Jelen élethelyzetedben milyen időtávban gondolkozol? Mit vársz el egy megtakarítástól?"]],
+    ["Kockázat", ["Milyennek ítéled meg a kockázattűrő képességedet? Óvatos (biztonságosabb, kisebb hozam) – mérsékelt (arany középút) – lendületes (hosszabb távra, magasabb hozam, nagyobb ingadozás). «A választást állítsd be.»", "Ami könnyen hozzáférhető és biztonságos: folyószámla (nincs hozama). Magas kockázat, könnyen hozzáférhető: tőzsde (első körben nem foglalkozunk vele). Aminek van hozama, biztonságos, de korlátozottabban hozzáférhető: megtakarítás. Melyikkel tudsz azonosulni?"]],
+    ["Összeg és szempontok", ["Mekkora összegben gondolkozol, és ez már a következő alkalomtól rendelkezésre áll? «Rendszeres díjas:» van összeg, amit rendszeresen elkülönítenél? «Eseti:» lesz plusz pénz, amit elkülönítenél?", "Államtól független? Rugalmas hozzáférés? Eseti befizetés bármikor? Deviza? Egyéb «megjegyzésbe».", "Ha találunk megoldást, ahol (igények), van akadálya, hogy következő alkalomtól elkülönítsd ezt az összeget?"]],
+    ["Ha még nincs megtakarítása", ["A fizetésünk 10%-át szükséges elkülöníteni biztonsági tartalékra. Ez nálad mekkora összeg? «Írd be az első befektetési oszlopba a nettó fizetését.»", "Itt látod, mi történik a pénzeddel, ha a párnába dugnád vagy bankszámlán tartanád: a 10. évnél ez az összeg már X. Ezzel szemben biztonságos helyen, hozammal nem mínusz X, hanem plusz Y. Melyik szimpatikusabb? A 10% télen-nyáron elkülöníthető? «Ha nem: mi fér bele?»", "Ha találunk lehetőséget, ahol X Ft-ból felépíted a biztonsági tartalékot, van akadálya, hogy ezt megtedd? Akkor ezt vehetem komoly megbízásnak, ugye?"]],
+    ["Ajánláskérés", ["Kiknek van félretett pénze, de csak bankszámlán? Kiknek jár le mostanában állampapírja? Kik fektetnek be / érdeklődnek? Kik örököltek vagy adtak el ingatlant? Kik a vállalkozó ismerőseid szabad pénzzel? Kiknek nincs biztonsági tartalékuk? Kik a pályakezdők?"]]
+  ]),
+  osszegzes: G("Beszélgetésvezető – Összegzés", [
+    ["Összegzés", ["Zárásképpen írjuk össze, miről beszéltünk ma. Mik azok a témák, amikkel készülni fogunk a szakértőkkel a következő alkalomra?", "Első pontként nézzük meg a folyószámládat: nyisd meg a banki appodat – mennyi volt tavaly az összes banki költséged? «Írd be az első sorba, pl. „folyószámla felülvizsgálata – X bank, 60.000 Ft/év”.»", "«A témákat írd össze (téma neve, havi összeg, időpont). Ne csak vázlatosan (gyerek jövője), hanem pontosan: Petike tanulmányainak támogatása, nyugdíjválság megoldása, rózsadombi lakás megvásárlása.»", "Felkészülünk abból, hogy hogyan tudod következő alkalomtól: megoldani havi X Ft-ból a jövődet 65 éves korod után is; bebiztosítani (gyermek) életkezdését és tanulmányait havi X Ft-ból; megalapozni a lakásvásárlást; végtörleszteni a meglévő hiteledet; bevédeni a likvid tőkédet az infláció ellen.", "Ezek a célok így összesen X ezer Ft. Ez kényelmesen ráfordítható? «Ha nem: melyik célt csökkentsük? Mekkora az az összeg, ami BIZTOSAN belefér? Szeretnétek, hogy a szakértők több összeggel nézzenek lehetőségeket? -tól -ig.»"]],
+    ["Képek – még érdekes területek", ["Gondoljuk végig, melyek azok a területek, amelyek még érdekesek számodra! Mi az, amin megakad a szemed, és bővebb tájékoztatást szeretnél? «Mutasd meg a képeket.»"]]
+  ]),
+  zaras: G("Beszélgetésvezető – Zárás", [
+    ["Tanácsadás időpontja", ["Egyeztessük a következő időpontot, amikor elmondjuk, hogyan tudunk lefaragni a kiadásokból, és milyen támogatásokat tudsz igényelni. «Itt nagyon fontos, hogy azt a témát emeld ki, ami neki a legfontosabb volt.»", "Nekünk 2 nap kidolgozni a legjobb megoldásokat, a cég elvárása, hogy a következő 5 napban találkozzunk. Mikorra tudjuk egyeztetni? «1–2 időpont-alternatíva. Ha később ér rá, a szakértők keresik.»"]],
+    ["GDPR és meglévő termékek", ["Hogy személyre tudjuk szabni, készítünk neked egy saját felületet – ehhez meg kell felelnünk a GDPR-nak. «Töltsd ki az ügyféladatokat a portálon.» Küldök e-mailt és SMS-t: az SMS-kódot másold ki, az e-mailben a linket nyisd meg, pipálj ki mindent, illeszd be a kódot.", "Hol van a KGFB-d? Mikor van az évfordulója? Hol kötöttétek a lakásbiztosítást, mikor? «Az évfordulót kérd el, idegen szerződésként rögzítsd.» Van megtakarításotok / lakástakarékpénztáratok? Vettetek fel hitelt? «Ha nem tudja, az összegző e-mailben emlékeztesd.»"]],
+    ["Visszajelzés", ["Hogy éreztétek magatokat? Tudtam újat mondani? Hol hallottátok a legtöbb új dolgot, melyik téma tetszett a legjobban? Erre számítottatok, vagy jobb volt?"]],
+    ["Levezetés", ["Örülök, hogy megismerkedtünk, szép délutánt / estét!"]]
+  ]),
+  ajanlas: G("Beszélgetésvezető – Kiértékelő lap és ajánláskérés", [
+    ["Kiértékelő lap", ["Van egy kiértékelő lapunk, amit minden igényfelmérés végén ki kell töltenem – a munkám minőségét ellenőrzik. Menjünk végig ezen a rövid 10 kérdésen.", "«Maradjon meg a baráti hangulat, ne facsarj ki objektív véleményt! Tegező viszonyban, „lazán” olvasd fel. Ha minden 9+-os, köszönd meg; ha valami 8 alatti, kérdezz rá, miben tudnál fejlődni.»"]],
+    ["Ajánláskérés", ["Az én fizetségem nem pénzbeli: a munkámnak nem ára van, hanem értéke, hiszen embereknek igyekszem segíteni. Nézzük meg, kiknek tudok még segíteni. Kezdjük azokkal, akiket már említettél – tök jók vagyunk, már összeszedtünk pár embert.", "Egészítsük ki, ki jut még eszedbe: kinek szólnál szívesen, hogy ne maradjon le erről a több millió Ft-ról? Kik adnak nagyon a szavadra? Ki van magasabb pozícióban (nekik csökken a legnagyobbat a nyugdíjuk)? Kik a katás ismerőseid (fodrász, műkörmös, autószerelő)? Kinek nincs még lakása? Ki szemüveges vagy kontaktlencsés? Ki vállalkozó, veszélyes munkát végez, sokat utazik, nincs teljesen bejelentve, jár magánorvoshoz? Ki az alakuló pár? Kik a pályakezdők?", "«Minden névhez kérdezd meg: honnan ismeri, hol lakik, hány éves, mivel foglalkozik, van-e gyereke, albérletben vagy saját lakásban lakik. Írd fel.»", "Mindenképpen beszélj velük, hogy mi már találkoztunk, és velük is felveszem a kapcsolatot. Te mit mondanál, hogyan ajánlanál tovább? «Várd meg, amíg válaszol.» Ha téged az ismerősöd így hívna fel, leülnél velem? – Hát… nem hiszem. Akkor beszéljük át, mit érdemes mondani.", "Ezt a beszélgetést ajánld tovább, semmilyen elköteleződéssel nem jár. Ne azt kérdezd, ki indítana holnap nyugdíj-megtakarítást, csak annyit mondj: pénzügyi tervezéssel foglalkozom, adókedvezményekről beszéltünk, és egy csomó új információt kaptam.", "Diktálod a legközelebbi ismerőseid elérhetőségét? «Ma van …, legkésőbb … fogom őket keresni (max. 2 nap).» Ha valaki azt mondja, semmiképp ne keressem, szólj, és nem hívom fel. Ez így korrekt? Szoktunk küldeni egy SMS-t és e-mailt – ezt továbbíthatod nekik."]]
+  ])
+};
+
+/* ---------- lapok ---------- */
+const MONTHS = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+const H = {};
+H.alap = () => `
+<h2>Alapadatok</h2><p class="lead">Ügyféladatok – a további lapok innen veszik az életkort, jövedelmet és nevet.</p>
+<div class="card"><h3>Ügyfél és partner</h3>
+ <div class="tw"><table class="t" style="min-width:560px"><thead><tr><th></th><th>Ügyfél</th><th>Partner</th></tr></thead><tbody>
+ ${[["nev", "Név", 0], ["csall", "Családi állapot", 1], ["kor", "Életkor (év)", 2], ["fogl", "Foglalkozás", 0], ["net", "Nettó jövedelem (Ft/hó)", 3], ["bank", "Bankszámla (hol)", 0], ["egp", "Egészségpénztár", 0], ["bizt", "Biztosítás", 0]]
+   .map(r => `<tr><td class="lb">${r[1]}</td>` + ["c_", "p_"].map(p => `<td>${r[2] === 1 ? `<select data-k="${p}${r[0]}"><option value=""></option>${["Egyedülálló", "Házas", "Élettárs", "Elvált", "Özvegy"].map(x => `<option>${x}</option>`).join("")}</select>` : `<input data-k="${p}${r[0]}"${r[2] === 3 ? ' class="money" inputmode="decimal"' : r[2] === 2 ? ' inputmode="numeric"' : ""}>`}</td>`).join("") + "</tr>").join("")}
+ </tbody></table></div>
+ <div class="grid" style="margin-top:12px">${fld("gy_db", "Gyermekek száma", { n: 1 })}${fld("gy_kor", "Gyermekek (név, kor)", { ph: "pl. Petike 4, Anna 9" })}${fld("nem", "Az ügyfél neme (nyugdíj-évekhez)", { t: "s", o: ["Férfi", "Nő"] })}</div>
+ ${fld("megj", "Megjegyzés", { t: "ta", r: 2, full: 1 })}
+</div>
+<div class="card"><h3>SZJA-mentesség (kisokos, 2026)</h3>
+ <div class="grid">${fld("szja", "Az ügyfél jogosult SZJA-mentességre?", { t: "s", o: ["Nem", "25 év alatt (havi bruttó 715 765 Ft-ig)", "30 év alatti anya (havi bruttó 715 765 Ft-ig)", "Kétgyermekes anya (életkori ütemezés szerint)", "Háromgyermekes anya", "Négy- vagy többgyermekes anya"] })}</div>
+ <div class="warn" data-w="szja1" hidden><b>Figyelem:</b> aki SZJA-mentes, a 20%-os adó-visszatérítéseket (nyugdíj-megtakarítás, egészség- és önsegélyező befizetések) a saját nevén nem tudja igénybe venni. Nyugdíjbiztosításnál a szerződő lehet a házastárs (SZJA-t fizető), önkéntes nyugdíjpénztárnál a számlatulajdonosnak kell SZJA-t fizetnie. Kérdezd meg: hány gyermeke van, hány éves, ki fizet SZJA-t a családban.</div>
+ <div class="warn" data-w="szja2" hidden><b>Sztornóveszély:</b> a mentesség megszűnésekor (25., ill. 30. születésnap) a nettó bér kb. 18%-kal csökken (400 000 Ft nettóból kb. 326 000 Ft). A vállalható havi összeget a csökkent nettóval számold, és hívd fel a figyelmét.</div>
+ <p class="note">A 2026-os szabályok változhatnak, használat előtt ellenőrizd. A mentesség a munkabérre, vállalkozói kivétre, átalányadós jövedelemre, megbízási díjra vonatkozik; ingatlan-bérbeadásra, osztalékra, kamatra nem; a 18,5%-os TB-járulékot nem érinti.</p>
+</div>
+<div class="card"><h3>Gépjármű-biztosítások</h3>
+ ${tbl("auto", [["Gépjármű típus", "t"], ["Kötelező (hol)", "t"], ["Casco", "t"], ["Asszisztencia", "t"], ["Évforduló", "s", MONTHS]], [], { add: 1, init: 2 })}
+ ${fld("fontos", "Fontos feljegyzések (kisállat, nyomógombok, személyiség)", { t: "ta", r: 2, full: 1 })}
+</div>
+<div class="card"><h3>Vállalkozás (ha van)</h3>
+ <div class="grid">${fld("v_ceg", "Cégnév")}${fld("v_t1", "Telephely/üzlet címe")}${fld("v_t2", "2. telephely/üzlet címe")}${fld("v_tev1", "Tényleges tevékenység")}${fld("v_tev2", "2. tényleges tevékenység")}${fld("v_bank", "Számlavezető bank")}</div>
+ <h3 style="margin-top:16px">Vállalkozás biztosításai és hitelei</h3>
+ ${tbl("vbizt", [["", "t"], ["Biztosító", "t"], ["Éves díj", "m"], ["Biztosítás tárgya", "t"], ["Megjegyzés", "t"]], ["Felelősségbiztosítás", "Vagyonbiztosítás", "Személy- / egészségbiztosítás"], { lab: 1 })}
+ <div style="height:10px"></div>
+ ${tbl("vhitel", [["", "t"], ["Hitelösszeg", "m"], ["Törlesztő és futamidő", "t"]], ["Hitel / hitelkeret 1", "Hitel / hitelkeret 2", "Hitel / hitelkeret 3"], { lab: 1 })}
+</div>`;
+
+H.nyugdij = () => `
+<h2>Nyugdíj</h2><p class="lead">Mennyi hiányzik a gondtalan nyugdíjas évekhez, és mennyi az állami támogatás, ha most elkezd gyűjteni?</p>
+${TXT.nyugdij}
+<div class="card"><h3>1. Helyzet</h3>
+ <div class="grid">
+  ${fld("c_nev", "Név")}${fld("c_kor", "Életkor", { n: 1, u: "év" })}${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}${M("c_egyeb", "Egyéb bevétel", { u: "Ft/hó" })}
+  ${fld("nem", "Nem", { t: "s", o: ["Férfi", "Nő"] })}${fld("ny_pct", "Várható nyugdíj a jövedelem %-ában", { n: 1, u: "%", ph: "automatikus" })}${fld("ny_ev", "Nyugdíjban töltött évek", { n: 1, u: "év", ph: "férfi 14, nő 18" })}
+  ${M("ny_cel", "Nyugdíj célösszege (az életszínvonalhoz)", { u: "Ft/hó" })}${M("ny_meglevo", "Eddigi nyugdíj-megtakarítás", { u: "Ft/hó" })}
+ </div>
+ <p class="note">Várható nyugdíj a jövedelemhez képest: 35 év alatt legfeljebb 20%, 35–44 évesen 30%, 45 év felett 40%. Nyugdíjba vonulás: 65 éves korban.</p>
+</div>
+<div class="card"><h3>2. Mennyi hiányzik?</h3>
+ <div class="res">${kpi("ny_varhato", "Ügyfél várható nyugdíja")}${kpi("ny_hiany", "Szükséges havi kiegészítés")}${kpi("ny_celosszeg", "Öngondoskodás célösszege", { hl: 1 })}${kpi("ny_ido", "Hátralévő évek 65 éves korig")}${kpi("ny_kmentes", "Szükséges havi megtakarítás kamat nélkül")}${kpi("ny_8", "8% bruttó hozam esetén, havonta")}</div>
+ <div class="warn" data-w="nyhiba" hidden></div>
+</div>
+<div class="card"><h3>3. Megoldástervezet – állami támogatással</h3>
+ <div class="grid g2">${M("ny_havi", "Havonta elkülönített összeg (javasolt, max. 55 000 Ft)", { u: "Ft/hó" })}${M("ny_havi2", "Egyéb megoldás – havi összeg", { u: "Ft/hó" })}</div>
+ <div class="tw" style="margin-top:10px"><table class="dt"><thead><tr><th></th><th>Javasolt</th><th>Egyéb</th></tr></thead><tbody>
+  <tr><td>Igényelhető adókedvezmény</td><td data-o="ny_ado1">–</td><td data-o="ny_ado2">–</td></tr>
+  <tr><td>Kamatadó-kedvezmény</td><td data-o="ny_kam1">–</td><td data-o="ny_kam2">–</td></tr>
+  <tr><td><b>Összegyűjtött összeg 65 évesen</b></td><td data-o="ny_osszeg1"><b>–</b></td><td data-o="ny_osszeg2"><b>–</b></td></tr>
+ </tbody></table></div>
+ <div class="warn" data-w="nyszja" hidden>Az ügyfél SZJA-mentes: az adókedvezményt a saját nevén nem tudja igénybe venni (lásd Alapadatok).</div>
+ <p class="note">Az adatok tájékoztató jellegűek és nem minősülnek ajánlattételnek.</p>
+</div>
+<div class="card"><h3>4. Mennyit számít az idő?</h3>
+ <p class="note" style="margin-top:0">Ennyivel kevesebb gyűlik össze 65 éves korra, ha a javasolt havi összeggel csak később kezdi.</p>
+ <div class="res">${kpi("ny_d2", "2 év halogatás", { c: "out" })}${kpi("ny_d5", "5 év halogatás", { c: "out" })}${kpi("ny_d10", "10 év halogatás", { c: "out" })}</div>
+</div>
+<div class="card"><h3>5. Szempontok</h3>
+ <div class="chips">${chip("ny_c1", "Szüneteltethető")}${chip("ny_c2", "Államtól független")}${chip("ny_c3", "Szabadon felhasználható")}${chip("ny_c4", "Hozzáférhető")}${chip("ny_c5", "Hibrid (rész előbb is elérhető)")}${chip("ny_c6", "Nyugdíjkorhatár-rugalmas")}${chip("ny_c7", "Deviza (euró)")}</div>
+ <div class="grid" style="margin-top:10px">${fld("ny_c8", "Egyéb szempont")}${fld("ny_hibrid", "Hibrid megosztás aránya")}</div>
+ ${fld("ny_jegy", "Jegyzetek", { t: "ta", r: 3, full: 1 })}
+</div>
+<div class="card"><h3>6. Meglévő termékek</h3>
+ ${tbl("ny_term", [["", "t"], ["Szerződő", "t"], ["Szolgáltató", "t"], ["Éves díj", "m"], ["Megjegyzés", "t"]], ["ÖNYP", "Nyugdíjbiztosítás", "NYESZ"], { lab: 1, add: 1 })}
+</div>
+${names("nv_ny", 4, "Célcsoport: 30-as, 40-es, 50-es korosztály, KATA-sok, vállalkozók, alkalmazottak, nem teljes bérrel bejelentettek, pályakezdők.")}`;
+
+H.lakas = () => `
+<h2>Lakás</h2><p class="lead">Önerő, hitel és a hiteltörlesztő védelme – rövid- és hosszútávon.</p>
+<div class="bar0" style="margin-bottom:10px"><div class="seg2" data-rt="lk_mod"><button type="button" data-v="Rövidtáv (hitel)">Rövidtáv (hitel)</button><button type="button" data-v="Hosszútáv (önerőgyűjtés)">Hosszútáv (önerőgyűjtés)</button></div></div>
+<div data-w="lk_r">${TXT.lakas_r}</div><div data-w="lk_h" hidden>${TXT.lakas_h}</div>
+<div class="card"><h3>1. Önerő, tervezés</h3>
+ <div class="grid">
+  ${fld("lk_kor", "Életkor", { n: 1, u: "év", ph: "Alapadatokból" })}${M("lk_net", "Nettó jövedelem (ha párban: együtt)", { u: "Ft/hó", ph: "Alapadatokból" })}
+  ${fld("lk_hely", "Jelenlegi lakhely", { t: "s", o: ["Albérletben", "Szülőknél", "Saját ingatlanban", "Egyéb"] })}${M("lk_kiad", "Lakhatás havi kiadása", { u: "Ft/hó" })}
+  ${fld("lk_terv", "Tervezett lakás (ingatlan infók, szempontok, tervek)", { t: "ta", r: 2, full: 1 })}
+  ${M("lk_ar", "Ingatlan ára")}${M("lk_megl", "Meglévő önerő")}
+ </div>
+ <h3 style="margin-top:14px">Extra támogatások</h3>
+ <div class="grid" style="margin-bottom:8px">${fld("lk_t1", "Szülői segítség", { t: "c" })}${fld("lk_t2", "Munkahelyi támogatás", { t: "c" })}${fld("lk_t3", "CSOK+", { t: "c" })}${fld("lk_t4", "Babaváró hitel", { t: "c" })}</div>
+ <div class="grid">${M("lk_tam", "A támogatások összege")}${M("lk_havi", "Havi önerő összege", { u: "Ft/hó" })}${fld("lk_ido", "Gyűjtési időtáv", { n: 1, u: "év" })}</div>
+ <div class="res" style="margin-top:12px">${kpi("lk_osszes", "Összes önerő", { hl: 1 })}${kpi("lk_min", "Minimum önerő (20%)")}${kpi("lk_ajan", "Ajánlott önerő (30%)")}</div>
+ <p class="note">Első lakásnál a vételár 10%-a is elég lehet önerőnek. Babaváró: max. 11 millió Ft, a feleség életkorára korhatár vonatkozik.</p>
+</div>
+<div class="card"><h3>2. Lakáshitel</h3>
+ <div class="grid">${fld("lk_futam", "Futamidő", { n: 1, u: "év", ph: "25" })}${fld("lk_kamat", "Kamat (becsült)", { n: 1, u: "%", ph: "7" })}</div>
+ <div class="res" style="margin-top:12px">${kpi("lk_hitel", "Hitel tervezett összege", { hl: 1 })}${kpi("lk_torl", "Várható törlesztő")}${kpi("lk_arany", "Törlesztő a nettó jövedelem %-ában")}</div>
+ <div class="warn" data-w="lk_arany_w" hidden>A törlesztő a nettó jövedelem legfeljebb 50%-a lehet (800 ezer Ft felett 60%).</div>
+ <p class="note">Első lakásnál van államilag támogatott, fix 3%-os kamatozású hitel is – a kamat mezőben átírható.</p>
+</div>
+<div class="card"><h3>3. Okos hitel – gyűjtés és végtörlesztés</h3>
+ <div class="grid g2">${M("lk_vegt", "Végtörlesztésre szánt összeg havonta", { u: "Ft/hó" })}<div class="kpi"><div class="k">Havi ráfordítás összesen (törlesztő + végtörlesztés)</div><div class="v" data-o="lk_rafo">–</div></div></div>
+ <div data-chart="lk" style="margin-top:12px"></div>
+ <div class="res" style="margin-top:8px">${kpi("lk_cross", "Hitel kifizetve (a két vonal összeér)", { c: "in" })}${kpi("lk_marad", "Ekkor megmaradó megtakarítás", { c: "in" })}</div>
+ <p class="note" data-o="lk_cross_n"></p>
+</div>
+<div class="card"><h3>4. Hiteltörlesztő védelme és adókedvezmény</h3>
+ <div class="res">${kpi("lk_v4", "Nettó 4% (havi díj-keret)")}${kpi("lk_vcel", "Célvédelem (hitel + 1 év kieső kereset)", { hl: 1 })}</div>
+ <p class="note">A hitelek közel fele kritikus betegség miatti kiesés miatt dől be. Adókedvezmény segítségként: éves hiteltörlesztő visszaigénylés 104 000 Ft.</p>
+</div>
+<div class="card"><h3>5. Szempontok</h3>
+ <h3 style="margin-top:4px">Hitelhez kötött lehetőségek</h3>
+ <div class="chips">${chip("lk_a1", "Fix törlesztőrészlet")}${chip("lk_a2", "Előtörlesztés")}${chip("lk_a3", "Hiteltörlesztő védelem")}${chip("lk_a4", "Okos hitel lehetősége")}</div>
+ <h3 style="margin-top:14px">Gyűjtés, végtörlesztés</h3>
+ <div class="chips">${chip("lk_b1", "Államtól független")}${chip("lk_b2", "Szüneteltethető")}${chip("lk_b3", "Kamatadómentes")}${chip("lk_b4", "Biztonságos (nagy pénzintézet)")}${chip("lk_b5", "Szabad felhasználás")}${chip("lk_b6", "Extra befizetés")}${chip("lk_b7", "Időtávhoz alkalmazkodó")}${chip("lk_b8", "Deviza (euró)")}</div>
+ ${fld("lk_megj", "Megjegyzés", { t: "ta", r: 2, full: 1 })}
+</div>
+<div class="card"><h3>6. Meglévő szolgáltatások</h3>
+ ${tbl("lk_term", [["Szolgáltatás", "t"], ["Szerződő", "t"], ["Szolgáltató", "t"], ["Éves díj", "m"], ["Extra: kamat, összeg, évforduló, kezdet, lejárat", "t"]], ["Lakásbiztosítás", "Hitel/Lízing", "Személyi kölcsön", "Lakástakarékpénztár", "Folyószámla"], { lab: 1, add: 1 })}
+</div>
+${names("nv_lk", 5, "Albérletben lakók, saját ingatlanban lakók, szülőknél lakó dolgozók, hitellel rendelkezők, befektetési lakást tervezők, ingatlanos szakemberek.")}`;
+
+H.gyermek = () => `
+<h2>Gyermek</h2><p class="lead">Adókedvezmények, támogatások és a gyermek jövőjére szánt célok.</p>
+${TXT.gyermek}
+<div class="card"><h3>1. Adókedvezmények és támogatások</h3>
+ <div class="tw"><table class="t" style="min-width:640px"><thead><tr><th>Kérdés</th><th>Név</th><th>Szül. dátum</th><th>Támogatás</th><th>Fontos?</th></tr></thead><tbody>
+ ${[["Terveznek gyermeket?", "Szülési támogatás (200 000 Ft)"], ["Van gyermek, aki még nem töltötte be az 5. életévét?", "Csecsemő- és babakozmetikum (20% visszatérítés)"], ["Van gyermek, aki még nem töltötte be a 18. életévét?", "Iskolakezdés, ruházkodás"], ["Van gyermek, aki már elmúlt 18 éves?", "Egyetemi visszatérítések"]]
+   .map((r, i) => `<tr><td class="lb" style="white-space:normal">${r[0]}</td><td><input data-k="gy_n${i}"></td><td><input data-k="gy_d${i}" placeholder="éééé.hh.nn"></td><td style="white-space:normal">${r[1]}</td><td>${chip("gy_f" + i, "", "Igen", "Nem").replace('class="chip"', 'class="chip" style="background:none;padding:0"')}</td></tr>`).join("")}
+ </tbody></table></div>
+ <div class="grid" style="margin-top:12px">${M("gy_net", "Család nettó jövedelme", { u: "Ft/hó" })}${M("gy_ev1", "Csecsemőápolásra havonta")}${M("gy_ev2", "Ruházkodás, taneszköz (havonta/időszakosan)")}${M("gy_ev3", "Egy évkezdés költsége")}</div>
+ <p class="note">Családi adókedvezmény (2026), havi nettó megtakarítás gyermekenként: 1 gyermek esetén 20 000 Ft, 2 gyermek esetén 40 000 Ft, 3 vagy több esetén 66 000 Ft. Családi pótlék: 1 gyermek 12 200 Ft, 2 gyermek 13 300 Ft/gyermek, 3+ gyermek 16 000 Ft/gyermek havonta. GYED: a jövedelem 70%-a, legfeljebb bruttó 451 920 Ft/hó; GYES: 28 500 Ft/hó; CSED: 168 napig az átlagkereset 100%-a.</p>
+</div>
+<div class="card"><h3>2. Célok</h3>
+ ${tbl("gy_cel", [["Cél", "t"], ["Célösszeg", "m"], ["Időtáv (év)", "n"], ["Havonta", "o"]], ["Tanulmányok", "Esküvő", "Jogosítvány, autó", "Saját lakás, önerő", "Életkezdés"], { lab: 1, add: 1, init: 2, sum: 1 })}
+ <div class="grid" style="margin-top:12px">${fld("gy_ido", "Megtakarítás időtáv", { n: 1, u: "év" })}${M("gy_havi", "Megtakarított összeg havonta", { u: "Ft/hó" })}</div>
+ <div class="res" style="margin-top:12px">${kpi("gy_ossz", "Összes cél", { hl: 1 })}${kpi("gy_szuks", "Szükséges megtakarítás havonta")}${kpi("gy_mentes", "Összes megtakarítás")}${kpi("gy_szaz", "Megoldás százaléka", { c: "in" })}</div>
+</div>
+<div class="card"><h3>3. Szempontok</h3>
+ <div class="chips">${chip("gy_c1", "Államtól független")}${chip("gy_c2", "Szülő rendelkezzen a pénzzel")}${chip("gy_c3", "Lejárat előtt is felhasználható")}${chip("gy_c4", "Védett gyermekprogram")}${chip("gy_c5", "Plusz befizetési lehetőség")}${chip("gy_c6", "Szüneteltethető")}${chip("gy_c7", "Örökölhető")}${chip("gy_c8", "Deviza (euró)")}</div>
+ <div class="grid" style="margin-top:10px">${fld("gy_c9", "Egyéb szempont")}${fld("gy_c10", "Melyik a legfontosabb?")}</div>
+ <p class="note">Az adatok tájékoztató jellegűek és nem minősülnek ajánlattételnek.</p>
+</div>
+${names("nv_gy", 4, "Gyermekesek, családot tervezők, friss házasok, nagyszülők, GYES-GYED kiegészítés.")}`;
+
+H.egeszseg = () => `
+<h2>Egészségügy</h2><p class="lead">Mekkora védelem kell baleset vagy betegség esetére, és mennyibe kerül?</p>
+${TXT.egeszseg}
+<div class="card"><h3>1. Helyzet</h3>
+ <div class="grid">
+  ${fld("c_nev", "Név")}${fld("c_kor", "Életkor", { n: 1, u: "év" })}${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}${fld("gy_db", "Gyermekek száma", { n: 1 })}
+  ${fld("eh_hitel", "Rendelkezik hitellel?", { t: "s", o: ["Igen", "Nem"] })}${M("eh_hosszu", "Hitelösszeg")}
+  ${fld("eh_kihiv", "Mi okozná a legnagyobb kihívást?", { t: "s", o: ["Ellátás színvonala", "Kieső jövedelem", "Felmerülő egészségügyi költségek", "Várólista", "Hosszas felépülés melletti életszínvonal fenntartása"] })}${fld("eh_biztos", "Mi adná a legnagyobb biztonságot?")}
+  ${fld("eh_elozo", "Volt-e komolyabb megbetegedés vagy baleset az ügyfélnél/családban?", { full: 1 })}
+ </div>
+</div>
+<div class="card"><h3>2. Igények</h3>
+ <div class="grid">
+  ${fld("eh_ell", "Magán vagy állami ellátást preferál?", { t: "s", o: ["Állami", "Magán", "Vegyes"] })}${fld("eh_szolg", "Milyen típusú szolgáltatást preferál?", { t: "s", o: ["Összeg", "Szolgáltatás", "Kettő egyben"] })}
+  ${fld("eh_ev", "Hány évre elegendő tartalékot szeretne?", { n: 1, u: "év" })}${fld("eh_dohany", "Dohányzik?", { t: "s", o: ["Nem", "Igen – hagyományos", "Igen – elektromos"] })}
+  ${fld("eh_visszaker", "Ha nem történik semmi, visszakapna pénzt?", { t: "s", o: ["Igen", "Nem"] })}${fld("eh_mag", "Magasság / testsúly", { ph: "pl. 178 cm / 80 kg" })}
+  ${fld("eh_beteg", "Meglévő betegség (orvosi papírral)")}${fld("eh_sport", "Igazolt sportoló volt-e az utóbbi 5 évben?")}
+ </div>
+</div>
+<div class="card"><h3>3. Számítás</h3>
+ <div class="res">${kpi("eh_vedelem", "Szükséges védelem", { hl: 1 })}${kpi("eh_kock", "Várható havi díj – kockázati biztosítás")}${kpi("eh_krit", "Kritikus betegségekre szóló fedezet, havi díj")}</div>
+ <div class="grid g2" style="margin-top:12px">${M("eh_rafo", "Ráfordítható összeg", { u: "Ft/hó" })}<div class="kpi"><div class="k">Beleférés</div><div class="v" data-o="eh_belefer">–</div></div></div>
+ <div class="warn" data-w="eh_w" hidden></div>
+ <p class="note">Szükséges védelem = hitelösszeg (ha van) + nettó jövedelem × tartalék évei × 12 + gyermekenként 5 000 000 Ft. A díjak a belépési életkor alapján becsült tájékoztató értékek. Az adatok tájékoztató jellegűek és nem minősülnek ajánlattételnek.</p>
+</div>
+<div class="card"><h3>4. Szempontok</h3>
+ <div class="chips">${chip("eh_c1", "Magánellátás elérhetősége")}${chip("eh_c2", "Kieső jövedelem pótlása")}${chip("eh_c3", "Kórházi napi térítés")}${chip("eh_c4", "Visszatérítés, ha nem történik semmi")}${chip("eh_c5", "Díj szüneteltethetősége")}</div>
+ ${fld("eh_megj", "Egyéb szempont / megjegyzés", { t: "ta", r: 2, full: 1 })}
+</div>
+${names("nv_eh", 4, "Veszélyes munkát végzők, másokért felelők, sokat magánorvoshoz járók, egészségügyre panaszkodók.")}`;
+
+H.befektetes = () => `
+<h2>Befektetés</h2><p class="lead">Biztonsági tartalék és vagyonépítés – mit jelent a hozam, és mit visz el az infláció?</p>
+${TXT.befektetes}
+<div class="card"><h3>1. Helyzet</h3>
+ <div class="grid">
+  ${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}${fld("bf_van", "Van már megtakarítása?", { t: "s", o: ["Igen", "Nem"] })}
+  ${fld("bf_koc", "Kockázattűrés", { t: "s", o: ["Óvatos", "Mérsékelt", "Lendületes"] })}${fld("bf_ido", "Időtáv, elvárások")}
+ </div>
+ <h3 style="margin-top:14px">Meglévő megtakarítások</h3>
+ ${tbl("bf_term", [["", "t"], ["Szerződő", "t"], ["Szolgáltató", "t"], ["Elkülönített összeg", "m"], ["Lejárat", "t"]], ["Állampapír"], { lab: 1, add: 1, init: 2 })}
+</div>
+<div class="card"><h3>2. Rendszeres megtakarítás – kamatos kamat</h3>
+ <div class="grid g3">${M("bf_reg", "Havi összeg (alapértelmezés: a jövedelem 10%-a)", { u: "Ft/hó" })}${fld("bf_hozam", "Hozam (éves)", { n: 1, u: "%", ph: "8" })}${fld("bf_infl", "Bankszámlán tartott pénz éves értékvesztése", { n: 1, u: "%", ph: "10" })}</div>
+ <div class="res" style="margin-top:12px">${kpi("bf_m10b", "10. évben – bankszámlán / párnában")}${kpi("bf_m10h", "10. évben – hozamot hozó helyen", { c: "in" })}${kpi("bf_m10p", "10. évi hozam (a befizetésekhez képest)", { c: "in" })}</div>
+ <div data-chart="bf" style="margin-top:12px"></div>
+ <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Évenkénti táblázat</summary><div class="tw"><table class="dt" id="bf_tbl"></table></div></details>
+ <p class="note">Befizetés = havi összeg × 12 × évek. Az egyenleg minden évben a hozammal (bankszámlánál −10%) nő. Az adatok tájékoztató jellegűek.</p>
+</div>
+<div class="card"><h3>3. Egyösszegű befektetés</h3>
+ <div class="grid g3">${M("bf_ossz", "Befektetett összeg")}${fld("bf_h2", "Hozam (éves)", { n: 1, u: "%", ph: "kockázati szint szerint" })}${fld("bf_evek", "Időtáv", { n: 1, u: "év", ph: "10" })}</div>
+ <div class="res" style="margin-top:12px">${kpi("bf_e1", "Összeg az időtáv végén", { hl: 1 })}${kpi("bf_e2", "Ebből hozam", { c: "in" })}</div>
+ <p class="note">Alapértelmezett hozam: óvatos 6%, mérsékelt 8%, lendületes 10% – átírható.</p>
+</div>
+<div class="card"><h3>4. Szempontok</h3>
+ <div class="chips">${chip("bf_c1", "Államtól független")}${chip("bf_c2", "Rugalmas hozzáférés")}${chip("bf_c3", "Eseti befizetés bármikor")}${chip("bf_c4", "Kamatadó ne érintse")}${chip("bf_c5", "Deviza (euró)")}</div>
+ ${fld("bf_megj", "Egyéb szempont / megjegyzés", { t: "ta", r: 2, full: 1 })}
+</div>
+${names("nv_bf", 4, "Bankszámlán tartók, lejáró állampapírral rendelkezők, befektetők, örökösök, vállalkozók szabad pénzzel, pályakezdők.")}`;
+
+H.osszegzes = () => `
+<h2>Összegzés</h2><p class="lead">Az elemzés során felmerült témák, havi összegekkel – pontosan megfogalmazva.</p>
+${TXT.osszegzes}
+<div class="card"><h3>1. Folyószámla</h3>
+ <div class="grid g2">${fld("z_bank", "Bank neve")}${M("z_bankk", "Tavalyi összes banki költség", { u: "Ft/év" })}</div></div>
+<div class="card"><h3>2. Témák és havi összegek</h3>
+ ${tbl("oz", [["Téma (pontosan)", "t"], ["Havi összeg", "m"], ["Időpont / megjegyzés", "t"]], ["", "", "", "", ""].map(() => ""), { add: 1, sum: 1, init: 0 })}
+ <button type="button" class="btn" id="oz_auto" style="margin-top:8px">Átvétel a lapokról</button>
+ <div class="res" style="margin-top:12px">${kpi("oz_sum", "Összes havi ráfordítás", { hl: 1 })}</div>
+ <div class="grid" style="margin-top:12px">${fld("oz_ok", "Kényelmesen ráfordítható?", { t: "s", o: ["Igen", "Nem"] })}${M("oz_tol", "Ha nem: biztosan belefér (tól)", { u: "Ft/hó" })}${M("oz_ig", "…(ig)", { u: "Ft/hó" })}</div>
+</div>
+<div class="card"><h3>3. Mi érdekel még?</h3>
+ <div class="chips">${["Ingatlan cél", "Otthonteremtési támogatások", "Évente 104 000 Ft adókedvezmény lakáshitelek után", "200 000 Ft szülési támogatás, GYED, GYES kiegészítés", "Csecsemőápolási termékekre 20% visszatérítés", "Életkezdési támogatás", "Ruhából, tanszerből, felsőoktatási költségekből visszatérítés", "Infláció elleni védelem", "Adóvisszatérítés a gondtalan nyugdíjas évekhez", "Saját egészség védelme", "Gyógyszertári termékekre, magánorvosi ellátásra 20% adókedvezmény"].map((x, i) => chip("oz_i" + i, x, "Érdekli", "Nem")).join("")}</div>
+ ${fld("oz_megj", "Egyéb, amin megakad a szeme", { t: "ta", r: 2, full: 1 })}
+</div>`;
+
+H.zaras = () => `
+<h2>Zárás</h2><p class="lead">Következő időpont, GDPR, meglévő termékek és visszajelzés.</p>
+${TXT.zaras}
+<div class="card"><h3>1. Tanácsadás időpontja</h3>
+ <div class="grid">${fld("z_t1", "Időpont – 1. alternatíva")}${fld("z_t2", "Időpont – 2. alternatíva")}${fld("z_top", "A legfontosabb téma az ügyfélnek", { t: "s", o: ["Nyugdíj", "Lakás", "Gyermek", "Egészségügy", "Befektetés", "Hitel / végtörlesztés", "Egyéb"] })}</div>
+ <p class="note">Kidolgozás: 2 nap. A cég elvárása: a következő 5 napban találkozás.</p>
+</div>
+<div class="card"><h3>2. GDPR és ügyféladatok</h3>
+ <div class="grid">${fld("z_g1", "GDPR tájékoztatás megtörtént", { t: "c" })}${fld("z_g2", "Ügyféladatok a portálon rögzítve", { t: "c" })}${fld("z_g3", "SMS-kód + e-mail link kitöltve", { t: "c" })}${fld("z_g4", "Saját felület létrehozva", { t: "c" })}</div>
+</div>
+<div class="card"><h3>3. Meglévő termékek</h3>
+ ${tbl("z_term", [["", "t"], ["Hol / szolgáltató", "t"], ["Évforduló / lejárat", "t"], ["Megjegyzés", "t"]], ["KGFB", "Lakásbiztosítás", "Megtakarítás / lakástakarék", "Hitel"], { lab: 1, add: 1 })}
+ <p class="note">Ha az ügyfél nem tudja, az összegző e-mailben emlékeztesd, hogy készítse elő a tanácsadásra.</p>
+</div>
+<div class="card"><h3>4. Visszajelzés</h3>
+ ${fld("z_vissz", "Hogy érezték magukat? Hol hallották a legtöbb újat? Melyik téma tetszett legjobban?", { t: "ta", r: 3, full: 1 })}
+</div>`;
+
+const KERD = ["Milyen volt a munkatársunk megjelenése?", "Mennyire fogalmazott érthetően munkatársunk?", "Mennyire érezte felkészültnek munkatársunkat?", "Mennyire volt hiteles munkatársunk?", "Mennyire érintett valós élethelyzeteket az igényfelmérés?", "Mennyire érezte átfogónak az igényfelmérést?", "A felmerülő kérdésekre mennyire kapott kielégítő választ?", "Mennyire tartja fontosnak a felmerült témakörök megoldását?", "Mennyire tartja hasznosnak ezt a szolgáltatást?", "Ajánlaná-e szolgáltatásunkat az ismerőseinek?"];
+H.ajanlas = () => `
+<h2>Ajánláskérés</h2><p class="lead">Kiértékelő lap és az ajánlott ismerősök – a témáknál összegyűjtött nevekkel együtt.</p>
+${TXT.ajanlas}
+<div class="card"><h3>1. Kiértékelő lap (1–10)</h3>
+ ${KERD.map((q, i) => `<div class="qrow"><div>${i + 1}. ${esc(q)}</div><div class="rate" data-rt="kv${i}">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<button type="button" data-v="${n}" class="${n < 8 ? "low" : ""}">${n}</button>`).join("")}</div></div>`).join("")}
+ <div class="res" style="margin-top:12px">${kpi("kv_avg", "Átlag", { hl: 1 })}${kpi("kv_low", "8 alatti válasz")}</div>
+ <div class="warn" data-w="kv_w" hidden>Van 8 alatti válasz – kérdezz rá, miben tudnál fejlődni, mi volt a baj.</div>
+</div>
+<div class="card"><h3>2. Eddig összegyűjtött nevek</h3><ul class="names" data-o="names" style="margin:0;padding-left:18px"><li class="muted">Még nincs név – a témák „Kinek lehet még hasznos?” részében gyűjthetők.</li></ul></div>
+<div class="card"><h3>3. További ajánlottak</h3>
+ ${tbl("aj", [["Név", "t"], ["Honnan ismeri?", "t"], ["Hol lakik?", "t"], ["Kor", "n"], ["Foglalkozás", "t"], ["Gyerek?", "t"], ["Lakhatás", "s", ["Albérlet", "Saját", "Szülőknél", "Egyéb"]], ["Elérhetőség", "t"]], [], { add: 1, init: 5 })}
+ <div class="grid" style="margin-top:12px">${fld("aj_mikor", "Felkeresés legkésőbb")}${fld("aj_nemszol", "Akit semmiképp ne keressünk")}</div>
+ <p class="note">A cél: az ügyfél beszéljen velük előre, hogy már találkoztunk; semmilyen elköteleződéssel nem jár. SMS-t és e-mailt küldünk, amit továbbíthat.</p>
+</div>
+<div class="card"><h3>4. Kész – mentés</h3><p class="note" style="margin-top:0">Az elemzés lezárása után mentsd el az adatokat a Drive-ra (szöveges összefoglaló + visszatölthető fájl).</p><button type="button" class="btn pri drv">Mentés a Drive-ra</button></div>`;
+
+/* ---------- számolások ---------- */
+function compute() {
+  if (!S) return;
+  const d = S.d, g = k => d[k], n = k => num(d[k]);
+  const kor = n("c_kor"), net = n("c_net");
+
+  /* alapadatok: SZJA */
+  const sz = g("szja") || "";
+  show("szja1", sz && sz !== "Nem"); show("szja2", /^25 év|^30 év/.test(sz) && ((/^25/.test(sz) && kor >= 23 && kor <= 25) || (/^30/.test(sz) && kor >= 28 && kor <= 30)));
+
+  /* nyugdíj */
+  const ido = kor > 0 && kor < 65 ? 65 - kor : 0;
+  const pct = has(g("ny_pct")) ? n("ny_pct") / 100 : (kor ? (kor < 35 ? .2 : kor < 45 ? .3 : .4) : 0);
+  const ev = has(g("ny_ev")) ? n("ny_ev") : (g("nem") === "Nő" ? 18 : g("nem") === "Férfi" ? 14 : 0);
+  const varh = net * pct, hiany = Math.max(0, n("ny_cel") - varh), cel = hiany * 12 * ev;
+  const af = AF(ido);
+  const ok = net > 0 && kor > 0;
+  out("ny_varhato", ok ? ft(varh) : "–"); out("ny_hiany", n("ny_cel") ? ft(hiany) : "–");
+  out("ny_celosszeg", cel > 0 ? ft(cel) : "–"); out("ny_ido", ido ? ido + " év" : "–");
+  out("ny_kmentes", cel > 0 && ido ? ft(cel / ido / 12) : "–");
+  out("ny_8", cel > 0 && af ? ft(Math.max(0, (cel / af / 12 - n("ny_meglevo")) * .85)) : "–");
+  const w = $('[data-w="nyhiba"]');
+  if (w) { let m = ""; if (!kor) m = "Add meg az életkort."; else if (kor >= 65) m = "Az ügyfél elérte a nyugdíjkorhatárt, a kalkuláció nem értelmezhető."; else if (ido < 5) m = "5 évnél rövidebb időtávra nincs számítási tábla."; if (!ev && kor && kor < 65) m = (m ? m + " " : "") + "Add meg a nemet vagy a nyugdíjban töltött évek számát."; w.hidden = !m; w.textContent = m; }
+  const plan = h => { if (!af || h <= 0) return null; const o = af * h * 12, hz = o - h * 12 * ido; return { o, ado: af * Math.min(h, 55000) * 12 * .2, kam: hz * .15 }; };
+  [[1, n("ny_havi")], [2, n("ny_havi2")]].forEach(([i, h]) => { const p = plan(h); out("ny_ado" + i, p ? ft(p.ado) : "–"); out("ny_kam" + i, p ? ft(p.kam) : "–"); out("ny_osszeg" + i, p ? ft(p.o) : "–"); });
+  const p1 = plan(n("ny_havi"));
+  [[2, "ny_d2"], [5, "ny_d5"], [10, "ny_d10"]].forEach(([dd, id]) => { if (!p1) { out(id, "–"); return; } const a = AF(ido - dd); out(id, ft(p1.o - (a ? a * n("ny_havi") * 12 : 0))); });
+  show("nyszja", sz && sz !== "Nem");
+
+  /* lakás */
+  const lnet = has(g("lk_net")) ? n("lk_net") : (net || 0) + n("p_net");
+  const ar = n("lk_ar"), osszes = n("lk_megl") + n("lk_tam") + n("lk_havi") * 12 * n("lk_ido");
+  const hitel = (ar > 0 || osszes > 0) ? Math.max(0, ar - osszes) : 0;
+  const futam = n("lk_futam") || 25, kam = has(g("lk_kamat")) ? n("lk_kamat") / 100 : .07;
+  const tor = pmt(hitel, kam, futam);
+  out("lk_osszes", osszes ? ft(osszes) : "–");
+  out("lk_min", !ar ? "–" : osszes >= ar * .2 ? "Megvan" : "Nincs meg", !ar ? "" : osszes >= ar * .2 ? "in" : "out");
+  out("lk_ajan", !ar ? "–" : osszes >= ar * .3 ? "Megvan" : "Nincs meg", !ar ? "" : osszes >= ar * .3 ? "in" : "out");
+  out("lk_hitel", hitel ? ft(hitel) : "–"); out("lk_torl", hitel ? ft(tor) : "–");
+  out("lk_arany", hitel && lnet ? (tor / lnet * 100).toFixed(1).replace(".", ",") + " %" : "–");
+  show("lk_arany_w", hitel && lnet && tor > lnet * (lnet > 800000 ? .6 : .5));
+  out("lk_v4", lnet ? ft(lnet * .04) : "–"); out("lk_vcel", hitel || lnet ? ft(hitel + lnet * 12) : "–");
+  const vegt = n("lk_vegt"); out("lk_rafo", hitel ? ft(tor + vegt) : "–");
+  const lm = (g("lk_mod") || "Rövidtáv (hitel)") !== "Hosszútáv (önerőgyűjtés)";
+  show("lk_r", lm); show("lk_h", !lm);
+  if (hitel > 0) {
+    const yrs = Math.min(Math.max(futam, 1), 40), q = Math.pow(1 + kam / 12, 12), fa = kam ? (q - 1) / (kam / 12) : 12;
+    const bal = [hitel], sav = [0], xs = [0]; let cross = null;
+    for (let y = 1; y <= yrs; y++) {
+      bal.push(Math.max(0, bal[y - 1] * q - tor * fa));
+      const i = Math.min(y, 30) - 1; sav.push(vegt * 12 * y * COEF[i] * MM[i]); xs.push(y);
+      if (cross === null && vegt > 0 && sav[y] >= bal[y]) cross = y;
+    }
+    chart("lk", xs, [{ n: "Hitel egyenlege", c: "var(--frk)", v: bal }, { n: "Megtakarítás (végtörlesztésre szánt összeg)", c: "var(--csk)", v: sav }], { mark: cross, alt: "Hitel egyenlege és a megtakarítás alakulása" });
+    out("lk_cross", cross ? cross + ". év" : "–"); out("lk_marad", cross ? ft(sav[cross] - bal[cross]) : "–");
+    $('[data-o="lk_cross_n"]').textContent = !vegt ? "Adj meg végtörlesztésre szánt havi összeget, hogy a diagram megmutassa, mikor szabadul a hitelből." : cross ? "" : "A megadott havi összeggel a futamidő végéig nem éri el a megtakarítás a hitel egyenlegét.";
+  } else { const c = $('[data-chart="lk"]'); if (c) c.innerHTML = ""; out("lk_cross", "–"); out("lk_marad", "–"); $('[data-o="lk_cross_n"]').textContent = "A diagramhoz add meg az ingatlan árát és az önerőt."; }
+
+  /* gyermek */
+  const rows = d.gy_cel || []; let tot = 0, anyH = 0;
+  rows.forEach((r, i) => { const a = num(r[1]), t = num(r[2]), h = a && t ? a / t / 12 : null; tot += a; if (h) anyH += h; out("gy_cel_" + i, h ? ft(h) : "–"); });
+  out("gy_cel_sum", tot ? ft(tot) : "–");
+  const gi = n("gy_ido"), gh = n("gy_havi"), szuks = anyH > 0 && gi > 0 ? tot / 12 / gi : 0;
+  const mentes = (gh && gi) ? (Math.round(szuks) === gh && gi > 0 ? tot : gh * gi * 12) : 0;
+  out("gy_ossz", tot ? ft(tot) : "–"); out("gy_szuks", szuks ? ft(szuks) : "–"); out("gy_mentes", mentes ? ft(mentes) : "–");
+  out("gy_szaz", mentes && tot ? Math.round(mentes / tot * 100) + " %" : "–");
+
+  /* egészségügy */
+  const gyer = n("gy_db"), hit = g("eh_hitel") === "Igen" ? n("eh_hosszu") : 0;
+  const vedelem = hit + net * n("eh_ev") * 12 + gyer * 5000000;
+  const rk = RISK[kor], ck = CRIT[kor];
+  out("eh_vedelem", vedelem > 0 ? ft(vedelem) : "–");
+  out("eh_kock", vedelem > 0 && rk ? ft(vedelem / 1000 * rk) : "–");
+  out("eh_krit", vedelem > 0 && ck ? ft(vedelem / 1000 * ck / 12 * 2) : "–");
+  const raf = n("eh_rafo"), dij = vedelem > 0 && rk ? vedelem / 1000 * rk + (ck ? vedelem / 1000 * ck / 12 * 2 : 0) : 0;
+  out("eh_belefer", raf && dij ? (raf >= dij ? "Belefér" : "Nem fér bele") : "–", raf && dij ? (raf >= dij ? "in" : "out") : "");
+  const ew = $('[data-w="eh_w"]'); if (ew) { let m = ""; if (vedelem > 0 && kor && (!rk)) m = "Az életkorhoz (15–80 év) nincs kockázati díjtétel."; else if (vedelem > 0 && kor && !ck) m = "A kritikus betegségi díj 3–70 éves korig számolható."; if (raf && dij && raf < dij) m = (m ? m + " " : "") + "A díjak együtt: " + ft(dij) + "/hó – ez meghaladja a ráfordítható összeget; csökkenthető a tartalék éve vagy a fedezet."; ew.hidden = !m; ew.textContent = m; }
+
+  /* befektetés */
+  const reg = has(g("bf_reg")) ? n("bf_reg") : net * .1, hz = has(g("bf_hozam")) ? n("bf_hozam") / 100 : .08, inf = -(has(g("bf_infl")) ? n("bf_infl") / 100 : .1);
+  if (reg > 0) {
+    const A = [], Bk = [], xs = [], cum = []; let a = 0, b = 0;
+    for (let y = 1; y <= 30; y++) { a = (a + reg * 12) * (1 + inf); /* alapképlet: (előző + éves befizetés)*(1+hozam) */ b = (b + reg * 12) * (1 + hz); A.push(a); Bk.push(b); cum.push(reg * 12 * y); xs.push(y); }
+    chart("bf", xs, [{ n: "Bankszámlán / párnában", c: "var(--frk)", v: A }, { n: "Hozamot hozó helyen", c: "var(--csk)", v: Bk }, { n: "Összes befizetés", c: "var(--muted)", v: cum }], { alt: "Rendszeres megtakarítás alakulása" });
+    out("bf_m10b", ft(A[9])); out("bf_m10h", ft(Bk[9])); out("bf_m10p", ft(Bk[9] - cum[9]));
+    const t = $("#bf_tbl"); if (t) t.innerHTML = "<thead><tr><th>Év</th><th>Befizetés</th><th>Bankszámlán</th><th>Hozamos</th></tr></thead><tbody>" + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30].map(y => `<tr><td>${y}</td><td>${fnum(cum[y - 1])}</td><td>${fnum(A[y - 1])}</td><td>${fnum(Bk[y - 1])}</td></tr>`).join("") + "</tbody>";
+  } else { const c = $('[data-chart="bf"]'); if (c) c.innerHTML = ""; ["bf_m10b", "bf_m10h", "bf_m10p"].forEach(i => out(i, "–")); const t = $("#bf_tbl"); if (t) t.innerHTML = ""; }
+  const kh = { "Óvatos": .06, "Mérsékelt": .08, "Lendületes": .1 }[g("bf_koc")] || .08, h2 = has(g("bf_h2")) ? n("bf_h2") / 100 : kh, be = n("bf_ossz"), ye = n("bf_evek") || 10;
+  out("bf_e1", be ? ft(be * Math.pow(1 + h2, ye)) : "–"); out("bf_e2", be ? ft(be * Math.pow(1 + h2, ye) - be) : "–", be ? "in" : "");
+
+  /* összegzés */
+  let s = 0; (d.oz || []).forEach((r, i) => { s += num(r[1]); }); out("oz_sum", ft(s)); out("oz_sum_x", ""); out("oz_sum", s ? ft(s) : "–");
+  const sm = $('[data-o="oz_sum"]'); void sm;
+  const tsum = $('td[data-o="oz_sum"]'); void tsum;
+
+  /* kiértékelő */
+  let sc = 0, cnt = 0, low = 0; for (let i = 0; i < 10; i++) { const v = n("kv" + i); if (v) { sc += v; cnt++; if (v < 8) low++; } }
+  out("kv_avg", cnt ? (sc / cnt).toFixed(1).replace(".", ",") : "–"); out("kv_low", cnt ? String(low) : "–"); show("kv_w", low > 0);
+
+  /* ajánlás: összegyűjtött nevek */
+  const TOP = [["nv_ny", 4, "Nyugdíj"], ["nv_lk", 5, "Lakás"], ["nv_gy", 4, "Gyermek"], ["nv_eh", 4, "Egészség"], ["nv_bf", 4, "Befektetés"]];
+  let li = ""; TOP.forEach(([p, c, t]) => { for (let i = 1; i <= c; i++) { const v = g(p + i); if (has(v)) li += `<li>${esc(v)}<span class="tag">${t}</span></li>`; } });
+  const ne = $('[data-o="names"]'); if (ne) ne.innerHTML = li || '<li class="muted">Még nincs név – a témák „Kinek lehet még hasznos?” részében gyűjthetők.</li>';
+
+  /* léptető jelzés */
+  markSteps();
+}
+
+/* ---------- léptetés ---------- */
+const PREFIX = { alap: ["c_", "p_", "gy_db", "nem", "szja", "auto", "v_", "megj", "fontos", "vbizt", "vhitel"], nyugdij: ["ny_", "nv_ny"], lakas: ["lk_", "nv_lk"], gyermek: ["gy_n", "gy_d", "gy_f", "gy_net", "gy_ev", "gy_cel", "gy_ido", "gy_havi", "gy_c", "nv_gy"], egeszseg: ["eh_", "nv_eh"], befektetes: ["bf_", "nv_bf"], osszegzes: ["oz", "z_bank"], zaras: ["z_t1", "z_t2", "z_top", "z_g", "z_term", "z_vissz"], ajanlas: ["kv", "aj"] };
+function sheetFilled(id) {
+  const d = S.d, ps = PREFIX[id]; if (!ps) return false;
+  return Object.keys(d).some(k => ps.some(p => k.indexOf(p) === 0) && !["ny_havi"].includes(k) && (Array.isArray(d[k]) ? d[k].some(r => r.some((c, i) => has(c) && !(i === 0 && false))) && !isFixedOnly(k, d[k]) : has(d[k])));
+}
+function isFixedOnly(k, rows) { const t = $(`table[data-tk="${k}"]`); if (!t) return false; const f = JSON.parse(t.dataset.fixed || "[]"); return t.dataset.lab === "1" && rows.every((r, i) => r.every((c, ci) => !has(c) || (ci === 0 && i < f.length))); }
+function markSteps() { $$(".steps button").forEach(b => b.classList.toggle("has", sheetFilled(b.dataset.s))); }
+let CUR = "alap";
+function go(id, noscroll) {
+  if (!SHEETS.some(s => s[0] === id)) id = "alap";
+  CUR = id; try { sessionStorage.setItem("csk_ef_tab", id); } catch (e) {}
+  $$(".sheet").forEach(s => s.classList.toggle("on", s.id === "s_" + id));
+  $$(".steps button").forEach(b => { const on = b.dataset.s === id; b.classList.toggle("on", on); if (on) b.scrollIntoView({ block: "nearest", inline: "center" }); });
+  const i = SHEETS.findIndex(s => s[0] === id);
+  $("#prev").style.visibility = i > 0 ? "visible" : "hidden"; $("#next").style.visibility = i < SHEETS.length - 1 ? "visible" : "hidden";
+  $("#prev").textContent = i > 0 ? "← " + SHEETS[i - 1][1] : ""; $("#next").textContent = i < SHEETS.length - 1 ? SHEETS[i + 1][1] + " →" : "";
+  if (!noscroll) window.scrollTo({ top: 0 });
+}
+
+/* ---------- ügyfelek ---------- */
+function refreshClients() {
+  const sel = $("#cl"); const list = Object.values(DB).sort((a, b) => b.t - a.t);
+  sel.innerHTML = list.map(c => `<option value="${c.id}"${S && c.id === S.id ? " selected" : ""}>${esc(label(c))}</option>`).join("");
+}
+function openClient(id) { S = DB[id]; persist(); fillAll(); refreshClients(); $("#pn").textContent = label(S); }
+function download(name, text) { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/json" })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+
+function init() {
+  load();
+  $("#sheets").innerHTML = SHEETS.map(s => `<section class="sheet" id="s_${s[0]}"><div class="pr-h"><b>Pénzügyi elemző füzet</b> – <span class="pn"></span></div>${H[s[0]]()}</section>`).join("");
+  $("#steps").innerHTML = SHEETS.map((s, i) => `<button type="button" data-s="${s[0]}"><span class="n">${i + 1}</span>${s[1]}</button>`).join("");
+  $("#steps").addEventListener("click", e => { const b = e.target.closest("button"); if (b) go(b.dataset.s); });
+  $("#prev").addEventListener("click", () => { const i = SHEETS.findIndex(s => s[0] === CUR); if (i > 0) go(SHEETS[i - 1][0]); });
+  $("#next").addEventListener("click", () => { const i = SHEETS.findIndex(s => s[0] === CUR); if (i < SHEETS.length - 1) go(SHEETS[i + 1][0]); });
+  const cur = lsGet(LC);
+  if (cur && DB[cur]) S = DB[cur]; else if (Object.keys(DB).length) S = Object.values(DB).sort((a, b) => b.t - a.t)[0]; else { S = newClient(); DB[S.id] = S; persist(); }
+  fillAll(); refreshClients();
+  let t0 = "alap"; try { t0 = location.hash.slice(1) || sessionStorage.getItem("csk_ef_tab") || "alap"; } catch (e) {}
+  go(t0, true);
+  $("#cl").addEventListener("change", e => openClient(e.target.value));
+  $("#nw").addEventListener("click", () => { persist(); S = newClient(); DB[S.id] = S; persist(); fillAll(); refreshClients(); go("alap"); });
+  $("#dl").addEventListener("click", () => { if (confirm("Törlöd ezt az ügyfelet a böngészőből? (Előtte érdemes exportálni.)")) { delete DB[S.id]; const rest = Object.values(DB); if (rest.length) S = rest[0]; else { S = newClient(); DB[S.id] = S; } persist(); fillAll(); refreshClients(); } });
+  $("#ex").addEventListener("click", () => { persist(); download("elemzo-" + label(S).replace(/[^\wáéíóöőúüűÁÉÍÓÖŐÚÜŰ-]+/g, "_") + ".json", JSON.stringify(S)); });
+  $("#im").addEventListener("click", () => $("#imf").click());
+  $("#imf").addEventListener("change", e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { try { const o = JSON.parse(r.result); if (!o || !o.d) throw 0; o.id = "c" + Date.now().toString(36); o.t = Date.now(); DB[o.id] = o; openClient(o.id); } catch (x) { alert("Ez a fájl nem olvasható be."); } }; r.readAsText(f); e.target.value = ""; });
+  $("#pr").addEventListener("click", () => window.print());
+  $("#gd").addEventListener("click", () => { const ds = $$("details.guide"); const open = ds.some(x => !x.open); ds.forEach(x => x.open = open); $("#gd").textContent = open ? "Szövegek bezárása" : "Beszélgetésvezető szövegek"; });
+  document.addEventListener("click", e => {
+    if (e.target.id === "oz_auto") {
+      const d = S.d, R = []; const add = (t, v) => { if (num(v)) R.push([t, fnum(num(v)), ""]); };
+      add("Nyugdíj – megoldás havi összege", d.ny_havi); add("Gyermek jövője – havi megtakarítás", d.gy_havi); add("Lakás – önerő gyűjtése", d.lk_havi); add("Meglévő hitel végtörlesztése", d.lk_vegt); add("Befektetés – biztonsági tartalék", d.bf_reg);
+      if (R.length) { const old = (d.oz || []).filter(r => has(r[0]) || has(r[1])); d.oz = old.concat(R.filter(r => !old.some(o => o[0] === r[0]))); persist(); fillAll(); }
+    }
+  });
+  /* közös mezők szinkronja */
+  document.addEventListener("input", e => { const el = e.target, k = el.dataset && el.dataset.k; if (!k) return; $$(`[data-k="${k}"]`).forEach(x => { if (x !== el) { if (x.type === "checkbox") x.checked = el.checked; else x.value = el.value; } }); if (k === "c_nev") { refreshClients(); $("#pn").textContent = label(S); $$(".pn").forEach(p => p.textContent = label(S)); } });
+  window.addEventListener("hashchange", () => go(location.hash.slice(1)));
+  $$(".pn").forEach(p => p.textContent = label(S)); $("#pn").textContent = label(S);
+}
+
+/* ---------- mentés Drive-ra ---------- */
+const EF_API = "https://script.google.com/macros/s/AKfycbxsTMxAtO6Z7EvRNdRXBduYTD9T044_K627ePPqSKHRE22Upe5Ej2DEKSYk38jrrk3B9A/exec";
+function summaryText() {
+  const L = ["PÉNZÜGYI ELEMZŐ FÜZET – " + label(S), "Mentve: " + new Date().toLocaleString("hu-HU"), ""];
+  SHEETS.forEach(([id, name]) => {
+    const sec = $("#s_" + id); if (!sec) return; const part = [];
+    $$(".card", sec).forEach(card => {
+      const t = ($("h3", card) || {}).textContent || "", ln = [];
+      $$(".fl", card).forEach(f => { const el = $("input,select,textarea", f); if (!el) return; const v = el.type === "checkbox" ? (el.checked ? "igen" : "") : el.value; if (has(v)) ln.push("  " + $("span", f).textContent.trim() + ": " + v); });
+      $$("table.t:not([data-tk]) tbody tr", card).forEach(r => { const v = $$("input,select", r).map(x => x.value).filter(has); if (v.length) ln.push("  " + ($(".lb", r) || {textContent: ""}).textContent.trim() + ": " + v.join(" | ")); });
+      $$(".chip", card).forEach(c => { const on = $("button.on", c); if (on) ln.push("  " + $("span", c).textContent.trim() + ": " + on.textContent); });
+      $$(".kpi", card).forEach(k => { const v = $(".v", k).textContent.trim(); if (v && v !== "–") ln.push("  » " + $(".k", k).textContent.trim() + ": " + v); });
+      $$("table.t[data-tk]", card).forEach(tb => (S.d[tb.dataset.tk] || []).forEach(r => { if (r.slice(1).some(has) || (!/^1/.test(tb.dataset.lab) && has(r[0]) && r.length > 1)) ln.push("  - " + r.filter(has).join(" | ")); else if (tb.dataset.lab !== "1" && has(r[0])) ln.push("  - " + r[0]); }));
+      $$("table.dt tr", card).forEach(r => { const c = Array.from(r.children).map(x => x.textContent.trim()); if (c.length > 1 && c.slice(1).some(x => x && x !== "–") && !/^\d+$/.test(c[0])) ln.push("  » " + c.join(" | ")); });
+      $$("[data-o=names] li", card).forEach(li => { if (!li.classList.contains("muted")) ln.push("  - " + li.textContent); });
+      if (ln.length) part.push((t ? "[" + t + "]\n" : "") + ln.join("\n"));
+    });
+    if (part.length) { L.push("=== " + name.toUpperCase() + " ==="); L.push(part.join("\n\n")); L.push(""); }
+  });
+  return L.join("\n");
+}
+function driveSave() {
+  persist(); const st = $("#dst"); const btns = $$(".drv"); btns.forEach(b => b.disabled = true);
+  st.textContent = "Mentés a Drive-ra…"; st.style.color = "";
+  let t = ""; try { t = localStorage.getItem("csk_token") || ""; } catch (e) {}
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 40000);
+  fetch(EF_API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ t, efsave: { id: S.id, name: label(S), json: JSON.stringify(S), text: summaryText() } }), signal: ctl.signal })
+    .then(r => r.json()).then(d => {
+      if (d && d.ok) { st.innerHTML = "✓ Elmentve a Drive-ra – <a href=\"" + d.folder + "\" target=\"_blank\" rel=\"noopener\">mappa megnyitása</a>"; st.style.color = "var(--csk)"; }
+      else { st.textContent = d && d.error === "auth" ? "Lejárt a belépés, lépj be újra." : "Nem sikerült: " + ((d && d.error) || "ismeretlen hiba"); st.style.color = "var(--frk)"; }
+    }).catch(() => { st.textContent = "Nem sikerült csatlakozni a mentéshez, próbáld újra."; st.style.color = "var(--frk)"; })
+    .finally(() => { clearTimeout(to); btns.forEach(b => b.disabled = false); });
+}
+document.addEventListener("click", e => { if (e.target.closest(".drv")) driveSave(); });
+document.addEventListener("DOMContentLoaded", init);
+
+</script>
+<script>
+  (function () {
+    var host = document.querySelector(".topnav .in"); if (!host) return;
+    function e(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
+    var LINKS = [
+      { name: "Csikós Pipeline", sub: "Google Táblázat", url: "https://docs.google.com/spreadsheets/d/1YKwZYWzi1nBNX3HQCDXUlKeovPqnMce0A4C4hnYFaHY/edit" },
+      { name: "Heti Admin", sub: "Google Táblázat", url: "https://docs.google.com/spreadsheets/d/17_kPAR_QCWTYETDD5u8jUmpAYD-0XQzG/edit?gid=336308861#gid=336308861" },
+      { name: "Hitelspecialista Trello", sub: "Trello board", url: "https://trello.com/b/PXzC7js9/csikos-mate-leadek" },
+      { name: "Szakmai szombat oktatások", sub: "Drive mappa", url: "https://drive.google.com/drive/folders/1M3JiElcC3CJIbYqwtWw8dcOIcv1-iqQ8?usp=sharing" },
+      { name: "Szombati elemző oktatások", sub: "Drive mappa", url: "https://drive.google.com/drive/folders/1GD997baQ4Zik4BM8OBn9A_PL_xIDRqu1?usp=sharing" }
+    ];
+    var wrap = e("div", "zm dv"), btn = e("button"), panel = e("div", "panel");
+    btn.type = "button"; btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-haspopup", "true");
+    btn.appendChild(e("span", "", "Drive-táblázatok")); btn.appendChild(e("span", "", "▾"));
+    panel.hidden = true; panel.appendChild(e("h3", "", "Drive-táblázatok"));
+    LINKS.forEach(function (l) {
+      var a = e("a"); a.href = l.url; a.target = "_blank"; a.rel = "noopener";
+      a.appendChild(e("span", "m", l.name)); a.appendChild(e("span", "d", l.sub)); a.appendChild(e("span", "go", "↗"));
+      panel.appendChild(a);
+    });
+    wrap.appendChild(btn); wrap.appendChild(panel);
+    var z = host.querySelector(".zm"); if (z) host.insertBefore(wrap, z); else host.appendChild(wrap);
+    function set(open) { panel.hidden = !open; btn.setAttribute("aria-expanded", open ? "true" : "false"); }
+    btn.addEventListener("click", function (ev) { ev.stopPropagation(); set(panel.hidden); });
+    document.addEventListener("click", function (ev) { if (!wrap.contains(ev.target)) set(false); });
+    document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") set(false); });
+  })();
+</script>
+</body>
+</html>
