@@ -525,9 +525,10 @@ H.lakas = () => `
 <h2>Lakás</h2><p class="lead">Önerő, hitel és a hiteltörlesztő védelme – rövid- és hosszútávon.</p>
 <div class="bar0" style="margin-bottom:10px"><div class="seg2" data-rt="lk_mod"><button type="button" data-v="Rövidtáv (hitel)">Rövidtáv (hitel)</button><button type="button" data-v="Hosszútáv (önerőgyűjtés)">Hosszútáv (önerőgyűjtés)</button></div></div>
 <div data-w="lk_r">${TXT.lakas_r}</div><div data-w="lk_h" hidden>${TXT.lakas_h}</div>
+<div class="card"><h3>Ügyfél</h3><div class="grid g2">${fld("c_nev", "Név")}${fld("c_kor", "Életkor", { n: 1, u: "év" })}</div></div>
 <div class="card"><h3>1. Önerő, tervezés</h3>
  <div class="grid">
-  ${fld("lk_kor", "Életkor", { n: 1, u: "év", ph: "Alapadatokból" })}${M("lk_net", "Nettó jövedelem (ha párban: együtt)", { u: "Ft/hó", ph: "Alapadatokból" })}
+  ${M("lk_net", "Nettó jövedelem (ha párban: együtt)", { u: "Ft/hó", ph: "Alapadatokból" })}
   ${fld("lk_hely", "Jelenlegi lakhely", { t: "s", o: ["Albérletben", "Szülőknél", "Saját ingatlanban", "Egyéb"] })}${M("lk_kiad", "Lakhatás havi kiadása", { u: "Ft/hó" })}
   ${fld("lk_terv", "Tervezett lakás (ingatlan infók, szempontok, tervek)", { t: "ta", r: 2, full: 1 })}
   ${M("lk_ar", "Ingatlan ára")}${M("lk_megl", "Meglévő önerő")}
@@ -569,6 +570,7 @@ ${names("nv_lk", 5, "Albérletben lakók, saját ingatlanban lakók, szülőkné
 H.gyermek = () => `
 <h2>Gyermek</h2><p class="lead">Adókedvezmények, támogatások és a gyermek jövőjére szánt célok.</p>
 ${TXT.gyermek}
+<div class="card"><h3>Ügyfél</h3><div class="grid g2">${fld("c_nev", "Név")}${fld("c_kor", "Életkor", { n: 1, u: "év" })}</div></div>
 <div class="card"><h3>1. Adókedvezmények és támogatások</h3>
  <div class="tw"><table class="t" style="min-width:640px"><thead><tr><th>Kérdés</th><th>Név</th><th>Szül. dátum</th><th>Támogatás</th><th>Fontos?</th></tr></thead><tbody>
  ${[["Terveznek gyermeket?", "Szülési támogatás (200 000 Ft)"], ["Van gyermek, aki még nem töltötte be az 5. életévét?", "Csecsemő- és babakozmetikum (20% visszatérítés)"], ["Van gyermek, aki még nem töltötte be a 18. életévét?", "Iskolakezdés, ruházkodás"], ["Van gyermek, aki már elmúlt 18 éves?", "Egyetemi visszatérítések"]]
@@ -623,6 +625,7 @@ ${names("nv_eh", 4, "Veszélyes munkát végzők, másokért felelők, sokat mag
 H.befektetes = () => `
 <h2>Befektetés</h2><p class="lead">Biztonsági tartalék és vagyonépítés – mit jelent a hozam, és mit visz el az infláció?</p>
 ${TXT.befektetes}
+<div class="card"><h3>Ügyfél</h3><div class="grid g2">${fld("c_nev", "Név")}${fld("c_kor", "Életkor", { n: 1, u: "év" })}</div></div>
 <div class="card"><h3>1. Helyzet</h3>
  <div class="grid">
   ${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}${fld("bf_van", "Van már megtakarítása?", { t: "s", o: ["Igen", "Nem"] })}
