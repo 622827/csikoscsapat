@@ -20,7 +20,7 @@
 </style>
 <script>
 (function () {
-  var API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
+  var API = "https://script.google.com/macros/s/AKfycbxsTMxAtO6Z7EvRNdRXBduYTD9T044_K627ePPqSKHRE22Upe5Ej2DEKSYk38jrrk3B9A/exec";
   var K = "csk_token", tok = "", root = document.documentElement, of = window.fetch.bind(window);
   function ckGet() { var m = document.cookie.match(/(?:^|; )csk_token=([^;]*)/); return m ? decodeURIComponent(m[1]) : ""; }
   function ckSet(v) {
@@ -34,7 +34,7 @@
 
   window.fetch = function (u, o) {
     var s = typeof u === "string" ? u : (u && u.url) || "";
-    if (s.indexOf("AKfycbxQ-h6UZiy") < 0 || s.indexOf("login=") > -1) return of(u, o);
+    if (s.indexOf("AKfycbxsTMxAtO6Z") < 0 || s.indexOf("login=") > -1) return of(u, o);
     s += (s.indexOf("?") > -1 ? "&" : "?") + "t=" + encodeURIComponent(tok);
     return of(s, o).then(function (r) {
       r.clone().json().then(function (d) { if (d && d.error === "auth") lock(); }).catch(function () {});
@@ -278,7 +278,7 @@
 
 <script>
   // ====== EZT AZ EGY SORT ÍRD ÁT ======
-  var API_URL = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";       // a versenyállás Google Apps Script webalkalmazás címe
+  var API_URL = "https://script.google.com/macros/s/AKfycbxsTMxAtO6Z7EvRNdRXBduYTD9T044_K627ePPqSKHRE22Upe5Ej2DEKSYk38jrrk3B9A/exec";       // a versenyállás Google Apps Script webalkalmazás címe
   // ====================================
 
   var POINTS = [28, 21, 15, 10, 6];
