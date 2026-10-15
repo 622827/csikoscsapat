@@ -163,8 +163,8 @@
   }
 
   /* színkód: Csikós csapat eseményei = zöld (Ocean / Sapphire) + lovas-logó */
-  :root { --csk: #006666; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --csk: #66cccc; } }
+  :root { --csk: #006666; --frk: #cc0066; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --csk: #66cccc; --frk: #ff99cc; } }
   .side .closes li.ev.csk .m { color: var(--csk); }
   .side .closes li.ev.csk .m::before {
     content: ""; display: inline-block; width: 1.6em; height: 1.6em; margin-right: .35em; vertical-align: -.45em;
@@ -191,6 +191,14 @@
   .qc .qnum.busy { animation: ldpulse 1.2s ease-in-out infinite; }
   .qc .qgoal { font-size: clamp(1.1rem, 3vw, 2.2rem); font-weight: 600; margin: 8px 0 0; }
   .qc .qgoal span { color: var(--muted); font-weight: 400; }
+  .qc .qbar { position: relative; height: 20px; background: var(--track); border-radius: 10px; overflow: hidden; margin: 22px 0 0; }
+  .qc .qfill { display: flex; height: 100%; }
+  .qc .qfill span, .qc .qoutl span { height: 100%; flex: none; width: 0; transition: width 1.2s ease-out; }
+  .qc .qoutl { position: absolute; inset: 0; display: flex; pointer-events: none; }
+  .qc .csk { background: var(--csk); } .qc .frk { background: var(--frk); }
+  .qc .qoutl .csk, .qc .qoutl .frk { opacity: .3; }
+  .qc .qwrap { position: relative; }
+  .qc .qmark { position: absolute; top: 14px; bottom: -8px; width: 3px; background: var(--ink); border-radius: 2px; transform: translateX(-50%); }
   .qc:hover .qnum { filter: brightness(1.1); }
   .qc:focus-visible { outline: 3px solid var(--ink); outline-offset: 6px; border-radius: 8px; }
   .qc { animation: swimin .9s cubic-bezier(.2, .7, .2, 1) both; animation-delay: .6s; }
@@ -215,6 +223,7 @@
         <p class="qlbl" id="q-lbl"></p>
         <p class="qnum busy" id="q-num">0</p>
         <p class="qgoal" id="q-goal"></p>
+        <div class="qwrap"><div class="qbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="q-bar"><div class="qfill"><span class="csk" id="q-sc"></span><span class="frk" id="q-sf"></span></div><div class="qoutl"><span id="q-og"></span><span class="csk" id="q-oc"></span><span class="frk" id="q-of"></span></div></div><div class="qmark" id="q-mark"></div></div>
       </a>
     </div>
 
@@ -380,6 +389,7 @@
   var Q_COMMIT = 11000, Q_GOAL = 12500, Q_LABEL = "ES";   // ugyanaz, mint a negyedev.html-ben
   (function () {
     var nf = new Intl.NumberFormat("hu-HU");
+    $("q-mark").style.left = (Q_COMMIT / Q_GOAL * 100) + "%";
     $("q-lbl").textContent = now.getFullYear() + " " + (Math.floor(now.getMonth() / 3) + 1) + ". negyedév";
     $("q-goal").innerHTML = "<span>vállalás</span> " + nf.format(Q_COMMIT) + " " + Q_LABEL + ", <span>cél</span> " + nf.format(Q_GOAL) + " " + Q_LABEL;
     var numEl = $("q-num"), token = 0;
@@ -400,7 +410,16 @@
       .then(function (d) {
         var t = d && d.teams;
         if (!t || !t.csikos || !t.farkas) throw new Error("nincs csapat-adat");
-        animateTo(t.csikos.done + t.farkas.done);   // a dicsőségfal két csapatának összege
+        var tc = t.csikos.done, tf = t.farkas.done, tot = tc + tf;
+        animateTo(tot);
+        var pct = Math.min(100, tot / Q_GOAL * 100), room = Math.max(0, 100 - pct);
+        var oc = Math.max(0, (t.csikos.outlook || 0) - tc), of = Math.max(0, (t.farkas.outlook || 0) - tf);
+        var ow = Math.min(room, (oc + of) / Q_GOAL * 100), osc = (oc + of) > 0 ? ow / (oc + of) : 0;
+        setTimeout(function () {
+          if (tot > 0) { $("q-sc").style.width = (pct * tc / tot) + "%"; $("q-sf").style.width = (pct * tf / tot) + "%"; }
+          $("q-og").style.width = pct + "%"; $("q-oc").style.width = (oc * osc) + "%"; $("q-of").style.width = (of * osc) + "%";
+          $("q-bar").setAttribute("aria-valuenow", Math.round(pct));
+        }, 50);   // a dicsőségfal két csapatának összege
       })
       .catch(function () { numEl.classList.remove("busy"); numEl.textContent = "–"; });
   })();
