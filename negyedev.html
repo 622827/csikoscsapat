@@ -3,6 +3,74 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- BELÉPÉS: jelszó a Google Apps Scriptben (nem az oldalon) -->
+<style>
+  html.csklock body > *:not(#csk-gate) { visibility: hidden !important; }
+  html.csklock body { overflow: hidden; }
+  #csk-gate { position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 24px;
+    background: var(--bg, #fff); color: var(--ink, #003366); font-family: "Stag Sans", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; visibility: visible; }
+  #csk-gate form { width: 100%; max-width: 360px; }
+  #csk-gate h1 { font-size: clamp(2rem, 8vw, 2.8rem); letter-spacing: -.03em; line-height: 1; margin: 0 0 8px; }
+  #csk-gate p { color: var(--muted, #336699); margin: 0 0 22px; }
+  #csk-gate input { width: 100%; font: inherit; font-size: 1.1rem; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--track, #e5e5e5); background: var(--card, #e5e5e5); color: inherit; }
+  #csk-gate input:focus { outline: 3px solid var(--accent, #003366); outline-offset: 2px; }
+  #csk-gate button { width: 100%; margin-top: 12px; font: inherit; font-weight: 700; font-size: 1.05rem; padding: 14px; border: 0; border-radius: 12px; cursor: pointer; background: var(--accent, #003366); color: var(--on-accent, #fff); }
+  #csk-gate button[disabled] { opacity: .6; cursor: wait; }
+  #csk-gate .err { color: var(--hot, #cc0066); min-height: 1.4em; margin: 10px 0 0; font-size: .95rem; }
+</style>
+<script>
+(function () {
+  var API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
+  var K = "csk_token", tok = "", root = document.documentElement, of = window.fetch.bind(window);
+  function ckGet() { var m = document.cookie.match(/(?:^|; )csk_token=([^;]*)/); return m ? decodeURIComponent(m[1]) : ""; }
+  function ckSet(v) {
+    var h = location.hostname.replace(/^www\./, ""), dom = /^[\d.]+$|^localhost$/.test(h) || !h ? "" : "; domain=." + h;
+    document.cookie = "csk_token=" + (v ? encodeURIComponent(v) : "") + dom + "; path=/; max-age=" + (v ? 31536000 : 0) + "; SameSite=Lax" + (location.protocol === "https:" ? "; Secure" : "");
+  }
+  try { tok = localStorage.getItem(K) || ""; } catch (e) {}
+  if (!tok) tok = ckGet();
+  if (tok) { try { localStorage.setItem(K, tok); } catch (e) {} ckSet(tok); }
+  if (!tok) root.classList.add("csklock");
+
+  window.fetch = function (u, o) {
+    var s = typeof u === "string" ? u : (u && u.url) || "";
+    if (s.indexOf("AKfycbxQ-h6UZiy") < 0 || s.indexOf("login=") > -1) return of(u, o);
+    s += (s.indexOf("?") > -1 ? "&" : "?") + "t=" + encodeURIComponent(tok);
+    return of(s, o).then(function (r) {
+      r.clone().json().then(function (d) { if (d && d.error === "auth") lock(); }).catch(function () {});
+      return r;
+    });
+  };
+
+  function lock() {
+    try { localStorage.removeItem(K); } catch (e) {} ckSet("");
+    tok = ""; root.classList.add("csklock"); build();
+  }
+  function build() {
+    if (document.getElementById("csk-gate")) return;
+    if (!document.body) { document.addEventListener("DOMContentLoaded", build); return; }
+    var g = document.createElement("div"); g.id = "csk-gate";
+    g.innerHTML = '<form autocomplete="on"><h1>Csikós csapat</h1><p>Add meg a jelszót a belépéshez.</p>' +
+      '<input type="password" id="csk-pw" placeholder="Jelszó" autocomplete="current-password" autofocus>' +
+      '<button type="submit">Belépés</button><p class="err" id="csk-err" role="alert"></p></form>';
+    document.body.appendChild(g);
+    var f = g.querySelector("form"), pw = g.querySelector("#csk-pw"), btn = g.querySelector("button"), er = g.querySelector("#csk-err");
+    setTimeout(function () { pw.focus(); }, 50);
+    f.addEventListener("submit", function (ev) {
+      ev.preventDefault(); if (!pw.value) return;
+      btn.disabled = true; er.textContent = "";
+      of(API + "?login=" + encodeURIComponent(pw.value) + "&_=" + Date.now())
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d && d.ok && d.token) { try { localStorage.setItem(K, d.token); } catch (e) {} ckSet(d.token); location.reload(); }
+          else { er.textContent = "Hibás jelszó."; btn.disabled = false; pw.select(); }
+        })
+        .catch(function () { er.textContent = "Nem sikerült csatlakozni, próbáld újra."; btn.disabled = false; });
+    });
+  }
+  if (!tok) build();
+})();
+</script>
 <title>Negyedéves számláló</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
