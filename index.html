@@ -20,7 +20,7 @@
 </style>
 <script>
 (function () {
-  var API = "https://script.google.com/macros/s/AKfycbxsTMxAtO6Z7EvRNdRXBduYTD9T044_K627ePPqSKHRE22Upe5Ej2DEKSYk38jrrk3B9A/exec";
+  var API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
   var K = "csk_token", tok = "", root = document.documentElement, of = window.fetch.bind(window);
   function ckGet() { var m = document.cookie.match(/(?:^|; )csk_token=([^;]*)/); return m ? decodeURIComponent(m[1]) : ""; }
   function ckSet(v) {
@@ -34,7 +34,7 @@
 
   window.fetch = function (u, o) {
     var s = typeof u === "string" ? u : (u && u.url) || "";
-    if (s.indexOf("AKfycbxsTMxAtO6Z") < 0 || s.indexOf("login=") > -1) return of(u, o);
+    if (s.indexOf("AKfycbxQ-h6UZiyI") < 0 || s.indexOf("login=") > -1) return of(u, o);
     s += (s.indexOf("?") > -1 ? "&" : "?") + "t=" + encodeURIComponent(tok);
     return of(s, o).then(function (r) {
       r.clone().json().then(function (d) { if (d && d.error === "auth") lock(); }).catch(function () {});
@@ -313,7 +313,7 @@
 
 <script>
   // ====== HÍREK: új hír = új blokk, törlés = a blokk törlése ======
-  var SURVEY_API = "https://script.google.com/macros/s/AKfycbxsTMxAtO6Z7EvRNdRXBduYTD9T044_K627ePPqSKHRE22Upe5Ej2DEKSYk38jrrk3B9A/exec";
+  var SURVEY_API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
   var NEWS = [
     { tag: "Fontos – töltsd ki!", title: "2027. Erdély incentive kérdőív",
       text: "Egy perc az egész: írd meg, szeretnél-e jönni Erdélybe (2027. április 22–25.), és hogy autóval vagy repülővel csatlakoznál.",
@@ -409,7 +409,7 @@
 
   // Naptárból érkező események (Csapatmeeting, START, Power Day): a következő 3 hónap.
   // Tartalék lista arra az esetre, ha a naptár most nem érhető el.
-  var CAL_API = "https://script.google.com/macros/s/AKfycbxsTMxAtO6Z7EvRNdRXBduYTD9T044_K627ePPqSKHRE22Upe5Ej2DEKSYk38jrrk3B9A/exec";
+  var CAL_API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
   var CAL_FALLBACK = [
     { date: new Date(2026, 9, 16, 23, 59, 59), cat: "igaz", title: "Csapatmeeting + START", dateText: "2026. október 16. · 17:00 / 18:00" },
     { date: new Date(2026, 10, 13, 23, 59, 59), cat: "igaz", title: "Csapatmeeting + START", dateText: "2026. november 13. · 18:00" },
