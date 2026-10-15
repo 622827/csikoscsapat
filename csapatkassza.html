@@ -217,7 +217,7 @@
   <div class="cards">
     <div class="card"><span class="k">Beérkezett befizetések</span><span class="v in" id="s-in">–</span></div>
     <div class="card"><span class="k">Kiadások</span><span class="v out" id="s-out">–</span></div>
-    <div class="card"><span class="k">Nyitó egyenleg <button class="lnk" id="edit-open" type="button">módosít</button></span><span class="v" id="s-open">–</span></div>
+    <div class="card"><span class="k">Nyitó egyenleg</span><span class="v" id="s-open">–</span></div>
     <div class="card"><span class="k">Nyitott bekérők</span><span class="v" id="s-pend">–</span><span class="sm" id="s-pend2"></span></div>
   </div>
 
@@ -257,7 +257,7 @@
 <script>
 (function () {
   var API = "https://script.google.com/macros/s/AKfycbxsTMxAtO6Z7EvRNdRXBduYTD9T044_K627ePPqSKHRE22Upe5Ej2DEKSYk38jrrk3B9A/exec";
-  var S = null, tf = "all", q = "", limit = 40, busy = false;
+  var NYITO = 50000, S = null, tf = "all", q = "", limit = 40, busy = false;
   function $(id) { return document.getElementById(id); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
   function ft(n) { return new Intl.NumberFormat("hu-HU", { maximumFractionDigits: 0 }).format(Math.round(n)) + " Ft"; }
@@ -327,10 +327,10 @@
       if (x.fizetve) { if (x.tipus === "Kiadás") out += x.osszeg; else inc += x.osszeg; }
       else { np++; if (x.tipus === "Kiadás") pout += x.osszeg; else pin += x.osszeg; }
     });
-    var bal = (S.nyito || 0) + inc - out;
+    var bal = NYITO + inc - out;
     var b = $("bal"); b.textContent = ft(bal); b.className = "bal" + (bal < 0 ? " neg" : "");
     $("balsub").textContent = "Aktuális egyenleg = nyitó egyenleg + kifizetett befizetések − kiadások · frissítve: " + new Date(S.updated).toLocaleString("hu-HU", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
-    $("s-in").textContent = ft(inc); $("s-out").textContent = ft(out); $("s-open").textContent = ft(S.nyito || 0);
+    $("s-in").textContent = ft(inc); $("s-out").textContent = ft(out); $("s-open").textContent = ft(NYITO);
     $("s-pend").textContent = np + " db";
     $("s-pend2").textContent = np ? [pin ? "beérkezésre vár: " + ft(pin) : "", pout ? "kifizetendő: " + ft(pout) : ""].filter(Boolean).join(" · ") : "minden rendben";
     bars($("src-in"), "Bevétel", inc); bars($("src-out"), "Kiadás", out);
@@ -432,11 +432,6 @@
   }
 
   $("add-t").addEventListener("click", function () { if (S) form(); });
-  $("edit-open").addEventListener("click", function () {
-    if (!S) return; var f = {};
-    open("Nyitó egyenleg", function () { f.v = field("Összeg (Ft) – ennyi volt a kasszában a nyilvántartás indulásakor", inp("text", S.nyito || 0, { inputmode: "numeric" })); },
-      function () { var n = num(f.v.value); if (isNaN(n)) return Promise.reject(new Error("Hibás összeg.")); return send({ kassza: "nyito", value: n }).then(function () { toast("Mentve."); }); });
-  });
   $("tf").addEventListener("click", function (ev) {
     var b = ev.target.closest("button"); if (!b) return;
     Array.prototype.forEach.call($("tf").children, function (c) { c.classList.toggle("on", c === b); });
