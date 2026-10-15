@@ -251,8 +251,8 @@ const ft = n => (n == null || !isFinite(n)) ? "–" : fnum(n) + "\u00a0Ft";
 const note = t => esc(t).replace(/«([^»]*)»/g, "<em>$1</em>");
 
 const SHEETS = [
-  ["ceg", "Cégbemutató"], ["alap", "Alapadatok"], ["nyugdij", "Nyugdíj"], ["lakas", "Lakás"], ["gyermek", "Gyermek"], ["egeszseg", "Egészségügy"],
-  ["befektetes", "Befektetés"], ["osszegzes", "Összegzés"], ["zaras", "Zárás"], ["ajanlas", "Ajánláskérés"]
+  ["ceg", "Cégbemutató"], ["nyugdij", "Nyugdíj"], ["lakas", "Lakás"], ["gyermek", "Gyermek"], ["egeszseg", "Egészségügy"],
+  ["befektetes", "Befektetés"], ["osszegzes", "Összegzés"], ["zaras", "Zárás"], ["alap", "Alapadatok"], ["ajanlas", "Ajánláskérés"]
 ];
 
 /* ---------- állapot ---------- */
@@ -448,7 +448,8 @@ const TXT = {
 const MONTHS = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
 const H = {};
 H.alap = () => `
-<h2>Alapadatok</h2><p class="lead">Ügyféladatok – a további lapok innen veszik az életkort, jövedelmet és nevet.</p>
+<h2>Alapadatok</h2><p class="lead">Ügyféladatok – az igényfelmérés során összegyűjtött adatok ide automatikusan átmásolódnak (név, életkor, jövedelem, gyermekek, meglévő termékek). Kézzel is javíthatók.</p>
+<div class="card"><h3>Az igényfelmérésből összegyűjtött adatok</h3><div data-o="gyujto"><p class="muted">Még nincs összegyűjtött adat.</p></div></div>
 <div class="card"><h3>Ügyfél és partner</h3>
  <div class="tw"><table class="t" style="min-width:560px"><thead><tr><th></th><th>Ügyfél</th><th>Partner</th></tr></thead><tbody>
  ${[["nev", "Név", 0], ["csall", "Családi állapot", 1], ["kor", "Életkor (év)", 2], ["fogl", "Foglalkozás", 0], ["net", "Nettó jövedelem (Ft/hó)", 3], ["bank", "Bankszámla (hol)", 0], ["egp", "Egészségpénztár", 0], ["bizt", "Biztosítás", 0]]
@@ -706,9 +707,45 @@ ${TXT.ceg}
 <div class="card" style="padding:8px"><div class="bar0" style="margin:4px 8px 8px"><span class="muted">Diák – a nyilakkal vagy a billentyűkkel lapozhatsz</span><a class="btn" href="cegbemutato-nomenu.html" target="_blank" rel="noopener">Megnyitás teljes képernyőn ↗</a></div>
 <iframe id="cegf" data-src="cegbemutato-nomenu.html" title="Cégbemutató" style="width:100%;height:min(78vh,760px);border:0;border-radius:12px;background:var(--bg)" allowfullscreen></iframe></div>`;
 
+
+/* ---------- az igényfelmérés adatainak átmásolása az Alapadatokba ---------- */
+function afSet(k, v) {
+  const d = S.d; S.af = S.af || {};
+  if (!has(v)) return;
+  if (!has(d[k]) || d[k] === S.af[k]) { if (d[k] !== v) { d[k] = v; $$(`[data-k="${k}"]`).forEach(e => { e.value = v; }); } S.af[k] = v; }
+}
+function afCell(tk, r, c, v) {
+  const d = S.d; S.af = S.af || {}; if (!has(v) || !Array.isArray(d[tk])) return;
+  const key = tk + "_" + r + "_" + c, row = d[tk][r]; if (!row) return;
+  while (row.length <= c) row.push("");
+  if (!has(row[c]) || row[c] === S.af[key]) { row[c] = v; S.af[key] = v; const e = $(`input[data-tk="${tk}"][data-r="${r}"][data-c="${c}"]`); if (e) e.value = v; }
+}
+function autofill() {
+  const d = S.d, g = k => d[k];
+  afSet("c_bank", g("z_bank"));
+  const ch = [0, 1, 2, 3].map(i => has(g("gy_n" + i)) ? g("gy_n" + i) + (has(g("gy_d" + i)) ? " (" + g("gy_d" + i) + ")" : "") : "").filter(Boolean);
+  afSet("gy_kor", ch.join(", "));
+  const z = d.z_term || [], zr = i => (z[i] || []).slice(1).filter(has).join(", ");
+  const bz = []; if (zr(0)) bz.push("KGFB: " + zr(0)); if (zr(1)) bz.push("Lakásbiztosítás: " + zr(1));
+  afSet("c_bizt", bz.join("; "));
+  if (zr(0)) afCell("auto", 0, 1, [z[0][1], z[0][2] ? "évf.: " + z[0][2] : ""].filter(has).join(", "));
+  if (has(g("lk_hely"))) afSet("megj", "Lakhely: " + g("lk_hely") + (has(g("lk_kiad")) ? ", kiadás: " + g("lk_kiad") + " Ft/hó" : ""));
+  // összegyűjtött adatok kivonata
+  const L = [], row = (t, r) => { const x = r.slice(r.length > 1 ? 0 : 0).filter(has); return x.length ? x : null; };
+  const add = (area, k, fixedOnly) => (d[k] || []).forEach(r => { const rest = r.slice(1).filter(has); if (rest.length) L.push([area, r[0] || "", rest.join(" | ")]); });
+  add("Nyugdíj", "ny_term"); add("Lakás", "lk_term"); add("Befektetés", "bf_term"); add("Zárás", "z_term");
+  const fx = (area, t, v) => { if (has(v)) L.push([area, t, v]); };
+  fx("Alapadat", "Nettó jövedelem", has(g("c_net")) ? ft(num(g("c_net"))) + "/hó" : ""); fx("Alapadat", "Család nettó jövedelme", has(g("gy_net")) ? ft(num(g("gy_net"))) + "/hó" : "");
+  fx("Egészség", "Hitel", g("eh_hitel") === "Igen" ? ft(num(g("eh_hosszu"))) : ""); fx("Lakás", "Jelenlegi lakhely", g("lk_hely")); fx("Befektetés", "Kockázattűrés", g("bf_koc"));
+  fx("Összegzés", "Folyószámla – tavalyi költség", has(g("z_bankk")) ? (g("z_bank") ? g("z_bank") + ", " : "") + ft(num(g("z_bankk"))) + "/év" : "");
+  const box = $('[data-o="gyujto"]');
+  if (box) box.innerHTML = L.length ? '<div class="tw"><table class="dt"><thead><tr><th>Terület</th><th>Tétel</th><th style="text-align:left">Adat</th></tr></thead><tbody>' + L.map(x => `<tr><td>${esc(x[0])}</td><td>${esc(x[1])}</td><td style="text-align:left;white-space:normal">${esc(x[2])}</td></tr>`).join("") + "</tbody></table></div>" : '<p class="muted">Még nincs összegyűjtött adat.</p>';
+}
+
 /* ---------- számolások ---------- */
 function compute() {
   if (!S) return;
+  autofill();
   const d = S.d, g = k => d[k], n = k => num(d[k]);
   const kor = n("c_kor"), net = n("c_net");
 
