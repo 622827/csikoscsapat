@@ -272,7 +272,7 @@ function fld(k, l, o) {
   const w = o.full ? " full" : "";
   if (o.t === "ta") return `<label class="fl${w}"><span>${esc(l)}</span><textarea data-k="${k}" rows="${o.r || 3}" placeholder="${esc(o.ph || "")}"></textarea></label>`;
   if (o.t === "s") return `<label class="fl${w}"><span>${esc(l)}</span><select data-k="${k}"><option value=""></option>${o.o.map(x => `<option>${esc(x)}</option>`).join("")}</select></label>`;
-  if (o.t === "d") return `<label class="fl${w}"><span>${esc(l)}</span><input type="date" data-k="${k}" max="2100-01-01"></label>`;
+  if (o.t === "d") return `<label class="fl${w}"><span>${esc(l)}</span><input data-k="${k}" class="dm" inputmode="numeric" maxlength="10" placeholder="éééé.hh.nn" autocomplete="off"></label>`;
   if (o.t === "c") return `<label class="fl${w}" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" data-k="${k}" style="width:20px;height:20px;flex:none"><span style="font-weight:600">${esc(l)}</span></label>`;
   return `<label class="fl${w}"><span>${esc(l)}</span><span class="inp"><input data-k="${k}"${o.m ? ' class="money"' : ""}${o.n || o.m ? ' inputmode="decimal"' : ""}${o.ph ? ` placeholder="${esc(o.ph)}"` : ""}${o.u ? `>` + `<i>${esc(o.u)}</i>` : ">"}</span></label>`;
 }
@@ -333,6 +333,7 @@ function fillAll() {
 function fmtMoney(v) { const n = num(v); return n ? fnum(n) : String(v); }
 document.addEventListener("input", ev => {
   const el = ev.target; if (!S) return;
+  if (el.classList && el.classList.contains("dm")) { const dg = el.value.replace(/\D/g, "").slice(0, 8); el.value = dg.length > 6 ? dg.slice(0, 4) + "." + dg.slice(4, 6) + "." + dg.slice(6) : dg.length > 4 ? dg.slice(0, 4) + "." + dg.slice(4) : dg; }
   if (el.dataset && el.dataset.k) { S.d[el.dataset.k] = el.type === "checkbox" ? (el.checked ? "1" : "") : el.value; }
   else if (el.dataset && el.dataset.tk) {
     const rows = S.d[el.dataset.tk], r = +el.dataset.r, c = +el.dataset.c; while (rows[r].length <= c) rows[r].push("");
@@ -765,7 +766,7 @@ function compute() {
   if (!S) return;
   autofill(false);
   const d = S.d, g = k => d[k], n = k => num(d[k]);
-  const bd = /^(\d{4})-(\d{2})-(\d{2})$/.exec(g("c_szul") || "");
+  const bd = /^(\d{4})[.\-](\d{2})[.\-](\d{2})$/.exec(g("c_szul") || "");
   if (bd) {
     const t = new Date(); let ag = t.getFullYear() - +bd[1]; if (t.getMonth() + 1 < +bd[2] || (t.getMonth() + 1 === +bd[2] && t.getDate() < +bd[3])) ag--;
     if (ag >= 0 && ag < 120) { if (String(d.c_kor) !== String(ag)) { d.c_kor = String(ag); $$('[data-k="c_kor"]').forEach(e => { e.value = String(ag); }); } }
