@@ -203,7 +203,7 @@
   <form id="kform" autocomplete="off">
     <h1>Csapatkassza</h1>
     <p>Ehhez az oldalhoz külön jelszó kell.</p>
-    <input type="password" id="kpw" placeholder="Kassza jelszó" autocomplete="off">
+    <input type="text" id="kpw" name="kassza-belepes" placeholder="Kassza jelszó" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="-webkit-text-security: disc; text-security: disc;">
     <button type="submit" class="primary">Belépés</button>
     <p class="kerr" id="kerr" role="alert"></p>
   </form>
@@ -284,7 +284,7 @@
     $("kerr").textContent = msg || ""; setTimeout(function () { $("kpw").focus(); }, 50);
   }
   $("kform").addEventListener("submit", function (ev) {
-    ev.preventDefault(); var pw = $("kpw"); if (!pw.value) return;
+    ev.preventDefault(); var pw = $("kpw"); pw.value = pw.value.trim(); if (!pw.value) return;
     var b = $("kform").querySelector("button"); b.disabled = true; $("kerr").textContent = "";
     fetch(API + "?kassza_login=" + encodeURIComponent(pw.value) + "&t=" + encodeURIComponent(token()) + "&_=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
       b.disabled = false;
@@ -296,11 +296,13 @@
 
   function load() {
     if (!kt()) { gate(""); return Promise.resolve(); }
-    return fetch(API + "?kassza=1&kt=" + encodeURIComponent(kt()) + "&_=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
+    $("kgate").hidden = true; $("kmain").hidden = false; $("balsub").textContent = "Betöltés… (az első alkalommal pár másodpercig tarthat)";
+    var ctl = window.AbortController ? new AbortController() : null, tm = ctl ? setTimeout(function () { ctl.abort(); }, 25000) : 0;
+    return fetch(API + "?kassza=1&kt=" + encodeURIComponent(kt()) + "&_=" + Date.now(), ctl ? { signal: ctl.signal } : undefined).then(function (r) { clearTimeout(tm); return r.json(); }).then(function (d) {
       if (d && d.error === "kauth") { gate(d.unset ? "A kassza jelszava még nincs beállítva a szkriptben." : "A belépés lejárt, add meg újra a jelszót."); return; }
       if (d && d.error) { $("kgate").hidden = true; $("kmain").hidden = false; $("balsub").textContent = d.error; return; }
       S = d; $("kgate").hidden = true; $("kmain").hidden = false; render();
-    }).catch(function () { $("kgate").hidden = true; $("kmain").hidden = false; $("balsub").textContent = "Nem sikerült betölteni. Frissítsd az oldalt."; });
+    }).catch(function () { $("kgate").hidden = true; $("kmain").hidden = false; clearTimeout(tm); $("balsub").textContent = "Nem sikerült betölteni (a szkript nem válaszolt időben). Frissítsd az oldalt, vagy próbáld meg pár perc múlva."; });
   }
   function send(body) {
     body.t = token(); body.kt = kt();
