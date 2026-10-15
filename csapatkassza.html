@@ -286,7 +286,7 @@
   $("kform").addEventListener("submit", function (ev) {
     ev.preventDefault(); var pw = $("kpw"); if (!pw.value) return;
     var b = $("kform").querySelector("button"); b.disabled = true; $("kerr").textContent = "";
-    fetch(API + "?kassza_login=" + encodeURIComponent(pw.value) + "&_=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
+    fetch(API + "?kassza_login=" + encodeURIComponent(pw.value) + "&t=" + encodeURIComponent(token()) + "&_=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
       b.disabled = false;
       if (d && d.ok && d.kt) { try { localStorage.setItem("kassza_kt", d.kt); } catch (e) {} pw.value = ""; load(); }
       else { $("kerr").textContent = (d && d.error) || "Hibás jelszó."; pw.select(); }
