@@ -327,7 +327,7 @@ function fillAll() {
   });
   $$("[data-ck]").forEach(g => { const v = S.d[g.dataset.ck]; $$("button", g).forEach(b => b.classList.toggle("on", b.dataset.v === v)); });
   $$("[data-rt]").forEach(g => { const v = S.d[g.dataset.rt]; $$("button", g).forEach(b => b.classList.toggle("on", b.dataset.v === v)); });
-  compute();
+  lockAlap(); compute();
 }
 function fmtMoney(v) { const n = num(v); return n ? fnum(n) : String(v); }
 document.addEventListener("input", ev => {
@@ -370,6 +370,11 @@ function chart(id, xs, series, o) {
   if (o.mark != null) g += `<line x1="${sx(o.mark)}" x2="${sx(o.mark)}" y1="${T}" y2="${H - B}" stroke="var(--muted)" stroke-dasharray="3 3"/>`;
   const el = $(`[data-chart="${id}"]`); if (!el) return;
   el.innerHTML = `<svg class="svgc" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.alt || "Diagram")}">${g}</svg><div class="lg">${series.map(s => `<span><i style="background:${s.c}"></i>${esc(s.n)}</span>`).join("")}</div>`;
+}
+
+function lockAlap() {
+  const s = $("#s_alap"); if (!s) return;
+  $$("input,select,textarea", s).forEach(e => { if (e.type === "checkbox" || e.tagName === "SELECT") e.disabled = true; else e.readOnly = true; });
 }
 
 /* ---------- beszélgetésvezető szövegek ---------- */
@@ -448,7 +453,8 @@ const TXT = {
 const MONTHS = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
 const H = {};
 H.alap = () => `
-<h2>Alapadatok</h2><p class="lead">Ügyféladatok – az igényfelmérés során összegyűjtött adatok ide automatikusan átmásolódnak (név, életkor, jövedelem, gyermekek, meglévő termékek). Kézzel is javíthatók.</p>
+<h2>Alapadatok</h2><p class="lead">Ügyféladatok – az igényfelmérés során összegyűjtött adatok ide automatikusan átmásolódnak (név, életkor, jövedelem, gyermekek, meglévő termékek). A lap nem szerkeszthető, a „Frissítés” gombbal másolja át az aktuális adatokat.</p>
+<div class="bar0"><button type="button" class="btn pri" id="af_btn">Frissítés az igényfelmérés adataival</button><span class="muted" id="af_msg"></span></div>
 <div class="card"><h3>Az igényfelmérésből összegyűjtött adatok</h3><div data-o="gyujto"><p class="muted">Még nincs összegyűjtött adat.</p></div></div>
 <div class="card"><h3>Ügyfél és partner</h3>
  <div class="tw"><table class="t" style="min-width:560px"><thead><tr><th></th><th>Ügyfél</th><th>Partner</th></tr></thead><tbody>
@@ -709,18 +715,24 @@ ${TXT.ceg}
 
 
 /* ---------- az igényfelmérés adatainak átmásolása az Alapadatokba ---------- */
+let AF_FORCE = false;
 function afSet(k, v) {
   const d = S.d; S.af = S.af || {};
   if (!has(v)) return;
-  if (!has(d[k]) || d[k] === S.af[k]) { if (d[k] !== v) { d[k] = v; $$(`[data-k="${k}"]`).forEach(e => { e.value = v; }); } S.af[k] = v; }
+  if (AF_FORCE || !has(d[k]) || d[k] === S.af[k]) { if (d[k] !== v) { d[k] = v; $$(`[data-k="${k}"]`).forEach(e => { e.value = v; }); } S.af[k] = v; }
 }
 function afCell(tk, r, c, v) {
   const d = S.d; S.af = S.af || {}; if (!has(v) || !Array.isArray(d[tk])) return;
   const key = tk + "_" + r + "_" + c, row = d[tk][r]; if (!row) return;
   while (row.length <= c) row.push("");
-  if (!has(row[c]) || row[c] === S.af[key]) { row[c] = v; S.af[key] = v; const e = $(`input[data-tk="${tk}"][data-r="${r}"][data-c="${c}"]`); if (e) e.value = v; }
+  if (AF_FORCE || !has(row[c]) || row[c] === S.af[key]) { row[c] = v; S.af[key] = v; const e = $(`input[data-tk="${tk}"][data-r="${r}"][data-c="${c}"]`); if (e) e.value = v; }
 }
-function autofill() {
+function autofill(doCopy) {
+  const d = S.d, g = k => d[k];
+  if (doCopy) copyAll();
+  summary_();
+}
+function copyAll() {
   const d = S.d, g = k => d[k];
   afSet("c_bank", g("z_bank"));
   const ch = [0, 1, 2, 3].map(i => has(g("gy_n" + i)) ? g("gy_n" + i) + (has(g("gy_d" + i)) ? " (" + g("gy_d" + i) + ")" : "") : "").filter(Boolean);
@@ -730,7 +742,9 @@ function autofill() {
   afSet("c_bizt", bz.join("; "));
   if (zr(0)) afCell("auto", 0, 1, [z[0][1], z[0][2] ? "évf.: " + z[0][2] : ""].filter(has).join(", "));
   if (has(g("lk_hely"))) afSet("megj", "Lakhely: " + g("lk_hely") + (has(g("lk_kiad")) ? ", kiadás: " + g("lk_kiad") + " Ft/hó" : ""));
-  // összegyűjtött adatok kivonata
+}
+function summary_() {
+  const d = S.d, g = k => d[k];
   const L = [], row = (t, r) => { const x = r.slice(r.length > 1 ? 0 : 0).filter(has); return x.length ? x : null; };
   const add = (area, k, fixedOnly) => (d[k] || []).forEach(r => { const rest = r.slice(1).filter(has); if (rest.length) L.push([area, r[0] || "", rest.join(" | ")]); });
   add("Nyugdíj", "ny_term"); add("Lakás", "lk_term"); add("Befektetés", "bf_term"); add("Zárás", "z_term");
@@ -745,7 +759,7 @@ function autofill() {
 /* ---------- számolások ---------- */
 function compute() {
   if (!S) return;
-  autofill();
+  autofill(false);
   const d = S.d, g = k => d[k], n = k => num(d[k]);
   const kor = n("c_kor"), net = n("c_net");
 
@@ -901,6 +915,7 @@ function init() {
   $("#pr").addEventListener("click", () => window.print());
   $("#gd").addEventListener("click", () => { const ds = $$("details.guide"); const open = ds.some(x => !x.open); ds.forEach(x => x.open = open); $("#gd").textContent = open ? "Szövegek bezárása" : "Beszélgetésvezető szövegek"; });
   document.addEventListener("click", e => {
+    if (e.target.id === "af_btn") { AF_FORCE = true; autofill(true); AF_FORCE = false; $$("#s_alap [data-k]").forEach(x => { const v = S.d[x.dataset.k]; if (x.type === "checkbox") x.checked = v === "1"; else { x.value = v == null ? "" : v; if (x.classList.contains("money") && has(x.value)) x.value = fmtMoney(x.value); } }); persist(); lockAlap(); const m = $("#af_msg"); m.textContent = "✓ Átmásolva (" + new Date().toLocaleTimeString("hu-HU", { hour: "2-digit", minute: "2-digit" }) + ")"; return; }
     if (e.target.id === "oz_auto") {
       const d = S.d, R = []; const add = (t, v) => { if (num(v)) R.push([t, fnum(num(v)), ""]); };
       add("Nyugdíj – megoldás havi összege", d.ny_havi); add("Gyermek jövője – havi megtakarítás", d.gy_havi); add("Lakás – önerő gyűjtése", d.lk_havi); add("Meglévő hitel végtörlesztése", d.lk_vegt); add("Befektetés – biztonsági tartalék", d.bf_reg);
@@ -908,7 +923,7 @@ function init() {
     }
   });
   /* közös mezők szinkronja */
-  document.addEventListener("input", e => { const el = e.target, k = el.dataset && el.dataset.k; if (!k) return; $$(`[data-k="${k}"]`).forEach(x => { if (x !== el) { if (x.type === "checkbox") x.checked = el.checked; else x.value = el.value; } }); if (k === "c_nev") { refreshClients(); $("#pn").textContent = label(S); $$(".pn").forEach(p => p.textContent = label(S)); } });
+  document.addEventListener("input", e => { const el = e.target, k = el.dataset && el.dataset.k; if (!k) return; $$(`[data-k="${k}"]`).forEach(x => { if (x !== el && !x.closest("#s_alap")) { if (x.type === "checkbox") x.checked = el.checked; else x.value = el.value; } }); if (k === "c_nev") { refreshClients(); $("#pn").textContent = label(S); $$(".pn").forEach(p => p.textContent = label(S)); } });
   window.addEventListener("hashchange", () => go(location.hash.slice(1)));
   $$(".pn").forEach(p => p.textContent = label(S)); $("#pn").textContent = label(S);
 }
