@@ -272,6 +272,7 @@ function fld(k, l, o) {
   const w = o.full ? " full" : "";
   if (o.t === "ta") return `<label class="fl${w}"><span>${esc(l)}</span><textarea data-k="${k}" rows="${o.r || 3}" placeholder="${esc(o.ph || "")}"></textarea></label>`;
   if (o.t === "s") return `<label class="fl${w}"><span>${esc(l)}</span><select data-k="${k}"><option value=""></option>${o.o.map(x => `<option>${esc(x)}</option>`).join("")}</select></label>`;
+  if (o.t === "d") return `<label class="fl${w}"><span>${esc(l)}</span><input type="date" data-k="${k}" max="2100-01-01"></label>`;
   if (o.t === "c") return `<label class="fl${w}" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" data-k="${k}" style="width:20px;height:20px;flex:none"><span style="font-weight:600">${esc(l)}</span></label>`;
   return `<label class="fl${w}"><span>${esc(l)}</span><span class="inp"><input data-k="${k}"${o.m ? ' class="money"' : ""}${o.n || o.m ? ' inputmode="decimal"' : ""}${o.ph ? ` placeholder="${esc(o.ph)}"` : ""}${o.u ? `>` + `<i>${esc(o.u)}</i>` : ">"}</span></label>`;
 }
@@ -487,7 +488,7 @@ H.nyugdij = () => `
 ${TXT.nyugdij}
 <div class="card"><h3>1. Helyzet</h3>
  <div class="grid">
-  ${fld("c_nev", "Név")}${fld("c_kor", "Életkor", { n: 1, u: "év" })}${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}${M("c_egyeb", "Egyéb bevétel", { u: "Ft/hó" })}
+  ${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}${M("c_egyeb", "Egyéb bevétel", { u: "Ft/hó" })}
   ${fld("nem", "Nem", { t: "s", o: ["Férfi", "Nő"] })}${fld("ny_pct", "Várható nyugdíj a jövedelem %-ában", { n: 1, u: "%", ph: "automatikus" })}${fld("ny_ev", "Nyugdíjban töltött évek", { n: 1, u: "év", ph: "férfi 14, nő 18" })}
   ${M("ny_cel", "Nyugdíj célösszege (az életszínvonalhoz)", { u: "Ft/hó" })}${M("ny_meglevo", "Eddigi nyugdíj-megtakarítás", { u: "Ft/hó" })}
  </div>
@@ -525,7 +526,7 @@ H.lakas = () => `
 <h2>Lakás</h2><p class="lead">Önerő, hitel és a hiteltörlesztő védelme – rövid- és hosszútávon.</p>
 <div class="bar0" style="margin-bottom:10px"><div class="seg2" data-rt="lk_mod"><button type="button" data-v="Rövidtáv (hitel)">Rövidtáv (hitel)</button><button type="button" data-v="Hosszútáv (önerőgyűjtés)">Hosszútáv (önerőgyűjtés)</button></div></div>
 <div data-w="lk_r">${TXT.lakas_r}</div><div data-w="lk_h" hidden>${TXT.lakas_h}</div>
-<div class="card"><h3>Ügyfél</h3><div class="grid g2">${fld("c_nev", "Név")}${fld("c_kor", "Életkor", { n: 1, u: "év" })}</div></div>
+<div class="card"><h3>Ügyfél</h3><div class="grid g3">${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}</div></div>
 <div class="card"><h3>1. Önerő, tervezés</h3>
  <div class="grid">
   ${M("lk_net", "Nettó jövedelem (ha párban: együtt)", { u: "Ft/hó", ph: "Alapadatokból" })}
@@ -570,7 +571,7 @@ ${names("nv_lk", 5, "Albérletben lakók, saját ingatlanban lakók, szülőkné
 H.gyermek = () => `
 <h2>Gyermek</h2><p class="lead">Adókedvezmények, támogatások és a gyermek jövőjére szánt célok.</p>
 ${TXT.gyermek}
-<div class="card"><h3>Ügyfél</h3><div class="grid g2">${fld("c_nev", "Név")}${fld("c_kor", "Életkor", { n: 1, u: "év" })}</div></div>
+<div class="card"><h3>Ügyfél</h3><div class="grid g3">${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}</div></div>
 <div class="card"><h3>1. Adókedvezmények és támogatások</h3>
  <div class="tw"><table class="t" style="min-width:640px"><thead><tr><th>Kérdés</th><th>Név</th><th>Szül. dátum</th><th>Támogatás</th><th>Fontos?</th></tr></thead><tbody>
  ${[["Terveznek gyermeket?", "Szülési támogatás (200 000 Ft)"], ["Van gyermek, aki még nem töltötte be az 5. életévét?", "Csecsemő- és babakozmetikum (20% visszatérítés)"], ["Van gyermek, aki még nem töltötte be a 18. életévét?", "Iskolakezdés, ruházkodás"], ["Van gyermek, aki már elmúlt 18 éves?", "Egyetemi visszatérítések"]]
@@ -596,7 +597,7 @@ H.egeszseg = () => `
 ${TXT.egeszseg}
 <div class="card"><h3>1. Helyzet</h3>
  <div class="grid">
-  ${fld("c_nev", "Név")}${fld("c_kor", "Életkor", { n: 1, u: "év" })}${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}${fld("gy_db", "Gyermekek száma", { n: 1 })}
+  ${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}${fld("gy_db", "Gyermekek száma", { n: 1 })}
   ${fld("eh_hitel", "Rendelkezik hitellel?", { t: "s", o: ["Igen", "Nem"] })}${M("eh_hosszu", "Hitelösszeg")}
   ${fld("eh_kihiv", "Mi okozná a legnagyobb kihívást?", { t: "s", o: ["Ellátás színvonala", "Kieső jövedelem", "Felmerülő egészségügyi költségek", "Várólista", "Hosszas felépülés melletti életszínvonal fenntartása"] })}${fld("eh_biztos", "Mi adná a legnagyobb biztonságot?")}
   ${fld("eh_elozo", "Volt-e komolyabb megbetegedés vagy baleset az ügyfélnél/családban?", { full: 1 })}
@@ -625,7 +626,7 @@ ${names("nv_eh", 4, "Veszélyes munkát végzők, másokért felelők, sokat mag
 H.befektetes = () => `
 <h2>Befektetés</h2><p class="lead">Biztonsági tartalék és vagyonépítés – mit jelent a hozam, és mit visz el az infláció?</p>
 ${TXT.befektetes}
-<div class="card"><h3>Ügyfél</h3><div class="grid g2">${fld("c_nev", "Név")}${fld("c_kor", "Életkor", { n: 1, u: "év" })}</div></div>
+<div class="card"><h3>Ügyfél</h3><div class="grid g3">${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}</div></div>
 <div class="card"><h3>1. Helyzet</h3>
  <div class="grid">
   ${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}${fld("bf_van", "Van már megtakarítása?", { t: "s", o: ["Igen", "Nem"] })}
@@ -764,6 +765,12 @@ function compute() {
   if (!S) return;
   autofill(false);
   const d = S.d, g = k => d[k], n = k => num(d[k]);
+  const bd = /^(\d{4})-(\d{2})-(\d{2})$/.exec(g("c_szul") || "");
+  if (bd) {
+    const t = new Date(); let ag = t.getFullYear() - +bd[1]; if (t.getMonth() + 1 < +bd[2] || (t.getMonth() + 1 === +bd[2] && t.getDate() < +bd[3])) ag--;
+    if (ag >= 0 && ag < 120) { if (String(d.c_kor) !== String(ag)) { d.c_kor = String(ag); $$('[data-k="c_kor"]').forEach(e => { e.value = String(ag); }); } }
+  }
+  out("c_kor_out", has(d.c_kor) ? d.c_kor + " év" : "–");
   const kor = n("c_kor"), net = n("c_net");
 
   /* alapadatok: SZJA */
