@@ -296,6 +296,8 @@
   .news .item { border-left-color: var(--mal); }
   .news .tag { color: var(--mal); }
   .closes .n, .side .closes .n, .closes li.next .n, .closes li.next .m { color: var(--mal); }
+  .qc .qwrap { margin-bottom: 44px; }
+  .qc .qmark .qmlbl { position: absolute; top: 100%; right: -2px; margin-top: 4px; white-space: nowrap; text-align: right; font-size: .9rem; font-weight: 600; line-height: 1.2; color: var(--ink); }
 </style>
 </head>
 <body class="home">
@@ -317,7 +319,7 @@
         <p class="qlbl" id="q-lbl"></p>
         <p class="qnum busy" id="q-num">0</p>
         <p class="qgoal" id="q-goal"></p>
-        <div class="qwrap"><div class="qbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="q-bar"><div class="qfill"><span class="csk" id="q-sc"></span><span class="frk" id="q-sf"></span></div><div class="qoutl"><span id="q-og"></span><span class="csk" id="q-oc"></span><span class="frk" id="q-of"></span></div></div><div class="qmark" id="q-mark"></div></div>
+        <div class="qwrap"><div class="qbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="q-bar"><div class="qfill"><span class="csk" id="q-sc"></span><span class="frk" id="q-sf"></span></div><div class="qoutl"><span id="q-og"></span><span class="csk" id="q-oc"></span><span class="frk" id="q-of"></span></div></div><div class="qmark" id="q-mark"><span class="qmlbl">vállalás<br>11 000 ES</span></div></div>
       </a>
     </div>
 
@@ -486,6 +488,7 @@
   (function () {
     var nf = new Intl.NumberFormat("hu-HU");
     $("q-mark").style.left = (Q_COMMIT / Q_GOAL * 100) + "%";
+    var ml = document.querySelector("#q-mark .qmlbl"); if (ml) ml.innerHTML = "vállalás<br>" + String(Q_COMMIT).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0") + " " + Q_LABEL;
     $("q-lbl").textContent = now.getFullYear() + " " + (Math.floor(now.getMonth() / 3) + 1) + ". negyedév";
     $("q-goal").innerHTML = "<span>vállalás</span> " + nf.format(Q_COMMIT) + " " + Q_LABEL + ", <span>cél</span> " + nf.format(Q_GOAL) + " " + Q_LABEL;
     var numEl = $("q-num"), token = 0;
