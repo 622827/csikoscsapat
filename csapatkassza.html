@@ -285,7 +285,7 @@
 
 <div id="v-flotta" hidden>
   <p class="eyebrow">OVB flotta</p>
-  <div class="ktabs" id="ftabs" role="tablist" style="margin-top:6px"><button type="button" class="on" data-s="ALL">Mind</button><button type="button" data-s="BB">BB flotta</button><button type="button" data-s="TFC">TFC flotta</button></div>
+  <div class="ktabs" id="ftabs" role="tablist" style="margin-top:6px"><button type="button" class="on" data-s="ALL">Mind</button><button type="button" data-s="BB">BB flotta</button><button type="button" data-s="TFC">TFC flotta</button><button type="button" data-s="ONE">One flotta</button></div>
   <h1 class="bal" id="f-tot">–</h1>
   <p class="balsub" id="f-sub">Betöltés…</p>
   <div class="cards" style="grid-template-columns:repeat(4,minmax(0,1fr))">
@@ -546,7 +546,7 @@
     $("f-plus").textContent = ft(plus); $("f-plus2").textContent = np2 ? np2 + " sor" : "nincs";
     $("f-month").textContent = ft(month); $("f-month2").textContent = rows.length + " szám";
     $("f-paid").textContent = ft(paid); $("f-paid2").textContent = rows.filter(function (x) { return x.fiz; }).length + " sor fizetve";
-    $("f-title").textContent = (FS === "ALL" ? "Flotta" : FS === "BB" ? "BB flotta" : "TFC flotta") + " – telefonszámok";
+    $("f-title").textContent = (FS === "ALL" ? "Flotta" : FS === "BB" ? "BB flotta" : FS === "TFC" ? "TFC flotta" : "One flotta") + " – telefonszámok";
     var host = $("f-bal"); host.textContent = "";
     var qq = plain(fq.trim());
     var shown = rows.filter(function (x) { return !qq || plain(x.nev + " " + x.tel + " " + x.megj).indexOf(qq) > -1; });
@@ -556,7 +556,7 @@
     host.appendChild(h);
     shown.forEach(function (x) {
       var r = el("div", "fbal" + (x.fiz ? " rowpaid" : "")), n = el("div", "nm"), nb = el("b", "", x.nev || "–");
-      var pv = FPROV[x.fl]; if (pv) { var pe = el("span", "pv " + (pv === "One" ? "one" : "tel"), (x.fl === "ONE" ? "One" : x.fl) + " · " + pv); pe.style.marginLeft = "6px"; nb.appendChild(pe); }
+      var pv = FPROV[x.fl]; if (pv) { var pe = el("span", "pv " + (pv === "One" ? "one" : "tel"), (x.fl === "ONE" ? "One" : x.fl + " · " + pv)); pe.style.marginLeft = "6px"; nb.appendChild(pe); }
       n.appendChild(nb); n.appendChild(el("small", "", [ftel(x.tel), x.megj].filter(Boolean).join(" · "))); r.appendChild(n);
       r.appendChild(el("span", "", [x.csomag, x.net].filter(Boolean).join(" · ") || "–"));
       var hav = x.alap + x.admin + x.forg, hv = el("span", "num", hav ? ft(hav) : "–"); hv.title = [x.alap ? "díj " + ft(x.alap) : "", x.admin ? "admin " + ft(x.admin) : "", x.forg ? "forgalmi " + ft(x.forg) : ""].filter(Boolean).join(" · ");
@@ -588,7 +588,7 @@
   function fform(x) {
     x = x || {}; var f = {}, tfc = false;
     open(x.id ? "Sor szerkesztése" : "Új sor", function () {
-      f.fl = field("Flotta", sel([["BB", "BB flotta (Telekom, SIM-only)"], ["TFC", "TFC flotta (Telekom, készülékes)"]], x.fl || (FS === "TFC" ? "TFC" : "BB")));
+      f.fl = field("Flotta", sel([["BB", "BB flotta (Telekom, SIM-only)"], ["TFC", "TFC flotta (Telekom, készülékes)"], ["ONE", "One flotta (One)"]], x.fl || (FS === "TFC" || FS === "ONE" ? FS : "BB")));
       f.nev = field("Név", inp("text", x.nev || "", { placeholder: "pl. Kiss Anna" }));
       f.tel = field("Telefonszám", inp("text", x.tel ? ftel(x.tel) : "", { placeholder: "pl. +36 30 123 4567" }));
       f.csomag = field("Díjcsomag típusa", inp("text", x.csomag || "", { placeholder: "pl. M" }));
