@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Telefonszámla – mennyit fizetek?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#ffffff; --ink:#003366; --muted:#336699; --accent:#003366; --on-accent:#ffffff; --track:#e5e5e5; --card:#f0f3f7; --hot:#cc0066; --ok:#006666; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#001f3d; --ink:#ffffff; --muted:#6699cc; --accent:#ff99cc; --on-accent:#001f3d; --track:#00305a; --card:#00305a; --hot:#ff99cc; --ok:#66cccc; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.45; }
+  main { max-width: 480px; margin: 0 auto; padding: 40px 16px 56px; }
+  h1 { font-size: clamp(1.8rem, 7vw, 2.4rem); letter-spacing: -.03em; line-height: 1.05; margin: 0 0 8px; }
+  .lead { color: var(--muted); margin: 0 0 24px; }
+  form { display: flex; flex-direction: column; gap: 12px; }
+  input { width: 100%; font: inherit; font-size: 1.15rem; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); }
+  input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button { font: inherit; font-weight: 700; font-size: 1.05rem; padding: 14px; border: 0; border-radius: 12px; cursor: pointer; background: var(--accent); color: var(--on-accent); }
+  button[disabled] { opacity: .6; cursor: wait; }
+  .err { color: var(--hot); min-height: 1.4em; margin: 10px 0 0; }
+  .res { margin-top: 24px; }
+  .amount { font-size: clamp(3rem, 15vw, 4.4rem); font-weight: 700; letter-spacing: -.04em; line-height: 1; margin: 4px 0 6px; }
+  .amount.due { color: var(--hot); } .amount.ok { color: var(--ok); }
+  .line { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--track); }
+  .pay { margin-top: 20px; background: var(--card); border-radius: 14px; padding: 16px; }
+  .pay h2 { margin: 0 0 10px; font-size: 1rem; color: var(--muted); font-weight: 600; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; }
+  .row span:first-child { color: var(--muted); font-size: .92rem; }
+  .row b { font-size: 1.05rem; word-break: break-all; text-align: right; }
+  .copy { padding: 6px 10px; font-size: .85rem; border-radius: 8px; flex: none; }
+  .small { color: var(--muted); font-size: .88rem; margin-top: 16px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Telefonszámla – mennyit fizetek?</h1>
+  <p class="lead">Írd be a telefonszámodat, és megmutatjuk, mennyi a tartozásod, és hová kell utalnod.</p>
+  <form id="f" autocomplete="off">
+    <input id="tel" type="tel" inputmode="tel" placeholder="pl. 06 30 123 4567" aria-label="Telefonszám" required>
+    <button id="go" type="submit">Mutasd</button>
+  </form>
+  <p class="err" id="err" role="alert"></p>
+  <div class="res" id="res" hidden></div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
+  // Hová utaljanak (ha változik, itt kell átírni)
+  var PAY = { account: "10918001-00000131-14680000", bank: "UniCredit Bank", name: "" };
+  function $(i) { return document.getElementById(i); }
+  function ft(n) { return Math.round(n).toLocaleString("hu-HU").replace(/ /g, " ") + " Ft"; }
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; }
+  function row(label, val, copy) {
+    var r = el("div", "row"); r.appendChild(el("span", "", label)); var b = el("b", "", val);
+    if (copy) { var w = el("span"); w.style.cssText = "display:flex;gap:8px;align-items:center"; var cb = el("button", "copy", "Másolás"); cb.type = "button";
+      cb.onclick = function () { (navigator.clipboard ? navigator.clipboard.writeText(copy) : Promise.reject()).then(function () { cb.textContent = "Kész ✓"; setTimeout(function () { cb.textContent = "Másolás"; }, 1500); }, function () {}); };
+      w.appendChild(b); w.appendChild(cb); r.appendChild(w); } else r.appendChild(b);
+    return r;
+  }
+  function show(d, tel) {
+    var res = $("res"); res.textContent = ""; res.hidden = false;
+    if (!d.found) { res.appendChild(el("p", "", "Ezzel a számmal nem találtunk tételt. Ellenőrizd a számot, vagy kérdezd meg a csapatvezetőt.")); return; }
+    var due = d.total > 0;
+    res.appendChild(el("div", "", due ? "Fizetendő összesen" : "Nincs tartozásod"));
+    res.appendChild(el("div", "amount " + (due ? "due" : "ok"), due ? ft(d.total) : "0 Ft"));
+    if (due && d.items.length > 1) d.items.forEach(function (it) {
+      if (it.egy <= 0) return; var l = el("div", "line"); l.appendChild(el("span", "", it.prov + " szám")); l.appendChild(el("b", "", ft(it.egy))); res.appendChild(l);
+    });
+    if (!due) { var ex = d.items.some(function (it) { return it.egy < 0; }); if (ex) res.appendChild(el("p", "small", "Előre fizettél, a különbözet jóváíródik a következő hónapban.")); return; }
+    var box = el("div", "pay"); box.appendChild(el("h2", "", "Hová utalj?"));
+    box.appendChild(row("Számlaszám", PAY.account, PAY.account));
+    box.appendChild(row("Bank", PAY.bank));
+    if (PAY.name) box.appendChild(row("Kedvezményezett", PAY.name));
+    box.appendChild(row("Összeg", ft(d.total), String(Math.round(d.total))));
+    box.appendChild(row("Közlemény", "Flotta " + tel, "Flotta " + tel));
+    res.appendChild(box);
+    res.appendChild(el("p", "small", "Az utalás után pár napon belül rögzítjük a befizetést."));
+  }
+  $("f").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var v = $("tel").value.trim(), err = $("err"), btn = $("go"); err.textContent = ""; $("res").hidden = true;
+    var digits = v.replace(/\D/g, "");
+    if (digits.length < 9) { err.textContent = "Add meg a teljes telefonszámot."; return; }
+    btn.disabled = true; btn.textContent = "Keresem…";
+    fetch(API + "?fizet=" + encodeURIComponent(v)).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok) { err.textContent = d.error || "Nem sikerült."; return; }
+      show(d, v);
+    }).catch(function () { err.textContent = "Nem sikerült lekérdezni, próbáld újra."; })
+      .then(function () { btn.disabled = false; btn.textContent = "Mutasd"; });
+  });
+})();
+</script>
+</body>
+</html>
