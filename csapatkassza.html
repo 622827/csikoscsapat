@@ -513,7 +513,7 @@
   function ftel(t) {
     var d = String(t || "").replace(/\D/g, ""); if (!d) return "";
     if (d.indexOf("36") === 0 && d.length >= 11) d = d.slice(2);
-    return d.length === 9 ? "+36 " + d.slice(0, 2) + " " + d.slice(2, 5) + " " + d.slice(5) : "+36 " + d;
+    return d.length === 9 ? d.slice(0, 2) + " " + d.slice(2, 5) + " " + d.slice(5) : d;
   }
   function fhd(d) { return d ? d.replace(/-/g, ". ") + "." : ""; }
   function fload(force) {
@@ -599,7 +599,7 @@
     open(x.id ? "Sor szerkesztése" : "Új sor", function () {
       f.fl = field("Flotta", sel([["BB", "BB flotta (Telekom, SIM-only)"], ["TFC", "TFC flotta (Telekom, készülékes)"], ["ONE", "One flotta (One)"]], x.fl || (FS === "TFC" || FS === "ONE" ? FS : "BB")));
       f.nev = field("Név", inp("text", x.nev || "", { placeholder: "pl. Kiss Anna" }));
-      f.tel = field("Telefonszám", inp("text", x.tel ? ftel(x.tel) : "", { placeholder: "pl. +36 30 123 4567" }));
+      f.tel = field("Telefonszám", inp("text", x.tel ? ftel(x.tel) : "", { placeholder: "pl. 30 123 4567" }));
       f.csomag = field("Díjcsomag típusa", inp("text", x.csomag || "", { placeholder: "pl. M" }));
       f.net = field("Internet", inp("text", x.net || "", { placeholder: "pl. Korlátlan / 30gb" }));
       f.alap = field(tfc ? "Alapdíj (Ft)" : "Csomagdíj (Ft)", inp("text", x.alap || "", { inputmode: "numeric" }));

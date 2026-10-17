@@ -40,7 +40,7 @@
   <h1>Telefonszámla – mennyit fizetek?</h1>
   <p class="lead">Írd be a telefonszámodat, és megmutatjuk, mennyi a tartozásod, és hová kell utalnod.</p>
   <form id="f" autocomplete="off">
-    <input id="tel" type="tel" inputmode="tel" placeholder="pl. 06 30 123 4567" aria-label="Telefonszám" required>
+    <input id="tel" type="tel" inputmode="tel" placeholder="pl. 20 313 3292" aria-label="Telefonszám" required>
     <button id="go" type="submit">Mutasd</button>
   </form>
   <p class="err" id="err" role="alert"></p>
@@ -51,7 +51,7 @@
   "use strict";
   var API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
   // Hová utaljanak (ha változik, itt kell átírni)
-  var PAY = { account: "11600006-00000002-06029601", name: "Csikós Máté", revolut: "@mtt10x", revolutPhone: "+36203133292" };
+  var PAY = { account: "11600006-00000002-06029601", name: "Csikós Máté", revolut: "@mtt10x", revolutPhone: "20 313 3292" };
   function $(i) { return document.getElementById(i); }
   function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " Ft"; }
   function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; }
