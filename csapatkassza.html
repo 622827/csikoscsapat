@@ -550,6 +550,13 @@
     var host = $("f-bal"); host.textContent = "";
     var qq = plain(fq.trim());
     var shown = rows.filter(function (x) { return !qq || plain(x.nev + " " + x.tel + " " + x.megj).indexOf(qq) > -1; });
+    var FO = { BB: 1, TFC: 2, ONE: 3 };
+    shown.sort(function (p, q) {
+      var a = String(p.tel || "").replace(/\D/g, ""), b = String(q.tel || "").replace(/\D/g, "");
+      if (!a !== !b) return a ? -1 : 1;
+      if (a !== b) return a < b ? -1 : 1;
+      return (FO[p.fl] || 9) - (FO[q.fl] || 9) || String(p.nev).localeCompare(String(q.nev), "hu");
+    });
     if (!rows.length) { host.appendChild(el("p", "empty", "Még nincs sor ezen a lapon.")); return; }
     var h = el("div", "fbal h hd");
     ["Név · telefonszám", "Csomag", "Havi díj", "Tartozás", "Összesen", "Befizetve", "Egyenleg", "Fizetve", ""].forEach(function (c, i) { h.appendChild(el("span", i >= 2 && i <= 6 ? "num" : "", c)); });
