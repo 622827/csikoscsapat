@@ -28,7 +28,7 @@
   .line { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--track); }
   .pay { margin-top: 20px; background: var(--card); border-radius: 14px; padding: 16px; }
   .pay h2 { margin: 0 0 10px; font-size: 1rem; color: var(--muted); font-weight: 600; }
-  .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; }
+  .row { flex-wrap: wrap; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; }
   .row span:first-child { color: var(--muted); font-size: .92rem; }
   .row b { font-size: 1.05rem; word-break: normal; overflow-wrap: anywhere; text-align: right; }
   .copy { padding: 6px 10px; font-size: .85rem; border-radius: 8px; flex: none; }
@@ -73,7 +73,7 @@
     });
     if (!due) { var ex = d.items.some(function (it) { return it.egy < 0; }); if (ex) res.appendChild(el("p", "small", "Előre fizettél, a különbözet jóváíródik a következő hónapban.")); return; }
     var box = el("div", "pay"); box.appendChild(el("h2", "", "Hová utalj?"));
-    var ar = row("Számlaszám", PAY.account.replace(/-/g, "\u2011"), PAY.account); ar.querySelector("b").style.cssText = "font-size:.86rem;white-space:nowrap"; box.appendChild(ar);
+    var ar = row("Számlaszám", PAY.account.replace(/-/g, "\u2011"), PAY.account); ar.querySelector("b").style.cssText = "font-size:.8rem;white-space:nowrap"; box.appendChild(ar);
     if (PAY.name) box.appendChild(row("Kedvezményezett", PAY.name));
     box.appendChild(row("Összeg", ft(d.total), String(Math.round(d.total))));
     box.appendChild(row("Közlemény", "Flotta " + tel, "Flotta " + tel));
