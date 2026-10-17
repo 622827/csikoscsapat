@@ -218,6 +218,10 @@
   .fnote { color: var(--muted); font-size: .92rem; margin: 6px 0 18px; }
   dialog textarea { width: 100%; font: inherit; padding: 8px 10px; border-radius: 8px; border: 2px solid var(--track); background: var(--card); color: var(--ink); min-height: 140px; box-sizing: border-box; }
   @media (max-width: 640px) { .fbal { grid-template-columns: minmax(0,1fr) auto; } .fbal .num { display: none; } .fbal.h { display: none; } }
+  .pv { display: inline-block; font-size: .78rem; font-weight: 700; border-radius: 999px; padding: 2px 10px; vertical-align: 2px; color: #fff; background: var(--track); }
+  .pv.one { background: #d4001a; color: #fff; }
+  .pv.tel { background: #ff8fc0; color: #5a0030; }
+  :root[data-theme="dark"] .pv.tel { background: #ff8fc0; color: #4a0026; }
 </style>
 </head>
 <body>
@@ -496,6 +500,7 @@
   var PROV = ["One", "Telekom", "Egyéb"];
   function prov(x) { var p = String(x.megj || "").split(" · ")[0]; return PROV.indexOf(p) > -1 ? p : ""; }
   function fitems() { return S.tetelek.filter(isF); }
+  function pvEl(n) { var e = el("span", "pv " + (n === "One" ? "one" : n === "Telekom" ? "tel" : ""), n); return e; }
   function sgn(n) { return (n > 0 ? "+" : n < 0 ? "−" : "") + ft(Math.abs(n)); }
   function renderF() {
     if (!S) return;
@@ -517,7 +522,7 @@
     else {
       var h = el("div", "fbal h"); ["Szám · név", "Számlák", "Befizetve", "Egyenleg"].forEach(function (c, i) { h.appendChild(el("span", i ? "num" : "", c)); }); host.appendChild(h);
       arr.forEach(function (x) {
-        var r = el("div", "fbal"), n = el("div", "n"); n.appendChild(el("b", "", x.n)); if (x.last) n.appendChild(el("small", "", x.last));
+        var r = el("div", "fbal"), n = el("div", "n"); n.appendChild(el("b", "", x.n)); if (x.last) { var sm = el("small"); sm.appendChild(pvEl(x.last)); n.appendChild(sm); }
         r.appendChild(n); r.appendChild(el("span", "num", ft(x.b))); r.appendChild(el("span", "num", ft(x.p)));
         var e = el("span", "eg " + (x.e < 0 ? "debt" : x.e > 0 ? "plus" : ""), x.e === 0 ? "rendben" : ft(Math.abs(x.e)));
         if (x.e) e.appendChild(el("small", "", x.e < 0 ? "tartozás" : "többlet")); r.appendChild(e); host.appendChild(r);
@@ -529,8 +534,8 @@
     if (!rows.length) { lh.appendChild(el("p", "empty", "Nincs megjeleníthető mozgás.")); return; }
     rows.slice(0, 60).forEach(function (x) {
       var isP = x.kat === FBE, r = el("div", "row"), t = el("div", "t"), nm = el("b", "", x.nev);
-      nm.appendChild(el("span", "pill " + (isP ? "paid" : "late"), isP ? "befizetés" : "számla")); t.appendChild(nm);
-      t.appendChild(el("small", "", x.megj || ""));
+      nm.appendChild(el("span", "pill " + (isP ? "paid" : "late"), isP ? "befizetés" : "számla")); if (prov(x)) { var pe = pvEl(prov(x)); pe.style.marginLeft = "6px"; nm.appendChild(pe); } t.appendChild(nm);
+      t.appendChild(el("small", "", String(x.megj || "").split(" · ").slice(prov(x) ? 1 : 0).join(" · ")));
       r.appendChild(el("div", "d", hd(x) || "nincs dátum")); r.appendChild(t);
       r.appendChild(el("div", "a " + (isP ? "in" : "out"), (isP ? "+" : "−") + ft(x.osszeg)));
       var xs = el("div", "x"), e = el("button", "", "Szerkeszt"); e.type = "button"; e.addEventListener("click", function () { fform(isP ? "p" : "b", x); });
