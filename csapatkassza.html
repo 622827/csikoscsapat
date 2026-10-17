@@ -285,7 +285,7 @@
 
 <div id="v-flotta" hidden>
   <p class="eyebrow">OVB flotta</p>
-  <div class="ktabs" id="ftabs" role="tablist" style="margin-top:6px"><button type="button" class="on" data-s="BB">BB flotta</button><button type="button" data-s="TFC">TFC flotta</button></div>
+  <div class="ktabs" id="ftabs" role="tablist" style="margin-top:6px"><button type="button" class="on" data-s="ALL">Mind</button><button type="button" data-s="BB">BB flotta</button><button type="button" data-s="TFC">TFC flotta</button></div>
   <h1 class="bal" id="f-tot">–</h1>
   <p class="balsub" id="f-sub">Betöltés…</p>
   <div class="cards" style="grid-template-columns:repeat(4,minmax(0,1fr))">
@@ -505,9 +505,9 @@
   $("srch").addEventListener("input", function () { q = this.value; limit = 40; if (S) renderT(); });
 
   // ===== OVB FLOTTA (BBflotta / TFCflotta lap a Költségvetés táblázatban) =====
-  var FS = "BB", FD = {}, fq = "", fbusy = false;
+  var FS = "ALL", FD = null, fq = "", fbusy = false;
   var FPROV = { BB: "One", TFC: "Telekom" }; // melyik szolgáltató melyik flotta (a címke színéhez)
-  function fcur() { return FD[FS]; }
+  function fcur() { return FD; }
   function ftel(t) {
     var d = String(t || "").replace(/\D/g, ""); if (!d) return "";
     if (d.indexOf("36") === 0 && d.length >= 11) d = d.slice(2);
@@ -516,37 +516,37 @@
   function fhd(d) { return d ? d.replace(/-/g, ". ") + "." : ""; }
   function fload(force) {
     if (!kt()) { gate(""); return Promise.resolve(); }
-    if (FD[FS] && !force) { renderF(); return Promise.resolve(); }
+    if (FD && !force) { renderF(); return Promise.resolve(); }
     $("f-sub").textContent = "Betöltés… (az első alkalommal pár másodpercig tarthat)";
-    return fetch(API + "?flotta=" + FS + "&kt=" + encodeURIComponent(kt()) + "&_=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
+    return fetch(API + "?flotta=1&kt=" + encodeURIComponent(kt()) + "&_=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
       if (d && d.error === "kauth") { gate("A belépés lejárt, add meg újra a jelszót."); return; }
       if (d && d.error) { $("f-sub").textContent = d.error === "auth" ? "A belépés lejárt, frissítsd az oldalt." : d.error; return; }
-      FD[FS] = d; renderF();
+      FD = d; renderF();
     }).catch(function () { $("f-sub").textContent = "Nem sikerült betölteni. Ha most frissítettük a szkriptet, telepíteni kell az új verziót."; });
   }
   function fsend(body) {
-    body.flotta = FS; body.t = token(); body.kt = kt();
+    body.flotta = 1; body.t = token(); body.kt = kt();
     if (fbusy) return Promise.reject(new Error("Egy másik mentés még folyamatban van."));
     fbusy = true; document.body.style.cursor = "progress";
     return fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) }).then(function (r) { return r.json(); }).then(function (d) {
       if (d && d.error === "kauth") { gate("A belépés lejárt, add meg újra a jelszót."); throw new Error("A kassza jelszava lejárt."); }
       if (d && d.error) throw new Error(d.error === "auth" ? "A belépés lejárt, frissítsd az oldalt." : d.error);
-      FD[FS] = d; renderF(); return d;
+      FD = d; renderF(); return d;
     }).then(function (d) { fbusy = false; document.body.style.cursor = ""; return d; }, function (e) { fbusy = false; document.body.style.cursor = ""; throw e; });
   }
   function fact(body, okMsg) { return fsend(body).then(function () { if (okMsg) toast(okMsg); }).catch(function (e) { toast(e.message || "Nem sikerült menteni.", true); }); }
   function fkey(x) { return x.chk; }
   function renderF() {
     var d = fcur(); if (!d) return;
-    var rows = d.rows, debt = 0, plus = 0, nd = 0, np2 = 0, month = 0, paid = 0;
+    var rows = d.rows.filter(function (x) { return FS === "ALL" || x.fl === FS; }), debt = 0, plus = 0, nd = 0, np2 = 0, month = 0, paid = 0;
     rows.forEach(function (x) { month += x.alap + x.admin + x.forg; paid += x.bef; if (x.egy > 0) { debt += x.egy; nd++; } else if (x.egy < 0) { plus += -x.egy; np2++; } });
     var t = $("f-tot"); t.textContent = ft(debt); t.className = "bal" + (debt ? " neg" : "");
     $("f-sub").textContent = (debt ? "összes tartozás · " + nd + " soron" : "Nincs tartozás.") + " · frissítve: " + new Date(d.updated).toLocaleString("hu-HU", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
     $("f-debt").textContent = ft(debt); $("f-debt2").textContent = nd ? nd + " sor" : "nincs";
     $("f-plus").textContent = ft(plus); $("f-plus2").textContent = np2 ? np2 + " sor" : "nincs";
-    $("f-month").textContent = ft(month); $("f-month2").textContent = rows.length + " szám · " + (FPROV[FS] || "");
+    $("f-month").textContent = ft(month); $("f-month2").textContent = rows.length + " szám";
     $("f-paid").textContent = ft(paid); $("f-paid2").textContent = rows.filter(function (x) { return x.fiz; }).length + " sor fizetve";
-    $("f-title").textContent = (FS === "BB" ? "BB flotta" : "TFC flotta") + " – telefonszámok";
+    $("f-title").textContent = (FS === "ALL" ? "Flotta" : FS === "BB" ? "BB flotta" : "TFC flotta") + " – telefonszámok";
     var host = $("f-bal"); host.textContent = "";
     var qq = plain(fq.trim());
     var shown = rows.filter(function (x) { return !qq || plain(x.nev + " " + x.tel + " " + x.megj).indexOf(qq) > -1; });
@@ -556,7 +556,7 @@
     host.appendChild(h);
     shown.forEach(function (x) {
       var r = el("div", "fbal" + (x.fiz ? " rowpaid" : "")), n = el("div", "nm"), nb = el("b", "", x.nev || "–");
-      var pv = FPROV[FS]; if (pv) { var pe = el("span", "pv " + (pv === "One" ? "one" : "tel"), pv); pe.style.marginLeft = "6px"; nb.appendChild(pe); }
+      var pv = FPROV[x.fl]; if (pv) { var pe = el("span", "pv " + (pv === "One" ? "one" : "tel"), x.fl + " · " + pv); pe.style.marginLeft = "6px"; nb.appendChild(pe); }
       n.appendChild(nb); n.appendChild(el("small", "", [ftel(x.tel), x.megj].filter(Boolean).join(" · "))); r.appendChild(n);
       r.appendChild(el("span", "", [x.csomag, x.net].filter(Boolean).join(" · ") || "–"));
       var hav = x.alap + x.admin + x.forg, hv = el("span", "num", hav ? ft(hav) : "–"); hv.title = [x.alap ? "díj " + ft(x.alap) : "", x.admin ? "admin " + ft(x.admin) : "", x.forg ? "forgalmi " + ft(x.forg) : ""].filter(Boolean).join(" · ");
@@ -586,8 +586,9 @@
     });
   }
   function fform(x) {
-    x = x || {}; var f = {}, tfc = FS === "TFC";
+    x = x || {}; var f = {}, tfc = false;
     open(x.id ? "Sor szerkesztése" : "Új sor", function () {
+      f.fl = field("Flotta", sel([["BB", "BB flotta (One)"], ["TFC", "TFC flotta (Telekom)"]], x.fl || (FS === "TFC" ? "TFC" : "BB")));
       f.nev = field("Név", inp("text", x.nev || "", { placeholder: "pl. Kiss Anna" }));
       f.tel = field("Telefonszám", inp("text", x.tel ? ftel(x.tel) : "", { placeholder: "pl. +36 30 123 4567" }));
       f.csomag = field("Díjcsomag típusa", inp("text", x.csomag || "", { placeholder: "pl. M" }));
@@ -608,7 +609,7 @@
     }, function () {
       var nv = f.nev.value.trim(), tl = f.tel.value.trim();
       if (!nv && !tl) return Promise.reject(new Error("Add meg a nevet vagy a telefonszámot."));
-      var row = { id: x.id || "", chk: x.id ? fkey(x) : "", nev: nv, tel: tl, csomag: f.csomag.value.trim(), net: f.net.value.trim(), szerz: f.szerz.value, huseg: f.huseg.value, datum: f.datum.value, fiz: f.fiz.checked, megj: f.megj ? f.megj.value.trim() : "" };
+      var row = { id: x.id || "", chk: x.id ? fkey(x) : "", fl: f.fl.value, nev: nv, tel: tl, csomag: f.csomag.value.trim(), net: f.net.value.trim(), szerz: f.szerz.value, huseg: f.huseg.value, datum: f.datum.value, fiz: f.fiz.checked, megj: f.megj ? f.megj.value.trim() : "" };
       ["alap", "admin", "forg", "tart", "bef"].forEach(function (k) { var v = f[k].value.trim(); row[k] = v === "" ? "" : num(v); });
       for (var k in { alap: 1, admin: 1, forg: 1, tart: 1, bef: 1 }) if (row[k] !== "" && !isFinite(row[k])) return Promise.reject(new Error("Az összegek számok legyenek."));
       return fsend({ op: "save", id: x.id || "", chk: row.chk, row: row }).then(function () { toast("Mentve."); });
@@ -619,7 +620,7 @@
   $("ftabs").addEventListener("click", function (ev) {
     var b = ev.target.closest("button"); if (!b) return;
     Array.prototype.forEach.call($("ftabs").children, function (c) { c.classList.toggle("on", c === b); });
-    FS = b.getAttribute("data-s"); fq = ""; $("f-srch").value = ""; $("f-bal").textContent = ""; fload(false);
+    FS = b.getAttribute("data-s"); renderF();
   });
   function view(v) {
     $("v-kassza").hidden = v !== "kassza"; $("v-flotta").hidden = v !== "flotta";
