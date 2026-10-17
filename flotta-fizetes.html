@@ -30,7 +30,7 @@
   .pay h2 { margin: 0 0 10px; font-size: 1rem; color: var(--muted); font-weight: 600; }
   .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; }
   .row span:first-child { color: var(--muted); font-size: .92rem; }
-  .row b { font-size: 1.05rem; word-break: break-all; text-align: right; }
+  .row b { font-size: 1.05rem; word-break: normal; overflow-wrap: anywhere; text-align: right; }
   .copy { padding: 6px 10px; font-size: .85rem; border-radius: 8px; flex: none; }
   .small { color: var(--muted); font-size: .88rem; margin-top: 16px; }
 </style>
@@ -51,7 +51,7 @@
   "use strict";
   var API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
   // Hová utaljanak (ha változik, itt kell átírni)
-  var PAY = { account: "10918001-00000131-14680000", bank: "UniCredit Bank", name: "" };
+  var PAY = { account: "11600006-00000002-06029601", name: "Csikós Máté", revolut: "@mtt10x", revolutPhone: "+36203133292" };
   function $(i) { return document.getElementById(i); }
   function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " Ft"; }
   function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; }
@@ -73,11 +73,14 @@
     });
     if (!due) { var ex = d.items.some(function (it) { return it.egy < 0; }); if (ex) res.appendChild(el("p", "small", "Előre fizettél, a különbözet jóváíródik a következő hónapban.")); return; }
     var box = el("div", "pay"); box.appendChild(el("h2", "", "Hová utalj?"));
-    box.appendChild(row("Számlaszám", PAY.account, PAY.account));
-    box.appendChild(row("Bank", PAY.bank));
+    box.appendChild(row("Számlaszám", PAY.account.replace(/-/g, "\u2011"), PAY.account));
     if (PAY.name) box.appendChild(row("Kedvezményezett", PAY.name));
     box.appendChild(row("Összeg", ft(d.total), String(Math.round(d.total))));
     box.appendChild(row("Közlemény", "Flotta " + tel, "Flotta " + tel));
+    box.appendChild(el("h2", "", "vagy Revolut"));
+    box.lastChild.style.marginTop = "14px";
+    box.appendChild(row("Revolut", PAY.revolut, PAY.revolut));
+    box.appendChild(row("Telefonszám", PAY.revolutPhone, PAY.revolutPhone));
     res.appendChild(box);
     res.appendChild(el("p", "small", "Az utalás után pár napon belül rögzítjük a befizetést."));
   }
