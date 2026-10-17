@@ -448,17 +448,17 @@
     var seen = {};
     EVENTS.concat(calEvents).forEach(function (ev) {
       var k = ev.date.toDateString() + "|" + ev.title;
-      if (ev.date >= now && !seen[k]) { seen[k] = 1; items.push({ date: ev.date, ev: ev }); }
+      if (ev.date >= now - 7 * 86400000 && !seen[k]) { seen[k] = 1; items.push({ date: ev.date, ev: ev }); }
     });
     items.sort(function (x, y) { return x.date - y.date; });
     items.forEach(function (it) {
       var past = it.date < now;
       if (it.ev) {
-        var lie = el("li", "ev" + (it.ev.cat ? " " + it.ev.cat : ""));
+        var lie = el("li", (past ? "past " : "") + "ev" + (it.ev.cat ? " " + it.ev.cat : ""));
         if (it.ev.href) { var ea = el("a", "m", it.ev.title); ea.href = it.ev.href; ea.target = "_blank"; ea.rel = "noopener"; ea.style.color = "inherit"; lie.appendChild(ea); }
         else lie.appendChild(el("span", "m", it.ev.title));
         lie.appendChild(el("span", "d", it.ev.dateText));
-        lie.appendChild(el("span", "n", sameDay(it.date, now) ? "ma" : daysTo(it.date) + " nap"));
+        lie.appendChild(el("span", "n", past ? "lezajlott" : sameDay(it.date, now) ? "ma" : daysTo(it.date) + " nap"));
         list.appendChild(lie); return;
       }
       var c = it.close;
