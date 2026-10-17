@@ -30,6 +30,7 @@
   .res { margin-top: 24px; }
   .amount { font-size: clamp(3rem, 15vw, 4.4rem); font-weight: 700; letter-spacing: -.04em; line-height: 1; margin: 4px 0 6px; }
   .amount.due { color: var(--hot); } .amount.ok { color: var(--ok); }
+  .parts { margin-top: 6px; } .line b { white-space: nowrap; }
   .line { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--track); }
   .pay { margin-top: 20px; background: var(--card); border-radius: 14px; padding: 16px; }
   .pay h2 { margin: 0 0 10px; font-size: 1rem; color: var(--muted); font-weight: 600; }
@@ -74,9 +75,15 @@
     var due = d.total > 0;
     res.appendChild(el("div", "", due ? "Fizetendő összesen" : "Nincs tartozásod"));
     res.appendChild(el("div", "amount " + (due ? "due" : "ok"), due ? ft(d.total) : "0 Ft"));
-    if (due && d.items.length > 1) d.items.forEach(function (it) {
-      if (it.egy <= 0) return; var l = el("div", "line"); l.appendChild(el("span", "", it.prov + " szám")); l.appendChild(el("b", "", ft(it.egy))); res.appendChild(l);
-    });
+    if (due) {
+      var P = d.parts || {}, sec = el("div", "parts");
+      [["Alapdíj (havidíj + admin)", P.alap], ["Forgalmi díj (sms, vásárlás, parkolás, roaming…)", P.forg], ["Készülék díj", P.kesz], ["Elmaradás", P.tart]].forEach(function (c) {
+        if (!c[1]) return; var l = el("div", "line"); l.appendChild(el("span", "", c[0])); l.appendChild(el("b", "", ft(c[1]))); sec.appendChild(l);
+      });
+      if (P.bef) { var lb = el("div", "line"); lb.appendChild(el("span", "", "Már befizetett")); lb.appendChild(el("b", "", "−" + ft(P.bef))); sec.appendChild(lb); }
+      res.appendChild(sec);
+      if (d.items.length > 1) { res.appendChild(el("p", "small", "Több számod is van: " + d.items.filter(function (it) { return it.egy > 0; }).map(function (it) { return it.prov + " " + ft(it.egy); }).join(", ") + ".")); }
+    }
     if (!due) { var ex = d.items.some(function (it) { return it.egy < 0; }); if (ex) res.appendChild(el("p", "small", "Előre fizettél, a különbözet jóváíródik a következő hónapban.")); return; }
     var box = el("div", "pay"); box.appendChild(el("h2", "", "Hová utalj?"));
     var ar = row("Számlaszám", PAY.account.replace(/-/g, "\u2011"), PAY.account); ar.querySelector("b").style.cssText = "font-size:.8rem;white-space:nowrap"; box.appendChild(ar);

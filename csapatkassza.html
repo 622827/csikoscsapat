@@ -541,7 +541,7 @@
   function renderF() {
     var d = fcur(); if (!d) return;
     var rows = d.rows.filter(function (x) { return FS === "ALL" || x.fl === FS; }), debt = 0, plus = 0, nd = 0, np2 = 0, month = 0, paid = 0;
-    rows.forEach(function (x) { month += x.alap + x.admin + x.forg; paid += x.bef; if (x.egy > 0) { debt += x.egy; nd++; } else if (x.egy < 0) { plus += -x.egy; np2++; } });
+    rows.forEach(function (x) { month += x.alap + x.admin + x.forg + (x.kesz || 0); paid += x.bef; if (x.egy > 0) { debt += x.egy; nd++; } else if (x.egy < 0) { plus += -x.egy; np2++; } });
     var t = $("f-tot"); t.textContent = ft(debt); t.className = "bal" + (debt ? " neg" : "");
     $("f-sub").textContent = (debt ? "összes tartozás · " + nd + " soron" : "Nincs tartozás.") + " · frissítve: " + new Date(d.updated).toLocaleString("hu-HU", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
     $("f-debt").textContent = ft(debt); $("f-debt2").textContent = nd ? nd + " sor" : "nincs";
@@ -566,7 +566,7 @@
     shown.forEach(function (x) {
       var r = el("div", "fbal" + (x.fiz ? " rowpaid" : "")), n = el("div", "nm"), nb = el("b", "", x.nev || "–");
       var pv = FPROV[x.fl]; if (pv) { var pe = el("span", "pv " + (pv === "One" ? "one" : "tel"), (x.fl === "ONE" ? "One" : x.fl + " · " + pv)); pe.style.marginLeft = "6px"; nb.appendChild(pe); }
-      n.appendChild(nb); n.appendChild(el("small", "", [ftel(x.tel), x.megj].filter(Boolean).join(" · "))); r.appendChild(n);
+      n.appendChild(nb); n.appendChild(el("small", "", [ftel(x.tel), x.kesz ? "készülék " + ft(x.kesz) : "", x.megj].filter(Boolean).join(" · "))); r.appendChild(n);
       r.appendChild(el("span", "", [x.csomag, x.net].filter(Boolean).join(" · ") || "–"));
       var hav = x.alap + x.admin + x.forg, hv = el("span", "num", hav ? ft(hav) : "–"); hv.title = [x.alap ? "díj " + ft(x.alap) : "", x.admin ? "admin " + ft(x.admin) : "", x.forg ? "forgalmi " + ft(x.forg) : ""].filter(Boolean).join(" · ");
       r.appendChild(hv);
@@ -605,6 +605,7 @@
       f.alap = field(tfc ? "Alapdíj (Ft)" : "Csomagdíj (Ft)", inp("text", x.alap || "", { inputmode: "numeric" }));
       f.admin = field("Admin. díj (Ft)", inp("text", x.admin || "", { inputmode: "numeric" }));
       f.forg = field("Forgalmi költség (Ft)", inp("text", x.forg || "", { inputmode: "numeric" }));
+      f.kesz = field("Készülék díj (Ft)", inp("text", x.kesz || "", { inputmode: "numeric" }));
       f.tart = field("Tartozás – előző hónapról (Ft)", inp("text", x.tart || "", { inputmode: "numeric" }));
       f.szerz = field("Szerződéskötés", inp("date", x.szerz || "")); f.huseg = field("Hűség lejárta", inp("date", x.huseg || ""));
       f.bef = field("Befizetve összesen (Ft)", inp("text", x.bef || "", { inputmode: "numeric" })); f.datum = field("Befizetés dátuma", inp("date", x.datum || ""));
@@ -619,8 +620,8 @@
       var nv = f.nev.value.trim(), tl = f.tel.value.trim();
       if (!nv && !tl) return Promise.reject(new Error("Add meg a nevet vagy a telefonszámot."));
       var row = { id: x.id || "", chk: x.id ? fkey(x) : "", fl: f.fl.value, nev: nv, tel: tl, csomag: f.csomag.value.trim(), net: f.net.value.trim(), szerz: f.szerz.value, huseg: f.huseg.value, datum: f.datum.value, fiz: f.fiz.checked, megj: f.megj ? f.megj.value.trim() : "" };
-      ["alap", "admin", "forg", "tart", "bef"].forEach(function (k) { var v = f[k].value.trim(); row[k] = v === "" ? "" : num(v); });
-      for (var k in { alap: 1, admin: 1, forg: 1, tart: 1, bef: 1 }) if (row[k] !== "" && !isFinite(row[k])) return Promise.reject(new Error("Az összegek számok legyenek."));
+      ["alap", "admin", "forg", "tart", "kesz", "bef"].forEach(function (k) { var v = f[k].value.trim(); row[k] = v === "" ? "" : num(v); });
+      for (var k in { alap: 1, admin: 1, forg: 1, tart: 1, kesz: 1, bef: 1 }) if (row[k] !== "" && !isFinite(row[k])) return Promise.reject(new Error("Az összegek számok legyenek."));
       return fsend({ op: "save", id: x.id || "", chk: row.chk, row: row }).then(function () { toast("Mentve."); });
     });
   }
