@@ -53,7 +53,7 @@
   // Hová utaljanak (ha változik, itt kell átírni)
   var PAY = { account: "10918001-00000131-14680000", bank: "UniCredit Bank", name: "" };
   function $(i) { return document.getElementById(i); }
-  function ft(n) { return Math.round(n).toLocaleString("hu-HU").replace(/ /g, " ") + " Ft"; }
+  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " Ft"; }
   function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; }
   function row(label, val, copy) {
     var r = el("div", "row"); r.appendChild(el("span", "", label)); var b = el("b", "", val);
