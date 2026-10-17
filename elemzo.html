@@ -80,11 +80,11 @@
   @media (prefers-color-scheme: dark) { :root { --bg:#001f3d; --ink:#ffffff; --muted:#6699cc; --accent:#ff99cc; --csk:#66cccc; --frk:#ff99cc; --on-accent:#001f3d; --time:#336699; --track:#00305a; --card:#003366; } }
   * { box-sizing: border-box; }
   .topnav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; background: var(--bg); border-bottom: 1px solid var(--track); }
-  .topnav .in { max-width: 1100px; margin: 0 auto; padding: 0 16px; height: 56px; display: flex; align-items: center; gap: 20px; }
+  .topnav .in { max-width: 1280px; margin: 0 auto; padding: 0 16px; height: 56px; display: flex; align-items: center; gap: 20px; }
   .topnav .brand { font-weight: 700; color: var(--ink); text-decoration: none; white-space: nowrap; font-size: 1.05rem; margin: 0; }
   .topnav ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: 1; }
   .topnav ul::-webkit-scrollbar { display: none; }
-  .topnav li a { display: block; padding: 8px 14px; border-radius: 999px; color: var(--ink); text-decoration: none; font-weight: 600;
+  .topnav li a { display: block; padding: 8px 11px; border-radius: 999px; color: var(--ink); text-decoration: none; font-weight: 600;
                  font-size: .95rem; white-space: nowrap; }
   .topnav li a:hover { background: var(--track); }
   .topnav li a[aria-current="page"] { background: var(--accent); color: var(--on-accent, #fff); }
@@ -240,7 +240,7 @@
 </style>
 </head>
 <body>
-<nav class="topnav" aria-label="Főmenü"><div class="in"><a class="brand" href="index.html">Csikós BL csapat</a><ul><li><a href="index.html">Kezdőlap</a></li><li><a href="negyedev.html">Negyedéves cél</a></li><li><a href="verseny.html">Versenyállások</a></li><li><a href="csapatkassza.html">Csapatkassza</a></li><li><a href="elemzo.html" aria-current="page">Elemző füzet</a></li></ul></div></nav>
+<nav class="topnav" aria-label="Főmenü"><div class="in"><a class="brand" href="index.html">Csikós BL csapat</a><ul><li><a href="index.html">Kezdőlap</a></li><li><a href="negyedev.html">Negyedéves cél</a></li><li><a href="verseny.html">Versenyállások</a></li><li><a href="csapatkassza.html">Csapatkassza</a></li><li><a href="elemzo.html" aria-current="page">Elemző füzet</a></li><li><a href="szettek.html">Szettek</a></li><li><a href="figurak.html">Figurák</a></li></ul></div></nav>
 <main>
 <div class="bar0"><div><h1>Pénzügyi elemző füzet</h1><div class="muted">Ügyfél: <b id="pn"></b></div></div>
 <div class="tl"><select id="cl" aria-label="Ügyfél"></select><button class="btn" id="nw" type="button">+ Új ügyfél</button><button class="btn" id="gd" type="button">Beszélgetésvezető szövegek</button><button class="btn pri drv" type="button">Mentés a Drive-ra</button><button class="btn" id="ex" type="button">Exportálás</button><button class="btn" id="im" type="button">Importálás</button><button class="btn" id="pr" type="button">Nyomtatás / PDF</button><button class="btn bad" id="dl" type="button">Törlés</button><input type="file" id="imf" accept=".json,application/json" hidden></div></div>
