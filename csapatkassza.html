@@ -296,11 +296,12 @@
   </div>
   <section>
     <div class="sh"><h2 id="f-title">Telefonszámok</h2>
-      <div class="tools"><a href="flotta-fizetes.html" target="_blank" rel="noopener" style="margin-right:12px;font-size:.9rem">Külsős fizetési oldal ↗</a><button class="primary" id="f-new" type="button">+ Új sor</button></div>
+      <div class="tools"><button class="primary" id="f-new" type="button">+ Új sor</button></div>
     </div>
     <p class="fnote">Egy sor = egy telefonszám. A módosítás azonnal a Költségvetés táblázat megfelelő lapjára is visszaíródik. Egyenleg = összesen − befizetés: piros = tartozás, zöld = többletbefizetés.</p>
     <input class="srch" id="f-srch" type="search" placeholder="Keresés névre, számra…" aria-label="Keresés">
     <div class="ftable"><div id="f-bal"></div></div>
+    <p class="fnote" style="margin-top:14px">Külsősöknek (jelszó nélkül): <a href="flotta-fizetes.html" target="_blank" rel="noopener">befizetési oldal megnyitása ↗</a> · <button class="lnk" id="f-copy" type="button">link másolása</button></p>
   </section>
 </div>
 
@@ -321,6 +322,7 @@
 <script>
 (function () {
   var API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
+  (function () { var c = document.getElementById("f-copy"); if (!c) return; c.onclick = function () { var u = new URL("flotta-fizetes.html", location.href).href; (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function () { c.textContent = "kimásolva ✓"; setTimeout(function () { c.textContent = "link másolása"; }, 1500); }, function () { window.prompt("Link:", u); }); }; })();
   var NYITO = 50000, S = null, tf = "all", q = "", limit = 40, busy = false;
   function $(id) { return document.getElementById(id); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
