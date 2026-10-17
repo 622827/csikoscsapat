@@ -38,9 +38,9 @@
 <body>
 <main>
   <h1>Telefonszámla – mennyit fizetek?</h1>
-  <p class="lead">Írd be a telefonszámodat, és megmutatjuk, mennyi a tartozásod, és hová kell utalnod.</p>
+  <p class="lead">Írd be a telefonszámodat <b>06 vagy +36 nélkül</b> (pl. 20 313 3292), és megmutatjuk, mennyi a tartozásod, és hová kell utalnod.</p>
   <form id="f" autocomplete="off">
-    <input id="tel" type="tel" inputmode="tel" placeholder="pl. 20 313 3292" aria-label="Telefonszám" required>
+    <input id="tel" type="tel" inputmode="numeric" maxlength="12" placeholder="pl. 20 313 3292" aria-label="Telefonszám" required>
     <button id="go" type="submit">Mutasd</button>
   </form>
   <p class="err" id="err" role="alert"></p>
@@ -73,7 +73,7 @@
     });
     if (!due) { var ex = d.items.some(function (it) { return it.egy < 0; }); if (ex) res.appendChild(el("p", "small", "Előre fizettél, a különbözet jóváíródik a következő hónapban.")); return; }
     var box = el("div", "pay"); box.appendChild(el("h2", "", "Hová utalj?"));
-    box.appendChild(row("Számlaszám", PAY.account.replace(/-/g, "\u2011"), PAY.account));
+    var ar = row("Számlaszám", PAY.account.replace(/-/g, "\u2011"), PAY.account); ar.querySelector("b").style.cssText = "font-size:.86rem;white-space:nowrap"; box.appendChild(ar);
     if (PAY.name) box.appendChild(row("Kedvezményezett", PAY.name));
     box.appendChild(row("Összeg", ft(d.total), String(Math.round(d.total))));
     box.appendChild(row("Közlemény", "Flotta " + tel, "Flotta " + tel));
@@ -84,13 +84,19 @@
     res.appendChild(box);
     res.appendChild(el("p", "small", "Az utalás után pár napon belül rögzítjük a befizetést."));
   }
+  $("tel").addEventListener("input", function () {
+    var raw = this.value; if (/^\s*[+0]/.test(raw)) return; var d = raw.replace(/\D/g, "").slice(0, 9);
+    this.value = d.length > 5 ? d.slice(0, 2) + " " + d.slice(2, 5) + " " + d.slice(5) : d.length > 2 ? d.slice(0, 2) + " " + d.slice(2) : d;
+  });
   $("f").addEventListener("submit", function (e) {
     e.preventDefault();
     var v = $("tel").value.trim(), err = $("err"), btn = $("go"); err.textContent = ""; $("res").hidden = true;
     var digits = v.replace(/\D/g, "");
-    if (digits.length < 9) { err.textContent = "Add meg a teljes telefonszámot."; return; }
+    if (/^\s*(\+|00?36|06)/.test(v) || digits.length > 9) { err.textContent = "Add meg a számot 06 vagy +36 nélkül, pl. 20 313 3292."; return; }
+    if (digits.length !== 9) { err.textContent = "A számnak 9 számjegyűnek kell lennie, pl. 20 313 3292."; return; }
+    v = digits.slice(0, 2) + " " + digits.slice(2, 5) + " " + digits.slice(5);
     btn.disabled = true; btn.textContent = "Keresem…";
-    fetch(API + "?fizet=" + encodeURIComponent(v)).then(function (r) { return r.json(); }).then(function (d) {
+    fetch(API + "?fizet=" + encodeURIComponent(digits)).then(function (r) { return r.json(); }).then(function (d) {
       if (!d.ok) { err.textContent = d.error || "Nem sikerült."; return; }
       show(d, v);
     }).catch(function () { err.textContent = "Nem sikerült lekérdezni, próbáld újra."; })
