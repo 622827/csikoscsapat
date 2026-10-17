@@ -19,6 +19,11 @@
   form { display: flex; flex-direction: column; gap: 12px; }
   input { width: 100%; font: inherit; font-size: 1.15rem; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); }
   input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .tw { display: flex; align-items: stretch; border: 2px solid var(--track); border-radius: 12px; background: var(--bg); overflow: hidden; }
+  .tw:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .tw .pre { display: flex; align-items: center; padding: 0 4px 0 16px; font-size: 1.15rem; font-weight: 700; color: var(--muted); }
+  .tw input { border: 0; border-radius: 0; padding-left: 8px; }
+  .tw input:focus { outline: 0; }
   button { font: inherit; font-weight: 700; font-size: 1.05rem; padding: 14px; border: 0; border-radius: 12px; cursor: pointer; background: var(--accent); color: var(--on-accent); }
   button[disabled] { opacity: .6; cursor: wait; }
   .err { color: var(--hot); min-height: 1.4em; margin: 10px 0 0; }
@@ -38,9 +43,9 @@
 <body>
 <main>
   <h1>Telefonszámla – mennyit fizetek?</h1>
-  <p class="lead">Írd be a telefonszámodat <b>06 vagy +36 nélkül</b> (pl. 20 313 3292), és megmutatjuk, mennyi a tartozásod, és hová kell utalnod.</p>
+  <p class="lead">Írd be a telefonszámodat – a +36 már előre be van írva –, és megmutatjuk, mennyi a tartozásod, és hová kell utalnod.</p>
   <form id="f" autocomplete="off">
-    <input id="tel" type="tel" inputmode="numeric" maxlength="12" placeholder="pl. 20 313 3292" aria-label="Telefonszám" required>
+    <div class="tw"><span class="pre" aria-hidden="true">+36</span><input id="tel" type="tel" inputmode="numeric" maxlength="12" placeholder="20 313 3292" aria-label="Telefonszám" required></div>
     <button id="go" type="submit">Mutasd</button>
   </form>
   <p class="err" id="err" role="alert"></p>
@@ -92,7 +97,7 @@
     e.preventDefault();
     var v = $("tel").value.trim(), err = $("err"), btn = $("go"); err.textContent = ""; $("res").hidden = true;
     var digits = v.replace(/\D/g, "");
-    if (/^\s*(\+|00?36|06)/.test(v) || digits.length > 9) { err.textContent = "Add meg a számot 06 vagy +36 nélkül, pl. 20 313 3292."; return; }
+    if (/^\s*(\+|00?36|06)/.test(v) || digits.length > 9) { err.textContent = "A +36 már ott van, csak a többi számjegyet írd be, pl. 20 313 3292."; return; }
     if (digits.length !== 9) { err.textContent = "A számnak 9 számjegyűnek kell lennie, pl. 20 313 3292."; return; }
     v = digits.slice(0, 2) + " " + digits.slice(2, 5) + " " + digits.slice(5);
     btn.disabled = true; btn.textContent = "Keresem…";
