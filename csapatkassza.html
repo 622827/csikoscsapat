@@ -506,7 +506,7 @@
 
   // ===== OVB FLOTTA (BBflotta / TFCflotta lap a Költségvetés táblázatban) =====
   var FS = "ALL", FD = null, fq = "", fbusy = false;
-  var FPROV = { BB: "One", TFC: "Telekom" }; // melyik szolgáltató melyik flotta (a címke színéhez)
+  var FPROV = { BB: "Telekom", TFC: "Telekom", ONE: "One" }; // BB = Telekom SIM-only, TFC = Telekom (készülékes), ONE = One flotta (később)
   function fcur() { return FD; }
   function ftel(t) {
     var d = String(t || "").replace(/\D/g, ""); if (!d) return "";
@@ -556,7 +556,7 @@
     host.appendChild(h);
     shown.forEach(function (x) {
       var r = el("div", "fbal" + (x.fiz ? " rowpaid" : "")), n = el("div", "nm"), nb = el("b", "", x.nev || "–");
-      var pv = FPROV[x.fl]; if (pv) { var pe = el("span", "pv " + (pv === "One" ? "one" : "tel"), x.fl + " · " + pv); pe.style.marginLeft = "6px"; nb.appendChild(pe); }
+      var pv = FPROV[x.fl]; if (pv) { var pe = el("span", "pv " + (pv === "One" ? "one" : "tel"), (x.fl === "ONE" ? "One" : x.fl) + " · " + pv); pe.style.marginLeft = "6px"; nb.appendChild(pe); }
       n.appendChild(nb); n.appendChild(el("small", "", [ftel(x.tel), x.megj].filter(Boolean).join(" · "))); r.appendChild(n);
       r.appendChild(el("span", "", [x.csomag, x.net].filter(Boolean).join(" · ") || "–"));
       var hav = x.alap + x.admin + x.forg, hv = el("span", "num", hav ? ft(hav) : "–"); hv.title = [x.alap ? "díj " + ft(x.alap) : "", x.admin ? "admin " + ft(x.admin) : "", x.forg ? "forgalmi " + ft(x.forg) : ""].filter(Boolean).join(" · ");
@@ -588,7 +588,7 @@
   function fform(x) {
     x = x || {}; var f = {}, tfc = false;
     open(x.id ? "Sor szerkesztése" : "Új sor", function () {
-      f.fl = field("Flotta", sel([["BB", "BB flotta (One)"], ["TFC", "TFC flotta (Telekom)"]], x.fl || (FS === "TFC" ? "TFC" : "BB")));
+      f.fl = field("Flotta", sel([["BB", "BB flotta (Telekom, SIM-only)"], ["TFC", "TFC flotta (Telekom, készülékes)"]], x.fl || (FS === "TFC" ? "TFC" : "BB")));
       f.nev = field("Név", inp("text", x.nev || "", { placeholder: "pl. Kiss Anna" }));
       f.tel = field("Telefonszám", inp("text", x.tel ? ftel(x.tel) : "", { placeholder: "pl. +36 30 123 4567" }));
       f.csomag = field("Díjcsomag típusa", inp("text", x.csomag || "", { placeholder: "pl. M" }));
