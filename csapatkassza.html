@@ -211,7 +211,7 @@
   .fbal { display: grid; grid-template-columns: minmax(0,1fr) 110px 110px 150px; gap: 4px 14px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--track); }
   .fbal.h { color: var(--muted); font-size: .85rem; font-weight: 600; }
   .fbal .n b { display: block; overflow-wrap: anywhere; } .fbal .n small { color: var(--muted); }
-  .fbal .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .fbal .num { text-align: right; font-variant-numeric: tabular-nums; } .fbal .num small { display: block; color: var(--muted); font-size: .76rem; }
   .fbal .eg { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
   .fbal .eg.debt { color: var(--frk); } .fbal .eg.plus { color: var(--csk); }
   .fbal .eg small { display: block; font-weight: 600; font-size: .78rem; }
@@ -222,6 +222,17 @@
   .pv.one { background: #d4001a; color: #fff; }
   .pv.tel { background: #ff8fc0; color: #5a0030; }
   :root[data-theme="dark"] .pv.tel { background: #ff8fc0; color: #4a0026; }
+
+  .ftable { overflow-x: auto; }
+  .fbal { grid-template-columns: minmax(170px,1.4fr) 110px 84px 84px 90px 96px 96px 46px 96px !important; min-width: 936px; gap: 4px 8px; }
+  .fbal .ph { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .fbal .act { display: flex; gap: 4px; justify-content: flex-end; flex-direction: column; align-items: stretch; }
+  .fbal .act button { font: inherit; font-size: .8rem; font-weight: 600; border: 1px solid var(--track); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 4px 10px; cursor: pointer; white-space: nowrap; }
+  .fbal .act button:hover { background: var(--track); }
+  .fbal .act button.deb { color: var(--frk); } .fbal .act button.pay { color: var(--csk); }
+  
+  .fbal .nm b { display: block; overflow-wrap: anywhere; } .fbal .nm small { color: var(--muted); display: block; } .fbal .fz input { width: 20px; height: 20px; accent-color: var(--csk); } .fbal.rowpaid { opacity: .75; }
+  .fbal.hd { font-size: .85rem; }
 </style>
 </head>
 <body>
@@ -274,24 +285,22 @@
 
 <div id="v-flotta" hidden>
   <p class="eyebrow">OVB flotta</p>
+  <div class="ktabs" id="ftabs" role="tablist" style="margin-top:6px"><button type="button" class="on" data-s="BB">BB flotta</button><button type="button" data-s="TFC">TFC flotta</button></div>
   <h1 class="bal" id="f-tot">–</h1>
-  <p class="balsub" id="f-sub">Telefonszámlák alapján számolt tartozások és többletbefizetések.</p>
-  <div class="cards" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+  <p class="balsub" id="f-sub">Betöltés…</p>
+  <div class="cards" style="grid-template-columns:repeat(4,minmax(0,1fr))">
     <div class="card"><span class="k">Tartozások összesen</span><span class="v out" id="f-debt">–</span><span class="sm" id="f-debt2"></span></div>
     <div class="card"><span class="k">Többletbefizetések</span><span class="v in" id="f-plus">–</span><span class="sm" id="f-plus2"></span></div>
-    <div class="card"><span class="k">Kiszámlázva összesen</span><span class="v" id="f-bill">–</span><span class="sm" id="f-bill2"></span></div>
+    <div class="card"><span class="k">Havi díjak összesen</span><span class="v" id="f-month">–</span><span class="sm" id="f-month2"></span></div>
+    <div class="card"><span class="k">Befizetve</span><span class="v in" id="f-paid">–</span><span class="sm" id="f-paid2"></span></div>
   </div>
   <section>
-    <div class="sh"><h2>Számonkénti egyenleg</h2>
-      <div class="tools"><button class="primary" id="f-bulk" type="button">+ Havi számlák</button><button class="primary" id="f-addb" type="button">+ Számla</button><button class="primary" id="f-addp" type="button">+ Befizetés</button></div>
+    <div class="sh"><h2 id="f-title">Telefonszámok</h2>
+      <div class="tools"><button class="primary" id="f-new" type="button">+ Új sor</button></div>
     </div>
-    <p class="fnote">Egyenleg = befizetések − számlák. Piros = tartozás, zöld = többletbefizetés (a következő számlából automatikusan levonódik).</p>
-    <div id="f-bal" class="list"></div>
-  </section>
-  <section>
-    <div class="sh"><h2>Mozgások</h2></div>
-    <input class="srch" id="f-srch" type="search" placeholder="Keresés számra, névre, szolgáltatóra…" aria-label="Keresés">
-    <div id="f-list" class="list"></div>
+    <p class="fnote">Egy sor = egy telefonszám. A módosítás azonnal a Költségvetés táblázat megfelelő lapjára is visszaíródik. Egyenleg = összesen − befizetés: piros = tartozás, zöld = többletbefizetés.</p>
+    <input class="srch" id="f-srch" type="search" placeholder="Keresés névre, számra…" aria-label="Keresés">
+    <div class="ftable"><div id="f-bal"></div></div>
   </section>
 </div>
 
@@ -359,7 +368,7 @@
     return fetch(API + "?kassza=1&kt=" + encodeURIComponent(kt()) + "&_=" + Date.now(), ctl ? { signal: ctl.signal } : undefined).then(function (r) { clearTimeout(tm); return r.json(); }).then(function (d) {
       if (d && d.error === "kauth") { gate(d.unset ? "A kassza jelszava még nincs beállítva a szkriptben." : "A belépés lejárt, add meg újra a jelszót."); return; }
       if (d && d.error) { $("kgate").hidden = true; $("kmain").hidden = false; $("balsub").textContent = d.error; return; }
-      S = d; $("kgate").hidden = true; $("kmain").hidden = false; render();
+      S = d; $("kgate").hidden = true; $("kmain").hidden = false; render(); if (!$("v-flotta").hidden) fload(false);
     }).catch(function () { $("kgate").hidden = true; $("kmain").hidden = false; clearTimeout(tm); $("balsub").textContent = "Nem sikerült betölteni (a szkript nem válaszolt időben). Frissítsd az oldalt, vagy próbáld meg pár perc múlva."; });
   }
   function send(body) {
@@ -392,7 +401,7 @@
     $("s-pend").textContent = np + " db";
     $("s-pend2").textContent = np ? [pin ? "beérkezésre vár: " + ft(pin) : "", pout ? "kifizetendő: " + ft(pout) : ""].filter(Boolean).join(" · ") : "minden rendben";
     bars($("src-in"), "Bevétel", inc); bars($("src-out"), "Kiadás", out);
-    renderT(); renderF();
+    renderT();
     var a = $("sheet-link"); if (S.url) { a.href = S.url; a.hidden = false; }
   }
 
@@ -495,104 +504,128 @@
   });
   $("srch").addEventListener("input", function () { q = this.value; limit = 40; if (S) renderT(); });
 
-  // ===== OVB FLOTTA =====
-  var FSZ = "Flotta számla", FBE = "Flotta befizetés", fq = "";
-  var PROV = ["One", "Telekom", "Egyéb"];
-  function prov(x) { var p = String(x.megj || "").split(" · ")[0]; return PROV.indexOf(p) > -1 ? p : ""; }
-  function fitems() { return S.tetelek.filter(isF); }
-  function pvEl(n) { var e = el("span", "pv " + (n === "One" ? "one" : n === "Telekom" ? "tel" : ""), n); return e; }
-  function sgn(n) { return (n > 0 ? "+" : n < 0 ? "−" : "") + ft(Math.abs(n)); }
+  // ===== OVB FLOTTA (BBflotta / TFCflotta lap a Költségvetés táblázatban) =====
+  var FS = "BB", FD = {}, fq = "", fbusy = false;
+  var FPROV = { BB: "One", TFC: "Telekom" }; // melyik szolgáltató melyik flotta (a címke színéhez)
+  function fcur() { return FD[FS]; }
+  function ftel(t) {
+    var d = String(t || "").replace(/\D/g, ""); if (!d) return "";
+    if (d.indexOf("36") === 0 && d.length >= 11) d = d.slice(2);
+    return d.length === 9 ? "+36 " + d.slice(0, 2) + " " + d.slice(2, 5) + " " + d.slice(5) : "+36 " + d;
+  }
+  function fhd(d) { return d ? d.replace(/-/g, ". ") + "." : ""; }
+  function fload(force) {
+    if (!kt()) { gate(""); return Promise.resolve(); }
+    if (FD[FS] && !force) { renderF(); return Promise.resolve(); }
+    $("f-sub").textContent = "Betöltés… (az első alkalommal pár másodpercig tarthat)";
+    return fetch(API + "?flotta=" + FS + "&kt=" + encodeURIComponent(kt()) + "&_=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
+      if (d && d.error === "kauth") { gate("A belépés lejárt, add meg újra a jelszót."); return; }
+      if (d && d.error) { $("f-sub").textContent = d.error === "auth" ? "A belépés lejárt, frissítsd az oldalt." : d.error; return; }
+      FD[FS] = d; renderF();
+    }).catch(function () { $("f-sub").textContent = "Nem sikerült betölteni. Ha most frissítettük a szkriptet, telepíteni kell az új verziót."; });
+  }
+  function fsend(body) {
+    body.flotta = FS; body.t = token(); body.kt = kt();
+    if (fbusy) return Promise.reject(new Error("Egy másik mentés még folyamatban van."));
+    fbusy = true; document.body.style.cursor = "progress";
+    return fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d && d.error === "kauth") { gate("A belépés lejárt, add meg újra a jelszót."); throw new Error("A kassza jelszava lejárt."); }
+      if (d && d.error) throw new Error(d.error === "auth" ? "A belépés lejárt, frissítsd az oldalt." : d.error);
+      FD[FS] = d; renderF(); return d;
+    }).then(function (d) { fbusy = false; document.body.style.cursor = ""; return d; }, function (e) { fbusy = false; document.body.style.cursor = ""; throw e; });
+  }
+  function fact(body, okMsg) { return fsend(body).then(function () { if (okMsg) toast(okMsg); }).catch(function (e) { toast(e.message || "Nem sikerült menteni.", true); }); }
+  function fkey(x) { return x.chk; }
   function renderF() {
-    if (!S) return;
-    var g = {}, bill = 0, pay = 0;
-    fitems().forEach(function (x) {
-      var k = x.nev || "?"; if (!g[k]) g[k] = { n: k, b: 0, p: 0, last: "" };
-      if (x.kat === FBE) { g[k].p += x.osszeg; pay += x.osszeg; } else { g[k].b += x.osszeg; bill += x.osszeg; if (prov(x)) g[k].last = prov(x); }
-    });
-    var arr = Object.keys(g).map(function (k) { g[k].e = g[k].p - g[k].b; return g[k]; }).sort(function (a, b) { return a.e - b.e; });
-    var debt = 0, plus = 0, nd = 0, np2 = 0;
-    arr.forEach(function (x) { if (x.e < 0) { debt += -x.e; nd++; } else if (x.e > 0) { plus += x.e; np2++; } });
-    var t = $("f-tot"); t.textContent = debt ? ft(debt) : "0 Ft"; t.className = "bal" + (debt ? " neg" : "");
-    $("f-sub").textContent = debt ? "összes nyitott tartozás · " + nd + " számnál" : "Nincs tartozás.";
-    $("f-debt").textContent = ft(debt); $("f-debt2").textContent = nd ? nd + " szám" : "nincs";
-    $("f-plus").textContent = ft(plus); $("f-plus2").textContent = np2 ? np2 + " szám" : "nincs";
-    $("f-bill").textContent = ft(bill); $("f-bill2").textContent = "befizetve: " + ft(pay);
+    var d = fcur(); if (!d) return;
+    var rows = d.rows, debt = 0, plus = 0, nd = 0, np2 = 0, month = 0, paid = 0;
+    rows.forEach(function (x) { month += x.alap + x.admin + x.forg; paid += x.bef; if (x.egy > 0) { debt += x.egy; nd++; } else if (x.egy < 0) { plus += -x.egy; np2++; } });
+    var t = $("f-tot"); t.textContent = ft(debt); t.className = "bal" + (debt ? " neg" : "");
+    $("f-sub").textContent = (debt ? "összes tartozás · " + nd + " soron" : "Nincs tartozás.") + " · frissítve: " + new Date(d.updated).toLocaleString("hu-HU", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    $("f-debt").textContent = ft(debt); $("f-debt2").textContent = nd ? nd + " sor" : "nincs";
+    $("f-plus").textContent = ft(plus); $("f-plus2").textContent = np2 ? np2 + " sor" : "nincs";
+    $("f-month").textContent = ft(month); $("f-month2").textContent = rows.length + " szám · " + (FPROV[FS] || "");
+    $("f-paid").textContent = ft(paid); $("f-paid2").textContent = rows.filter(function (x) { return x.fiz; }).length + " sor fizetve";
+    $("f-title").textContent = (FS === "BB" ? "BB flotta" : "TFC flotta") + " – telefonszámok";
     var host = $("f-bal"); host.textContent = "";
-    if (!arr.length) { host.appendChild(el("p", "empty", "Még nincs rögzített számla. Használd a „+ Havi számlák” gombot.")); }
-    else {
-      var h = el("div", "fbal h"); ["Szám · név", "Számlák", "Befizetve", "Egyenleg"].forEach(function (c, i) { h.appendChild(el("span", i ? "num" : "", c)); }); host.appendChild(h);
-      arr.forEach(function (x) {
-        var r = el("div", "fbal"), n = el("div", "n"); n.appendChild(el("b", "", x.n)); if (x.last) { var sm = el("small"); sm.appendChild(pvEl(x.last)); n.appendChild(sm); }
-        r.appendChild(n); r.appendChild(el("span", "num", ft(x.b))); r.appendChild(el("span", "num", ft(x.p)));
-        var e = el("span", "eg " + (x.e < 0 ? "debt" : x.e > 0 ? "plus" : ""), x.e === 0 ? "rendben" : ft(Math.abs(x.e)));
-        if (x.e) e.appendChild(el("small", "", x.e < 0 ? "tartozás" : "többlet")); r.appendChild(e); host.appendChild(r);
-      });
-    }
-    var lh = $("f-list"); lh.textContent = "";
     var qq = plain(fq.trim());
-    var rows = fitems().filter(function (x) { return !qq || plain(x.nev + " " + x.megj).indexOf(qq) > -1; }).sort(function (a, b) { return b.id - a.id; });
-    if (!rows.length) { lh.appendChild(el("p", "empty", "Nincs megjeleníthető mozgás.")); return; }
-    rows.slice(0, 60).forEach(function (x) {
-      var isP = x.kat === FBE, r = el("div", "row"), t = el("div", "t"), nm = el("b", "", x.nev);
-      nm.appendChild(el("span", "pill " + (isP ? "paid" : "late"), isP ? "befizetés" : "számla")); if (prov(x)) { var pe = pvEl(prov(x)); pe.style.marginLeft = "6px"; nm.appendChild(pe); } t.appendChild(nm);
-      t.appendChild(el("small", "", String(x.megj || "").split(" · ").slice(prov(x) ? 1 : 0).join(" · ")));
-      r.appendChild(el("div", "d", hd(x) || "nincs dátum")); r.appendChild(t);
-      r.appendChild(el("div", "a " + (isP ? "in" : "out"), (isP ? "+" : "−") + ft(x.osszeg)));
-      var xs = el("div", "x"), e = el("button", "", "Szerkeszt"); e.type = "button"; e.addEventListener("click", function () { fform(isP ? "p" : "b", x); });
-      var d = el("button", "bad", "Töröl"); d.type = "button"; d.addEventListener("click", function () { if (confirm("Biztosan törlöd: " + x.nev + "?")) act({ kassza: "del", id: x.id, chk: x.nev }, "Törölve."); });
-      xs.appendChild(e); xs.appendChild(d); r.appendChild(xs); lh.appendChild(r);
+    var shown = rows.filter(function (x) { return !qq || plain(x.nev + " " + x.tel + " " + x.megj).indexOf(qq) > -1; });
+    if (!rows.length) { host.appendChild(el("p", "empty", "Még nincs sor ezen a lapon.")); return; }
+    var h = el("div", "fbal h hd");
+    ["Név · telefonszám", "Csomag", "Havi díj", "Tartozás", "Összesen", "Befizetve", "Egyenleg", "Fizetve", ""].forEach(function (c, i) { h.appendChild(el("span", i >= 2 && i <= 6 ? "num" : "", c)); });
+    host.appendChild(h);
+    shown.forEach(function (x) {
+      var r = el("div", "fbal" + (x.fiz ? " rowpaid" : "")), n = el("div", "nm"), nb = el("b", "", x.nev || "–");
+      var pv = FPROV[FS]; if (pv) { var pe = el("span", "pv " + (pv === "One" ? "one" : "tel"), pv); pe.style.marginLeft = "6px"; nb.appendChild(pe); }
+      n.appendChild(nb); n.appendChild(el("small", "", [ftel(x.tel), x.megj].filter(Boolean).join(" · "))); r.appendChild(n);
+      r.appendChild(el("span", "", [x.csomag, x.net].filter(Boolean).join(" · ") || "–"));
+      var hav = x.alap + x.admin + x.forg, hv = el("span", "num", hav ? ft(hav) : "–"); hv.title = [x.alap ? "díj " + ft(x.alap) : "", x.admin ? "admin " + ft(x.admin) : "", x.forg ? "forgalmi " + ft(x.forg) : ""].filter(Boolean).join(" · ");
+      r.appendChild(hv);
+      r.appendChild(el("span", "num", x.tart ? ft(x.tart) : "–")); r.appendChild(el("span", "num", ft(x.ossz)));
+      var bf = el("span", "num", x.bef ? ft(x.bef) : "–"); if (x.datum) bf.appendChild(el("small", "", fhd(x.datum))); r.appendChild(bf);
+      var e = el("span", "eg " + (x.egy > 0 ? "debt" : x.egy < 0 ? "plus" : ""), x.egy === 0 ? "rendben" : ft(Math.abs(x.egy)));
+      if (x.egy) e.appendChild(el("small", "", x.egy > 0 ? "tartozás" : "többlet")); r.appendChild(e);
+      var fz = el("span", "fz"), cb = el("input"); cb.type = "checkbox"; cb.checked = x.fiz; cb.title = "Fizetve";
+      cb.addEventListener("change", function () { fact({ op: "fiz", id: x.id, chk: fkey(x), fiz: cb.checked }, cb.checked ? "Fizetettnek jelölve." : "Visszavonva."); });
+      fz.appendChild(cb); r.appendChild(fz);
+      var ac = el("div", "act");
+      [["+ Befizetés", "pay", function () { fpay(x); }], ["Szerkeszt", "", function () { fform(x); }]].forEach(function (c) {
+        var bt = el("button", c[1], c[0]); bt.type = "button"; bt.addEventListener("click", c[2]); ac.appendChild(bt);
+      });
+      r.appendChild(ac); host.appendChild(r);
     });
   }
-  function fnames() { var m = {}; fitems().forEach(function (x) { m[x.nev] = 1; }); return Object.keys(m).sort(); }
-  function fsave(kind, nev, osszeg, datum, pv, megj, x) {
-    var m = [pv, megj].filter(Boolean).join(" · ");
-    return send({ kassza: "save", row: { id: (x && x.id) || "", chk: (x && x.nev) || "", nev: nev, tipus: "Bevétel", osszeg: osszeg, datum: datum, kat: kind === "p" ? FBE : FSZ, megj: m, fizetve: true } });
-  }
-  function dl() { var d = el("datalist"); d.id = "f-names"; fnames().forEach(function (n) { var o = el("option"); o.value = n; d.appendChild(o); }); fields.appendChild(d); }
-  function fform(kind, x) {
-    x = x || {}; var f = {}, isP = kind === "p";
-    open((x.id ? "Szerkesztés – " : "Új ") + (isP ? "befizetés" : "számla"), function () {
-      f.nev = field("Telefonszám · név", inp("text", x.nev || "", { placeholder: "pl. 06 30 123 4567 · Kiss Anna", list: "f-names" })); dl();
-      f.pv = field("Szolgáltató", sel(PROV.map(function (p) { return [p, p]; }), prov(x) || "One"));
-      f.ossz = field("Összeg (Ft)", inp("text", x.osszeg || "", { inputmode: "numeric", placeholder: "pl. 8500" }));
-      f.dat = field(isP ? "Befizetés dátuma" : "Számla időszaka (hónap)", inp("date", x.datum || today()));
-      var mg = String(x.megj || ""); if (prov(x)) mg = mg.split(" · ").slice(1).join(" · ");
-      f.megj = field("Megjegyzés", inp("text", mg));
-    }, function () {
-      var o = num(f.ossz.value);
-      if (!f.nev.value.trim()) return Promise.reject(new Error("Add meg a számot / nevet."));
-      if (!(o > 0)) return Promise.reject(new Error("Az összeg legyen pozitív szám."));
-      return fsave(kind, f.nev.value.trim(), o, f.dat.value, f.pv.value, f.megj.value.trim(), x).then(function () { toast("Mentve."); });
-    });
-  }
-  function bulk() {
+  function fpay(x) {
     var f = {};
-    open("Havi számlák rögzítése", function () {
-      f.pv = field("Szolgáltató", sel(PROV.map(function (p) { return [p, p]; }), "One"));
-      var d = new Date(); f.mo = field("Számla hónapja", inp("month", d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")));
-      f.ta = el("textarea"); f.ta.placeholder = "soronként: telefonszám;név;összeg\npl. 06 30 123 4567;Kiss Anna;8500"; field("Sorok (telefonszám;név;összeg)", f.ta);
+    open("Befizetés · " + (x.nev || ftel(x.tel)), function () {
+      f.ossz = field("Összeg (Ft)", inp("text", x.egy > 0 ? Math.round(x.egy) : "", { inputmode: "numeric", placeholder: "pl. 10000" }));
+      f.dat = field("Befizetés dátuma", inp("date", today()));
     }, function () {
-      var lines = f.ta.value.split(/\n/).map(function (l) { return l.trim(); }).filter(Boolean), items = [];
-      for (var i = 0; i < lines.length; i++) {
-        var p = lines[i].split(/[;\t]/).map(function (c) { return c.trim(); });
-        if (p.length < 3) return Promise.reject(new Error("A(z) " + (i + 1) + ". sor hibás: telefonszám;név;összeg."));
-        var o = num(p[p.length - 1]); if (!(o > 0)) return Promise.reject(new Error("A(z) " + (i + 1) + ". sorban az összeg hibás."));
-        items.push({ nev: p[0] + " · " + p.slice(1, -1).join(" "), o: o });
-      }
-      if (!items.length) return Promise.reject(new Error("Nincs megadott sor."));
-      var mo = f.mo.value || today().slice(0, 7), pv = f.pv.value, ml = mo.replace("-", ". ") + ".";
-      return items.reduce(function (pr, it) { return pr.then(function () { return fsave("b", it.nev, it.o, mo + "-01", pv, ml + " számla"); }); }, Promise.resolve())
-        .then(function () { toast(items.length + " számla rögzítve."); });
+      var o = num(f.ossz.value); if (!(o !== 0 && isFinite(o))) return Promise.reject(new Error("Add meg az összeget."));
+      return fsend({ op: "pay", id: x.id, chk: fkey(x), amount: o, date: f.dat.value }).then(function () { toast("Befizetés rögzítve."); });
     });
   }
-  $("f-addb").addEventListener("click", function () { if (S) fform("b"); });
-  $("f-addp").addEventListener("click", function () { if (S) fform("p"); });
-  $("f-bulk").addEventListener("click", function () { if (S) bulk(); });
+  function fform(x) {
+    x = x || {}; var f = {}, tfc = FS === "TFC";
+    open(x.id ? "Sor szerkesztése" : "Új sor", function () {
+      f.nev = field("Név", inp("text", x.nev || "", { placeholder: "pl. Kiss Anna" }));
+      f.tel = field("Telefonszám", inp("text", x.tel ? ftel(x.tel) : "", { placeholder: "pl. +36 30 123 4567" }));
+      f.csomag = field("Díjcsomag típusa", inp("text", x.csomag || "", { placeholder: "pl. M" }));
+      f.net = field("Internet", inp("text", x.net || "", { placeholder: "pl. Korlátlan / 30gb" }));
+      f.alap = field(tfc ? "Alapdíj (Ft)" : "Csomagdíj (Ft)", inp("text", x.alap || "", { inputmode: "numeric" }));
+      f.admin = field("Admin. díj (Ft)", inp("text", x.admin || "", { inputmode: "numeric" }));
+      f.forg = field("Forgalmi költség (Ft)", inp("text", x.forg || "", { inputmode: "numeric" }));
+      f.tart = field("Tartozás – előző hónapról (Ft)", inp("text", x.tart || "", { inputmode: "numeric" }));
+      f.szerz = field("Szerződéskötés", inp("date", x.szerz || "")); f.huseg = field("Hűség lejárta", inp("date", x.huseg || ""));
+      f.bef = field("Befizetve összesen (Ft)", inp("text", x.bef || "", { inputmode: "numeric" })); f.datum = field("Befizetés dátuma", inp("date", x.datum || ""));
+      if (!tfc) f.megj = field("Megjegyzés", inp("text", x.megj || ""));
+      var cl = el("label", "chk"); f.fiz = inp("checkbox"); f.fiz.checked = !!x.fiz; cl.appendChild(f.fiz); cl.appendChild(document.createTextNode("Fizetve")); fields.appendChild(cl);
+      if (x.id) {
+        var del = el("button", "bad", "Sor törlése"); del.type = "button"; del.style.cssText = "margin-top:10px;font:inherit;font-weight:600;border:1px solid var(--track);background:var(--bg);color:var(--frk);border-radius:999px;padding:6px 14px;cursor:pointer";
+        del.addEventListener("click", function () { if (confirm("Biztosan törlöd ezt a sort: " + (x.nev || ftel(x.tel)) + "?")) { close(); fact({ op: "del", id: x.id, chk: fkey(x) }, "Törölve."); } });
+        fields.appendChild(del);
+      }
+    }, function () {
+      var nv = f.nev.value.trim(), tl = f.tel.value.trim();
+      if (!nv && !tl) return Promise.reject(new Error("Add meg a nevet vagy a telefonszámot."));
+      var row = { id: x.id || "", chk: x.id ? fkey(x) : "", nev: nv, tel: tl, csomag: f.csomag.value.trim(), net: f.net.value.trim(), szerz: f.szerz.value, huseg: f.huseg.value, datum: f.datum.value, fiz: f.fiz.checked, megj: f.megj ? f.megj.value.trim() : "" };
+      ["alap", "admin", "forg", "tart", "bef"].forEach(function (k) { var v = f[k].value.trim(); row[k] = v === "" ? "" : num(v); });
+      for (var k in { alap: 1, admin: 1, forg: 1, tart: 1, bef: 1 }) if (row[k] !== "" && !isFinite(row[k])) return Promise.reject(new Error("Az összegek számok legyenek."));
+      return fsend({ op: "save", id: x.id || "", chk: row.chk, row: row }).then(function () { toast("Mentve."); });
+    });
+  }
+  $("f-new").addEventListener("click", function () { if (fcur()) fform(); });
   $("f-srch").addEventListener("input", function () { fq = this.value; renderF(); });
+  $("ftabs").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    Array.prototype.forEach.call($("ftabs").children, function (c) { c.classList.toggle("on", c === b); });
+    FS = b.getAttribute("data-s"); fq = ""; $("f-srch").value = ""; $("f-bal").textContent = ""; fload(false);
+  });
   function view(v) {
     $("v-kassza").hidden = v !== "kassza"; $("v-flotta").hidden = v !== "flotta";
     Array.prototype.forEach.call($("ktabs").children, function (b) { b.classList.toggle("on", b.getAttribute("data-v") === v); });
     try { history.replaceState(null, "", v === "flotta" ? "#flotta" : location.pathname + location.search); } catch (e) {}
+    if (v === "flotta" && S) fload(false);
   }
   $("ktabs").addEventListener("click", function (ev) { var b = ev.target.closest("button"); if (b) view(b.getAttribute("data-v")); });
   if (location.hash === "#flotta") view("flotta");
