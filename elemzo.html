@@ -95,6 +95,8 @@
   }
   a.dlink { font-weight: 700; color: #006666; }
   @media (prefers-color-scheme: dark) { a.dlink { color: #66cccc; } }
+  .seg2:has(.seg-lock) { flex-wrap: wrap; border-radius: 18px; max-width: 100%; }
+  .seg2 button.seg-lock, .seg2 button.seg-lock:disabled { color: #8a8f98; background: none; cursor: not-allowed; opacity: .85; }
   * { box-sizing: border-box; }
   .topnav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; background: var(--bg); border-bottom: 1px solid var(--track); }
   .topnav .in { max-width: 1100px; margin: 0 auto; padding: 0 16px; height: 56px; display: flex; align-items: center; gap: 20px; }
@@ -658,7 +660,7 @@ ${names("nv_ny", 4, "Célcsoport: 30-as, 40-es, 50-es korosztály, KATA-sok, vá
 
 H.lakas = () => `
 <h2>Lakás</h2><p class="lead">Önerő, hitel és a hiteltörlesztő védelme – 5 éven belül és 5 éven túl.</p>
-<div class="bar0" style="margin-bottom:10px"><div class="seg2" data-rt="lk_mod"><button type="button" data-v="5 éven belül (finanszírozás)">5 éven belül (finanszírozás)</button><button type="button" data-v="5 éven túl (önerőgyűjtés)">5 éven túl (önerőgyűjtés)</button></div></div>
+<div class="bar0" style="margin-bottom:10px"><div class="seg2" data-rt="lk_mod"><button type="button" data-v="5 éven belül (finanszírozás)">5 éven belül (finanszírozás)</button><button type="button" data-v="5 éven túl (önerőgyűjtés)">5 éven túl (önerőgyűjtés)</button><button type="button" class="seg-lock" disabled aria-disabled="true" title="Hamarosan"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px;margin-right:5px"><path fill="currentColor" d="M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zm-7-2a2 2 0 0 1 4 0v2h-4V7z"/></svg>Meglévő hitel (kiváltás és végtörlesztés)</button></div></div>
 <div data-w="lk_r">${TXT.lakas_r}</div><div data-w="lk_h" hidden>${TXT.lakas_h}</div>
 <div class="card"><h3>Ügyfél</h3><div class="grid g3">${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}</div></div>
 <div class="card"><h3>Partner</h3><div class="grid g3">${fld("p_nev", "Név")}${fld("p_szul", "Születési dátum", { t: "d" })}${kpi("p_kor_out", "Életkor")}${M("p_net", "Nettó jövedelem", { u: "Ft/hó" })}${kpi("lk_egy", "Együttes nettó jövedelem")}</div></div>
