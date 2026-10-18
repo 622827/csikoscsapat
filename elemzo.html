@@ -569,6 +569,7 @@ H.lakas = () => `
  <p class="note">Első lakásnál a vételár 10%-a is elég lehet önerőnek. Babaváró: max. 11 millió Ft, a feleség életkorára korhatár vonatkozik.</p>
 </div>
 <div class="card"><h3>2. Lakáshitel</h3>
+ <div class="grid">${fld("lk_ot", "Otthon Start hitel", { t: "c" })}${fld("lk_csok", "CSOK hitel", { t: "c" })}</div>
  <div class="grid">${fld("lk_futam", "Futamidő", { n: 1, u: "év", ph: "25" })}${fld("lk_kamat", "Kamat (becsült)", { n: 1, u: "%", ph: "7" })}</div>
  <div class="res" style="margin-top:12px">${kpi("lk_hitel", "Hitel tervezett összege", { hl: 1 })}${kpi("lk_torl", "Várható törlesztő")}${kpi("lk_vissza", "Teljes visszafizetendő")}${kpi("lk_arany", "Törlesztő a nettó jövedelem %-ában")}</div>
  <div class="warn" data-w="lk_arany_w" hidden>A törlesztő a nettó jövedelem legfeljebb 50%-a lehet (800 ezer Ft felett 60%).</div>
@@ -837,10 +838,11 @@ function compute() {
   out("lk_tam", tam ? ft(tam) : "–");
   const ar = n("lk_ar"), osszes = tam + n("lk_havi") * 12 * n("lk_ido");
   const hitel = (ar > 0 || osszes > 0) ? Math.max(0, ar - osszes) : 0;
-  const futam = n("lk_futam") || 25, hk = has(g("lk_kamat")) ? null : hkLook(hitel, futam, lnet);
-  const kam = has(g("lk_kamat")) ? n("lk_kamat") / 100 : (hk ? hk.kamat : .07);
-  const kin = $('[data-k="lk_kamat"]'); if (kin) kin.placeholder = hk ? (hk.kamat * 100).toFixed(2).replace(".", ",") : "7";
-  const kn = $('[data-o="lk_kamat_n"]'); if (kn) kn.textContent = has(g("lk_kamat")) ? "" : hk ? "A kamat a Bankmonitor-adatbázis legközelebbi pontja alapján becsült (a THM szerinti 3. legjobb ajánlat; " + ft(hk.hitel) + " hitel, " + hk.futam + " év, " + ft(hk.jov) + " jövedelem; frissítve: " + HK.frissitve + "). A mezőben átírható." : (HK ? "Nincs elérhető Bankmonitor-adat, ezért 7%-os becsült kamattal számolunk." : "");
+  const tamh = g("lk_ot") === "1" || g("lk_csok") === "1";
+  const futam = n("lk_futam") || 25, hk = (has(g("lk_kamat")) || tamh) ? null : hkLook(hitel, futam, lnet);
+  const kam = has(g("lk_kamat")) ? n("lk_kamat") / 100 : tamh ? .03 : (hk ? hk.kamat : .07);
+  const kin = $('[data-k="lk_kamat"]'); if (kin) kin.placeholder = tamh ? "3" : hk ? (hk.kamat * 100).toFixed(2).replace(".", ",") : "7";
+  const kn = $('[data-o="lk_kamat_n"]'); if (kn) kn.textContent = has(g("lk_kamat")) ? "" : tamh ? "Támogatott hitel (Otthon Start / CSOK): fix 3%-os kamattal számolunk. A mezőben átírható." : hk ? "A kamat a Bankmonitor-adatbázis legközelebbi pontja alapján becsült (a THM szerinti 3. legjobb ajánlat; " + ft(hk.hitel) + " hitel, " + hk.futam + " év, " + ft(hk.jov) + " jövedelem; frissítve: " + HK.frissitve + "). A mezőben átírható." : (HK ? "Nincs elérhető Bankmonitor-adat, ezért 7%-os becsült kamattal számolunk." : "");
   const tor = pmt(hitel, kam, futam);
   out("lk_osszes", osszes ? ft(osszes) : "–");
   out("lk_min", !ar ? "–" : osszes >= ar * .2 ? "Megvan" : "Nincs meg", !ar ? "" : osszes >= ar * .2 ? "in" : "out");
