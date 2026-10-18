@@ -326,6 +326,7 @@ function fld(k, l, o) {
 const M = (k, l, o) => fld(k, l, Object.assign({ m: 1, u: "Ft" }, o));
 const CX = {
   "Államtól független": "A megtakarítás nem függ állami támogatástól vagy szabályváltozástól, így a feltételei később sem változnak meg.",
+  "Minden gyermekkel egységesen számolunk": "A célokat elég egyszer kitölteni: a program minden felvett gyermek életkorához külön kiszámolja a havi összeget, és összeadja.",
   "Szüneteltethető": "Ha anyagilag szűkösebb időszak jön, a befizetés felfüggeszthető, anélkül hogy a szerződés megszűnne.",
   "Kamatadómentes": "A hozam után nem kell kamatadót fizetni, így a teljes hozam az ügyfélnél marad.",
   "Biztonságos (nagy pénzintézet)": "Nagy, stabil pénzintézetnél van a pénz, ezért nagyobb a biztonságérzet.",
@@ -745,6 +746,7 @@ ${TXT.gyermek}
  <div class="grid" style="margin-top:6px">${M("gy_ev1", "Csecsemőápolásra havonta")}${M("gy_ev2", "Ruházkodás, taneszköz (havonta/időszakosan)")}${M("gy_ev3", "Egészségügyi költségek (magánorvosi, gyógyszer stb.)")}</div>
 </div>
 <div class="card"><h3>2. Célok</h3>
+ <div class="chips" style="margin-bottom:10px">${chip("gy_egys", "Minden gyermekkel egységesen számolunk", "Igen")}</div>
  ${tbl("gy_cel", [["Cél", "t"], ["Célösszeg", "m"], ["Hány éves korára legyen meg?", "n"], ["Havonta", "o"]], ["Tanulmányok", "Esküvő", "Jogosítvány, autó", "Saját lakás, önerő", "Életkezdés"], { lab: 1, add: 1, init: 2, sum: 1 })}
  <p class="note" data-o="gy_cel_n"></p>
  <div class="grid" style="margin-top:12px">${fld("gy_ido", "Megtakarítás időtáv", { n: 1, u: "év" })}${M("gy_havi", "Megtakarított összeg havonta", { u: "Ft/hó" })}</div>
@@ -1014,9 +1016,17 @@ function compute() {
 
   /* gyermek */
   const rows = d.gy_cel || []; let tot = 0, anyH = 0;
-  let ca = null; (d.gy_gyerek || []).forEach(r => { const m = r && /(\d{4})\D+(\d{1,2})\D+(\d{1,2})/.exec(r[1] || ""); if (!m) return; const y = (Date.now() - new Date(+m[1], +m[2] - 1, +m[3])) / 31557600000; if (y >= 0 && (ca === null || y < ca)) ca = y; });
-  const caN = $('[data-o="gy_cel_n"]'); if (caN) caN.textContent = ca === null ? "A havi összeg kiszámításához add meg a gyermek születési dátumát a „Gyermekek\" táblában (a legfiatalabb gyermek életkorából számolom a hátralévő éveket)." : "A hátralévő időt a legfiatalabb gyermek jelenlegi életkorából (" + ca.toFixed(1).replace(".", ",") + " év) számoljuk.";
-  rows.forEach((r, i) => { const a = num(r[1]), t = ca === null ? 0 : num(r[2]) - ca, h = a && t > 0 ? a / t / 12 : null; tot += a; if (h) anyH += h; out("gy_cel_" + i, h ? ft(h) : "–"); });
+  const kids = []; (d.gy_gyerek || []).forEach(r => { const m = r && /(\d{4})\D+(\d{1,2})\D+(\d{1,2})/.exec(r[1] || ""); if (!m) return; const y = (Date.now() - new Date(+m[1], +m[2] - 1, +m[3])) / 31557600000; if (y >= 0) kids.push({ n: (r[0] || "").trim() || "gyermek", y }); });
+  const ca = kids.length ? Math.min.apply(null, kids.map(k => k.y)) : null, uni = d.gy_egys === "Igen";
+  const f1 = x => x.toFixed(1).replace(".", ",");
+  const caN = $('[data-o="gy_cel_n"]'), lines = [];
+  rows.forEach((r, i) => {
+    const a = num(r[1]), T = num(r[2]); let h = null, cnt = 1;
+    if (uni && kids.length) { const parts = kids.filter(k => T > k.y).map(k => ({ n: k.n, h: a / (T - k.y) / 12 })); if (a && parts.length) { h = parts.reduce((x, q) => x + q.h, 0); if (r[0]) lines.push(r[0] + ": " + parts.map(q => q.n + " " + ft(q.h)).join(" + ")); } cnt = kids.length; }
+    else { const t = ca === null ? 0 : T - ca; h = a && t > 0 ? a / t / 12 : null; }
+    tot += a * cnt; if (h) anyH += h; out("gy_cel_" + i, h ? ft(h) : "–");
+  });
+  if (caN) caN.textContent = ca === null ? "A havi összeg kiszámításához add meg a gyermek(ek) születési dátumát a „Gyermekek\" táblában." : uni ? "Egységes számolás: a célösszeg gyermekenként értendő, a kor minden gyermeknél külön számít (" + kids.map(k => k.n + " " + f1(k.y) + " év").join(", ") + ")." + (lines.length ? " Részletek – " + lines.join("; ") + "." : "") : "A hátralévő időt a legfiatalabb gyermek jelenlegi életkorából (" + f1(ca) + " év) számoljuk.";
   out("gy_cel_sum", tot ? ft(tot) : "–");
   const gi = n("gy_ido"), gh = n("gy_havi"), szuks = anyH > 0 && gi > 0 ? tot / 12 / gi : 0;
   const mentes = (gh && gi) ? (Math.round(szuks) === gh && gi > 0 ? tot : gh * gi * 12) : 0;
@@ -1065,7 +1075,7 @@ function compute() {
 }
 
 /* ---------- léptetés ---------- */
-const PREFIX = { alap: ["c_", "p_", "gy_db", "nem", "szja", "auto", "v_", "megj", "fontos", "vbizt", "vhitel"], nyugdij: ["ny_", "nv_ny"], lakas: ["lk_", "nv_lk"], gyermek: ["gy_gyerek", "gy_n", "gy_d", "gy_f", "gy_t", "gy_net", "gy_ev", "gy_cel", "gy_ido", "gy_havi", "gy_c", "nv_gy"], egeszseg: ["eh_", "nv_eh"], befektetes: ["bf_", "nv_bf"], osszegzes: ["oz", "z_bank"], zaras: ["z_t1", "z_t2", "z_top", "z_g", "z_term", "z_vissz"], ajanlas: ["kv", "aj"] };
+const PREFIX = { alap: ["c_", "p_", "gy_db", "nem", "szja", "auto", "v_", "megj", "fontos", "vbizt", "vhitel"], nyugdij: ["ny_", "nv_ny"], lakas: ["lk_", "nv_lk"], gyermek: ["gy_gyerek", "gy_n", "gy_d", "gy_f", "gy_t", "gy_net", "gy_ev", "gy_egys", "gy_cel", "gy_ido", "gy_havi", "gy_c", "nv_gy"], egeszseg: ["eh_", "nv_eh"], befektetes: ["bf_", "nv_bf"], osszegzes: ["oz", "z_bank"], zaras: ["z_t1", "z_t2", "z_top", "z_g", "z_term", "z_vissz"], ajanlas: ["kv", "aj"] };
 function sheetFilled(id) {
   const d = S.d, ps = PREFIX[id]; if (!ps) return false;
   return Object.keys(d).some(k => ps.some(p => k.indexOf(p) === 0) && !["ny_havi"].includes(k) && (Array.isArray(d[k]) ? d[k].some(r => r.some((c, i) => has(c) && !(i === 0 && false))) && !isFixedOnly(k, d[k]) : has(d[k])));
