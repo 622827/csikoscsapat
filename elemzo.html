@@ -649,7 +649,7 @@ H.lakas = () => `
  ${fld("lk_megj", "Megjegyzés", { t: "ta", r: 2, full: 1 })}
 </div>
 <div class="card"><h3>6. Meglévő szolgáltatások</h3>
- <div class="warn red" data-w="lk_fsz_w" hidden>A továbblépéshez töltsd ki a Folyószámla sort (szerződő, szolgáltató, éves díj vagy megjegyzés).</div>
+ <div class="warn red" data-w="lk_fsz_w" hidden>A továbblépéshez töltsd ki a Folyószámla sort (legalább a szolgáltatót, az éves díjat vagy a megjegyzést; a szerződő neve automatikusan kitöltődik).</div>
  ${tbl("lk_term", [["Szolgáltatás", "t"], ["Szerződő", "t"], ["Szolgáltató", "t"], ["Éves díj", "m"], ["Extra: kamat, összeg, évforduló, kezdet, lejárat", "t"]], ["Lakásbiztosítás", "Hitel/Lízing", "Személyi kölcsön", "Lakástakarékpénztár", "Folyószámla"], { lab: 1, add: 1 })}
 </div>
 ${names("nv_lk", 5, "Albérletben lakók, saját ingatlanban lakók, szülőknél lakó dolgozók, hitellel rendelkezők, befektetési lakást tervezők, ingatlanos szakemberek.")}`;
@@ -848,6 +848,7 @@ function summary_() {
 
 /* ---------- számolások ---------- */
 function compute() {
+  if (syncFsz()) { renderTables(); persistSoon(); }
   if (FSZW) show("lk_fsz_w", fszMissing());
   if (!S) return;
   autofill(false);
@@ -990,7 +991,26 @@ function markSteps() { $$(".steps button").forEach(b => b.classList.toggle("has"
 let CUR = "alap";
 function fszMissing() {
   const rows = (S && S.d && S.d.lk_term) || []; const r = rows.find(x => x && x[0] === "Folyószámla");
-  return !r || !r.slice(1).some(v => String(v == null ? "" : v).trim() !== "");
+  return !r || !r.slice(2).some(v => String(v == null ? "" : v).trim() !== "");
+}
+/* Folyószámla sor(ok): szerződő = ügyfél neve, ha van partner, külön sor a partner nevével (csak akkor írja át, ha a mező üres vagy még az automatikus érték áll benne) */
+function syncFsz() {
+  if (!S || !S.d || !Array.isArray(S.d.lk_term)) return false;
+  const rows = S.d.lk_term, A = S.d.lk_fsz_a || (S.d.lk_fsz_a = {}); let ch = false;
+  const val = x => String(x == null ? "" : x).trim();
+  const fi = rows.findIndex(x => x && x[0] === "Folyószámla"); if (fi < 0) return false;
+  const pi = rows.findIndex((x, i) => i > fi && x && x[0] === "Folyószámla");
+  const cn = val(S.d.c_nev), pn = val(S.d.p_nev);
+  const setCell = (row, name, key) => { const cur = val(row[1]); if (cur === "" || cur === A[key]) { if (cur !== name) { row[1] = name; ch = true; } A[key] = name; } };
+  setCell(rows[fi], cn, "c");
+  if (pn) {
+    if (pi < 0) { const nr = ["Folyószámla", pn, "", "", ""]; rows.splice(fi + 1, 0, nr); A.p = pn; ch = true; }
+    else setCell(rows[pi], pn, "p");
+  } else if (pi >= 0) {
+    const r = rows[pi], untouched = !r.slice(2).some(v => val(v) !== "") && (val(r[1]) === "" || val(r[1]) === A.p);
+    if (untouched) { rows.splice(pi, 1); A.p = ""; ch = true; }
+  }
+  return ch;
 }
 let FSZW = false;
 function go(id, noscroll) {
