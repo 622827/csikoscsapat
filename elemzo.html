@@ -341,6 +341,7 @@ function tbl(k, cols, fixed, o) {
   return `<div class="tw"><table class="t" data-tk="${k}" data-cols='${JSON.stringify(cols)}' data-fixed='${JSON.stringify(fixed || [])}' data-add="${o.add ? 1 : 0}" data-lab="${o.lab ? 1 : 0}" data-sum="${o.sum || ""}" data-init="${o.init || 0}"></table></div>` +
     (o.add ? `<button type="button" class="btn" data-addrow="${k}" style="margin-top:8px">+ Új sor</button>` : "");
 }
+const BIZTOK = ["Allianz", "Generali", "Groupama", "UNIQA", "Aegon", "NN", "K&H Biztosító", "MBH Biztosító", "Magyar Posta Biztosító", "Signal Iduna", "Colonnade", "Genertel", "Wáberer"];
 const BANKOK = ["OTP Bank", "K&H Bank", "Erste Bank", "MBH Bank", "UniCredit Bank", "Raiffeisen Bank", "CIB Bank", "Gránit Bank", "MagNet Bank", "Budapest Bank", "Takarékbank", "Sopron Bank", "Revolut", "Wise"];
 (function () {
   const pop = document.createElement("div"); pop.id = "bankpop"; pop.hidden = true; document.body.appendChild(pop);
@@ -350,7 +351,7 @@ const BANKOK = ["OTP Bank", "K&H Bank", "Erste Bank", "MBH Bank", "UniCredit Ban
   document.addEventListener("input", e => {
     const el = e.target; if (!el.matches || !el.matches("input[data-bank]")) return;
     const q = norm(el.value.trim()); if (!q) return hide();
-    const m = BANKOK.filter(b => norm(b).includes(q) && norm(b) !== q); if (!m.length) return hide();
+    const LST = el.dataset.bank === "bizt" ? BIZTOK : BANKOK, m = LST.filter(b => norm(b).includes(q) && norm(b) !== q); if (!m.length) return hide();
     cur = el; pop.innerHTML = m.map(b => `<button type="button">${esc(b)}</button>`).join("");
     const r = el.getBoundingClientRect(); pop.style.left = (r.left + scrollX) + "px"; pop.style.top = (r.bottom + scrollY + 2) + "px"; pop.style.minWidth = r.width + "px"; pop.hidden = false;
   });
@@ -377,7 +378,13 @@ function renderTables() {
         if (c[1] === "o") { h += `<td class="o" data-o="${k}_${r}">–</td>`; return; }
         const val = row[ci] == null ? "" : row[ci];
         if (c[1] === "s") { h += `<td><select data-tk="${k}" data-r="${r}" data-c="${ci}"><option value=""></option>${c[2].map(x => `<option${x === val ? " selected" : ""}>${esc(x)}</option>`).join("")}</select></td>`; return; }
-        const bl = k === "lk_term" && ci === 2 && row[0] === "Folyószámla" ? ' data-bank="1" autocomplete="off"' : "";
+        const rl = String(row[0] || "").toLowerCase(); let sg = "";
+        if (k === "lk_term" && ci === 2) sg = rl === "folyószámla" ? "bank" : /bizt/.test(rl) ? "bizt" : "";
+        else if (k === "vbizt" && ci === 1) sg = "bizt";
+        else if (k === "ny_term" && ci === 2 && /bizt/.test(rl)) sg = "bizt";
+        else if (k === "z_term" && ci === 1 && /bizt|kgfb/.test(rl)) sg = "bizt";
+        else if (k === "auto" && ci >= 1 && ci <= 3) sg = "bizt";
+        const bl = sg ? ` data-bank="${sg}" autocomplete="off"` : "";
         h += `<td><input data-tk="${k}" data-r="${r}" data-c="${ci}" value="${esc(val)}"${bl}${c[1] === "m" ? ' class="money" inputmode="decimal"' : c[1] === "n" ? ' inputmode="decimal"' : ""}></td>`;
       });
       if (t.dataset.add === "1") h += (!lab || r >= fixed.length) ? `<td class="x"><button type="button" class="xb" data-delrow="${k}" data-r="${r}" title="Sor törlése">✕</button></td>` : "<td></td>";
