@@ -720,9 +720,9 @@ ${TXT.gyermek}
 <div class="card"><h3>Ügyfél</h3><div class="grid g3">${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}</div></div>
 <div class="card"><h3>Partner</h3><div class="grid g3">${fld("p_nev", "Név")}${fld("p_szul", "Születési dátum", { t: "d" })}${kpi("p_kor_out", "Életkor")}</div></div>
 <div class="card"><h3>1. Adókedvezmények és támogatások</h3>
- <div class="tw"><table class="t" style="min-width:640px"><thead><tr><th>Kérdés</th><th>Név</th><th>Szül. dátum</th><th>Támogatás</th><th>Fontos?</th></tr></thead><tbody>
+ <div class="tw"><table class="t" style="min-width:480px"><thead><tr><th>Kérdés</th><th>Támogatás</th><th>Fontos?</th></tr></thead><tbody>
  ${[["Terveznek gyermeket?", "Szülési támogatás (200 000 Ft)"], ["Van gyermek, aki még nem töltötte be az 5. életévét?", "Csecsemő- és babakozmetikum (20% visszatérítés)"], ["Van gyermek, aki még nem töltötte be a 18. életévét?", "Iskolakezdés, ruházkodás"], ["Van gyermek, aki már elmúlt 18 éves?", "Egyetemi visszatérítések"]]
-   .map((r, i) => `<tr><td class="lb" style="white-space:normal">${r[0]}</td><td><input data-k="gy_n${i}"></td><td><input data-k="gy_d${i}" placeholder="éééé.hh.nn"></td><td style="white-space:normal">${r[1]}</td><td>${chip("gy_f" + i, "", "Igen", "Nem").replace('class="chip"', 'class="chip" style="background:none;padding:0"')}</td></tr>`).join("")}
+   .map((r, i) => `<tr><td class="lb" style="white-space:normal">${r[0]}</td><td style="white-space:normal">${r[1]}</td><td>${chip("gy_f" + i, "", "Igen", "Nem").replace('class="chip"', 'class="chip" style="background:none;padding:0"')}</td></tr>`).join("")}
  </tbody></table></div>
  <div class="grid" style="margin-top:12px">${M("gy_net", "Család nettó jövedelme", { u: "Ft/hó" })}${M("gy_ev1", "Csecsemőápolásra havonta")}${M("gy_ev2", "Ruházkodás, taneszköz (havonta/időszakosan)")}${M("gy_ev3", "Egy évkezdés költsége")}</div>
  <p class="note">Családi adókedvezmény (2026), havi nettó megtakarítás gyermekenként: 1 gyermek esetén 20 000 Ft, 2 gyermek esetén 40 000 Ft, 3 vagy több esetén 66 000 Ft. Családi pótlék: 1 gyermek 12 200 Ft, 2 gyermek 13 300 Ft/gyermek, 3+ gyermek 16 000 Ft/gyermek havonta. GYED: a jövedelem 70%-a, legfeljebb bruttó 451 920 Ft/hó; GYES: 28 500 Ft/hó; CSED: 168 napig az átlagkereset 100%-a.</p>
@@ -888,7 +888,7 @@ function copyAll() {
   const d = S.d, g = k => d[k];
   afSet("c_bank", g("z_bank"));
   const gr = (d.gy_gyerek || []).filter(r => r && has(r[0])).map(r => r[0] + (has(r[1]) ? " (" + r[1] + ")" : ""));
-  const ch = gr.length ? gr : [0, 1, 2, 3].map(i => has(g("gy_n" + i)) ? g("gy_n" + i) + (has(g("gy_d" + i)) ? " (" + g("gy_d" + i) + ")" : "") : "").filter(Boolean);
+  const ch = gr;
   afSet("gy_kor", ch.join(", "));
   const z = d.z_term || [], zr = i => (z[i] || []).slice(1).filter(has).join(", ");
   const bz = []; if (zr(0)) bz.push("KGFB: " + zr(0)); if (zr(1)) bz.push("Lakásbiztosítás: " + zr(1));
