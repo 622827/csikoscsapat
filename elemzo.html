@@ -740,7 +740,8 @@ ${TXT.gyermek}
  ${[["Szülési támogatás (200 000 Ft)", "gy_t0"], ["Csecsemő- és babakozmetikum (20% visszatérítés)", "gy_f1"], ["Iskolakezdés, ruházkodás", "gy_f2"], ["Egyetemi visszatérítések", "gy_f3"], ["Babaváró hitel", "gy_t1"]]
    .map(r => `<tr><td class="lb" style="white-space:normal">${r[0]}</td><td>${chip(r[1], "", "Igen").replace('class="chip"', 'class="chip" style="background:none;padding:0"')}</td></tr>`).join("")}
  </tbody></table></div>
- <div class="grid" style="margin-top:12px">${M("gy_ev1", "Csecsemőápolásra havonta")}${M("gy_ev2", "Ruházkodás, taneszköz (havonta/időszakosan)")}${M("gy_ev3", "Egy évkezdés költsége")}</div>
+ <h3 style="margin-top:14px">Havi költségek:</h3>
+ <div class="grid" style="margin-top:6px">${M("gy_ev1", "Csecsemőápolásra havonta")}${M("gy_ev2", "Ruházkodás, taneszköz (havonta/időszakosan)")}${M("gy_ev3", "Egy évkezdés költsége")}</div>
  <p class="note">Családi adókedvezmény (2026), havi nettó megtakarítás gyermekenként: 1 gyermek esetén 20 000 Ft, 2 gyermek esetén 40 000 Ft, 3 vagy több esetén 66 000 Ft. Családi pótlék: 1 gyermek 12 200 Ft, 2 gyermek 13 300 Ft/gyermek, 3+ gyermek 16 000 Ft/gyermek havonta. GYED: a jövedelem 70%-a, legfeljebb bruttó 451 920 Ft/hó; GYES: 28 500 Ft/hó; CSED: 168 napig az átlagkereset 100%-a.</p>
 </div>
 <div class="card"><h3>2. Célok</h3>
