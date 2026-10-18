@@ -1091,11 +1091,17 @@ function szjaCalc() {
   else L.push(["nincs", "30 év alatti anyák szabálya: már betöltötte a 30. életévét, ez nem vonatkozik rá."]);
   const a26 = 2026 - bd.getFullYear(), y2 = a26 < 40 ? 2026 : a26 < 50 ? 2027 : a26 < 60 ? 2028 : 2029, st2 = new Date(y2, 0, 1), hi2 = now >= st2;
   const hiany = k => k - N === 1 ? "még 1 gyermek hiányzik" : "még " + (k - N) + " gyermek hiányzik";
+  const life = N >= 3 || (N >= 2 && hi2), ends = [now < D25 ? D25 : null, now < D30 && N >= 1 ? D30 : null].filter(Boolean);
+  let vege = "";
+  if (!life && !(N >= 2 && !hi2)) {
+    if (ends.length) { const e = new Date(Math.max.apply(null, ends)); vege = " Ha nem születik több gyermek: a mentesség eddig tart: " + fmt(e) + " (" + (+e === +D30 ? "30" : "25") + ". születésnap), utána adózik."; }
+    else vege = " Ha nem születik több gyermek: jelenleg nincs, és nem is lesz mentesség.";
+  }
   if (N >= 3) L.push(["nincs", "2 gyermekes anyák szabálya: nem számít, mert a 3 gyermekes szabály már mentességet ad."]);
   else if (N >= 2) L.push(hi2 ? ["van", "2 gyermekes anyák szabálya: a 2 gyermek után jelenleg mentes (" + y2 + ". január 1. óta, élethosszig)."] : ["lesz", "2 gyermekes anyák szabálya: a 2 gyermek után " + y2 + ". január 1-jétől lesz mentes (élethosszig)."]);
-  else L.push(["lesz", "2 gyermekes anyák szabálya: most " + N + " gyermeke van, ehhez " + hiany(2) + ". " + (hi2 ? "A szabály rá már " + y2 + ". január 1. óta él, ezért a 2. gyermek megszületésétől azonnal mentes lesz (élethosszig)." : "A szabály rá csak " + y2 + ". január 1-jétől él, ezért a mentesség legkorábban akkor kezdődik, akkor is, ha a 2. gyermek előbb születik.")]);
+  else L.push(["lesz", "2 gyermekes anyák szabálya: most " + N + " gyermeke van, ehhez " + hiany(2) + ". " + (hi2 ? "A szabály rá már " + y2 + ". január 1. óta él, ezért a 2. gyermek megszületésétől azonnal mentes lesz (élethosszig)." : "A szabály rá csak " + y2 + ". január 1-jétől él, ezért a mentesség legkorábban akkor kezdődik, akkor is, ha a 2. gyermek előbb születik.") + vege]);
   if (N >= 3) L.push(["van", "3 vagy több gyermekes anyák szabálya: jelenleg mentes (2025. október 1. óta, élethosszig)."]);
-  else L.push(["lesz", "3 vagy több gyermekes anyák szabálya: most " + N + " gyermeke van, ehhez " + hiany(3) + ". A szabály 2025. október 1. óta él, ezért a 3. gyermek megszületésétől azonnal mentes lesz (élethosszig)."]);
+  else L.push(["lesz", "3 vagy több gyermekes anyák szabálya: most " + N + " gyermeke van, ehhez " + hiany(3) + ". A szabály 2025. október 1. óta él, ezért a 3. gyermek megszületésétől azonnal mentes lesz (élethosszig)." + vege]);
   const van = L.some(x => x[0] === "van");
   const ic = { van: "✔ Már van", lesz: "○ Lesz", nincs: "✕ Nem vonatkozik" };
   box.innerHTML = '<div class="kpi' + (van ? " hl" : "") + '"><div class="k">' + esc(nev) + ' – ' + age + ' éves, ' + N + ' gyermek (a Gyermekek táblából)</div><div class="v">' + (van ? "Jelenleg SZJA-mentes" : "Jelenleg nincs SZJA-mentesség") + '</div></div>' +
