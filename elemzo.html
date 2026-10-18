@@ -449,6 +449,7 @@ document.addEventListener("change", ev => { if (ev.target.type === "checkbox" ||
 document.addEventListener("focusout", ev => { const el = ev.target; if (el.classList && el.classList.contains("money") && has(el.value)) el.value = fmtMoney(el.value); });
 document.addEventListener("click", ev => {
   const b = ev.target.closest("button"); if (!b || !S) return;
+  if (b.hasAttribute("data-szjatog")) { S.d.szja_open = S.d.szja_open === "1" ? "" : "1"; persistSoon(); compute(); return; }
   const g = b.closest("[data-ck]");
   if (g) { const k = g.dataset.ck; S.d[k] = S.d[k] === b.dataset.v ? "" : b.dataset.v; $$("button", g).forEach(x => x.classList.toggle("on", x.dataset.v === S.d[k])); $$(`[data-cx="${k}"]`).forEach(x => { x.hidden = !S.d[k]; }); persistSoon(); compute(); return; }
   const rt = b.closest("[data-rt]");
@@ -720,9 +721,16 @@ H.gyermek = () => `
 ${TXT.gyermek}
 <div class="card"><h3>Ügyfél</h3><div class="grid g3">${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}</div></div>
 <div class="card"><h3>Partner</h3><div class="grid g3">${fld("p_nev", "Név")}${fld("p_szul", "Születési dátum", { t: "d" })}${kpi("p_kor_out", "Életkor")}</div></div>
+<div class="card"><h3>SZJA-mentesség (anyák)</h3>
+ <button type="button" class="btn pri" data-szjatog>SZJA-mentesség ellenőrzése</button>
+ <div data-w="szja_p" hidden style="margin-top:12px">
+  <div class="grid">${fld("szja_anya", "Ki az anya?", { t: "s", o: ["Ügyfél", "Partner"] })}</div>
+  <div data-o="szja_out" style="margin-top:10px"></div>
+ </div>
+</div>
 <div class="card"><h3>1. Adókedvezmények és támogatások</h3>
  <div class="tw"><table class="t" style="min-width:420px"><thead><tr><th>Támogatás</th><th>Fontos?</th></tr></thead><tbody>
- ${[["Szülési támogatás (200 000 Ft)", "gy_t0"], ["Csecsemő- és babakozmetikum (20% visszatérítés)", "gy_f1"], ["Iskolakezdés, ruházkodás", "gy_f2"], ["Egyetemi visszatérítések", "gy_f3"], ["Babaváró", "gy_t1"]]
+ ${[["Szülési támogatás (200 000 Ft)", "gy_t0"], ["Csecsemő- és babakozmetikum (20% visszatérítés)", "gy_f1"], ["Iskolakezdés, ruházkodás", "gy_f2"], ["Egyetemi visszatérítések", "gy_f3"], ["Babaváró hitel", "gy_t1"]]
    .map(r => `<tr><td class="lb" style="white-space:normal">${r[0]}</td><td>${chip(r[1], "", "Igen").replace('class="chip"', 'class="chip" style="background:none;padding:0"')}</td></tr>`).join("")}
  </tbody></table></div>
  <div class="grid" style="margin-top:12px">${M("gy_ev1", "Csecsemőápolásra havonta")}${M("gy_ev2", "Ruházkodás, taneszköz (havonta/időszakosan)")}${M("gy_ev3", "Egy évkezdés költsége")}</div>
@@ -916,6 +924,7 @@ function compute() {
   if (FSZW) show("lk_fsz_w", fszMissing());
   if (!S) return;
   autofill(false);
+  szjaCalc();
   const d = S.d, g = k => d[k], n = k => num(d[k]);
   const bd = /^(\d{4})[.\-](\d{2})[.\-](\d{2})$/.exec(g("c_szul") || "");
   if (bd) {
@@ -1053,6 +1062,34 @@ function sheetFilled(id) {
 function isFixedOnly(k, rows) { const t = $(`table[data-tk="${k}"]`); if (!t) return false; const f = JSON.parse(t.dataset.fixed || "[]"); return t.dataset.lab === "1" && rows.every((r, i) => r.every((c, ci) => !has(c) || (ci === 0 && i < f.length))); }
 function markSteps() { $$(".steps button").forEach(b => b.classList.toggle("has", sheetFilled(b.dataset.s))); }
 let CUR = "alap";
+function szjaCalc() {
+  const d = S.d, open = d.szja_open === "1"; show("szja_p", open);
+  const bt = $("[data-szjatog]"); if (bt) bt.textContent = open ? "SZJA-mentesség elrejtése" : "SZJA-mentesség ellenőrzése";
+  const box = $('[data-o="szja_out"]'); if (!open || !box) return;
+  const who = d.szja_anya;
+  if (!who) { box.innerHTML = '<p class="note">Válaszd ki, ki az anya az ügyfél és a partner közül.</p>'; return; }
+  const pre = who === "Partner" ? "p_" : "c_", nev = (d[pre + "nev"] || "").trim() || who;
+  const m = /^(\d{4})[.\-](\d{2})[.\-](\d{2})$/.exec(d[pre + "szul"] || "");
+  if (!m) { box.innerHTML = '<div class="warn red">' + esc(nev) + ' születési dátuma hiányzik – add meg fent, az Ügyfél / Partner kártyán.</div>'; return; }
+  const bd = new Date(+m[1], +m[2] - 1, +m[3]), now = new Date();
+  let age = now.getFullYear() - bd.getFullYear(); if (now < new Date(now.getFullYear(), bd.getMonth(), bd.getDate())) age--;
+  const N = (d.gy_gyerek || []).filter(r => r && (has(r[0]) || has(r[1]))).length;
+  const f2 = x => String(x).padStart(2, "0"), fmt = x => x.getFullYear() + ". " + f2(x.getMonth() + 1) + ". " + f2(x.getDate()) + ".";
+  const D30 = new Date(bd.getFullYear() + 30, bd.getMonth(), bd.getDate());
+  const L = [];
+  if (now < D30) L.push(N >= 1 ? ["van", "30 év alatti anya: jelenleg mentes, a 30. születésnapjáig (" + fmt(D30) + ")."] : ["lesz", "30 év alatti anya: az 1. gyermek vállalásától mentes lesz, a 30. születésnapjáig (" + fmt(D30) + ")."]);
+  else L.push(["nincs", "30 év alatti anyák szabálya: már betöltötte a 30. életévét, ez nem vonatkozik rá."]);
+  const a26 = 2026 - bd.getFullYear(), y2 = a26 < 40 ? 2026 : a26 < 50 ? 2027 : a26 < 60 ? 2028 : 2029;
+  if (N >= 2) L.push(now >= new Date(y2, 0, 1) ? ["van", "2 gyermek: jelenleg mentes (" + y2 + ". január 1-jétől, élethosszig)."] : ["lesz", "2 gyermek: mentes lesz " + y2 + ". január 1-jétől (élethosszig)."]);
+  else L.push(["lesz", "2 gyermek: a 2. gyermek után; a 2026-ban betöltött életkora (" + a26 + " év) alapján " + y2 + ". január 1-jétől."]);
+  if (N >= 3) L.push(["van", "3 vagy több gyermek: jelenleg mentes (2025. október 1-jétől, élethosszig)."]);
+  else L.push(["lesz", "3 vagy több gyermek: a 3. gyermek után mentes lesz (a szabály 2025. október 1-jétől él, élethosszig)."]);
+  const van = L.some(x => x[0] === "van");
+  const ic = { van: "✔ Már van", lesz: "○ Lesz", nincs: "✕ Nem vonatkozik" };
+  box.innerHTML = '<div class="kpi' + (van ? " hl" : "") + '"><div class="k">' + esc(nev) + ' – ' + age + ' éves, ' + N + ' gyermek (a Gyermekek táblából)</div><div class="v">' + (van ? "Jelenleg SZJA-mentes" : "Jelenleg nincs SZJA-mentesség") + '</div></div>' +
+    '<ul style="margin:10px 0 0;padding-left:0;list-style:none">' + L.map(x => '<li style="margin:4px 0"><b>' + ic[x[0]] + ':</b> ' + esc(x[1]) + '</li>').join("") + '</ul>' +
+    '<p class="note">Tájékoztató számítás. A gyermekek számát a „Gyermekek" tábla kitöltött sorai adják; a kétgyermekes ütemezés a 2026-ban betöltött életkor alapján készült. A feltételeket (pl. családi pótlékra jogosultság) minden esetben ellenőrizni kell.</p>';
+}
 function fszMissing() {
   const rows = (S && S.d && S.d.lk_term) || []; const r = rows.find(x => x && x[0] === "Folyószámla");
   return !r || !r.slice(2).some(v => String(v == null ? "" : v).trim() !== "");
