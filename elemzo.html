@@ -551,7 +551,7 @@ H.lakas = () => `
  <h3 style="margin-top:14px">Támogatások és önerő forrása</h3>
  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">${[["lk_f1", "Saját tőke"], ["lk_f2", "Babaváró hitel"], ["lk_f3", "Egyéb"]].map(([k, l]) => `<div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-end"><div style="flex:0 0 220px">${fld(k, l, { t: "c" })}</div><div data-w="${k}a" style="flex:1 1 200px;max-width:320px" hidden>${M(k + "a", l + " összege")}</div></div>`).join("")}</div>
  <div class="grid">${kpi("lk_tam", "Az önerő forrásainak összege")}</div>
- <div class="grid" style="margin-top:8px">${M("lk_havi", "Havi önerő összege", { u: "Ft/hó" })}${fld("lk_ido", "Gyűjtési időtáv", { n: 1, u: "év" })}</div>
+ <div class="grid" style="margin-top:8px">${fld("lk_ido", "Gyűjtési időtáv", { n: 1, u: "év" })}${M("lk_havi", "Havi önerő összege", { u: "Ft/hó" })}</div>
  <div class="res" style="margin-top:12px">${kpi("lk_osszes", "Összes önerő", { hl: 1 })}${kpi("lk_min", "Minimum önerő (20%)")}${kpi("lk_ajan", "Ajánlott önerő (30%)")}</div>
  <p class="note">Első lakásnál a vételár 10%-a is elég lehet önerőnek. Babaváró: max. 11 millió Ft, a feleség életkorára korhatár vonatkozik.</p>
 </div>
