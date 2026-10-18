@@ -750,6 +750,7 @@ ${TXT.gyermek}
  ${tbl("gy_cel", [["Cél", "t"], ["Célösszeg", "m"], ["Ideális életkor", "n"], ["Havonta", "o"]], ["Tanulmányok", "Esküvő", "Jogosítvány, autó", "Saját lakás, önerő", "Életkezdés"], { lab: 1, add: 1, init: 2, sum: 1 })}
  <p class="note" data-o="gy_cel_n"></p>
  <div class="grid" style="margin-top:12px">${fld("gy_ido", "Megtakarítás időtáv", { n: 1, u: "év" })}${M("gy_havi", "Megtakarított összeg havonta", { u: "Ft/hó" })}</div>
+ <p class="note" data-o="gy_ido_n"></p>
  <div class="res" style="margin-top:12px">${kpi("gy_ossz", "Összes cél", { hl: 1 })}${kpi("gy_szuks", "Szükséges megtakarítás havonta")}${kpi("gy_mentes", "Összes megtakarítás")}${kpi("gy_szaz", "Megoldás százaléka", { c: "in" })}</div>
 </div>
 <div class="card"><h3>3. Szempontok</h3>
@@ -1020,15 +1021,19 @@ function compute() {
   const ca = kids.length ? Math.min.apply(null, kids.map(k => k.y)) : null, uni = d.gy_egys === "Igen";
   const f1 = x => x.toFixed(1).replace(".", ",");
   const caN = $('[data-o="gy_cel_n"]'), lines = [];
+  let minRem = null; const upd = v => { if (v > 0 && (minRem === null || v < minRem)) minRem = v; };
   rows.forEach((r, i) => {
     const a = num(r[1]), T = num(r[2]); let h = null, cnt = 1;
+    if (a && T) { if (uni && kids.length) kids.forEach(k => upd(T - k.y)); else if (ca !== null) upd(T - ca); }
     if (uni && kids.length) { const parts = kids.filter(k => T > k.y).map(k => ({ n: k.n, h: a / (T - k.y) / 12 })); if (a && parts.length) { h = parts.reduce((x, q) => x + q.h, 0); if (r[0]) lines.push(r[0] + ": " + parts.map(q => q.n + " " + ft(q.h)).join(" + ")); } cnt = kids.length; }
     else { const t = ca === null ? 0 : T - ca; h = a && t > 0 ? a / t / 12 : null; }
     tot += a * cnt; if (h) anyH += h; out("gy_cel_" + i, h ? ft(h) : "–");
   });
   if (caN) caN.textContent = ca === null ? "A havi összeg kiszámításához add meg a gyermek(ek) születési dátumát a „Gyermekek\" táblában." : uni ? "Egységes számolás: a célösszeg gyermekenként értendő, a kor minden gyermeknél külön számít (" + kids.map(k => k.n + " " + f1(k.y) + " év").join(", ") + ")." + (lines.length ? " Részletek – " + lines.join("; ") + "." : "") : "A hátralévő időt a legfiatalabb gyermek jelenlegi életkorából (" + f1(ca) + " év) számoljuk.";
   out("gy_cel_sum", tot ? ft(tot) : "–");
-  const gi = n("gy_ido"), gh = n("gy_havi"), szuks = anyH > 0 && gi > 0 ? tot / 12 / gi : 0;
+  const sugg = minRem === null ? null : Math.max(10, Math.ceil(minRem));
+  { const gin = $('[data-k="gy_ido"]'); if (gin) gin.placeholder = sugg ? String(sugg) : ""; const gn = $('[data-o="gy_ido_n"]'); if (gn) gn.textContent = sugg ? "Javaslat: " + sugg + " év" + (has(g("gy_ido")) ? "" : " (üresen hagyva ezzel számolunk)") + " – a legközelebbi cél (" + f1(minRem) + " év múlva) alapján, de legalább 10 év." : ""; }
+  const gi = n("gy_ido") || sugg || 0, gh = n("gy_havi"), szuks = anyH > 0 && gi > 0 ? tot / 12 / gi : 0;
   const mentes = (gh && gi) ? (Math.round(szuks) === gh && gi > 0 ? tot : gh * gi * 12) : 0;
   out("gy_ossz", tot ? ft(tot) : "–"); out("gy_szuks", szuks ? ft(szuks) : "–"); out("gy_mentes", mentes ? ft(mentes) : "–");
   out("gy_szaz", mentes && tot ? Math.round(mentes / tot * 100) + " %" : "–");
