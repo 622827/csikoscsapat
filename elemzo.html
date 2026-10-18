@@ -718,6 +718,7 @@ H.gyermek = () => `
 </div>
 ${TXT.gyermek}
 <div class="card"><h3>Ügyfél</h3><div class="grid g3">${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}</div></div>
+<div class="card"><h3>Partner</h3><div class="grid g3">${fld("p_nev", "Név")}${fld("p_szul", "Születési dátum", { t: "d" })}${kpi("p_kor_out", "Életkor")}</div></div>
 <div class="card"><h3>1. Adókedvezmények és támogatások</h3>
  <div class="tw"><table class="t" style="min-width:640px"><thead><tr><th>Kérdés</th><th>Név</th><th>Szül. dátum</th><th>Támogatás</th><th>Fontos?</th></tr></thead><tbody>
  ${[["Terveznek gyermeket?", "Szülési támogatás (200 000 Ft)"], ["Van gyermek, aki még nem töltötte be az 5. életévét?", "Csecsemő- és babakozmetikum (20% visszatérítés)"], ["Van gyermek, aki még nem töltötte be a 18. életévét?", "Iskolakezdés, ruházkodás"], ["Van gyermek, aki már elmúlt 18 éves?", "Egyetemi visszatérítések"]]
