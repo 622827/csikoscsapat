@@ -316,7 +316,6 @@ const CX = {
   "Plusz befizetési lehetőség": "A havi befizetésen felül plusz összeg is betehető (például ajándékpénz, bónusz).",
   "Örökölhető": "Ha a megtakarítónak valami történik, a felgyűlt összeg az örökösökre száll.",
   "Fix törlesztőrészlet": "A havi törlesztő a futamidő alatt végig azonos, ezért jól tervezhető a költségvetés.",
-  "Előtörlesztés": "A hitel a futamidő előtt részben vagy egészben visszafizethető, így kevesebb kamatot kell fizetni.",
   "Hiteltörlesztő védelem": "Betegség, baleset vagy kiesés esetén a biztosítás átveszi a törlesztést, vagy kifizeti a hitelt.",
   "Okos hitel lehetősége": "A hitel mellett külön gyűlik a végtörlesztésre szánt pénz, így a hitel előbb kifizethető.",
   "Hozzáférhető": "A felgyűlt pénz szükség esetén elérhető.",
@@ -642,7 +641,7 @@ H.lakas = () => `
 </div>
 <div class="card"><h3>5. Szempontok</h3>
  <h3 style="margin-top:4px">Hitelhez kötött lehetőségek</h3>
- <div class="chips">${chip("lk_a1", "Fix törlesztőrészlet")}${chip("lk_a2", "Előtörlesztés")}${chip("lk_a3", "Hiteltörlesztő védelem")}${chip("lk_a4", "Okos hitel lehetősége")}</div>
+ <div class="chips">${chip("lk_a1", "Fix törlesztőrészlet")}${chip("lk_a3", "Hiteltörlesztő védelem")}${chip("lk_a4", "Okos hitel lehetősége")}</div>
  <h3 style="margin-top:14px">Gyűjtés, végtörlesztés</h3>
  <div class="chips">${chip("lk_b1", "Államtól független")}${chip("lk_b2", "Szüneteltethető")}${chip("lk_b3", "Kamatadómentes")}${chip("lk_b4", "Biztonságos (nagy pénzintézet)")}${chip("lk_b5", "Szabad felhasználás")}${chip("lk_b6", "Extra befizetés")}${chip("lk_b7", "Időtávhoz alkalmazkodó")}${chip("lk_b8", "Deviza (euró)")}</div>
  ${fld("lk_megj", "Megjegyzés", { t: "ta", r: 2, full: 1 })}
