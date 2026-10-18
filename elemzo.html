@@ -726,7 +726,10 @@ ${TXT.gyermek}
 <div class="card"><h3>Ügyfél</h3><div class="grid g3">${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}</div></div>
 <div class="card"><h3>Partner</h3><div class="grid g3">${fld("p_nev", "Név")}${fld("p_szul", "Születési dátum", { t: "d" })}${kpi("p_kor_out", "Életkor")}</div></div>
 <div class="card"><h3>SZJA-mentesség (anyák)</h3>
- <button type="button" class="btn pri" data-szjatog>SZJA-mentesség ellenőrzése</button>
+ <div style="display:flex;flex-wrap:wrap;gap:8px">
+  <button type="button" class="btn pri" data-szjatog>SZJA-mentesség ellenőrzése</button>
+  <button type="button" class="btn btn-lock" disabled aria-disabled="true" title="Hamarosan"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px;margin-right:5px"><path fill="currentColor" d="M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zm-7-2a2 2 0 0 1 4 0v2h-4V7z"/></svg>Bérkalkulátor</button>
+ </div>
  <div data-w="szja_p" hidden style="margin-top:12px">
   <div class="grid">${fld("szja_anya", "Ki az anya?", { t: "s", o: ["Ügyfél", "Partner"] })}</div>
   <div data-o="szja_out" style="margin-top:10px"></div>
