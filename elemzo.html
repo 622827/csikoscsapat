@@ -546,11 +546,12 @@ H.lakas = () => `
   
   ${fld("lk_hely", "Jelenlegi lakhely", { t: "s", o: ["Albérletben", "Szülőknél", "Saját ingatlanban", "Egyéb"] })}<div data-w="lk_hely2" hidden>${fld("lk_hely2", "Egyéb lakhely – mi?")}</div>${M("lk_kiad", "Lakhatás havi kiadása", { u: "Ft/hó" })}
   ${fld("lk_terv", "Tervezett lakás (ingatlan infók, szempontok, tervek)", { t: "ta", r: 2, full: 1 })}
-  ${M("lk_ar", "Ingatlan ára")}${M("lk_megl", "Meglévő önerő")}
+  ${M("lk_ar", "Ingatlan ára")}
  </div>
  <h3 style="margin-top:14px">Extra támogatások</h3>
- <div class="grid" style="margin-bottom:8px">${fld("lk_t1", "Szülői segítség", { t: "c" })}${fld("lk_t2", "Munkahelyi támogatás", { t: "c" })}${fld("lk_t3", "CSOK+", { t: "c" })}${fld("lk_t4", "Babaváró hitel", { t: "c" })}</div>
- <div class="grid">${M("lk_tam", "A támogatások összege")}${M("lk_havi", "Havi önerő összege", { u: "Ft/hó" })}${fld("lk_ido", "Gyűjtési időtáv", { n: 1, u: "év" })}</div>
+ <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">${[["lk_t1", "Szülői segítség"], ["lk_t2", "Munkahelyi támogatás"], ["lk_t3", "CSOK+"], ["lk_t4", "Babaváró hitel"]].map(([k, l]) => `<div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-end"><div style="flex:0 0 220px">${fld(k, l, { t: "c" })}</div><div data-w="${k}a" style="flex:1 1 200px;max-width:320px" hidden>${M(k + "a", l + " összege")}</div></div>`).join("")}</div>
+ <div class="grid">${kpi("lk_tam", "A támogatások összege")}${M("lk_megl", "Meglévő önerő")}</div>
+ <div class="grid" style="margin-top:8px">${M("lk_havi", "Havi önerő összege", { u: "Ft/hó" })}${fld("lk_ido", "Gyűjtési időtáv", { n: 1, u: "év" })}</div>
  <div class="res" style="margin-top:12px">${kpi("lk_osszes", "Összes önerő", { hl: 1 })}${kpi("lk_min", "Minimum önerő (20%)")}${kpi("lk_ajan", "Ajánlott önerő (30%)")}</div>
  <p class="note">Első lakásnál a vételár 10%-a is elég lehet önerőnek. Babaváró: max. 11 millió Ft, a feleség életkorára korhatár vonatkozik.</p>
 </div>
@@ -818,7 +819,9 @@ function compute() {
 
   /* lakás */
   const lnet = (net || 0) + n("p_net"); out("lk_egy", lnet ? ft(lnet) + "/hó" : "–");
-  const ar = n("lk_ar"), osszes = n("lk_megl") + n("lk_tam") + n("lk_havi") * 12 * n("lk_ido");
+  let tam = 0; ["lk_t1", "lk_t2", "lk_t3", "lk_t4"].forEach(k => { const on = g(k) === "1"; show(k + "a", on); if (on) tam += n(k + "a"); });
+  out("lk_tam", tam ? ft(tam) : "–");
+  const ar = n("lk_ar"), osszes = n("lk_megl") + tam + n("lk_havi") * 12 * n("lk_ido");
   const hitel = (ar > 0 || osszes > 0) ? Math.max(0, ar - osszes) : 0;
   const futam = n("lk_futam") || 25, kam = has(g("lk_kamat")) ? n("lk_kamat") / 100 : .07;
   const tor = pmt(hitel, kam, futam);
