@@ -298,10 +298,13 @@ const LS = "csk_ef_v1", LC = "csk_ef_cur";
 let DB = {}, S = null;
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-function load() { try { DB = JSON.parse(lsGet(LS) || "{}") || {}; } catch (e) { DB = {}; } }
+function load() {
+  try { DB = JSON.parse(lsGet(LS) || "{}") || {}; } catch (e) { DB = {}; }
+  Object.values(DB).forEach(c => { const d = c && c.d; if (!d) return; if (d.lk_mod === "Rövidtáv (hitel)") d.lk_mod = "5 éven belül (finanszírozás)"; else if (d.lk_mod === "Hosszútáv (önerőgyűjtés)") d.lk_mod = "5 éven túl (önerőgyűjtés)"; });
+}
 function persist() { if (S) { S.t = Date.now(); DB[S.id] = S; } lsSet(LS, JSON.stringify(DB)); if (S) lsSet(LC, S.id); }
 let pt = null; function persistSoon() { clearTimeout(pt); pt = setTimeout(persist, 250); }
-function newClient() { const id = "c" + Date.now().toString(36); return { id, t: Date.now(), d: { ny_havi: "55000", lk_mod: "Rövidtáv (hitel)" } }; }
+function newClient() { const id = "c" + Date.now().toString(36); return { id, t: Date.now(), d: { ny_havi: "55000", lk_mod: "5 éven belül (finanszírozás)" } }; }
 function label(c) { return (c.d.c_nev && c.d.c_nev.trim()) || "Névtelen ügyfél"; }
 
 /* ---------- űrlap-elemek ---------- */
@@ -524,7 +527,7 @@ const TXT = {
     ["Összegzés", ["Keresünk egy olyan programot, ami elérhetővé teszi az x millió Ft támogatást és a szempontjaid szerint működik. Így el tudod különíteni ezt az összeget ettől a hónaptól?"]],
     ["Ajánláskérés", ["Szerinted melyik korosztályt érinti a nyugdíjhelyzet? Kik az alkalmazott ismerőseid (ők csak az állami nyugdíjra számíthatnak)? Kik a vállalkozó ismerőseid (ők még arra sem)?"]]
   ]),
-  lakas_r: G("Beszélgetésvezető – Lakás, rövidtáv (hitel)", [
+  lakas_r: G("Beszélgetésvezető – Lakás, 5 éven belül (finanszírozás)", [
     ["Jelenlegi helyzet", ["Hány éves vagy? Mennyi a nettó, bejelentett fizetésed? «Ha párban vásárolnak, mindkettőjükét kérd el.»", "Jelenleg hol laksz, kikkel? Milyen kiadással jár (bérleti díj, rezsi, ad-e haza)? «Ha a párjával él: felezitek? A következő 10 évben szeretnél ezen változtatni?»"]],
     ["Tervezett ingatlan", ["Milyen ingatlannal kapcsolatos terveid vannak? «Álmodoztatás: elhelyezkedés, típus, méret, érték, különlegességek.»", "Ha meghívnál magadhoz, mit látnék belülről? Kényelem vagy design a fontosabb? Mennyibe kerül jelen árak szerint?"]],
     ["Cél meghatározása", ["Hány éven belül tervezel elköltözni? «Azonnal, vagy pár éven belül.»", "Nézegettél már ilyen ingatlanokat? Ismered a vásárlás feladatait, kötelezettségeit? Van, aki segít (ingatlan-szakjogász, ingatlanos)? Szívesen ajánlok megbízhatót."]],
@@ -534,7 +537,7 @@ const TXT = {
     ["Hiteltörlesztő védelme", ["Szerinted mi miatt dől be a legtöbb hitel? A hitelek közel fele azért, mert az adós kritikus betegség miatt hosszabb időre kiesik a munkából. Volt a családban kritikus betegség (agyvérzés, infarktus)?", "A bankok az államilag támogatott hiteleknél kötelesek tájékoztatni a hitelfedezeti biztosításról – sokan összehasonlítás nélkül kötik. Minél fiatalabban, annál olcsóbb. «Szükséges védelem: a hitel összege + 1 év kieső kereset.»", "A törlesztő után évente akár 104–116.000 Ft-ot is visszaigényelhet, amit a megtakarításhoz pluszban hozzátehet. «Ajánláskérés előtt kérjük el a meglévő szolgáltatásokat!»"]],
     ["Ajánláskérés", ["Kik az ismerőseid, akik albérletben laknak / saját ingatlanban laknak / a szülőknél laknak, de már dolgoznak / akikről tudod, hogy van lakáshitelük? (És ki még?)"]]
   ]),
-  lakas_h: G("Beszélgetésvezető – Lakás, hosszútáv (önerőgyűjtés)", [
+  lakas_h: G("Beszélgetésvezető – Lakás, 5 éven túl (önerőgyűjtés)", [
     ["Jelenlegi helyzet és terv", ["Hány éves vagy? Mennyi a nettó, bejelentett fizetésed? Hol laksz, kikkel, milyen kiadással? «Párnál mindkettejük fizetése.»", "Milyen ingatlannal kapcsolatos terveid vannak? Ha meghívnál magadhoz, mit látnék belülről? Mennyibe kerül jelen árak szerint?"]],
     ["Cél meghatározása", ["Hány éven belül tervezel elköltözni oda? «Azonnal / pár éven belül / 10+ év – 10+ évnél az ehhez szükséges felkészülés a fontos.»", "Szuper, az idő velünk dolgozik. Teljesen önerőből, vagy részben hitelből? Tudod, hogy a hitelhez mennyi önerő kell?"]],
     ["Önerő és támogatások", ["Általában a vételár legalább 20%-a, első lakásnál már 10% is elég lehet. Vársz segítséget a családtól, munkahelyi támogatásból, babavárótól? «Max. 11 millió Ft.» Ezt vehetjük fix segítségnek, biztos összegeknek?", "Van már kimondottan lakásra félretett pénzed? «Meglévő önerő – elég-e az önerőhöz?»", "«Ha nem elég:» a nettó fizetésedbe beleférjen, de ne vállald túl magad. Mennyit tudsz havonta rászánni? A korábban beszélt időtávig tervezed félretenni? Otthon/bankban tárolod, vagy termeljen is valamennyit?"]],
@@ -654,8 +657,8 @@ ${TXT.nyugdij}
 ${names("nv_ny", 4, "Célcsoport: 30-as, 40-es, 50-es korosztály, KATA-sok, vállalkozók, alkalmazottak, nem teljes bérrel bejelentettek, pályakezdők.")}`;
 
 H.lakas = () => `
-<h2>Lakás</h2><p class="lead">Önerő, hitel és a hiteltörlesztő védelme – rövid- és hosszútávon.</p>
-<div class="bar0" style="margin-bottom:10px"><div class="seg2" data-rt="lk_mod"><button type="button" data-v="Rövidtáv (hitel)">Rövidtáv (hitel)</button><button type="button" data-v="Hosszútáv (önerőgyűjtés)">Hosszútáv (önerőgyűjtés)</button></div></div>
+<h2>Lakás</h2><p class="lead">Önerő, hitel és a hiteltörlesztő védelme – 5 éven belül és 5 éven túl.</p>
+<div class="bar0" style="margin-bottom:10px"><div class="seg2" data-rt="lk_mod"><button type="button" data-v="5 éven belül (finanszírozás)">5 éven belül (finanszírozás)</button><button type="button" data-v="5 éven túl (önerőgyűjtés)">5 éven túl (önerőgyűjtés)</button></div></div>
 <div data-w="lk_r">${TXT.lakas_r}</div><div data-w="lk_h" hidden>${TXT.lakas_h}</div>
 <div class="card"><h3>Ügyfél</h3><div class="grid g3">${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}</div></div>
 <div class="card"><h3>Partner</h3><div class="grid g3">${fld("p_nev", "Név")}${fld("p_szul", "Születési dátum", { t: "d" })}${kpi("p_kor_out", "Életkor")}${M("p_net", "Nettó jövedelem", { u: "Ft/hó" })}${kpi("lk_egy", "Együttes nettó jövedelem")}</div></div>
@@ -967,7 +970,7 @@ function compute() {
   out("lk_v4", lnet ? ft(lnet * .04) : "–"); out("lk_vcel", hitel || lnet ? ft(hitel + lnet * 12) : "–");
   const vegt = n("lk_vegt"); out("lk_rafo", hitel ? ft(tor + vegt) : "–");
   show("lk_hely2", g("lk_hely") === "Egyéb");
-  const lm = (g("lk_mod") || "Rövidtáv (hitel)") !== "Hosszútáv (önerőgyűjtés)";
+  const lm = (g("lk_mod") || "5 éven belül (finanszírozás)") !== "5 éven túl (önerőgyűjtés)";
   show("lk_r", lm); show("lk_h", !lm);
   if (hitel > 0) {
     const yrs = Math.min(Math.max(futam, 1), 40), q = Math.pow(1 + kam / 12, 12), fa = kam ? (q - 1) / (kam / 12) : 12;
