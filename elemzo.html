@@ -565,7 +565,7 @@ H.lakas = () => `
  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">${[["lk_f1", "Saját tőke"], ["lk_f2", "Babaváró hitel"], ["lk_f3", "Egyéb"]].map(([k, l]) => `<div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-end"><div style="flex:0 0 220px">${fld(k, l, { t: "c" })}</div><div data-w="${k}a" style="flex:1 1 200px;max-width:320px" hidden>${M(k + "a", l + " összege")}</div></div>`).join("")}</div>
  <div class="grid">${kpi("lk_tam", "Az önerő forrásainak összege")}</div>
  <div class="grid" style="margin-top:8px">${fld("lk_ido", "Gyűjtési időtáv", { n: 1, u: "év" })}${M("lk_havi", "Havi önerő összege", { u: "Ft/hó" })}</div>
- <div class="res" style="margin-top:12px">${kpi("lk_osszes", "Összes önerő", { hl: 1 })}${kpi("lk_min", "Minimum önerő (20%)", { sub: 1 })}${kpi("lk_ajan", "Ajánlott önerő (30%)", { sub: 1 })}</div>
+ <div class="res" style="margin-top:12px">${kpi("lk_osszes", "Összes önerő", { hl: 1, sub: 1 })}${kpi("lk_min", "Minimum önerő (20%)", { sub: 1 })}${kpi("lk_ajan", "Ajánlott önerő (30%)", { sub: 1 })}</div>
  <p class="note">Első lakásnál a vételár 10%-a is elég lehet önerőnek. Babaváró: max. 11 millió Ft, a feleség életkorára korhatár vonatkozik.</p>
 </div>
 <div class="card"><h3>2. Lakáshitel</h3>
@@ -844,6 +844,7 @@ function compute() {
   const tor = pmt(hitel, kam, futam);
   out("lk_osszes", osszes ? ft(osszes) : "–");
   out("lk_min", !ar ? "–" : osszes >= ar * .2 ? "Megvan" : "Nincs meg", !ar ? "" : osszes >= ar * .2 ? "in" : "out");
+  out("lk_osszes_s", ar > 0 && osszes ? "Az ingatlan árának " + (Math.round(osszes / ar * 1000) / 10).toString().replace(".", ",") + "%-a" : "");
   out("lk_ajan", !ar ? "–" : osszes >= ar * .3 ? "Megvan" : "Nincs meg", !ar ? "" : osszes >= ar * .3 ? "in" : "out");
   [["lk_min", .2], ["lk_ajan", .3]].forEach(([id, r]) => out(id + "_s", !ar ? "" : "Szükséges: " + ft(ar * r) + (osszes >= ar * r ? "" : " · hiányzik: " + ft(ar * r - osszes))));
   out("lk_hitel", hitel ? ft(hitel) : "–"); out("lk_torl", hitel ? ft(tor) : "–");
