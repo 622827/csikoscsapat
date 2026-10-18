@@ -360,7 +360,7 @@ function yn(k, l) { return chip(k, l, "Igen", "Nem"); }
 function kpi(id, k, o) { o = o || {}; return `<div class="kpi${o.hl ? " hl" : ""}"><div class="k">${esc(k)}</div><div class="v ${o.c || ""}" data-o="${id}">–</div>${o.sub ? `<div class="k" data-o="${id}_s" style="margin-top:4px"></div>` : ""}</div>`; }
 function names(prefix, n, hint) {
   let h = ""; for (let i = 1; i <= n; i++) h += `<input data-k="${prefix}${i}" placeholder="Név">`;
-  return `<div class="card"><h3>Kinek lehet még hasznos?</h3><div class="nm">${h}</div>${hint ? `<p class="note">${esc(hint)}</p>` : ""}</div>`;
+  return `<div class="card"><h3>Kinek lehet még hasznos?</h3><div class="warn red" data-w="${prefix}w" hidden>A továbblépéshez írj be legalább egy nevet.</div><div class="nm">${h}</div>${hint ? `<p class="note">${esc(hint)}</p>` : ""}</div>`;
 }
 /* táblázat: cols = [[cím, típus(t|m|n|o), szélesség?]], fixed = rögzített első oszlop-címkék */
 function tbl(k, cols, fixed, o) {
@@ -938,6 +938,7 @@ function summary_() {
 function compute() {
   if (syncFsz()) { renderTables(); persistSoon(); }
   if (FSZW) show("lk_fsz_w", fszMissing());
+  Object.keys(NMW).forEach(pf => show(pf + "w", nmMissing(pf)));
   if (!S) return;
   autofill(false);
   szjaCalc();
@@ -1153,10 +1154,14 @@ function syncFsz() {
   return ch;
 }
 let FSZW = false;
+const NMP = { nyugdij: "nv_ny", lakas: "nv_lk", gyermek: "nv_gy", egeszseg: "nv_eh", befektetes: "nv_bf" }, NMW = {};
+function nmMissing(pf) { return !Object.keys(S.d || {}).some(k => k.indexOf(pf) === 0 && has(S.d[k])); }
 function go(id, noscroll) {
   if (!SHEETS.some(s => s[0] === id)) id = "alap";
   { const a = SHEETS.findIndex(s => s[0] === CUR), b = SHEETS.findIndex(s => s[0] === id);
     if (CUR === "lakas" && b > a && fszMissing()) { FSZW = true; show("lk_fsz_w", true); const w = $('[data-w="lk_fsz_w"]'); if (w) w.scrollIntoView({ block: "center", behavior: "smooth" }); return; } }
+  { const a = SHEETS.findIndex(s => s[0] === CUR), b = SHEETS.findIndex(s => s[0] === id), pf = NMP[CUR];
+    if (pf && b > a && nmMissing(pf)) { NMW[pf] = 1; show(pf + "w", true); const w = $('[data-w="' + pf + 'w"]'); if (w) w.scrollIntoView({ block: "center", behavior: "smooth" }); return; } }
   CUR = id; document.body.dataset.sh = id; try { sessionStorage.setItem("csk_ef_tab", id); } catch (e) {}
   $$(".sheet").forEach(s => s.classList.toggle("on", s.id === "s_" + id));
   $$(".steps button").forEach(b => { const on = b.dataset.s === id; b.classList.toggle("on", on); if (on) b.scrollIntoView({ block: "nearest", inline: "center" }); });
