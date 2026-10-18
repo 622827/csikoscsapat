@@ -171,6 +171,10 @@
   @media (prefers-color-scheme: dark) { .warn.red { background: #4a1212; color: #ff9a9a; border-left-color: #ff5252; } }
   .chips { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); }
   .chip { flex-wrap: wrap; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--bg); border-radius: 12px; padding: 7px 8px 7px 12px; }
+  #bankpop { position: absolute; z-index: 50; background: var(--bg); color: var(--ink); border: 1px solid var(--muted); border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.2); padding: 4px; display: flex; flex-direction: column; }
+  #bankpop[hidden] { display: none; }
+  #bankpop button { font: inherit; text-align: left; background: none; border: 0; color: inherit; padding: 7px 10px; border-radius: 8px; cursor: pointer; }
+  #bankpop button:hover { background: var(--track); }
   .cx { flex-basis: 100%; font-size: .82rem; color: var(--muted); padding: 2px 4px 4px 0; }
   .chip > span:first-child { font-weight: 600; font-size: .92rem; }
   .seg2 { display: inline-flex; background: var(--track); border-radius: 999px; padding: 2px; flex: none; }
@@ -338,7 +342,23 @@ function tbl(k, cols, fixed, o) {
     (o.add ? `<button type="button" class="btn" data-addrow="${k}" style="margin-top:8px">+ Új sor</button>` : "");
 }
 const BANKOK = ["OTP Bank", "K&H Bank", "Erste Bank", "MBH Bank", "UniCredit Bank", "Raiffeisen Bank", "CIB Bank", "Gránit Bank", "MagNet Bank", "Budapest Bank", "Takarékbank", "Sopron Bank", "Revolut", "Wise"];
-(function () { if (!document.getElementById("bankok")) { const d = document.createElement("datalist"); d.id = "bankok"; d.innerHTML = BANKOK.map(b => `<option value="${b}">`).join(""); document.body.appendChild(d); } })();
+(function () {
+  const pop = document.createElement("div"); pop.id = "bankpop"; pop.hidden = true; document.body.appendChild(pop);
+  let cur = null;
+  const norm = x => x.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const hide = () => { pop.hidden = true; cur = null; };
+  document.addEventListener("input", e => {
+    const el = e.target; if (!el.matches || !el.matches("input[data-bank]")) return;
+    const q = norm(el.value.trim()); if (!q) return hide();
+    const m = BANKOK.filter(b => norm(b).includes(q) && norm(b) !== q); if (!m.length) return hide();
+    cur = el; pop.innerHTML = m.map(b => `<button type="button">${esc(b)}</button>`).join("");
+    const r = el.getBoundingClientRect(); pop.style.left = (r.left + scrollX) + "px"; pop.style.top = (r.bottom + scrollY + 2) + "px"; pop.style.minWidth = r.width + "px"; pop.hidden = false;
+  });
+  pop.addEventListener("mousedown", e => { const b = e.target.closest("button"); if (!b || !cur) return; e.preventDefault(); cur.value = b.textContent; cur.dispatchEvent(new Event("input", { bubbles: true })); hide(); });
+  document.addEventListener("focusout", e => { if (e.target.matches && e.target.matches("input[data-bank]")) setTimeout(hide, 0); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") hide(); });
+  window.addEventListener("scroll", hide, true);
+})();
 function renderTables() {
   $$("table.t[data-tk]").forEach(t => {
     const k = t.dataset.tk, cols = JSON.parse(t.dataset.cols), fixed = JSON.parse(t.dataset.fixed), lab = t.dataset.lab === "1";
@@ -357,7 +377,7 @@ function renderTables() {
         if (c[1] === "o") { h += `<td class="o" data-o="${k}_${r}">–</td>`; return; }
         const val = row[ci] == null ? "" : row[ci];
         if (c[1] === "s") { h += `<td><select data-tk="${k}" data-r="${r}" data-c="${ci}"><option value=""></option>${c[2].map(x => `<option${x === val ? " selected" : ""}>${esc(x)}</option>`).join("")}</select></td>`; return; }
-        const bl = k === "lk_term" && ci === 2 && row[0] === "Folyószámla" ? ' list="bankok" autocomplete="off"' : "";
+        const bl = k === "lk_term" && ci === 2 && row[0] === "Folyószámla" ? ' data-bank="1" autocomplete="off"' : "";
         h += `<td><input data-tk="${k}" data-r="${r}" data-c="${ci}" value="${esc(val)}"${bl}${c[1] === "m" ? ' class="money" inputmode="decimal"' : c[1] === "n" ? ' inputmode="decimal"' : ""}></td>`;
       });
       if (t.dataset.add === "1") h += (!lab || r >= fixed.length) ? `<td class="x"><button type="button" class="xb" data-delrow="${k}" data-r="${r}" title="Sor törlése">✕</button></td>` : "<td></td>";
