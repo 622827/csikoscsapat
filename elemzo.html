@@ -409,6 +409,7 @@ function renderTables() {
         if (c[1] === "s") { h += `<td><select data-tk="${k}" data-r="${r}" data-c="${ci}"><option value=""></option>${c[2].map(x => `<option${x === val ? " selected" : ""}>${esc(x)}</option>`).join("")}</select></td>`; return; }
         const rl = String(row[0] || "").toLowerCase(); let sg = "";
         if (k === "lk_term" && ci === 2) sg = rl === "folyószámla" ? "bank" : /bizt/.test(rl) ? "bizt" : /lakástakarék/.test(rl) ? "ltp" : /hitel|lízing|kölcsön/.test(rl) ? "hitel" : "";
+        else if (k === "gy_term" && ci === 2 && /bizt/.test(rl)) sg = "bizt";
         else if (k === "vbizt" && ci === 1) sg = "bizt";
         else if (k === "ny_term" && ci === 2 && /bizt/.test(rl)) sg = "bizt";
         else if (k === "z_term" && ci === 1 && /bizt|kgfb/.test(rl)) sg = "bizt";
@@ -755,8 +756,11 @@ ${TXT.gyermek}
 </div>
 <div class="card"><h3>3. Szempontok</h3>
  <div class="chips">${chip("gy_c1", "Államtól független")}${chip("gy_c2", "Szülő rendelkezzen a pénzzel")}${chip("gy_c3", "Lejárat előtt is felhasználható")}${chip("gy_c4", "Védett gyermekprogram")}${chip("gy_c5", "Plusz befizetési lehetőség")}${chip("gy_c6", "Szüneteltethető")}${chip("gy_c7", "Örökölhető")}${chip("gy_c8", "Deviza (euró)")}</div>
- <div class="grid" style="margin-top:10px">${fld("gy_c9", "Egyéb szempont")}${fld("gy_c10", "Melyik a legfontosabb?")}</div>
+ ${fld("gy_megj", "Megjegyzés", { t: "ta", r: 2, full: 1 })}
  <p class="note">Az adatok tájékoztató jellegűek és nem minősülnek ajánlattételnek.</p>
+</div>
+<div class="card"><h3>4. Meglévő termékek</h3>
+ ${tbl("gy_term", [["Termék", "t"], ["Szerződő", "t"], ["Szolgáltató", "t"], ["Éves díj", "m"], ["Extra: összeg, évforduló, kezdet, lejárat", "t"]], ["Babakötvény", "Gyermek megtakarítás", "Biztosítás a családra"], { lab: 1, add: 1 })}
 </div>
 ${names("nv_gy", 4, "Gyermekesek, családot tervezők, friss házasok, nagyszülők, GYES-GYED kiegészítés.")}`;
 
@@ -921,7 +925,7 @@ function summary_() {
   const d = S.d, g = k => d[k];
   const L = [], row = (t, r) => { const x = r.slice(r.length > 1 ? 0 : 0).filter(has); return x.length ? x : null; };
   const add = (area, k, fixedOnly) => (d[k] || []).forEach(r => { const rest = r.slice(1).filter(has); if (rest.length) L.push([area, r[0] || "", rest.join(" | ")]); });
-  add("Nyugdíj", "ny_term"); add("Lakás", "lk_term"); add("Befektetés", "bf_term"); add("Zárás", "z_term");
+  add("Nyugdíj", "ny_term"); add("Lakás", "lk_term"); add("Gyermek", "gy_term"); add("Befektetés", "bf_term"); add("Zárás", "z_term");
   const fx = (area, t, v) => { if (has(v)) L.push([area, t, v]); };
   fx("Alapadat", "Nettó jövedelem", has(g("c_net")) ? ft(num(g("c_net"))) + "/hó" : "");
   fx("Egészség", "Hitel", g("eh_hitel") === "Igen" ? ft(num(g("eh_hosszu"))) : ""); fx("Lakás", "Jelenlegi lakhely", g("lk_hely") === "Egyéb" && has(g("lk_hely2")) ? g("lk_hely2") : g("lk_hely")); fx("Befektetés", "Kockázattűrés", g("bf_koc"));
@@ -1080,7 +1084,7 @@ function compute() {
 }
 
 /* ---------- léptetés ---------- */
-const PREFIX = { alap: ["c_", "p_", "gy_db", "nem", "szja", "auto", "v_", "megj", "fontos", "vbizt", "vhitel"], nyugdij: ["ny_", "nv_ny"], lakas: ["lk_", "nv_lk"], gyermek: ["gy_gyerek", "gy_n", "gy_d", "gy_f", "gy_t", "gy_net", "gy_ev", "gy_egys", "gy_cel", "gy_ido", "gy_havi", "gy_c", "nv_gy"], egeszseg: ["eh_", "nv_eh"], befektetes: ["bf_", "nv_bf"], osszegzes: ["oz", "z_bank"], zaras: ["z_t1", "z_t2", "z_top", "z_g", "z_term", "z_vissz"], ajanlas: ["kv", "aj"] };
+const PREFIX = { alap: ["c_", "p_", "gy_db", "nem", "szja", "auto", "v_", "megj", "fontos", "vbizt", "vhitel"], nyugdij: ["ny_", "nv_ny"], lakas: ["lk_", "nv_lk"], gyermek: ["gy_gyerek", "gy_n", "gy_d", "gy_f", "gy_t", "gy_net", "gy_ev", "gy_egys", "gy_cel", "gy_ido", "gy_havi", "gy_c", "gy_megj", "gy_term", "nv_gy"], egeszseg: ["eh_", "nv_eh"], befektetes: ["bf_", "nv_bf"], osszegzes: ["oz", "z_bank"], zaras: ["z_t1", "z_t2", "z_top", "z_g", "z_term", "z_vissz"], ajanlas: ["kv", "aj"] };
 function sheetFilled(id) {
   const d = S.d, ps = PREFIX[id]; if (!ps) return false;
   return Object.keys(d).some(k => ps.some(p => k.indexOf(p) === 0) && !["ny_havi"].includes(k) && (Array.isArray(d[k]) ? d[k].some(r => r.some((c, i) => has(c) && !(i === 0 && false))) && !isFixedOnly(k, d[k]) : has(d[k])));
