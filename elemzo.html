@@ -169,6 +169,7 @@
   .warn[hidden] { display: none; }
   .chips { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); }
   .chip { flex-wrap: wrap; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--bg); border-radius: 12px; padding: 7px 8px 7px 12px; }
+  .cx { flex-basis: 100%; font-size: .82rem; color: var(--muted); padding: 2px 4px 4px 0; }
   .chip > span:first-child { font-weight: 600; font-size: .92rem; }
   .seg2 { display: inline-flex; background: var(--track); border-radius: 999px; padding: 2px; flex: none; }
   .seg2 button { font: inherit; font-size: .8rem; font-weight: 600; border: 0; background: none; color: var(--ink); padding: 5px 10px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
@@ -291,7 +292,38 @@ function fld(k, l, o) {
   return `<label class="fl${w}"><span>${esc(l)}</span><span class="inp"><input data-k="${k}"${o.m ? ' class="money"' : ""}${o.n || o.m ? ' inputmode="decimal"' : ""}${o.ph ? ` placeholder="${esc(o.ph)}"` : ""}${o.u ? `>` + `<i>${esc(o.u)}</i>` : ">"}</span></label>`;
 }
 const M = (k, l, o) => fld(k, l, Object.assign({ m: 1, u: "Ft" }, o));
-function chip(k, l, a) { a = a || "Fontos"; return `<div class="chip"><span>${esc(l)}</span><span class="seg2" data-ck="${k}"><button type="button" data-v="${a}">${a}</button></span></div>`; }
+const CX = {
+  "Államtól független": "A megtakarítás nem függ állami támogatástól vagy szabályváltozástól, így a feltételei később sem változnak meg.",
+  "Szüneteltethető": "Ha anyagilag szűkösebb időszak jön, a befizetés felfüggeszthető, anélkül hogy a szerződés megszűnne.",
+  "Kamatadómentes": "A hozam után nem kell kamatadót fizetni, így a teljes hozam az ügyfélnél marad.",
+  "Biztonságos (nagy pénzintézet)": "Nagy, stabil pénzintézetnél van a pénz, ezért nagyobb a biztonságérzet.",
+  "Szabad felhasználás": "A felgyűlt összeg bármire elkölthető, nincs célhoz kötve.",
+  "Szabadon felhasználható": "A felgyűlt összeg bármire elkölthető, nincs célhoz kötve.",
+  "Extra befizetés": "A rendszeres havi befizetésen felül bármikor betehető extra összeg is.",
+  "Időtávhoz alkalmazkodó": "A megtakarítás a kitűzött célhoz és időtávhoz igazítható, rövidebb és hosszabb távra is.",
+  "Deviza (euró)": "A megtakarítás euróban is vezethető, így védhet az árfolyamkockázat egy részétől.",
+  "Rugalmas hozzáférés": "A pénz szükség esetén gyorsan és költség nélkül (vagy kis költséggel) elérhető.",
+  "Eseti befizetés bármikor": "A rendszeres befizetés mellett alkalmanként, akár egy bónuszból is betehető pénz.",
+  "Kamatadó ne érintse": "Fontos, hogy a hozamot ne terhelje kamatadó.",
+  "Magánellátás elérhetősége": "Betegség esetén gyorsabban elérhető a magánellátás, nem kell a várólistán várni.",
+  "Kieső jövedelem pótlása": "Betegség vagy baleset miatti kiesésnél a biztosítás pótolja a kieső jövedelmet.",
+  "Kórházi napi térítés": "Kórházi ápolás idején a biztosító minden napra előre meghatározott összeget fizet.",
+  "Visszatérítés, ha nem történik semmi": "Ha a futamidő alatt nem történik biztosítási esemény, a befizetett díj egy része visszajár.",
+  "Díj szüneteltethetősége": "A biztosítási díj nehezebb időszakban szüneteltethető, a védelem megszűnése nélkül.",
+  "Szülő rendelkezzen a pénzzel": "A gyermek nagykorúságáig a szülő dönt a felgyűlt pénz felhasználásáról.",
+  "Lejárat előtt is felhasználható": "Ha szükség van rá, a pénz a lejárat előtt is kivehető.",
+  "Védett gyermekprogram": "Gyermekeknek szóló, védett programban gyűlik a pénz, amelyhez a szülők sem férnek hozzá szabadon.",
+  "Plusz befizetési lehetőség": "A havi befizetésen felül plusz összeg is betehető (például ajándékpénz, bónusz).",
+  "Örökölhető": "Ha a megtakarítónak valami történik, a felgyűlt összeg az örökösökre száll.",
+  "Fix törlesztőrészlet": "A havi törlesztő a futamidő alatt végig azonos, ezért jól tervezhető a költségvetés.",
+  "Előtörlesztés": "A hitel a futamidő előtt részben vagy egészben visszafizethető, így kevesebb kamatot kell fizetni.",
+  "Hiteltörlesztő védelem": "Betegség, baleset vagy kiesés esetén a biztosítás átveszi a törlesztést, vagy kifizeti a hitelt.",
+  "Okos hitel lehetősége": "A hitel mellett külön gyűlik a végtörlesztésre szánt pénz, így a hitel előbb kifizethető.",
+  "Hozzáférhető": "A felgyűlt pénz szükség esetén elérhető.",
+  "Hibrid (rész előbb is elérhető)": "A pénz egy része már nyugdíjkor előtt is felhasználható, a többi a nyugdíjra marad.",
+  "Nyugdíjkorhatár-rugalmas": "A nyugdíjba vonulás ideje változtatható, a megtakarítás ehhez igazodik."
+};
+function chip(k, l, a) { a = a || "Fontos"; return `<div class="chip"><span>${esc(l)}</span><span class="seg2" data-ck="${k}"><button type="button" data-v="${a}">${a}</button></span>${CX[l] ? `<div class="cx" data-cx="${k}" hidden>${esc(CX[l])}</div>` : ""}</div>`; }
 function yn(k, l) { return chip(k, l, "Igen", "Nem"); }
 function kpi(id, k, o) { o = o || {}; return `<div class="kpi${o.hl ? " hl" : ""}"><div class="k">${esc(k)}</div><div class="v ${o.c || ""}" data-o="${id}">–</div>${o.sub ? `<div class="k" data-o="${id}_s" style="margin-top:4px"></div>` : ""}</div>`; }
 function names(prefix, n, hint) {
@@ -341,6 +373,7 @@ function fillAll() {
     if (el.classList.contains("money") && has(el.value)) el.value = fmtMoney(el.value);
   });
   $$("[data-ck]").forEach(g => { const v = S.d[g.dataset.ck]; $$("button", g).forEach(b => b.classList.toggle("on", b.dataset.v === v)); });
+  $$("[data-cx]").forEach(x => { x.hidden = !S.d[x.dataset.cx]; });
   $$("[data-rt]").forEach(g => { const v = S.d[g.dataset.rt]; $$("button", g).forEach(b => b.classList.toggle("on", b.dataset.v === v)); });
   lockAlap(); compute();
 }
@@ -360,7 +393,7 @@ document.addEventListener("focusout", ev => { const el = ev.target; if (el.class
 document.addEventListener("click", ev => {
   const b = ev.target.closest("button"); if (!b || !S) return;
   const g = b.closest("[data-ck]");
-  if (g) { const k = g.dataset.ck; S.d[k] = S.d[k] === b.dataset.v ? "" : b.dataset.v; $$("button", g).forEach(x => x.classList.toggle("on", x.dataset.v === S.d[k])); persistSoon(); compute(); return; }
+  if (g) { const k = g.dataset.ck; S.d[k] = S.d[k] === b.dataset.v ? "" : b.dataset.v; $$("button", g).forEach(x => x.classList.toggle("on", x.dataset.v === S.d[k])); $$(`[data-cx="${k}"]`).forEach(x => { x.hidden = !S.d[k]; }); persistSoon(); compute(); return; }
   const rt = b.closest("[data-rt]");
   if (rt) { const k = rt.dataset.rt; S.d[k] = S.d[k] === b.dataset.v ? "" : b.dataset.v; $$("button", rt).forEach(x => x.classList.toggle("on", x.dataset.v === S.d[k])); persistSoon(); compute(); return; }
   if (b.dataset.addrow) { const rows = S.d[b.dataset.addrow]; rows.push([""]); persistSoon(); fillAll(); const last = $$(`table[data-tk="${b.dataset.addrow}"] tbody tr`).pop(); const i = last && $("input", last); if (i) i.focus(); return; }
