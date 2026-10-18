@@ -213,6 +213,10 @@
   table.dt th, table.dt td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--track); white-space: nowrap; }
   table.dt th:first-child, table.dt td:first-child { text-align: left; }
   table.dt th { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .btn.btn-lock, .btn.btn-lock:disabled { color: #8a8f98; cursor: not-allowed; opacity: .85; }
+  details.guide > summary { pointer-events: none; color: #8a8f98; }
+  details.guide > summary::after { content: ""; width: 14px; height: 14px; flex: none; background: currentColor; transform: none !important; -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zm-7-2a2 2 0 0 1 4 0v2h-4V7z'/></svg>") center / contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zm-7-2a2 2 0 0 1 4 0v2h-4V7z'/></svg>") center / contain no-repeat; }
+  details.guide > .gb { display: none !important; }
   details.guide { background: var(--card); border-radius: 16px; margin-bottom: 14px; }
   details.guide > summary { cursor: pointer; font-weight: 700; padding: 13px 16px; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   details.guide > summary::-webkit-details-marker { display: none; }
@@ -271,7 +275,7 @@
 <nav class="topnav" aria-label="Főmenü"><div class="in"><a class="brand" href="index.html">Csikós BL csapat</a><ul><li><a href="index.html">Kezdőlap</a></li><li><a href="negyedev.html">Negyedéves cél</a></li><li><a href="verseny.html">Versenyállások</a></li><li><a href="csapatkassza.html">Csapatkassza</a></li><li><a href="elemzo.html" aria-current="page">Elemző füzet</a></li></ul></div></nav>
 <main>
 <div class="bar0"><div><h1>Pénzügyi elemző füzet</h1><div class="muted">Ügyfél: <b id="pn"></b></div></div>
-<div class="tl"><select id="cl" aria-label="Ügyfél"></select><button class="btn" id="nw" type="button">+ Új ügyfél</button><button class="btn" id="gd" type="button">Beszélgetésvezető szövegek</button><button class="btn pri drv" type="button">Mentés a Drive-ra</button><button class="btn" id="ex" type="button">Exportálás</button><button class="btn" id="im" type="button">Importálás</button><button class="btn" id="pr" type="button">Nyomtatás / PDF</button><button class="btn bad" id="dl" type="button">Törlés</button><input type="file" id="imf" accept=".json,application/json" hidden></div></div>
+<div class="tl"><select id="cl" aria-label="Ügyfél"></select><button class="btn" id="nw" type="button">+ Új ügyfél</button><button class="btn btn-lock" id="gd" type="button" disabled aria-disabled="true" title="Hamarosan"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px;margin-right:5px"><path fill="currentColor" d="M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zm-7-2a2 2 0 0 1 4 0v2h-4V7z"/></svg>Beszélgetésvezető szövegek</button><button class="btn pri drv" type="button">Mentés a Drive-ra</button><button class="btn" id="ex" type="button">Exportálás</button><button class="btn" id="im" type="button">Importálás</button><button class="btn" id="pr" type="button">Nyomtatás / PDF</button><button class="btn bad" id="dl" type="button">Törlés</button><input type="file" id="imf" accept=".json,application/json" hidden></div></div>
 <div id="dst" class="note" role="status" style="margin:-6px 0 10px"></div>
 <nav class="steps" id="steps" aria-label="Lapok"></nav>
 <div id="sheets"></div>
