@@ -199,6 +199,8 @@
   details.guide li { margin: 0 0 5px; break-inside: avoid; }
   details.guide em, .note-i { color: var(--muted); font-style: italic; }
   .nav2 { display: flex; justify-content: space-between; gap: 12px; margin-top: 22px; }
+  .ctip { position: absolute; z-index: 5; pointer-events: none; background: var(--bg); color: var(--ink); border: 1px solid var(--muted); border-radius: 10px; padding: 6px 10px; font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.18); max-width: 260px; }
+  .ctip i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
   .svgc { width: 100%; height: auto; display: block; background: var(--bg); border-radius: 12px; }
   .lg { display: flex; gap: 16px; flex-wrap: wrap; font-size: .85rem; margin-top: 6px; }
   .lg i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
@@ -396,7 +398,23 @@ function chart(id, xs, series, o) {
   series.forEach(s => { g += `<polyline fill="none" stroke="${s.c}" stroke-width="3" stroke-linejoin="round" points="${s.v.map((y, i) => sx(i).toFixed(1) + "," + sy(y).toFixed(1)).join(" ")}"/>`; });
   if (o.mark != null) g += `<line x1="${sx(o.mark)}" x2="${sx(o.mark)}" y1="${T}" y2="${H - B}" stroke="var(--muted)" stroke-dasharray="3 3"/>`;
   const el = $(`[data-chart="${id}"]`); if (!el) return;
-  el.innerHTML = `<svg class="svgc" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.alt || "Diagram")}">${g}</svg><div class="lg">${series.map(s => `<span><i style="background:${s.c}"></i>${esc(s.n)}</span>`).join("")}</div>`;
+  el.innerHTML = `<svg class="svgc" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.alt || "Diagram")}">${g}</svg><div class="lg">${series.map(s => `<span><i style="background:${s.c}"></i>${esc(s.n)}</span>`).join("")}</div><div class="ctip" hidden></div>`;
+  el.style.position = "relative";
+  const sv = $("svg", el), tip = $(".ctip", el);
+  const ln = document.createElementNS("http://www.w3.org/2000/svg", "line"); ln.setAttribute("y1", T); ln.setAttribute("y2", H - B); ln.setAttribute("stroke", "var(--muted)"); ln.style.display = "none"; sv.appendChild(ln);
+  const dots = series.map(s => { const c = document.createElementNS("http://www.w3.org/2000/svg", "circle"); c.setAttribute("r", 4.5); c.setAttribute("fill", s.c); c.style.display = "none"; sv.appendChild(c); return c; });
+  const hide = () => { tip.hidden = true; ln.style.display = "none"; dots.forEach(c => c.style.display = "none"); };
+  const move = ev => {
+    const r = sv.getBoundingClientRect(), px = ((ev.clientX - r.left) / r.width) * W;
+    let i = xs.length <= 1 ? 0 : Math.round((px - L) / ((W - L - R) / (xs.length - 1))); i = Math.max(0, Math.min(xs.length - 1, i));
+    const x = sx(i); ln.setAttribute("x1", x); ln.setAttribute("x2", x); ln.style.display = "";
+    dots.forEach((c, k) => { c.setAttribute("cx", x); c.setAttribute("cy", sy(series[k].v[i])); c.style.display = ""; });
+    tip.innerHTML = `<b>${esc(String(xs[i]))}. év</b>` + series.map(s => `<div><i style="background:${s.c}"></i>${esc(s.n)}: <b>${ft(s.v[i])}</b></div>`).join("");
+    tip.hidden = false;
+    const left = (x / W) * r.width, tw = tip.offsetWidth;
+    tip.style.left = Math.max(0, Math.min(r.width - tw, left + 12 + tw > r.width ? left - tw - 12 : left + 12)) + "px"; tip.style.top = "8px";
+  };
+  sv.addEventListener("pointermove", move); sv.addEventListener("pointerdown", move); sv.addEventListener("pointerleave", hide);
 }
 
 function lockAlap() {
