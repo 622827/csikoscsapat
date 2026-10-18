@@ -599,9 +599,9 @@ H.lakas = () => `
 <div class="card"><h3>3. Okos hitel – gyűjtés és végtörlesztés</h3>
  <div class="grid g2">${M("lk_vegt", "Végtörlesztésre szánt összeg havonta", { u: "Ft/hó" })}<div class="kpi"><div class="k">Havi ráfordítás összesen (törlesztő + végtörlesztés)</div><div class="v" data-o="lk_rafo">–</div></div></div>
  <div data-chart="lk" style="margin-top:12px"></div>
- <div class="res" style="margin-top:8px">${kpi("lk_cross", "Hitel kifizetve (a két vonal összeér)", { c: "in" })}${kpi("lk_sp", "Megspórolt tőketörlesztés", { c: "in" })}${kpi("lk_marad", "Megtakarításban maradó pénz", { c: "in" })}${kpi("lk_spossz", "Összesen megspórolt összeg", { hl: 1, c: "in" })}</div>
+ <div class="res" style="margin-top:8px">${kpi("lk_cross", "Hitel kifizetve (a két vonal összeér)", { c: "in" })}${kpi("lk_sp", "Megspórolt kamat", { c: "in" })}${kpi("lk_marad", "Megtakarításban maradó pénz", { c: "in" })}${kpi("lk_spossz", "Összesen megspórolt összeg", { hl: 1, c: "in" })}</div>
  <p class="note" data-o="lk_cross_n"></p>
- <p class="note">Összesen megspórolt összeg = a hitel kifizetésekor még hátralévő tőketartozás, amit már nem kell törleszteni (a kamat nincs benne) + a hitel kiváltása után a megtakarításban maradó pénz.</p>
+ <p class="note">Összesen megspórolt összeg = a hitel korábbi kifizetésével megspórolt kamat (a hátralévő törlesztések összege mínusz a hátralévő tőke, amit végtörlesztéskor ki kell fizetni) + a hitel kiváltása után a megtakarításban maradó pénz.</p>
 </div>
 <div class="card" data-w="lk_r"><h3>4. Hiteltörlesztő védelme és adókedvezmény</h3>
  <div class="res">${kpi("lk_v4", "Nettó 4% (havi díj-keret)")}${kpi("lk_vcel", "Célvédelem (hitel + 1 év kieső kereset)", { hl: 1 })}</div>
@@ -888,7 +888,7 @@ function compute() {
       if (cross === null && vegt > 0 && sav[y] >= bal[y]) cross = y;
     }
     chart("lk", xs, [{ n: "Hitel egyenlege", c: "var(--frk)", v: bal }, { n: "Megtakarítás (végtörlesztésre szánt összeg)", c: "var(--csk)", v: sav }], { mark: cross, alt: "Hitel egyenlege és a megtakarítás alakulása" });
-    out("lk_cross", cross ? cross + ". év" : "–"); const spT = cross ? bal[cross] : 0, spM = cross ? sav[cross] - bal[cross] : 0;
+    out("lk_cross", cross ? cross + ". év" : "–"); const spT = cross ? Math.max(0, tor * 12 * (yrs - cross) - bal[cross]) : 0, spM = cross ? sav[cross] - bal[cross] : 0;
     out("lk_sp", cross ? ft(spT) : "–"); out("lk_marad", cross ? ft(spM) : "–"); out("lk_spossz", cross ? ft(spT + spM) : "–");
     $('[data-o="lk_cross_n"]').textContent = !vegt ? "Adj meg végtörlesztésre szánt havi összeget, hogy a diagram megmutassa, mikor szabadul a hitelből." : cross ? "" : "A megadott havi összeggel a futamidő végéig nem éri el a megtakarítás a hitel egyenlegét.";
   } else { const c = $('[data-chart="lk"]'); if (c) c.innerHTML = ""; out("lk_cross", "–"); out("lk_marad", "–"); $('[data-o="lk_cross_n"]').textContent = "A diagramhoz add meg az ingatlan árát és az önerőt."; }
