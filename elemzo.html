@@ -337,6 +337,8 @@ function tbl(k, cols, fixed, o) {
   return `<div class="tw"><table class="t" data-tk="${k}" data-cols='${JSON.stringify(cols)}' data-fixed='${JSON.stringify(fixed || [])}' data-add="${o.add ? 1 : 0}" data-lab="${o.lab ? 1 : 0}" data-sum="${o.sum || ""}" data-init="${o.init || 0}"></table></div>` +
     (o.add ? `<button type="button" class="btn" data-addrow="${k}" style="margin-top:8px">+ Új sor</button>` : "");
 }
+const BANKOK = ["OTP Bank", "K&H Bank", "Erste Bank", "MBH Bank", "UniCredit Bank", "Raiffeisen Bank", "CIB Bank", "Gránit Bank", "MagNet Bank", "Budapest Bank", "Takarékbank", "Sopron Bank", "Revolut", "Wise"];
+(function () { if (!document.getElementById("bankok")) { const d = document.createElement("datalist"); d.id = "bankok"; d.innerHTML = BANKOK.map(b => `<option value="${b}">`).join(""); document.body.appendChild(d); } })();
 function renderTables() {
   $$("table.t[data-tk]").forEach(t => {
     const k = t.dataset.tk, cols = JSON.parse(t.dataset.cols), fixed = JSON.parse(t.dataset.fixed), lab = t.dataset.lab === "1";
@@ -355,7 +357,8 @@ function renderTables() {
         if (c[1] === "o") { h += `<td class="o" data-o="${k}_${r}">–</td>`; return; }
         const val = row[ci] == null ? "" : row[ci];
         if (c[1] === "s") { h += `<td><select data-tk="${k}" data-r="${r}" data-c="${ci}"><option value=""></option>${c[2].map(x => `<option${x === val ? " selected" : ""}>${esc(x)}</option>`).join("")}</select></td>`; return; }
-        h += `<td><input data-tk="${k}" data-r="${r}" data-c="${ci}" value="${esc(val)}"${c[1] === "m" ? ' class="money" inputmode="decimal"' : c[1] === "n" ? ' inputmode="decimal"' : ""}></td>`;
+        const bl = k === "lk_term" && ci === 2 && row[0] === "Folyószámla" ? ' list="bankok" autocomplete="off"' : "";
+        h += `<td><input data-tk="${k}" data-r="${r}" data-c="${ci}" value="${esc(val)}"${bl}${c[1] === "m" ? ' class="money" inputmode="decimal"' : c[1] === "n" ? ' inputmode="decimal"' : ""}></td>`;
       });
       if (t.dataset.add === "1") h += (!lab || r >= fixed.length) ? `<td class="x"><button type="button" class="xb" data-delrow="${k}" data-r="${r}" title="Sor törlése">✕</button></td>` : "<td></td>";
       h += "</tr>";
