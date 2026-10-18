@@ -375,14 +375,14 @@ let HK = null;
 fetch("hitelkamat.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { HK = j; if (S) compute(); }).catch(() => {});
 function hkLook(hitel, futam, jov) {
   if (!HK || !(hitel > 0)) return null;
-  const cl = (v, a, b) => Math.min(b, Math.max(a, v));
-  const L = HK.hitelek, Y = HK.futamidok, I = HK.jovedelmek;
-  const nearest = (arr, v) => arr.reduce((b, x) => Math.abs(x - v) < Math.abs(b - v) ? x : b, arr[0]);
-  const l = nearest(L, cl(hitel, L[0], L[L.length - 1])), y = nearest(Y, cl(futam, Y[0], Y[Y.length - 1]));
-  const jv = jov > 0 ? jov : 450000; let ii = 0; I.forEach((x, k) => { if (jv >= x) ii = k; });
-  const row = HK.adat[l] && HK.adat[l][y] && HK.adat[l][y][ii];
-  return row ? { kamat: row[0], vissza: row[1], thm: row[2], bank: row[3], hitel: l, futam: y, jov: I[ii] } : null;
+  const jv = jov > 0 ? jov : 450000; let best = null, bd = Infinity;
+  HK.hitelek.forEach(l => HK.futamidok.forEach(y => { const r = HK.adat[l] && HK.adat[l][y]; if (!r) return;
+    HK.jovedelmek.forEach((i, k) => { if (!r[k]) return;
+      const d = Math.pow((l - hitel) / 5e6, 2) + Math.pow((y - futam) / 5, 2) + Math.pow((i - jv) / 1e5, 2);
+      if (d < bd) { bd = d; best = { kamat: r[k][0], vissza: r[k][1], thm: r[k][2], bank: r[k][3], hitel: l, futam: y, jov: i }; } }); }));
+  return best;
 }
+
 function chart(id, xs, series, o) {
   o = o || {}; const W = 640, H = 260, L = 64, R = 12, T = 12, B = 30;
   let max = 0, min = 0; series.forEach(s => s.v.forEach(y => { if (y > max) max = y; if (y < min) min = y; }));
@@ -840,7 +840,7 @@ function compute() {
   const futam = n("lk_futam") || 25, hk = has(g("lk_kamat")) ? null : hkLook(hitel, futam, lnet);
   const kam = has(g("lk_kamat")) ? n("lk_kamat") / 100 : (hk ? hk.kamat : .07);
   const kin = $('[data-k="lk_kamat"]'); if (kin) kin.placeholder = hk ? (hk.kamat * 100).toFixed(2).replace(".", ",") : "7";
-  const kn = $('[data-o="lk_kamat_n"]'); if (kn) kn.textContent = has(g("lk_kamat")) ? "" : hk ? "A kamat a Bankmonitor adatai alapján becsült (" + hk.bank + ", a THM szerinti 3. legjobb ajánlat; " + ft(hk.hitel) + " hitel, " + hk.futam + " év, " + ft(hk.jov) + " jövedelem; frissítve: " + HK.frissitve + "). A mezőben átírható." : (HK ? "A megadott adatokhoz nincs Bankmonitor-ajánlat, ezért 7%-os becsült kamattal számolunk." : "");
+  const kn = $('[data-o="lk_kamat_n"]'); if (kn) kn.textContent = has(g("lk_kamat")) ? "" : hk ? "A kamat a Bankmonitor-adatbázis legközelebbi pontja alapján becsült (" + hk.bank + ", a THM szerinti 3. legjobb ajánlat; " + ft(hk.hitel) + " hitel, " + hk.futam + " év, " + ft(hk.jov) + " jövedelem; frissítve: " + HK.frissitve + "). A mezőben átírható." : (HK ? "Nincs elérhető Bankmonitor-adat, ezért 7%-os becsült kamattal számolunk." : "");
   const tor = pmt(hitel, kam, futam);
   out("lk_osszes", osszes ? ft(osszes) : "–");
   out("lk_min", !ar ? "–" : osszes >= ar * .2 ? "Megvan" : "Nincs meg", !ar ? "" : osszes >= ar * .2 ? "in" : "out");
