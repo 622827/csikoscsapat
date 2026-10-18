@@ -1085,23 +1085,23 @@ function szjaCalc() {
   const D30 = new Date(bd.getFullYear() + 30, bd.getMonth(), bd.getDate());
   const L = [], D25 = new Date(bd.getFullYear() + 25, bd.getMonth(), bd.getDate());
   const fm = x => x.getFullYear() + ". " + f2(x.getMonth() + 1) + ". " + f2(x.getDate());
-  if (now < D25) L.push(["van", "25 év alatti: mentes " + fm(D25) + "-ig (havi bruttó 715 765 Ft-ig)."]);
+  if (now < D25) L.push(["van", "25 év alatti: adómentes " + fm(D25) + "-ig (havi bruttó 715 765 Ft-ig)."]);
   else L.push(["nincs", "25 év alatti: nem vonatkozik rá."]);
-  if (now < D30) L.push(N >= 1 ? ["van", "30 év alatti anya: mentes " + fm(D30) + "-ig."] : ["lesz", "30 év alatti anya: az 1. gyermektől " + fm(D30) + "-ig mentes."]);
+  if (now < D30) L.push(N >= 1 ? ["van", "30 év alatti anya: adómentes " + fm(D30) + "-ig."] : ["lesz", "30 év alatti anya: az 1. gyermektől " + fm(D30) + "-ig adómentes."]);
   else L.push(["nincs", "30 év alatti anya: nem vonatkozik rá."]);
   const a26 = 2026 - bd.getFullYear(), y2 = a26 < 40 ? 2026 : a26 < 50 ? 2027 : a26 < 60 ? 2028 : 2029, hi2 = now >= new Date(y2, 0, 1);
   const life = N >= 3 || (N >= 2 && hi2), ends = [now < D25 ? D25 : null, now < D30 && N >= 1 ? D30 : null].filter(Boolean);
   let vege = "";
-  if (!life && !(N >= 2 && !hi2)) vege = ends.length ? " Ha nem születik több gyermek: " + fm(new Date(Math.max.apply(null, ends))) + "-ig mentes." : " Ha nem születik több gyermek: nem lesz mentes.";
+  if (!life && !(N >= 2 && !hi2)) vege = ends.length ? " Ha nem születik több gyermek: " + fm(new Date(Math.max.apply(null, ends))) + "-ig adómentes." : " Ha nem születik több gyermek: nem lesz adómentes.";
   const k2 = 2 - N, k3 = 3 - N;
-  if (N >= 3) L.push(["nincs", "2 gyermek: nem számít, a 3 gyermekes szabály már mentességet ad."]);
-  else if (N >= 2) L.push([hi2 ? "van" : "lesz", hi2 ? "2 gyermek: mentes (" + y2 + ". január 1. óta, élethosszig)." : "2 gyermek: " + y2 + ". január 1-jétől mentes, élethosszig."]);
-  else L.push(["lesz", "2 gyermek: még " + k2 + " gyermek kell, utána " + (hi2 ? "azonnal" : y2 + ". január 1-jétől") + " mentes, élethosszig." + vege]);
-  if (N >= 3) L.push(["van", "3 vagy több gyermek: mentes (2025. október 1. óta, élethosszig)."]);
-  else L.push(["lesz", "3 vagy több gyermek: még " + k3 + " gyermek kell, utána azonnal mentes, élethosszig." + vege]);
+  if (N >= 3) L.push(["nincs", "2 gyermek: nem számít, a 3 gyermekes szabály már adómentességet ad."]);
+  else if (N >= 2) L.push([hi2 ? "van" : "lesz", hi2 ? "2 gyermek: adómentes (" + y2 + ". január 1. óta, élethosszig)." : "2 gyermek: " + y2 + ". január 1-jétől adómentes, élethosszig."]);
+  else L.push(["lesz", "2 gyermek: még " + k2 + " gyermek kell, utána " + (hi2 ? "azonnal" : y2 + ". január 1-jétől") + " adómentes, élethosszig." + vege]);
+  if (N >= 3) L.push(["van", "3 vagy több gyermek: adómentes (2025. október 1. óta, élethosszig)."]);
+  else L.push(["lesz", "3 vagy több gyermek: még " + k3 + " gyermek kell, utána azonnal adómentes, élethosszig." + vege]);
   const van = L.some(x => x[0] === "van");
   const ic = { van: "✔", lesz: "•", nincs: "✕" };
-  box.innerHTML = '<div class="kpi' + (van ? " hl" : "") + '"><div class="k">' + esc(nev) + ' – ' + age + ' éves, ' + N + ' gyermek</div><div class="v">' + (van ? "Jelenleg SZJA-mentes" : "Jelenleg nincs SZJA-mentesség") + '</div></div>' +
+  box.innerHTML = '<div class="kpi' + (van ? " hl" : "") + '"><div class="k">' + esc(nev) + ' – ' + age + ' éves, ' + N + ' gyermek</div><div class="v">' + (van ? "Jelenleg adómentes" : "Jelenleg nincs adómentesség") + '</div></div>' +
     '<ul style="margin:10px 0 0;padding-left:0;list-style:none">' + L.map(x => '<li style="margin:4px 0"><b>' + ic[x[0]] + '</b> ' + esc(x[1]) + '</li>').join("") + '</ul>' +
     '<p class="note">Tájékoztató számítás: a gyermekek számát a „Gyermekek" tábla adja. A feltételeket (pl. családi pótlék) ellenőrizni kell.</p>';
 }
