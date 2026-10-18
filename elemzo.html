@@ -1081,6 +1081,9 @@ function szjaCalc() {
   const f2 = x => String(x).padStart(2, "0"), fmt = x => x.getFullYear() + ". " + f2(x.getMonth() + 1) + ". " + f2(x.getDate()) + ".";
   const D30 = new Date(bd.getFullYear() + 30, bd.getMonth(), bd.getDate());
   const L = [];
+  const D25 = new Date(bd.getFullYear() + 25, bd.getMonth(), bd.getDate());
+  if (now < D25) L.push(["van", "25 év alatti szabály: jelenleg mentes a 25. születésnapjáig (" + fmt(D25) + "), havi bruttó 715 765 Ft jövedelemig (az e fölötti rész adózik); anyaságtól függetlenül jár."]);
+  else L.push(["nincs", "25 év alatti szabály: már betöltötte a 25. életévét, ez nem vonatkozik rá."]);
   if (now < D30) L.push(N >= 1 ? ["van", "30 év alatti anya: jelenleg mentes, a 30. születésnapjáig (" + fmt(D30) + ")."] : ["lesz", "30 év alatti anya: az 1. gyermek vállalásától mentes lesz, a 30. születésnapjáig (" + fmt(D30) + ")."]);
   else L.push(["nincs", "30 év alatti anyák szabálya: már betöltötte a 30. életévét, ez nem vonatkozik rá."]);
   const a26 = 2026 - bd.getFullYear(), y2 = a26 < 40 ? 2026 : a26 < 50 ? 2027 : a26 < 60 ? 2028 : 2029, st2 = new Date(y2, 0, 1), hi2 = now >= st2;
