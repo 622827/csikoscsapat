@@ -840,7 +840,7 @@ function compute() {
   const futam = n("lk_futam") || 25, hk = has(g("lk_kamat")) ? null : hkLook(hitel, futam, lnet);
   const kam = has(g("lk_kamat")) ? n("lk_kamat") / 100 : (hk ? hk.kamat : .07);
   const kin = $('[data-k="lk_kamat"]'); if (kin) kin.placeholder = hk ? (hk.kamat * 100).toFixed(2).replace(".", ",") : "7";
-  const kn = $('[data-o="lk_kamat_n"]'); if (kn) kn.textContent = has(g("lk_kamat")) ? "" : hk ? "A kamat a Bankmonitor-adatbázis legközelebbi pontja alapján becsült (" + hk.bank + ", a THM szerinti 3. legjobb ajánlat; " + ft(hk.hitel) + " hitel, " + hk.futam + " év, " + ft(hk.jov) + " jövedelem; frissítve: " + HK.frissitve + "). A mezőben átírható." : (HK ? "Nincs elérhető Bankmonitor-adat, ezért 7%-os becsült kamattal számolunk." : "");
+  const kn = $('[data-o="lk_kamat_n"]'); if (kn) kn.textContent = has(g("lk_kamat")) ? "" : hk ? "A kamat a Bankmonitor-adatbázis legközelebbi pontja alapján becsült (a THM szerinti 3. legjobb ajánlat; " + ft(hk.hitel) + " hitel, " + hk.futam + " év, " + ft(hk.jov) + " jövedelem; frissítve: " + HK.frissitve + "). A mezőben átírható." : (HK ? "Nincs elérhető Bankmonitor-adat, ezért 7%-os becsült kamattal számolunk." : "");
   const tor = pmt(hitel, kam, futam);
   out("lk_osszes", osszes ? ft(osszes) : "–");
   out("lk_min", !ar ? "–" : osszes >= ar * .2 ? "Megvan" : "Nincs meg", !ar ? "" : osszes >= ar * .2 ? "in" : "out");
