@@ -647,6 +647,7 @@ H.lakas = () => `
  ${fld("lk_megj", "Megjegyzés", { t: "ta", r: 2, full: 1 })}
 </div>
 <div class="card"><h3>6. Meglévő szolgáltatások</h3>
+ <div class="warn" data-w="lk_fsz_w" hidden>A továbblépéshez töltsd ki a Folyószámla sort (szerződő, szolgáltató, éves díj vagy megjegyzés).</div>
  ${tbl("lk_term", [["Szolgáltatás", "t"], ["Szerződő", "t"], ["Szolgáltató", "t"], ["Éves díj", "m"], ["Extra: kamat, összeg, évforduló, kezdet, lejárat", "t"]], ["Lakásbiztosítás", "Hitel/Lízing", "Személyi kölcsön", "Lakástakarékpénztár", "Folyószámla"], { lab: 1, add: 1 })}
 </div>
 ${names("nv_lk", 5, "Albérletben lakók, saját ingatlanban lakók, szülőknél lakó dolgozók, hitellel rendelkezők, befektetési lakást tervezők, ingatlanos szakemberek.")}`;
@@ -845,6 +846,7 @@ function summary_() {
 
 /* ---------- számolások ---------- */
 function compute() {
+  if (FSZW) show("lk_fsz_w", fszMissing());
   if (!S) return;
   autofill(false);
   const d = S.d, g = k => d[k], n = k => num(d[k]);
@@ -984,8 +986,15 @@ function sheetFilled(id) {
 function isFixedOnly(k, rows) { const t = $(`table[data-tk="${k}"]`); if (!t) return false; const f = JSON.parse(t.dataset.fixed || "[]"); return t.dataset.lab === "1" && rows.every((r, i) => r.every((c, ci) => !has(c) || (ci === 0 && i < f.length))); }
 function markSteps() { $$(".steps button").forEach(b => b.classList.toggle("has", sheetFilled(b.dataset.s))); }
 let CUR = "alap";
+function fszMissing() {
+  const rows = (S && S.d && S.d.lk_term) || []; const r = rows.find(x => x && x[0] === "Folyószámla");
+  return !r || !r.slice(1).some(v => String(v == null ? "" : v).trim() !== "");
+}
+let FSZW = false;
 function go(id, noscroll) {
   if (!SHEETS.some(s => s[0] === id)) id = "alap";
+  { const a = SHEETS.findIndex(s => s[0] === CUR), b = SHEETS.findIndex(s => s[0] === id);
+    if (CUR === "lakas" && b > a && fszMissing()) { FSZW = true; show("lk_fsz_w", true); const w = $('[data-w="lk_fsz_w"]'); if (w) w.scrollIntoView({ block: "center", behavior: "smooth" }); return; } }
   CUR = id; try { sessionStorage.setItem("csk_ef_tab", id); } catch (e) {}
   $$(".sheet").forEach(s => s.classList.toggle("on", s.id === "s_" + id));
   $$(".steps button").forEach(b => { const on = b.dataset.s === id; b.classList.toggle("on", on); if (on) b.scrollIntoView({ block: "nearest", inline: "center" }); });
