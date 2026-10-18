@@ -713,6 +713,9 @@ ${names("nv_lk", 5, "Albérletben lakók, saját ingatlanban lakók, szülőkné
 
 H.gyermek = () => `
 <h2>Gyermek</h2><p class="lead">Adókedvezmények, támogatások és a gyermek jövőjére szánt célok.</p>
+<div class="card"><h3>Gyermekek</h3>
+ ${tbl("gy_gyerek", [["Név", "t"], ["Születési dátum (éééé.hh.nn)", "t"], ["Megjegyzés", "t"]], [], { add: 1, init: 2 })}
+</div>
 ${TXT.gyermek}
 <div class="card"><h3>Ügyfél</h3><div class="grid g3">${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}</div></div>
 <div class="card"><h3>1. Adókedvezmények és támogatások</h3>
@@ -883,7 +886,8 @@ function autofill(doCopy) {
 function copyAll() {
   const d = S.d, g = k => d[k];
   afSet("c_bank", g("z_bank"));
-  const ch = [0, 1, 2, 3].map(i => has(g("gy_n" + i)) ? g("gy_n" + i) + (has(g("gy_d" + i)) ? " (" + g("gy_d" + i) + ")" : "") : "").filter(Boolean);
+  const gr = (d.gy_gyerek || []).filter(r => r && has(r[0])).map(r => r[0] + (has(r[1]) ? " (" + r[1] + ")" : ""));
+  const ch = gr.length ? gr : [0, 1, 2, 3].map(i => has(g("gy_n" + i)) ? g("gy_n" + i) + (has(g("gy_d" + i)) ? " (" + g("gy_d" + i) + ")" : "") : "").filter(Boolean);
   afSet("gy_kor", ch.join(", "));
   const z = d.z_term || [], zr = i => (z[i] || []).slice(1).filter(has).join(", ");
   const bz = []; if (zr(0)) bz.push("KGFB: " + zr(0)); if (zr(1)) bz.push("Lakásbiztosítás: " + zr(1));
@@ -1039,7 +1043,7 @@ function compute() {
 }
 
 /* ---------- léptetés ---------- */
-const PREFIX = { alap: ["c_", "p_", "gy_db", "nem", "szja", "auto", "v_", "megj", "fontos", "vbizt", "vhitel"], nyugdij: ["ny_", "nv_ny"], lakas: ["lk_", "nv_lk"], gyermek: ["gy_n", "gy_d", "gy_f", "gy_net", "gy_ev", "gy_cel", "gy_ido", "gy_havi", "gy_c", "nv_gy"], egeszseg: ["eh_", "nv_eh"], befektetes: ["bf_", "nv_bf"], osszegzes: ["oz", "z_bank"], zaras: ["z_t1", "z_t2", "z_top", "z_g", "z_term", "z_vissz"], ajanlas: ["kv", "aj"] };
+const PREFIX = { alap: ["c_", "p_", "gy_db", "nem", "szja", "auto", "v_", "megj", "fontos", "vbizt", "vhitel"], nyugdij: ["ny_", "nv_ny"], lakas: ["lk_", "nv_lk"], gyermek: ["gy_gyerek", "gy_n", "gy_d", "gy_f", "gy_net", "gy_ev", "gy_cel", "gy_ido", "gy_havi", "gy_c", "nv_gy"], egeszseg: ["eh_", "nv_eh"], befektetes: ["bf_", "nv_bf"], osszegzes: ["oz", "z_bank"], zaras: ["z_t1", "z_t2", "z_top", "z_g", "z_term", "z_vissz"], ajanlas: ["kv", "aj"] };
 function sheetFilled(id) {
   const d = S.d, ps = PREFIX[id]; if (!ps) return false;
   return Object.keys(d).some(k => ps.some(p => k.indexOf(p) === 0) && !["ny_havi"].includes(k) && (Array.isArray(d[k]) ? d[k].some(r => r.some((c, i) => has(c) && !(i === 0 && false))) && !isFixedOnly(k, d[k]) : has(d[k])));
