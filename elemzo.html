@@ -725,7 +725,7 @@ ${TXT.gyermek}
  ${[["Szülési támogatás (200 000 Ft)", "gy_t0"], ["Csecsemő- és babakozmetikum (20% visszatérítés)", "gy_f1"], ["Iskolakezdés, ruházkodás", "gy_f2"], ["Egyetemi visszatérítések", "gy_f3"]]
    .map(r => `<tr><td class="lb" style="white-space:normal">${r[0]}</td><td>${chip(r[1], "", "Igen").replace('class="chip"', 'class="chip" style="background:none;padding:0"')}</td></tr>`).join("")}
  </tbody></table></div>
- <div class="grid" style="margin-top:12px">${M("gy_net", "Család nettó jövedelme", { u: "Ft/hó" })}${M("gy_ev1", "Csecsemőápolásra havonta")}${M("gy_ev2", "Ruházkodás, taneszköz (havonta/időszakosan)")}${M("gy_ev3", "Egy évkezdés költsége")}</div>
+ <div class="grid" style="margin-top:12px">${M("gy_ev1", "Csecsemőápolásra havonta")}${M("gy_ev2", "Ruházkodás, taneszköz (havonta/időszakosan)")}${M("gy_ev3", "Egy évkezdés költsége")}</div>
  <p class="note">Családi adókedvezmény (2026), havi nettó megtakarítás gyermekenként: 1 gyermek esetén 20 000 Ft, 2 gyermek esetén 40 000 Ft, 3 vagy több esetén 66 000 Ft. Családi pótlék: 1 gyermek 12 200 Ft, 2 gyermek 13 300 Ft/gyermek, 3+ gyermek 16 000 Ft/gyermek havonta. GYED: a jövedelem 70%-a, legfeljebb bruttó 451 920 Ft/hó; GYES: 28 500 Ft/hó; CSED: 168 napig az átlagkereset 100%-a.</p>
 </div>
 <div class="card"><h3>2. Célok</h3>
@@ -903,7 +903,7 @@ function summary_() {
   const add = (area, k, fixedOnly) => (d[k] || []).forEach(r => { const rest = r.slice(1).filter(has); if (rest.length) L.push([area, r[0] || "", rest.join(" | ")]); });
   add("Nyugdíj", "ny_term"); add("Lakás", "lk_term"); add("Befektetés", "bf_term"); add("Zárás", "z_term");
   const fx = (area, t, v) => { if (has(v)) L.push([area, t, v]); };
-  fx("Alapadat", "Nettó jövedelem", has(g("c_net")) ? ft(num(g("c_net"))) + "/hó" : ""); fx("Alapadat", "Család nettó jövedelme", has(g("gy_net")) ? ft(num(g("gy_net"))) + "/hó" : "");
+  fx("Alapadat", "Nettó jövedelem", has(g("c_net")) ? ft(num(g("c_net"))) + "/hó" : "");
   fx("Egészség", "Hitel", g("eh_hitel") === "Igen" ? ft(num(g("eh_hosszu"))) : ""); fx("Lakás", "Jelenlegi lakhely", g("lk_hely") === "Egyéb" && has(g("lk_hely2")) ? g("lk_hely2") : g("lk_hely")); fx("Befektetés", "Kockázattűrés", g("bf_koc"));
   fx("Összegzés", "Folyószámla – tavalyi költség", has(g("z_bankk")) ? (g("z_bank") ? g("z_bank") + ", " : "") + ft(num(g("z_bankk"))) + "/év" : "");
   const box = $('[data-o="gyujto"]');
