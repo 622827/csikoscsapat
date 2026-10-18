@@ -632,11 +632,11 @@ ${TXT.nyugdij}
 <div class="card"><h3>1. Helyzet</h3>
  <div class="grid g3">
   ${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}${M("c_egyeb", "Egyéb bevétel", { u: "Ft/hó" })}${kpi("ny_osszbev", "Összes havi bevétel", { hl: 1 })}${M("ny_megel", "Havi megélhetési költség", { u: "Ft/hó" })}
-  ${fld("nem", "Nem", { t: "s", o: ["Férfi", "Nő"] })}${fld("ny_pct", "Várható nyugdíj a jövedelem %-ában", { n: 1, u: "%", ph: "automatikus" })}${fld("ny_ev", "Nyugdíjban töltött évek", { n: 1, u: "év", ph: "férfi 14, nő 18" })}
+  ${fld("nem", "Nem", { t: "s", o: ["Férfi", "Nő"] })}${kpi("ny_pct_out", "Várható nyugdíj a jövedelem %-ában")}${fld("ny_ev", "Nyugdíjban töltött évek", { n: 1, u: "év", ph: "férfi 14, nő 18" })}
   ${M("ny_cel", "Nyugdíj célösszege (az életszínvonalhoz)", { u: "Ft/hó" })}${M("ny_meglevo", "Eddigi nyugdíj-megtakarítás", { u: "Ft/hó" })}
  </div>
  <p class="note">Megélhetési költség: amit lakhatásra, ételre, számlákra, ruházkodásra, benzinre stb. költ havonta.</p>
- <p class="note">Várható nyugdíj a jövedelemhez képest: 35 év alatt legfeljebb 20%, 35–44 évesen 30%, 45 év felett 40%. Nyugdíjba vonulás: 65 éves korban.</p>
+ <p class="note">Várható nyugdíj a jövedelemhez képest (automatikus, életkor alapján): ma az átlagnyugdíj a nettó átlagkereset kb. 51%-a. Mivel 2050-re 2,3 helyett csak 1,5 dolgozó jut egy nyugdíjasra, a fiatalabbak várható aránya ennek arányában csökken (65 évesen 51%, 55 évesen 44%, 45 évesen 36%, 28 évesen 33%). Nyugdíjba vonulás: 65 éves korban.</p>
 </div>
 <div class="card"><h3>2. Mennyi hiányzik?</h3>
  <div class="res">${kpi("ny_varhato", "Ügyfél várható nyugdíja")}${kpi("ny_hiany", "Szükséges havi kiegészítés")}${kpi("ny_celosszeg", "Öngondoskodás célösszege", { hl: 1 })}${kpi("ny_ido", "Hátralévő évek 65 éves korig")}${kpi("ny_kmentes", "Szükséges havi megtakarítás kamat nélkül")}${kpi("ny_8", "8% bruttó hozam esetén, havonta")}</div>
@@ -964,7 +964,10 @@ function compute() {
 
   /* nyugdíj */
   const ido = kor > 0 && kor < 65 ? 65 - kor : 0;
-  const pct = has(g("ny_pct")) ? n("ny_pct") / 100 : (kor ? (kor < 35 ? .2 : kor < 45 ? .3 : .4) : 0);
+  /* 51%: az átlagnyugdíj a nettó átlagkereset arányában (KSH 2025); eltartottsági mutató: 2,3 aktív/nyugdíjas ma, 1,5 2050-re (OTP) */
+  const nyEv = kor > 0 ? Math.max(0, 65 - kor) : 0, sup = Math.max(1.5, 2.3 - 0.8 * Math.min(nyEv, 24) / 24);
+  const pct = kor ? Math.round(51 * sup / 2.3) / 100 : 0;
+  out("ny_pct_out", kor ? Math.round(pct * 100) + "%" : "–");
   const ev = has(g("ny_ev")) ? n("ny_ev") : (g("nem") === "Nő" ? 18 : g("nem") === "Férfi" ? 14 : 0);
   const varh = net * pct, hiany = Math.max(0, n("ny_cel") - varh), cel = hiany * 12 * ev;
   const af = AF(ido);
