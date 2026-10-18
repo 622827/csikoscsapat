@@ -167,6 +167,8 @@
   .note { font-size: .86rem; color: var(--muted); margin-top: 8px; }
   .warn { background: var(--bg); border-left: 4px solid var(--frk); border-radius: 8px; padding: 9px 12px; margin-top: 10px; font-size: .92rem; }
   .warn[hidden] { display: none; }
+  .warn.red { background: #fde8e8; border-left-color: #d00000; color: #b00000; font-weight: 600; }
+  @media (prefers-color-scheme: dark) { .warn.red { background: #4a1212; color: #ff9a9a; border-left-color: #ff5252; } }
   .chips { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); }
   .chip { flex-wrap: wrap; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--bg); border-radius: 12px; padding: 7px 8px 7px 12px; }
   .cx { flex-basis: 100%; font-size: .82rem; color: var(--muted); padding: 2px 4px 4px 0; }
@@ -647,7 +649,7 @@ H.lakas = () => `
  ${fld("lk_megj", "Megjegyzés", { t: "ta", r: 2, full: 1 })}
 </div>
 <div class="card"><h3>6. Meglévő szolgáltatások</h3>
- <div class="warn" data-w="lk_fsz_w" hidden>A továbblépéshez töltsd ki a Folyószámla sort (szerződő, szolgáltató, éves díj vagy megjegyzés).</div>
+ <div class="warn red" data-w="lk_fsz_w" hidden>A továbblépéshez töltsd ki a Folyószámla sort (szerződő, szolgáltató, éves díj vagy megjegyzés).</div>
  ${tbl("lk_term", [["Szolgáltatás", "t"], ["Szerződő", "t"], ["Szolgáltató", "t"], ["Éves díj", "m"], ["Extra: kamat, összeg, évforduló, kezdet, lejárat", "t"]], ["Lakásbiztosítás", "Hitel/Lízing", "Személyi kölcsön", "Lakástakarékpénztár", "Folyószámla"], { lab: 1, add: 1 })}
 </div>
 ${names("nv_lk", 5, "Albérletben lakók, saját ingatlanban lakók, szülőknél lakó dolgozók, hitellel rendelkezők, befektetési lakást tervezők, ingatlanos szakemberek.")}`;
