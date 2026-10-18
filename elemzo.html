@@ -722,7 +722,7 @@ ${TXT.gyermek}
 <div class="card"><h3>Partner</h3><div class="grid g3">${fld("p_nev", "Név")}${fld("p_szul", "Születési dátum", { t: "d" })}${kpi("p_kor_out", "Életkor")}</div></div>
 <div class="card"><h3>1. Adókedvezmények és támogatások</h3>
  <div class="tw"><table class="t" style="min-width:420px"><thead><tr><th>Támogatás</th><th>Fontos?</th></tr></thead><tbody>
- ${[["Szülési támogatás (200 000 Ft)", "gy_t0"], ["Csecsemő- és babakozmetikum (20% visszatérítés)", "gy_f1"], ["Iskolakezdés, ruházkodás", "gy_f2"], ["Egyetemi visszatérítések", "gy_f3"]]
+ ${[["Szülési támogatás (200 000 Ft)", "gy_t0"], ["Csecsemő- és babakozmetikum (20% visszatérítés)", "gy_f1"], ["Iskolakezdés, ruházkodás", "gy_f2"], ["Egyetemi visszatérítések", "gy_f3"], ["Babaváró", "gy_t1"]]
    .map(r => `<tr><td class="lb" style="white-space:normal">${r[0]}</td><td>${chip(r[1], "", "Igen").replace('class="chip"', 'class="chip" style="background:none;padding:0"')}</td></tr>`).join("")}
  </tbody></table></div>
  <div class="grid" style="margin-top:12px">${M("gy_ev1", "Csecsemőápolásra havonta")}${M("gy_ev2", "Ruházkodás, taneszköz (havonta/időszakosan)")}${M("gy_ev3", "Egy évkezdés költsége")}</div>
