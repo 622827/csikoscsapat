@@ -78,18 +78,20 @@
 <style>
   :root { --bg:#ffffff; --ink:#003366; --muted:#336699; --accent:#003366; --csk:#006666; --frk:#cc0066; --on-accent:#ffffff; --time:#6699cc; --track:#e5e5e5; --card:#e5e5e5; }
   @media (prefers-color-scheme: dark) { :root { --bg:#001f3d; --ink:#ffffff; --muted:#6699cc; --accent:#ff99cc; --csk:#66cccc; --frk:#ff99cc; --on-accent:#001f3d; --time:#336699; --track:#00305a; --card:#003366; } }
-  /* témaszínek fülenként: lakás zöldeskék, gyermek sárga, nyugdíj világoskék, egészség piros, befektetés rózsaszín/bordó */
+  /* témaszínek fülenként: lakás zöldeskék, gyermek sárga, nyugdíj világoskék, egészség piros, befektetés rózsaszín/bordó, ajánláskérés piros (összegzés, zárás: alap kék) */
   #s_lakas, body[data-sh="lakas"] .steps { --accent: #006666; --on-accent: #ffffff; }
   #s_gyermek, body[data-sh="gyermek"] .steps { --accent: #f2b705; --on-accent: #003366; }
   #s_nyugdij, body[data-sh="nyugdij"] .steps { --accent: #6699cc; --on-accent: #003366; }
   #s_egeszseg, body[data-sh="egeszseg"] .steps { --accent: #cc2222; --on-accent: #ffffff; }
   #s_befektetes, body[data-sh="befektetes"] .steps { --accent: #cc0066; --on-accent: #ffffff; }
+  #s_ajanlas, body[data-sh="ajanlas"] .steps { --accent: #cc2222; --on-accent: #ffffff; }
   @media (prefers-color-scheme: dark) {
     #s_lakas, body[data-sh="lakas"] .steps { --accent: #66cccc; --on-accent: #001f3d; }
     #s_gyermek, body[data-sh="gyermek"] .steps { --accent: #ffd24d; --on-accent: #001f3d; }
     #s_nyugdij, body[data-sh="nyugdij"] .steps { --accent: #99c2ee; --on-accent: #001f3d; }
     #s_egeszseg, body[data-sh="egeszseg"] .steps { --accent: #ff7070; --on-accent: #001f3d; }
     #s_befektetes, body[data-sh="befektetes"] .steps { --accent: #ff99cc; --on-accent: #001f3d; }
+    #s_ajanlas, body[data-sh="ajanlas"] .steps { --accent: #ff7070; --on-accent: #001f3d; }
   }
   * { box-sizing: border-box; }
   .topnav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; background: var(--bg); border-bottom: 1px solid var(--track); }
