@@ -342,6 +342,8 @@ function tbl(k, cols, fixed, o) {
     (o.add ? `<button type="button" class="btn" data-addrow="${k}" style="margin-top:8px">+ Új sor</button>` : "");
 }
 const BIZTOK = ["Allianz", "Generali", "Groupama", "UNIQA", "Aegon", "NN", "K&H Biztosító", "MBH Biztosító", "Magyar Posta Biztosító", "Signal Iduna", "Colonnade", "Genertel", "Wáberer"];
+const LTPK = ["Fundamenta-Lakáskassza", "OTP Lakástakarékpénztár", "Raiffeisen Lakástakarék", "Erste Lakástakarék", "MBH Lakástakarék"];
+const HITELEK_PLUSZ = ["Cetelem (BNP Paribas Personal Finance)", "Provident", "Merkantil Bank", "Fundamenta-Lakáskassza"];
 const BANKOK = ["OTP Bank", "K&H Bank", "Erste Bank", "MBH Bank", "UniCredit Bank", "Raiffeisen Bank", "CIB Bank", "Gránit Bank", "MagNet Bank", "Budapest Bank", "Takarékbank", "Sopron Bank", "Revolut", "Wise"];
 (function () {
   const pop = document.createElement("div"); pop.id = "bankpop"; pop.hidden = true; document.body.appendChild(pop);
@@ -351,7 +353,7 @@ const BANKOK = ["OTP Bank", "K&H Bank", "Erste Bank", "MBH Bank", "UniCredit Ban
   document.addEventListener("input", e => {
     const el = e.target; if (!el.matches || !el.matches("input[data-bank]")) return;
     const q = norm(el.value.trim()); if (!q) return hide();
-    const LST = el.dataset.bank === "bizt" ? BIZTOK : BANKOK, m = LST.filter(b => norm(b).includes(q) && norm(b) !== q); if (!m.length) return hide();
+    const LST = el.dataset.bank === "bizt" ? BIZTOK : el.dataset.bank === "ltp" ? LTPK : el.dataset.bank === "hitel" ? BANKOK.concat(HITELEK_PLUSZ) : BANKOK, m = LST.filter(b => norm(b).includes(q) && norm(b) !== q); if (!m.length) return hide();
     cur = el; pop.innerHTML = m.map(b => `<button type="button">${esc(b)}</button>`).join("");
     const r = el.getBoundingClientRect(); pop.style.left = (r.left + scrollX) + "px"; pop.style.top = (r.bottom + scrollY + 2) + "px"; pop.style.minWidth = r.width + "px"; pop.hidden = false;
   });
@@ -379,10 +381,12 @@ function renderTables() {
         const val = row[ci] == null ? "" : row[ci];
         if (c[1] === "s") { h += `<td><select data-tk="${k}" data-r="${r}" data-c="${ci}"><option value=""></option>${c[2].map(x => `<option${x === val ? " selected" : ""}>${esc(x)}</option>`).join("")}</select></td>`; return; }
         const rl = String(row[0] || "").toLowerCase(); let sg = "";
-        if (k === "lk_term" && ci === 2) sg = rl === "folyószámla" ? "bank" : /bizt/.test(rl) ? "bizt" : "";
+        if (k === "lk_term" && ci === 2) sg = rl === "folyószámla" ? "bank" : /bizt/.test(rl) ? "bizt" : /lakástakarék/.test(rl) ? "ltp" : /hitel|lízing|kölcsön/.test(rl) ? "hitel" : "";
         else if (k === "vbizt" && ci === 1) sg = "bizt";
         else if (k === "ny_term" && ci === 2 && /bizt/.test(rl)) sg = "bizt";
         else if (k === "z_term" && ci === 1 && /bizt|kgfb/.test(rl)) sg = "bizt";
+        else if (k === "z_term" && ci === 1 && /lakástakarék/.test(rl)) sg = "ltp";
+        else if (k === "z_term" && ci === 1 && /hitel|kölcsön|lízing/.test(rl)) sg = "hitel";
         else if (k === "auto" && ci >= 1 && ci <= 3) sg = "bizt";
         const bl = sg ? ` data-bank="${sg}" autocomplete="off"` : "";
         h += `<td><input data-tk="${k}" data-r="${r}" data-c="${ci}" value="${esc(val)}"${bl}${c[1] === "m" ? ' class="money" inputmode="decimal"' : c[1] === "n" ? ' inputmode="decimal"' : ""}></td>`;
