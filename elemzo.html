@@ -747,7 +747,7 @@ ${TXT.gyermek}
 </div>
 <div class="card"><h3>2. Célok</h3>
  <div class="chips" style="margin-bottom:10px">${chip("gy_egys", "Minden gyermekkel egységesen számolunk", "Igen")}</div>
- ${tbl("gy_cel", [["Cél", "t"], ["Célösszeg", "m"], ["Hány éves korára legyen meg?", "n"], ["Havonta", "o"]], ["Tanulmányok", "Esküvő", "Jogosítvány, autó", "Saját lakás, önerő", "Életkezdés"], { lab: 1, add: 1, init: 2, sum: 1 })}
+ ${tbl("gy_cel", [["Cél", "t"], ["Célösszeg", "m"], ["Ideális életkor", "n"], ["Havonta", "o"]], ["Tanulmányok", "Esküvő", "Jogosítvány, autó", "Saját lakás, önerő", "Életkezdés"], { lab: 1, add: 1, init: 2, sum: 1 })}
  <p class="note" data-o="gy_cel_n"></p>
  <div class="grid" style="margin-top:12px">${fld("gy_ido", "Megtakarítás időtáv", { n: 1, u: "év" })}${M("gy_havi", "Megtakarított összeg havonta", { u: "Ft/hó" })}</div>
  <div class="res" style="margin-top:12px">${kpi("gy_ossz", "Összes cél", { hl: 1 })}${kpi("gy_szuks", "Szükséges megtakarítás havonta")}${kpi("gy_mentes", "Összes megtakarítás")}${kpi("gy_szaz", "Megoldás százaléka", { c: "in" })}</div>
