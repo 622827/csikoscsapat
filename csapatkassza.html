@@ -761,7 +761,7 @@
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return msg("Az e-mail cím hibás.", 1);
       if (!aut) return msg("Válassz csomagautomatát a legördülő listából.", 1);
       if (!kt()) { gate(""); return; }
-      busy = true; $("fx-go").disabled = true; msg("Csomag létrehozása…");
+      busy = true; $("fx-go").disabled = true; msg("Csomag létrehozása… (v2, legfeljebb 45 mp)");
       var ctl = window.AbortController ? new AbortController() : null, tm = setTimeout(function () { if (ctl) ctl.abort(); }, 45000);
       fetch(IRODA_API, { signal: ctl ? ctl.signal : undefined, method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ foxpost: 1, t: token(), kt: kt(), nev: nev, tel: tel, email: mail, aut: aut }) })
         .then(function (r) { return r.text().then(function (t) { try { return JSON.parse(t); } catch (e) { return { error: "A háttér válasza nem értelmezhető: " + t.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160) }; } }); }).then(function (d) {
