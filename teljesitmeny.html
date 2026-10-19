@@ -344,10 +344,13 @@
       });
   }
   function err(t) { $("err").textContent = t || ""; }
-  function load() { call({ action: "get" }).then(function (d) { D = d; render(); err(""); }).catch(function (e) { err(e.message); }); }
+  function keep() { try { localStorage.setItem("tj_cache", JSON.stringify(D)); } catch (e) {} }
+  function load() {
+    if (!D) { try { var c0 = JSON.parse(localStorage.getItem("tj_cache") || "null"); if (c0 && c0.clients) { D = c0; render(); } } catch (e) {} }
+    call({ action: "get" }).then(function (d) { if (Q.length || running) return; D = d; keep(); render(); err(""); }).catch(function (e) { err(e.message); }); }
   $("ref").addEventListener("click", function () {
     var b = $("ref"); b.disabled = true; b.textContent = "Frissítés…";
-    call({ action: "sync" }).then(function (d) { D = d; render(); err(""); }).catch(function (e) { err(e.message); }).then(function () { b.disabled = false; b.textContent = "Frissítés a naptárból"; });
+    call({ action: "sync" }).then(function (d) { D = d; keep(); render(); err(""); }).catch(function (e) { err(e.message); }).then(function () { b.disabled = false; b.textContent = "Frissítés a naptárból"; });
   });
   $("per").addEventListener("change", render);
   function inPeriod(iso) {
@@ -383,11 +386,11 @@
     if (running) return; running = true;
     (function next(last) {
       var b = Q.shift();
-      if (!b) { running = false; if (last) { D = last; render(); } return; }
+      if (!b) { running = false; if (last) { D = last; keep(); render(); } return; }
       call(b).then(function (d) { err(""); next(d); }).catch(function (e) { Q = []; running = false; err(e.message); load(); });
     })(null);
   }
-  function act(body) { local(body); render(); Q.push(body); pump(); }
+  function act(body) { local(body); keep(); render(); Q.push(body); pump(); }
   function render() {
     if (!D) return;
     $("upd").textContent = D.updated ? "Utolsó frissítés: " + new Date(D.updated).toLocaleString("hu-HU", { dateStyle: "short", timeStyle: "short" }) : "";
