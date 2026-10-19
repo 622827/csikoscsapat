@@ -261,6 +261,13 @@
   .pg .mt .cnt { font-size: 1.4rem; font-weight: 700; color: var(--ink); line-height: 1; display: block; }
   .pg .cl { margin: 0 12px 12px; padding: 12px 14px; background: var(--bg); border-radius: 12px; border: 2px solid var(--track, #e5e5e5); }
   .pg .cl.gone { opacity: .6; }
+  .pg .q { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-weight:600; }
+  .pg .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .pg .tab { border:2px solid var(--track,#e5e5e5); background:var(--bg); border-radius:999px; padding:6px 14px; font:inherit; font-weight:700; cursor:pointer; }
+  .pg .tab.on { background:#c8102e; color:#fff; border-color:#c8102e; }
+  .pg .tab .cnt { opacity:.75; margin-left:4px; }
+  .pg .sum { margin:0 12px 8px; color:var(--muted); font-weight:600; }
+  .pg h4.wk { margin:14px 12px 8px; font-size:.95rem; color:var(--muted); border-bottom:1px solid var(--track,#e5e5e5); padding-bottom:4px; }
   .pg .cl h3 { margin: 0 0 8px; font-size: 1rem; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
   .pg .cl h3 small { color: var(--muted); font-weight: 600; font-size: .8rem; }
   .pg .tk { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
@@ -345,6 +352,15 @@
     return d >= f && d < t;
   }
   function fmt(iso) { var d = new Date(iso + ":00"); return d.getFullYear() + "." + ("0" + (d.getMonth() + 1)).slice(-2) + "." + ("0" + d.getDate()).slice(-2) + ". " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); }
+  var SEL = ""; try { SEL = sessionStorage.getItem("tj_sel") || ""; } catch (e) {}
+  function mon(iso) { var d = new Date(iso.substring(0, 10) + "T12:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
+  function weekKey(iso) { var d = mon(iso); return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); }
+  function weekLabel(iso) {
+    var a = mon(iso), b = new Date(a); b.setDate(b.getDate() + 6);
+    var t = new Date(a); t.setDate(t.getDate() + 3); var y0 = new Date(t.getFullYear(), 0, 4); var w = 1 + Math.round(((t - y0) / 864e5 - 3 + ((y0.getDay() + 6) % 7)) / 7);
+    function f(d) { return ("0" + (d.getMonth() + 1)).slice(-2) + "." + ("0" + d.getDate()).slice(-2) + "."; }
+    return t.getFullYear() + ". " + w + ". hét (" + f(a) + " – " + f(b) + ")";
+  }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
   function act(body) {
     if (busy) return; busy = true;
@@ -354,17 +370,39 @@
     if (!D) return;
     $("upd").textContent = D.updated ? "Utolsó frissítés: " + new Date(D.updated).toLocaleString("hu-HU", { dateStyle: "short", timeStyle: "short" }) : "";
     var by = {}; D.clients.forEach(function (c) { if (inPeriod(c.date)) (by[c.mt] = by[c.mt] || []).push(c); });
-    var open = {}; [].forEach.call(document.querySelectorAll("#list details[open]"), function (x) { open[x.getAttribute("data-mt")] = 1; });
     var mails = Object.keys(by).sort(function (a, b) { return by[b].length - by[a].length; });
     var L = $("list"); L.textContent = "";
+    if (!mails.length) { $("none").textContent = "Ebben az időszakban nincs elemzés a naptárakban."; return; }
+    $("none").textContent = "";
+    if (!by[SEL]) SEL = mails[0];
+    var tabs = el("div", "tabs");
     mails.forEach(function (mail) {
+      var tb = el("button", "tab" + (mail === SEL ? " on" : ""), (D.team[mail] || mail) + " "); tb.type = "button";
+      tb.appendChild(el("span", "cnt", String(by[mail].length)));
+      tb.addEventListener("click", function () { SEL = mail; try { sessionStorage.setItem("tj_sel", mail); } catch (e) {} render(); });
+      tabs.appendChild(tb);
+    });
+    L.appendChild(tabs);
+    [SEL].forEach(function (mail) {
       var cl = by[mail].sort(function (a, b) { return a.date < b.date ? 1 : -1; }), done = 0, all = 0;
-      cl.forEach(function (c) { c.tasks.forEach(function (t) { all++; if (t.done) done++; }); });
-      var det = el("details", "mt"); det.setAttribute("data-mt", mail); if (open[mail]) det.open = true;
-      var sm = el("summary"); sm.appendChild(el("span", "", D.team[mail] || mail));
-      var n = el("span", "n"); var cnt = el("span", "cnt", String(cl.length)); n.appendChild(cnt); n.appendChild(document.createTextNode("elemzés · " + done + "/" + all + " feladat kész")); sm.appendChild(n); det.appendChild(sm);
+      cl.forEach(function (c) { if (c.state) c.tasks.forEach(function (t) { all++; if (t.done) done++; }); });
+      var det = el("div", "mt");
+      det.appendChild(el("div", "sum", cl.length + " elemzés · " + done + "/" + all + " feladat kész"));
+      var lastWk = "";
       cl.forEach(function (c) {
+        var wk = weekKey(c.date);
+        if (wk !== lastWk) { lastWk = wk; det.appendChild(el("h4", "wk", weekLabel(c.date))); }
         var box = el("div", "cl" + (c.gone ? " gone" : "")), h = el("h3", "", c.name); h.appendChild(el("small", "", fmt(c.date) + (c.gone ? " · a naptárból törölve" : ""))); box.appendChild(h);
+        if (!c.state) {
+          var q = el("div", "q"); q.appendChild(el("span", "", "Megvalósult az elemzés?"));
+          var by1 = el("button", "sm", "Igen"), by0 = el("button", "sm", "Nem"); by1.type = by0.type = "button";
+          by1.addEventListener("click", function () { act({ action: "answer", key: c.key, yes: true }); });
+          by0.addEventListener("click", function () { act({ action: "answer", key: c.key, yes: false }); });
+          q.appendChild(by1); q.appendChild(by0); box.appendChild(q); det.appendChild(box); return;
+        }
+        var chg = el("button", "x", c.state === "yes" ? "megvalósult ✓ (módosít)" : "nem valósult meg (módosít)"); chg.type = "button"; chg.style.cssText = "width:auto;font-size:.75rem;margin-bottom:6px";
+        chg.addEventListener("click", function () { if (confirm("Biztosan módosítod? A feladatok lecserélődnek.")) act({ action: "answer", key: c.key, yes: c.state !== "yes" }); });
+        box.appendChild(chg);
         c.tasks.forEach(function (t) {
           var r = el("label", "tk" + (t.done ? " done" : "")), ck = el("input"); ck.type = "checkbox"; ck.checked = !!t.done;
           ck.addEventListener("change", function () { act({ action: "toggle", key: c.key, task: t.id, done: ck.checked }); });
@@ -380,7 +418,6 @@
       });
       L.appendChild(det);
     });
-    $("none").textContent = mails.length ? "" : "Ebben az időszakban nincs elemzés a naptárakban.";
   }
 })();
 </script>
