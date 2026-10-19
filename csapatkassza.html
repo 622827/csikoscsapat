@@ -699,6 +699,7 @@
   });
   /* ===== Foxpost csomag: a háttérszkript (Apps Script) hozza létre a csomagot és a címkét ===== */
   (function () {
+    var IRODA_API = "https://script.google.com/macros/s/AKfycbyeBUhK2P5wGl9YbQKG_MSewVomcXoqL9mxP5NioW91kUEsMH8VSV165YuIUqV0C3nU/exec";
     var busy = false;
     function msg(t, bad) { var m = $("fx-msg"); m.textContent = t || ""; m.style.color = bad ? "#c0392b" : ""; }
     function phone(v) {
@@ -721,7 +722,7 @@
       if (!aut) return msg("Add meg a csomagautomatát (név, város vagy azonosító).", 1);
       if (!kt()) { gate(""); return; }
       busy = true; $("fx-go").disabled = true; msg("Csomag létrehozása…");
-      fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ foxpost: 1, t: token(), kt: kt(), nev: nev, tel: tel, email: mail, aut: aut }) })
+      fetch(IRODA_API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ foxpost: 1, t: token(), kt: kt(), nev: nev, tel: tel, email: mail, aut: aut }) })
         .then(function (r) { return r.json(); }).then(function (d) {
           busy = false; $("fx-go").disabled = false;
           if (d && d.error === "kauth") { gate("A belépés lejárt, add meg újra a jelszót."); return; }
