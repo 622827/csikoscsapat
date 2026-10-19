@@ -198,6 +198,10 @@
   .kgate .kerr { color: var(--frk); min-height: 1.4em; margin: 10px 0 0; font-size: .95rem; }
   .ipane label { display:block; font-weight:600; font-size:.9rem; margin:10px 0 0; }
   .ipane label .srch { margin-top:4px; }
+  #fx-list .o { display:block; width:100%; text-align:left; font:inherit; font-weight:400; padding:8px 12px; border:0; background:none; color:var(--ink); cursor:pointer; border-bottom:1px solid var(--track); }
+  #fx-list .o:hover, #fx-list .o.on { background:var(--accent); color:var(--on-accent,#fff); }
+  #fx-list .o small { display:block; opacity:.75; }
+  #fx-list .e { padding:10px 12px; color:var(--muted); font-weight:400; }
   .srch { width: 100%; font: inherit; padding: 10px 14px; border-radius: 12px; border: 2px solid var(--track); background: var(--card); color: var(--ink); margin-bottom: 10px; }
   .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; z-index: 900; font-weight: 600; max-width: calc(100vw - 24px); }
   .toast.bad { background: var(--frk); color: #fff; }
@@ -301,7 +305,10 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 16px;max-width:720px">
       <label>Név<input class="srch" id="fx-nev" value="Kollmann Eszter" autocomplete="off" placeholder="Címzett neve"></label>
       <label>Telefonszám<input class="srch" id="fx-tel" type="tel" value="+36203910612" autocomplete="off" placeholder="+36 30 123 4567"></label>
-      <label>Csomagautomata<input class="srch" id="fx-aut" autocomplete="off" placeholder="Automata neve vagy azonosítója"></label>
+      <label style="position:relative">Csomagautomata
+        <input class="srch" id="fx-aut" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="fx-list" placeholder="Kattints, majd válassz vagy gépelj (név, város, cím)">
+        <div id="fx-list" role="listbox" hidden style="position:absolute;left:0;right:0;top:100%;z-index:30;max-height:280px;overflow:auto;background:var(--card);border:2px solid var(--track);border-radius:12px;margin-top:-6px;box-shadow:0 8px 24px rgba(0,0,0,.18)"></div>
+      </label>
       <label>E-mail<input class="srch" id="fx-mail" type="email" value="kollmann.eszter.ovb@gmail.com" autocomplete="off" placeholder="cim@pelda.hu"></label>
     </div>
     <button class="primary" type="button" id="fx-go">Csomagcímke létrehozása</button>
@@ -713,13 +720,46 @@
       l.href = u; l.download = name; document.body.appendChild(l); l.click(); l.remove();
       setTimeout(function () { URL.revokeObjectURL(u); }, 60000);
     }
+    /* ---- automata legördülő lista (Foxpost nyilvános automatalista) ---- */
+    var APM = null, apmLoading = false, apmSel = "";
+    function norm(x) { return String(x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim(); }
+    function loadApm() {
+      if (APM || apmLoading) return; apmLoading = true; $("fx-list").innerHTML = '<div class="e">Automaták betöltése…</div>'; $("fx-list").hidden = false;
+      fetch("https://cdn.foxpost.hu/foxplus.json").then(function (r) { return r.json(); }).then(function (l) {
+        APM = l.filter(function (a) { return a.operator_id || a.place_id; }).map(function (a) {
+          var id = String(a.operator_id || a.place_id), nm = String(a.name || "").replace(/^FOXPOST\s*/i, "");
+          return { id: id, name: nm, addr: a.address || "", h: norm([nm, a.city, a.zip, a.street, a.address, id].join(" ")) };
+        }).sort(function (x, y) { return x.addr < y.addr ? -1 : 1; });
+        apmLoading = false; showApm();
+      }).catch(function () { apmLoading = false; $("fx-list").innerHTML = '<div class="e">Az automatalista nem tölthető be.</div>'; });
+    }
+    function showApm() {
+      var box = $("fx-list"); if (!APM) return loadApm();
+      var w = norm($("fx-aut").value).split(" ").filter(Boolean), out = [], i, a;
+      for (i = 0; i < APM.length && out.length < 60; i++) { a = APM[i]; if (w.every(function (x) { return a.h.indexOf(x) >= 0; })) out.push(a); }
+      box.innerHTML = ""; box.hidden = false; $("fx-aut").setAttribute("aria-expanded", "true");
+      if (!out.length) { box.innerHTML = '<div class="e">Nincs találat.</div>'; return; }
+      out.forEach(function (a) {
+        var b = document.createElement("button"); b.type = "button"; b.className = "o"; b.setAttribute("role", "option");
+        b.innerHTML = "<b></b><small></small>"; b.firstChild.textContent = a.name; b.lastChild.textContent = a.addr + " · " + a.id;
+        b.addEventListener("mousedown", function (ev) { ev.preventDefault(); });
+        b.addEventListener("click", function () { apmSel = a.id; $("fx-aut").value = a.name + " – " + a.addr; closeApm(); });
+        box.appendChild(b);
+      });
+    }
+    function closeApm() { $("fx-list").hidden = true; $("fx-aut").setAttribute("aria-expanded", "false"); }
+    $("fx-aut").addEventListener("focus", function () { showApm(); });
+    $("fx-aut").addEventListener("click", function () { showApm(); });
+    $("fx-aut").addEventListener("input", function () { apmSel = ""; showApm(); });
+    $("fx-aut").addEventListener("blur", function () { setTimeout(closeApm, 150); });
+    $("fx-aut").addEventListener("keydown", function (ev) { if (ev.key === "Escape") closeApm(); });
     $("fx-go").addEventListener("click", function () {
       if (busy) return; $("fx-cand").innerHTML = "";
-      var nev = $("fx-nev").value.trim(), tel = phone($("fx-tel").value), mail = $("fx-mail").value.trim(), aut = $("fx-aut").value.trim();
+      var nev = $("fx-nev").value.trim(), tel = phone($("fx-tel").value), mail = $("fx-mail").value.trim(), aut = apmSel;
       if (!nev) return msg("Add meg a nevet.", 1);
       if (!tel) return msg("A telefonszám legyen magyar mobilszám (+36 20/30/31/50/51/70 …).", 1);
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return msg("Az e-mail cím hibás.", 1);
-      if (!aut) return msg("Add meg a csomagautomatát (név, város vagy azonosító).", 1);
+      if (!aut) return msg("Válassz csomagautomatát a legördülő listából.", 1);
       if (!kt()) { gate(""); return; }
       busy = true; $("fx-go").disabled = true; msg("Csomag létrehozása…");
       fetch(IRODA_API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ foxpost: 1, t: token(), kt: kt(), nev: nev, tel: tel, email: mail, aut: aut }) })
@@ -730,7 +770,7 @@
             msg("Több automata is egyezik, válassz:");
             d.candidates.forEach(function (c) {
               var b = document.createElement("button"); b.type = "button"; b.className = "primary"; b.style.cssText = "display:block;margin:6px 0;text-align:left";
-              b.textContent = c.name + " – " + c.address; b.addEventListener("click", function () { $("fx-aut").value = c.id; $("fx-cand").innerHTML = ""; $("fx-go").click(); });
+              b.textContent = c.name + " – " + c.address; b.addEventListener("click", function () { apmSel = c.id; $("fx-aut").value = c.name + " – " + c.address; $("fx-cand").innerHTML = ""; $("fx-go").click(); });
               $("fx-cand").appendChild(b);
             }); return;
           }
