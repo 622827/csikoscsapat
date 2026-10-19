@@ -267,8 +267,25 @@
   .pg button[disabled] { opacity: .55; cursor: not-allowed; }
   .pg .pmsg { min-height: 1.4em; margin: 12px 0 0; font-weight: 600; }
   .pg .pmsg.err { color: var(--hot, #cc0066); } .pg .pmsg.ok { color: var(--ok, #006666); }
+  #gate { position: fixed; inset: 0; z-index: 99; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 24px; color: var(--ink); }
+  #gate[hidden], #app[hidden] { display: none !important; }
+  #gate form { width: 100%; max-width: 340px; }
+  #gate h1 { font-size: 1.9rem; letter-spacing: -.03em; line-height: 1.05; margin: 0 0 8px; }
+  #gate .lead { color: var(--muted); margin: 0 0 16px; }
+  #gate input { width: 100%; font: inherit; font-size: 1.1rem; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  #gate button { width: 100%; margin-top: 12px; font: inherit; font-weight: 700; font-size: 1.05rem; padding: 14px; border: 0; border-radius: 12px; cursor: pointer; background: var(--accent); color: var(--on-accent); }
+  #gate .gerr { color: var(--hot, #cc0066); min-height: 1.4em; margin: 10px 0 0; font-weight: 600; }
 </style>
-<main class="pg">
+<div id="gate">
+  <form id="gform" autocomplete="off">
+    <h1>Tanácsadó PPT generátor</h1>
+    <p class="lead">Add meg a jelszót a belépéshez.</p>
+    <input id="gpw" type="password" placeholder="Jelszó" autocomplete="off" aria-label="Jelszó">
+    <button class="primary" type="submit">Belépés</button>
+    <p class="gerr" id="gerr" role="alert"></p>
+  </form>
+</div>
+<main class="pg" id="app" hidden>
   <h1>Tanácsadó PPT generátor</h1>
   <p class="lead">Add meg az ügyfelet és az időpontot, jelöld ki a modulokat, és a program összeállítja belőlük a pénzügyi terv prezentációt (.pptx).</p>
   <form id="f" autocomplete="off">
@@ -307,6 +324,23 @@
     ["halado", "tamogatas", "Támogatások – Otthon Start", "5 dia"],
     ["halado", "hitel", "Hitel (annuitás, okos hitel)", "2 dia"]
   ];
+  /* ---- jelszó ---- */
+  function sha(s) {
+    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function (b) {
+      return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
+    });
+  }
+  var PW = "", H = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2";
+  function openApp() { $("gate").hidden = true; $("app").hidden = false; }
+  try { if (sessionStorage.getItem("ppt_ok") === H) { PW = sessionStorage.getItem("ppt_pw") || ""; openApp(); } } catch (e) {}
+  $("gform").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    sha($("gpw").value.trim()).then(function (h) {
+      if (h === H) { PW = $("gpw").value.trim(); try { sessionStorage.setItem("ppt_ok", H); sessionStorage.setItem("ppt_pw", PW); } catch (e) {} $("gerr").textContent = ""; openApp(); }
+      else { $("gerr").textContent = "Hibás jelszó."; $("gpw").select(); }
+    });
+  });
+
   var MONTHS = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"];
   function $(i) { return document.getElementById(i); }
   MODS.forEach(function (m) {
@@ -335,10 +369,11 @@
     var b = $("go"); b.disabled = true; msg("A prezentáció készül… ez kb. fél percig tarthat.");
     var ctl = window.AbortController ? new AbortController() : null, tm = ctl ? setTimeout(function () { ctl.abort(); }, 120000) : 0;
     fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, signal: ctl ? ctl.signal : undefined,
-      body: JSON.stringify({ ppt: 1, t: token(), client: cl, date: huDate(dt), modules: mods }) })
+      body: JSON.stringify({ ppt: 1, pw: PW, t: token(), client: cl, date: huDate(dt), modules: mods }) })
       .then(function (r) { return r.text(); })
       .then(function (txt) {
         clearTimeout(tm); var d; try { d = JSON.parse(txt); } catch (e) { throw new Error("A szerver válasza nem értelmezhető."); }
+        if (d.error === "pw") { try { sessionStorage.removeItem("ppt_ok"); } catch (e) {} location.reload(); return; }
         if (d.error === "auth") { try { localStorage.removeItem("csk_token"); } catch (e) {} location.reload(); return; }
         if (d.error) throw new Error(d.error);
         var bin = atob(d.b64), n = bin.length, u = new Uint8Array(n); for (var i = 0; i < n; i++) u[i] = bin.charCodeAt(i);
