@@ -196,6 +196,8 @@
   .kgate input { width: 100%; font: inherit; font-size: 1.1rem; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--track); background: var(--card); color: inherit; }
   .kgate button.primary { width: 100%; margin-top: 12px; padding: 14px; border-radius: 12px; font-size: 1.05rem; }
   .kgate .kerr { color: var(--frk); min-height: 1.4em; margin: 10px 0 0; font-size: .95rem; }
+  .ipane label { display:block; font-weight:600; font-size:.9rem; margin:10px 0 0; }
+  .ipane label .srch { margin-top:4px; }
   .srch { width: 100%; font: inherit; padding: 10px 14px; border-radius: 12px; border: 2px solid var(--track); background: var(--card); color: var(--ink); margin-bottom: 10px; }
   .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; z-index: 900; font-weight: 600; max-width: calc(100vw - 24px); }
   .toast.bad { background: var(--frk); color: #fff; }
@@ -294,7 +296,17 @@
   <section class="ipane" data-ip="fl" hidden><h2>Flotta számla</h2><p class="balsub">A tartalom hamarosan.</p></section>
   <section class="ipane" data-ip="hp" hidden><h2>Házipénztár</h2><p class="balsub">A tartalom hamarosan.</p></section>
   <section class="ipane" data-ip="ko" hidden><h2>Könyvelés</h2><p class="balsub">A tartalom hamarosan.</p></section>
-  <section class="ipane" data-ip="fx" hidden><h2>Foxpost csomag</h2><p class="balsub">A tartalom hamarosan.</p></section>
+  <section class="ipane" data-ip="fx" hidden><h2>Foxpost csomag</h2>
+    <p class="balsub">Csomag adatai a címkéhez.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 16px;max-width:720px">
+      <label>Név<input class="srch" id="fx-nev" autocomplete="off" placeholder="Címzett neve"></label>
+      <label>Telefonszám<input class="srch" id="fx-tel" type="tel" autocomplete="off" placeholder="+36 30 123 4567"></label>
+      <label>Csomagautomata<input class="srch" id="fx-aut" autocomplete="off" placeholder="Automata neve vagy azonosítója"></label>
+      <label>E-mail<input class="srch" id="fx-mail" type="email" autocomplete="off" placeholder="cim@pelda.hu"></label>
+    </div>
+    <button class="primary" type="button" disabled title="A Foxpost API összekötése után használható" style="opacity:.55;cursor:not-allowed">Csomagcímke létrehozása (hamarosan)</button>
+    <p class="balsub" style="margin-top:10px">A gomb a Foxpost API összekötése után lesz használható.</p>
+  </section>
 </div>
 
 <div id="v-flotta" hidden>
