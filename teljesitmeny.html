@@ -268,6 +268,10 @@
   .pg .tab .cnt { opacity:.75; margin-left:4px; }
   .pg .sum { margin:0 12px 8px; color:var(--muted); font-weight:600; }
   .pg h4.wk { margin:14px 12px 8px; font-size:.95rem; color:var(--muted); border-bottom:1px solid var(--track,#e5e5e5); padding-bottom:4px; }
+  .pg .st { display:inline-flex; align-items:center; gap:4px; margin:0 0 10px; padding:4px 12px; border-radius:999px; border:1px solid transparent; font:inherit; font-size:.78rem; font-weight:700; cursor:pointer; width:auto; line-height:1.4; transition:filter .15s; }
+  .pg .st:hover { filter:brightness(1.15); }
+  .pg .st.yes { background:rgba(46,160,90,.18); color:#5fd68c; border-color:rgba(95,214,140,.45); }
+  .pg .st.no { background:rgba(230,140,40,.18); color:#ffb35c; border-color:rgba(255,179,92,.45); }
   .pg .cl h3 { margin: 0 0 8px; font-size: 1rem; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
   .pg .cl h3 small { color: var(--muted); font-weight: 600; font-size: .8rem; }
   .pg .tk { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
@@ -400,7 +404,7 @@
           by0.addEventListener("click", function () { act({ action: "answer", key: c.key, yes: false }); });
           q.appendChild(by1); q.appendChild(by0); box.appendChild(q); det.appendChild(box); return;
         }
-        var chg = el("button", "x", c.state === "yes" ? "megvalósult ✓ (módosít)" : "nem valósult meg (módosít)"); chg.type = "button"; chg.style.cssText = "width:auto;font-size:.75rem;margin-bottom:6px";
+        var chg = el("button", "st " + c.state, c.state === "yes" ? "✓ Megvalósult" : "✕ Nem valósult meg"); chg.type = "button"; chg.title = "Kattints a módosításhoz";
         chg.addEventListener("click", function () { if (confirm("Biztosan módosítod? A feladatok lecserélődnek.")) act({ action: "answer", key: c.key, yes: c.state !== "yes" }); });
         box.appendChild(chg);
         c.tasks.forEach(function (t) {
