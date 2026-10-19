@@ -304,8 +304,9 @@
       <label>Csomagautomata<input class="srch" id="fx-aut" autocomplete="off" placeholder="Automata neve vagy azonosítója"></label>
       <label>E-mail<input class="srch" id="fx-mail" type="email" value="kollmann.eszter.ovb@gmail.com" autocomplete="off" placeholder="cim@pelda.hu"></label>
     </div>
-    <button class="primary" type="button" disabled title="A Foxpost API összekötése után használható" style="opacity:.55;cursor:not-allowed">Csomagcímke létrehozása (hamarosan)</button>
-    <p class="balsub" style="margin-top:10px">A gomb a Foxpost API összekötése után lesz használható.</p>
+    <button class="primary" type="button" id="fx-go">Csomagcímke létrehozása</button>
+    <p class="balsub" id="fx-msg" style="margin-top:10px"></p>
+    <div id="fx-cand" class="list"></div>
   </section>
 </div>
 
@@ -696,6 +697,48 @@
     Array.prototype.forEach.call($("itabs").children, function (c) { c.classList.toggle("on", c === b); });
     Array.prototype.forEach.call(document.querySelectorAll(".ipane"), function (p) { p.hidden = p.getAttribute("data-ip") !== i; });
   });
+  /* ===== Foxpost csomag: a háttérszkript (Apps Script) hozza létre a csomagot és a címkét ===== */
+  (function () {
+    var busy = false;
+    function msg(t, bad) { var m = $("fx-msg"); m.textContent = t || ""; m.style.color = bad ? "#c0392b" : ""; }
+    function phone(v) {
+      var d = String(v || "").replace(/[^\d+]/g, "");
+      if (d.indexOf("+36") === 0) d = d.slice(1); else if (d.indexOf("06") === 0) d = "36" + d.slice(2);
+      return /^36(20|30|31|70|50|51)\d{7}$/.test(d) ? "+" + d : "";
+    }
+    function pdfDown(b64, name) {
+      var bin = atob(b64), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+      var u = URL.createObjectURL(new Blob([a], { type: "application/pdf" })), l = document.createElement("a");
+      l.href = u; l.download = name; document.body.appendChild(l); l.click(); l.remove();
+      setTimeout(function () { URL.revokeObjectURL(u); }, 60000);
+    }
+    $("fx-go").addEventListener("click", function () {
+      if (busy) return; $("fx-cand").innerHTML = "";
+      var nev = $("fx-nev").value.trim(), tel = phone($("fx-tel").value), mail = $("fx-mail").value.trim(), aut = $("fx-aut").value.trim();
+      if (!nev) return msg("Add meg a nevet.", 1);
+      if (!tel) return msg("A telefonszám legyen magyar mobilszám (+36 20/30/31/50/51/70 …).", 1);
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return msg("Az e-mail cím hibás.", 1);
+      if (!aut) return msg("Add meg a csomagautomatát (név, város vagy azonosító).", 1);
+      if (!kt()) { gate(""); return; }
+      busy = true; $("fx-go").disabled = true; msg("Csomag létrehozása…");
+      fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ foxpost: 1, t: token(), kt: kt(), nev: nev, tel: tel, email: mail, aut: aut }) })
+        .then(function (r) { return r.json(); }).then(function (d) {
+          busy = false; $("fx-go").disabled = false;
+          if (d && d.error === "kauth") { gate("A belépés lejárt, add meg újra a jelszót."); return; }
+          if (d && d.candidates) {
+            msg("Több automata is egyezik, válassz:");
+            d.candidates.forEach(function (c) {
+              var b = document.createElement("button"); b.type = "button"; b.className = "primary"; b.style.cssText = "display:block;margin:6px 0;text-align:left";
+              b.textContent = c.name + " – " + c.address; b.addEventListener("click", function () { $("fx-aut").value = c.id; $("fx-cand").innerHTML = ""; $("fx-go").click(); });
+              $("fx-cand").appendChild(b);
+            }); return;
+          }
+          if (!d || !d.ok) return msg((d && d.error) || "Nem sikerült a csomag létrehozása.", 1);
+          msg("Kész. Csomagszám: " + (d.barcode || d.clFoxId) + (d.pdf ? " – a címke letöltődik." : " – a címkét nem sikerült lekérni."));
+          if (d.pdf) pdfDown(d.pdf, "foxpost-" + (d.barcode || d.clFoxId) + ".pdf");
+        }).catch(function () { busy = false; $("fx-go").disabled = false; msg("Nem sikerült csatlakozni. Ha most került be a szkriptbe a Foxpost-rész, telepíteni kell az új verziót.", 1); });
+    });
+  })();
   if (location.hash === "#flotta") view("flotta"); else if (location.hash === "#iroda") view("iroda");
   var w = $("who"); w.value = ""; try { w.value = localStorage.getItem("kassza_who") || ""; } catch (e) {}
   w.addEventListener("input", function () { try { localStorage.setItem("kassza_who", w.value.trim()); } catch (e) {} });
