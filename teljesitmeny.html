@@ -272,6 +272,8 @@
   .pg .st:hover { filter:brightness(1.15); }
   .pg .st.yes { background:rgba(46,160,90,.18); color:#5fd68c; border-color:rgba(95,214,140,.45); }
   .pg .st.no { background:rgba(230,140,40,.18); color:#ffb35c; border-color:rgba(255,179,92,.45); }
+  .pg .cf { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:0 0 10px; padding:8px 12px; border-radius:10px; background:rgba(255,179,92,.12); border:1px solid rgba(255,179,92,.4); font-size:.85rem; font-weight:600; }
+  .pg .gh { background:transparent !important; border:1px solid rgba(255,255,255,.35) !important; color:inherit !important; }
   .pg .cl h3 { margin: 0 0 8px; font-size: 1rem; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
   .pg .cl h3 small { color: var(--muted); font-weight: 600; font-size: .8rem; }
   .pg .tk { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
@@ -356,7 +358,7 @@
     return d >= f && d < t;
   }
   function fmt(iso) { var d = new Date(iso + ":00"); return d.getFullYear() + "." + ("0" + (d.getMonth() + 1)).slice(-2) + "." + ("0" + d.getDate()).slice(-2) + ". " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); }
-  var SEL = ""; try { SEL = sessionStorage.getItem("tj_sel") || ""; } catch (e) {}
+  var PEND = "", SEL = ""; try { SEL = sessionStorage.getItem("tj_sel") || ""; } catch (e) {}
   function mon(iso) { var d = new Date(iso.substring(0, 10) + "T12:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
   function weekKey(iso) { var d = mon(iso); return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); }
   function weekLabel(iso) {
@@ -421,15 +423,30 @@
           q.appendChild(by1); q.appendChild(by0); box.appendChild(q); det.appendChild(box); return;
         }
         var chg = el("button", "st " + c.state, c.state === "yes" ? "✓ Megvalósult" : "✕ Nem valósult meg"); chg.type = "button"; chg.title = "Kattints a módosításhoz";
-        chg.addEventListener("click", function () { if (confirm("Biztosan módosítod? A feladatok lecserélődnek.")) act({ action: "answer", key: c.key, yes: c.state !== "yes" }); });
+        chg.addEventListener("click", function () { PEND = PEND === "s|" + c.key ? "" : "s|" + c.key; render(); });
         box.appendChild(chg);
+        if (PEND === "s|" + c.key) {
+          var cf = el("div", "cf"); cf.appendChild(el("span", "", "Módosítod? A feladatok lecserélődnek."));
+          var y = el("button", "sm", "Igen, módosít"), n2 = el("button", "sm gh", "Mégse"); y.type = n2.type = "button";
+          y.addEventListener("click", function () { PEND = ""; act({ action: "answer", key: c.key, yes: c.state !== "yes" }); });
+          n2.addEventListener("click", function () { PEND = ""; render(); });
+          cf.appendChild(y); cf.appendChild(n2); box.appendChild(cf);
+        }
         c.tasks.forEach(function (t) {
           var r = el("label", "tk" + (t.done ? " done" : "")), ck = el("input"); ck.type = "checkbox"; ck.checked = !!t.done;
           ck.addEventListener("change", function () { act({ action: "toggle", key: c.key, task: t.id, done: ck.checked }); });
           r.appendChild(ck); r.appendChild(el("span", "", t.t));
-          var x = el("button", "x", "×"); x.type = "button"; x.title = "Feladat törlése";
-          x.addEventListener("click", function (ev) { ev.preventDefault(); if (confirm("Törlöd ezt a feladatot: " + t.t + "?")) act({ action: "deltask", key: c.key, task: t.id }); });
-          r.appendChild(x); box.appendChild(r);
+          if (PEND === "t|" + c.key + "|" + t.id) {
+            var y2 = el("button", "sm", "Törlés"), n3 = el("button", "sm gh", "Mégse"); y2.type = n3.type = "button";
+            y2.addEventListener("click", function (ev) { ev.preventDefault(); PEND = ""; act({ action: "deltask", key: c.key, task: t.id }); });
+            n3.addEventListener("click", function (ev) { ev.preventDefault(); PEND = ""; render(); });
+            r.appendChild(y2); r.appendChild(n3);
+          } else {
+            var x = el("button", "x", "×"); x.type = "button"; x.title = "Feladat törlése";
+            x.addEventListener("click", function (ev) { ev.preventDefault(); PEND = "t|" + c.key + "|" + t.id; render(); });
+            r.appendChild(x);
+          }
+          box.appendChild(r);
         });
         var f = el("form", "add"), inp = el("input"); inp.type = "text"; inp.placeholder = "Új feladat…"; inp.maxLength = 120;
         var b = el("button", "sm", "Hozzáad"); b.type = "submit"; f.appendChild(inp); f.appendChild(b);
