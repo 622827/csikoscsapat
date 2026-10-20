@@ -376,9 +376,10 @@
     FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "clients", c.id), upd).catch(function (e) { err("Mentés sikertelen: " + e.message); });
   }
   $("per").addEventListener("change", render);
-  /* Termelési hónap: az adott hónap első keddjét követő naptól a következő hónap első keddjének végéig. */
-  function firstTue(y, m) { var d = new Date(y, m, 1); return new Date(y, m, 1 + ((2 - d.getDay() + 7) % 7), 23, 59, 59); }
-  function pmRange(y, m) { var s = firstTue(y, m); s = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 1, 0, 0, 0); return [s, firstTue(y, m + 1)]; }
+  /* Termelési hónap: az adott hónap első keddjének hétfőjétől (a zárás hetének hétfőjétől) a következő hónap ilyen hétfője előtti napig. */
+  function firstTue(y, m) { var d = new Date(y, m, 1); return new Date(y, m, 1 + ((2 - d.getDay() + 7) % 7), 0, 0, 0); }
+  function pmStart(y, m) { var t = firstTue(y, m); return new Date(t.getFullYear(), t.getMonth(), t.getDate() - 1, 0, 0, 0); }
+  function pmRange(y, m) { var e = pmStart(y, m + 1); return [pmStart(y, m), new Date(e.getFullYear(), e.getMonth(), e.getDate() - 1, 23, 59, 59)]; }
   var MN = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
   function sd(d) { return (d.getMonth() + 1) + "." + d.getDate() + "."; }
   (function () {
