@@ -35,18 +35,18 @@
   var rm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   var st = document.createElement("style");
   st.textContent =
-    "@keyframes cskPage{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}" +
+    "@keyframes cskPage{from{opacity:0}to{opacity:1}}@keyframes cskPageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}" +
     "@keyframes cskRip{from{transform:translate(-50%,-50%) scale(0);opacity:.35}to{transform:translate(-50%,-50%) scale(1);opacity:0}}" +
     "@keyframes cskPop{0%{transform:scale(1)}40%{transform:scale(.94)}100%{transform:scale(1)}}" +
-    "body{animation:cskPage .4s cubic-bezier(.22,1,.36,1) both}" +
-    "body.csk-leave{opacity:0;transform:translateY(-6px);transition:opacity .18s ease,transform .18s ease}" +
+    "body{animation:cskPage .35s ease backwards}" +
+    "body.csk-leave{opacity:0;transition:opacity .18s ease}" +
     "button,summary,[role=button],[role=tab],select,input[type=submit],input[type=date],label{transition:transform .15s ease,filter .15s ease,box-shadow .2s ease,background-color .2s ease,border-color .2s ease,color .2s ease,opacity .2s ease}" +
     "button:not(:disabled):active,summary:active,[role=button]:active,[role=tab]:active,input[type=submit]:active{transform:scale(.95)}" +
     "a{transition:color .2s ease,opacity .2s ease,background-color .2s ease}" +
     "a:active{opacity:.7}" +
     ".csk-rip{position:fixed;z-index:2147483000;width:140px;height:140px;border-radius:50%;background:currentColor;pointer-events:none;animation:cskRip .55s ease-out forwards}" +
     ".csk-pop{animation:cskPop .3s ease}" +
-    "details>summary~*{animation:cskPage .3s ease both}" +
+    "details>summary~*{animation:cskPageIn .3s ease both}" +
     "@keyframes cskIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}" +
     "@keyframes cskDrop{from{opacity:0;transform:translateY(-8px);clip-path:inset(0 0 100% 0 round 14px)}to{opacity:1;transform:none;clip-path:inset(0 0 0 0 round 14px)}}" +
     ".csk-in{animation:cskIn .42s cubic-bezier(.22,1,.36,1) both}" +
