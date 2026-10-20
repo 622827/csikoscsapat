@@ -163,6 +163,10 @@
   .steps button.on .n { background: var(--on-accent); color: var(--accent); }
   .sheet { display: none; }
   .sheet.on { display: block; }
+  @keyframes shIn { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: none; } }
+  .sheet.on { animation: shIn .38s cubic-bezier(.22, 1, .36, 1) both; }
+  .steps button, .seg2 button, .rate button, .chip button, .nav2 .btn, .btn { transition: background-color .22s ease, color .22s ease, border-color .22s ease, transform .15s ease, filter .15s ease; }
+  @media (prefers-reduced-motion: reduce) { .sheet.on { animation: none; } }
   .lead { color: var(--muted); margin: 0 0 14px; }
   .card { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 14px; min-width: 0; }
   .card > h3:first-child { margin-top: 0; }

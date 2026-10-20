@@ -551,7 +551,8 @@
       try { history.replaceState(null, "", k === "teli" ? "#teli" : location.pathname); } catch (e) {}
     }
     T.forEach(function (t) { document.getElementById(t[0]).addEventListener("click", function () { show(t[2]); }); });
-    if (location.hash === "#teli") show("teli");
+    function fromHash() { if (location.hash === "#teli") show("teli"); else if (location.hash === "#erdely") show("erdely"); }
+    fromHash(); window.addEventListener("hashchange", fromHash);
   })();
 </script>
 <script src="anim.js" defer></script>

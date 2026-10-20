@@ -536,6 +536,8 @@
       $("as-title").value = ""; $("as-client").value = ""; $("as-note").value = ""; $("as-due").value = ""; $("as-title").focus();
     });
     try { if (sessionStorage.getItem("tj_view") === "as") asTab("as"); } catch (e) {}
+    function fromHash() { if (location.hash === "#asszisztens") asTab("as"); else if (location.hash === "#elemzesek") asTab("perf"); }
+    fromHash(); window.addEventListener("hashchange", fromHash);
   }
   function asTab(k) {
     $("v-perf").hidden = k !== "perf"; $("v-as").hidden = k !== "as";
