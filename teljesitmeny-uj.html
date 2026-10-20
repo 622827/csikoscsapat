@@ -322,7 +322,7 @@
   var API = "https://script.google.com/macros/s/AKfycbyeBUhK2P5wGl9YbQKG_MSewVomcXoqL9mxP5NioW91kUEsMH8VSV165YuIUqV0C3nU/exec";
   function $(i) { return document.getElementById(i); }
   function sha(s) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }); }
-  var PW = "", H = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2", D = null, busy = false;
+  var PW = "", H = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2", D = null;
   function openApp() { $("gate").hidden = true; $("app").hidden = false; start(); }
   try { if (sessionStorage.getItem("tj_ok") === H) { PW = sessionStorage.getItem("tj_pw") || ""; openApp(); } } catch (e) {}
   $("gform").addEventListener("submit", function (ev) {
@@ -332,7 +332,7 @@
       else { $("gerr").textContent = "Hibás jelszó."; $("gpw").select(); }
     });
   });
-  var CFG = null, FB = null, ID = "", unsub = [];
+  var CFG = null, FB = null, ID = "";
   var TEAM = {"csikos.mate.ovb@gmail.com":"Csikós Máté","tolnai.bianka.ovb@gmail.com":"Tolnai Bianka","karsai.katalin2005@gmail.com":"Karsai Katalin","andrea.provics@gmail.com":"Provics Andrea","mayer.reka.ovb@gmail.com":"Mayer Réka","toth.oszkar.ovb@gmail.com":"Tóth Oszkár","borsos.viktoria.ovb@gmail.com":"Borsos Viktória","szilagyi.gyongyi.iroda@gmail.com":"Szilágyi Gyöngyi","szeker.szilvy.ovb@gmail.com":"Szeker Szilvi","farkas.nikolett.julianna.ovb@gmail.com":"Farkas Nikolett","feher.kitti.ovb@gmail.com":"Fehér Kitti","felber.dominik.ovb@gmail.com":"Felber Dominik","gulyas.anna.ovb@gmail.com":"Gulyás Anna","varga.zsofia.iroda@gmail.com":"Varga Zsófia","onodi.virag.ovb@gmail.com":"Ónodi Virág"};
   function toast(t) {
     var n = document.getElementById("tj-toast");
@@ -418,26 +418,6 @@
     return t.getFullYear() + ". " + w + ". hét (" + f(a) + " – " + f(b) + ")";
   }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
-  var Q = [], running = false;
-  function local(b) {
-    var c = D.clients.filter(function (x) { return x.key === b.key; })[0]; if (!c) return;
-    if (b.action === "toggle") c.tasks.forEach(function (t) { if (t.id === b.task) t.done = !!b.done; });
-    else if (b.action === "deltask") c.tasks = c.tasks.filter(function (t) { return t.id !== b.task; });
-    else if (b.action === "addtask") c.tasks.push({ id: "tmp" + Date.now(), t: b.text, done: false, c: true });
-    else if (b.action === "answer") {
-      if (b.yes) { if (!c.tasks.length || c.state === "no") c.tasks = ["Bankszámla", "MEO hívás", "Ajánlások"].map(function (y, i) { return { id: "d" + i, t: y, done: false }; }); c.state = "yes"; }
-      else { c.tasks = ["Újraegyeztetve", "Lemondta"].map(function (y, i) { return { id: "n" + i, t: y, done: false }; }); c.state = "no"; }
-    }
-  }
-  function pump() {
-    if (running) return; running = true;
-    (function next(last) {
-      var b = Q.shift();
-      if (!b) { running = false; if (last) { D = last; keep(); render(); } return; }
-      call(b).then(function (d) { err(""); next(d); }).catch(function (e) { Q = []; running = false; err(e.message); load(); });
-    })(null);
-  }
-  function act(body) { local(body); keep(); render(); Q.push(body); pump(); }
   function render() {
     if (!D) return;
     $("upd").textContent = D.updated ? "Utolsó frissítés: " + new Date(D.updated).toLocaleString("hu-HU", { dateStyle: "short", timeStyle: "short" }) : "";
