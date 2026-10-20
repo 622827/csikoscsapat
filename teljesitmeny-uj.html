@@ -274,6 +274,23 @@
   .pg .st.no { background:rgba(230,140,40,.18); color:#ffb35c; border-color:rgba(255,179,92,.45); }
   .pg .cf { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:0 0 10px; padding:8px 12px; border-radius:10px; background:rgba(255,179,92,.12); border:1px solid rgba(255,179,92,.4); font-size:.85rem; font-weight:600; }
   .pg .gh { background:transparent !important; border:1px solid rgba(255,255,255,.35) !important; color:inherit !important; }
+  .pg .as-add { display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin: 0 0 18px; padding: 14px; border-radius: 14px; background: var(--card, #f0f3f7); }
+  .pg .as-add input, .pg .as-add select { font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); min-width: 0; }
+  .pg .as-add #as-title, .pg .as-add #as-note { grid-column: 1 / -1; }
+  .pg .as-add button { grid-column: 1 / -1; }
+  .pg .as-g { margin: 18px 0 8px; font-size: .95rem; color: var(--muted); border-bottom: 1px solid var(--track, #e5e5e5); padding-bottom: 4px; }
+  .pg .as-g.late { color: #ff8095; }
+  .pg .as-t { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: start; padding: 12px 14px; margin-bottom: 8px; background: var(--bg); border: 2px solid var(--track, #e5e5e5); border-radius: 12px; }
+  .pg .as-t.late { border-color: rgba(255,128,149,.7); }
+  .pg .as-t.done .as-ti { text-decoration: line-through; color: var(--muted); }
+  .pg .as-t input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); margin-top: 2px; }
+  .pg .as-ti { font-weight: 700; }
+  .pg .as-meta { grid-column: 2 / 3; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: .85rem; color: var(--muted); }
+  .pg .as-chip { padding: 2px 10px; border-radius: 999px; background: rgba(120,150,220,.2); color: var(--ink); font-weight: 600; font-size: .78rem; }
+  .pg .as-meta input, .pg .as-meta select { font: inherit; font-size: .82rem; padding: 3px 6px; border-radius: 8px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  .pg .as-note { grid-column: 2 / 3; font-size: .88rem; color: var(--muted); }
+  .pg .as-t .x { grid-column: 3; grid-row: 1; }
+  @media (max-width: 520px) { .pg .as-add { grid-template-columns: 1fr; } }
   .pg .cl h3 { margin: 0 0 8px; font-size: 1rem; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
   .pg .cl h3 small { color: var(--muted); font-weight: 600; font-size: .8rem; }
   .pg .tk { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
@@ -304,6 +321,11 @@
 </div>
 <main class="pg" id="app" hidden>
   <h1>Teljesítmény</h1>
+  <div class="tabs vtabs2" role="tablist" aria-label="Nézet">
+    <button type="button" class="tab on" id="mt-perf" role="tab" aria-selected="true">Elemzések utáni teendők</button>
+    <button type="button" class="tab" id="mt-as" role="tab" aria-selected="false">Asszisztensi feladatok <span class="cnt" id="as-cnt"></span></button>
+  </div>
+  <div id="v-perf">
   <p class="lead">Elemzés utáni teendők munkatársanként. Az ügyfelek a munkatársak naptárából („EL – Ügyfélnév” bejegyzések) érkeznek, naponta frissül.</p>
   <div class="bar">
     <select id="per" aria-label="Időszak">
@@ -315,6 +337,26 @@
   <p class="pmsg" id="err" role="alert"></p>
   <div id="list"></div>
   <p class="none" id="none"></p>
+  </div>
+  <div id="v-as" hidden>
+    <p class="lead">Asszisztensi feladatok: kárbejelentés és utókövetése, eseti befizetés, nyomtatványok, csoportos beszedés és minden más teendő. Az ügyfél neve csak vezetéknév-kezdőbetűvel és keresztnévvel kerül tárolásra.</p>
+    <form class="as-add" id="as-form" autocomplete="off">
+      <input id="as-title" type="text" maxlength="160" placeholder="Mi a feladat?" aria-label="Feladat" required>
+      <select id="as-type" aria-label="Típus"></select>
+      <input id="as-client" type="text" maxlength="60" placeholder="Ügyfél (pl. Kiss Ádám → K. Ádám)" aria-label="Ügyfél">
+      <input id="as-due" type="date" aria-label="Határidő">
+      <select id="as-owner" aria-label="Felelős"></select>
+      <input id="as-note" type="text" maxlength="300" placeholder="Megjegyzés (nem kötelező)" aria-label="Megjegyzés">
+      <button class="sm" type="submit">Hozzáadás</button>
+    </form>
+    <div class="bar">
+      <select id="as-f-status" aria-label="Állapot"><option value="open">Nyitott</option><option value="done">Kész</option><option value="all">Mind</option></select>
+      <select id="as-f-type" aria-label="Típus szűrő"></select>
+      <select id="as-f-owner" aria-label="Felelős szűrő"></select>
+    </div>
+    <div id="as-list"></div>
+    <p class="none" id="as-none"></p>
+  </div>
 </main>
 
 <script>
@@ -341,7 +383,7 @@
   }
   function err(t) { $("err").textContent = t || ""; }
   function start() {
-    err("Betöltés…");
+    err("Betöltés…"); setTimeout(asInit, 0);
     sha("csk-perf|" + PW).then(function (h) { ID = h; return fetch("firebase-config.json").then(function (r) { return r.json(); }); }).then(function (cfg) {
       CFG = cfg;
       var V = "https://www.gstatic.com/firebasejs/10.14.1/";
@@ -350,6 +392,7 @@
       var app = m[0].initializeApp(CFG), F = m[1], db;
       try { db = F.initializeFirestore(app, { localCache: F.persistentLocalCache() }); } catch (e) { db = F.getFirestore(app); }
       FB = { F: F, db: db };
+      asStart();
       D = { clients: [], team: TEAM, updated: "" };
       F.onSnapshot(F.collection(db, "perf", ID, "clients"), function (snap) {
         D.clients = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; if (!o.tasks) o.tasks = []; return o; });
@@ -418,6 +461,82 @@
     return t.getFullYear() + ". " + w + ". hét (" + f(a) + " – " + f(b) + ")";
   }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
+  /* ===== Asszisztensi feladatok ===== */
+  var AS_TYPES = ["Kárbejelentés", "Kárbejelentés utókövetés", "Eseti befizetés", "Nyomtatvány kitöltés", "Csoportos beszedés", "Intervenciós hívás", "Feladatlista (R3 / vezetőjelölt)", "Egyéb"];
+  var AS = [], AS_OWNER_DEFAULT = "gulyas.anna.ovb@gmail.com", asConfirm = "", asReady = false;
+  function shortName(t) {
+    t = String(t || "").trim().replace(/\s+/g, " "); if (!t) return "";
+    if (/^[^\s.]{1,2}\.\s?\S/.test(t)) return t;
+    var p = t.split(" "); if (p.length < 2) return t;
+    return p[0].charAt(0).toUpperCase() + ". " + p.slice(1).join(" ");
+  }
+  function todayIso() { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function fillSel(sel, items, first) { var cur = sel.value; sel.textContent = ""; if (first) { var o0 = document.createElement("option"); o0.value = ""; o0.textContent = first; sel.appendChild(o0); } items.forEach(function (it) { var o = document.createElement("option"); o.value = it[0]; o.textContent = it[1]; sel.appendChild(o); }); if (cur) sel.value = cur; }
+  function asInit() {
+    var team = Object.keys(TEAM).map(function (k) { return [k, TEAM[k]]; });
+    fillSel($("as-type"), AS_TYPES.map(function (x) { return [x, x]; }));
+    fillSel($("as-f-type"), AS_TYPES.map(function (x) { return [x, x]; }), "Minden típus");
+    fillSel($("as-owner"), team); $("as-owner").value = AS_OWNER_DEFAULT;
+    fillSel($("as-f-owner"), team, "Mindenki");
+    ["as-f-status", "as-f-type", "as-f-owner"].forEach(function (i) { $(i).addEventListener("change", asRender); });
+    $("mt-perf").addEventListener("click", function () { asTab("perf"); });
+    $("mt-as").addEventListener("click", function () { asTab("as"); });
+    $("as-form").addEventListener("submit", function (ev) {
+      ev.preventDefault(); if (!FB) { toast("Az adatbázis még nem töltött be."); return; }
+      var title = $("as-title").value.trim(); if (!title) return;
+      var data = { title: title, type: $("as-type").value, client: shortName($("as-client").value), due: $("as-due").value || "", owner: $("as-owner").value, note: $("as-note").value.trim(), done: false, created: Date.now(), doneAt: 0 };
+      var ref = FB.F.doc(FB.F.collection(FB.db, "perf", ID, "atasks"));
+      FB.F.setDoc(ref, data).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
+      $("as-title").value = ""; $("as-client").value = ""; $("as-note").value = ""; $("as-due").value = ""; $("as-title").focus();
+    });
+    try { if (sessionStorage.getItem("tj_view") === "as") asTab("as"); } catch (e) {}
+  }
+  function asTab(k) {
+    $("v-perf").hidden = k !== "perf"; $("v-as").hidden = k !== "as";
+    $("mt-perf").classList.toggle("on", k === "perf"); $("mt-as").classList.toggle("on", k === "as");
+    $("mt-perf").setAttribute("aria-selected", k === "perf" ? "true" : "false"); $("mt-as").setAttribute("aria-selected", k === "as" ? "true" : "false");
+    try { sessionStorage.setItem("tj_view", k); } catch (e) {}
+  }
+  function asStart() {
+    if (asReady) return; asReady = true;
+    FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "atasks"), function (snap) {
+      AS = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); asRender();
+    }, function (e) { toast("Asszisztensi feladatok: " + e.message); });
+  }
+  function asUpd(id, patch) { FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "atasks", id), patch).catch(function (e) { toast("Mentés sikertelen: " + e.message); }); }
+  function asRender() {
+    var st = $("as-f-status").value, ty = $("as-f-type").value, ow = $("as-f-owner").value, now = todayIso();
+    $("as-cnt").textContent = AS.filter(function (x) { return !x.done; }).length || "";
+    var L = AS.filter(function (x) { return (st === "all" || (st === "done") === !!x.done) && (!ty || x.type === ty) && (!ow || x.owner === ow); });
+    L.sort(function (a, b) { return (a.due || "9999") < (b.due || "9999") ? -1 : (a.due || "9999") > (b.due || "9999") ? 1 : (b.created - a.created); });
+    var groups = [["Lejárt", "late", function (x) { return !x.done && x.due && x.due < now; }], ["Ma esedékes", "", function (x) { return !x.done && x.due === now; }], ["Közelgő", "", function (x) { return !x.done && x.due && x.due > now; }], ["Nincs határidő", "", function (x) { return !x.done && !x.due; }], ["Kész", "", function (x) { return !!x.done; }]];
+    var box = $("as-list"); box.textContent = "";
+    groups.forEach(function (g) {
+      var items = L.filter(g[2]); if (!items.length) return;
+      box.appendChild(el("h4", "as-g" + (g[1] ? " " + g[1] : ""), g[0] + " (" + items.length + ")"));
+      items.forEach(function (x) {
+        var late = !x.done && x.due && x.due < now, r = el("div", "as-t" + (x.done ? " done" : "") + (late ? " late" : ""));
+        var ck = el("input"); ck.type = "checkbox"; ck.checked = !!x.done; ck.setAttribute("aria-label", "Kész");
+        ck.addEventListener("change", function () { r.classList.toggle("done", ck.checked); asUpd(x.id, { done: ck.checked, doneAt: ck.checked ? Date.now() : 0 }); });
+        r.appendChild(ck); r.appendChild(el("div", "as-ti", x.title));
+        var del = el("button", "x", "×"); del.type = "button"; del.title = "Törlés";
+        if (asConfirm === x.id) {
+          var w = el("span"); var y = el("button", "sm", "Törlés"), n = el("button", "sm gh", "Mégse"); y.type = n.type = "button";
+          y.addEventListener("click", function () { asConfirm = ""; FB.F.deleteDoc(FB.F.doc(FB.db, "perf", ID, "atasks", x.id)).catch(function (e) { toast("Törlés sikertelen: " + e.message); }); });
+          n.addEventListener("click", function () { asConfirm = ""; asRender(); });
+          w.appendChild(y); w.appendChild(n); r.appendChild(w);
+        } else { del.addEventListener("click", function () { asConfirm = x.id; asRender(); }); r.appendChild(del); }
+        var m = el("div", "as-meta"); m.appendChild(el("span", "as-chip", x.type || "Egyéb"));
+        if (x.client) m.appendChild(el("span", "", x.client));
+        var due = el("input"); due.type = "date"; due.value = x.due || ""; due.title = "Határidő"; due.addEventListener("change", function () { asUpd(x.id, { due: due.value }); }); m.appendChild(due);
+        var so = el("select"); Object.keys(TEAM).forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = TEAM[k]; so.appendChild(o); }); so.value = x.owner || AS_OWNER_DEFAULT; so.title = "Felelős"; so.addEventListener("change", function () { asUpd(x.id, { owner: so.value }); }); m.appendChild(so);
+        r.appendChild(m);
+        if (x.note) r.appendChild(el("div", "as-note", x.note));
+        box.appendChild(r);
+      });
+    });
+    $("as-none").textContent = L.length ? "" : (AS.length ? "Nincs a szűrőnek megfelelő feladat." : "Még nincs feladat. Vegyél fel egyet fent.");
+  }
   function render() {
     if (!D) return;
     $("upd").textContent = D.updated ? "Utolsó frissítés: " + new Date(D.updated).toLocaleString("hu-HU", { dateStyle: "short", timeStyle: "short" }) : "";
