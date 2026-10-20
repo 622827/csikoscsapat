@@ -301,6 +301,31 @@
   .pg .as-note { grid-column: 2 / 3; font-size: .88rem; color: var(--muted); }
   .pg .as-t .x { grid-column: 3; grid-row: 1; }
   @media (max-width: 520px) { .pg .as-add { grid-template-columns: 1fr; } }
+  /* ===== animációk ===== */
+  .pg input[type=checkbox] { appearance: none; -webkit-appearance: none; display: grid; place-content: center; width: 22px; height: 22px; flex: none; margin: 0; border: 2px solid var(--muted); border-radius: 7px; background: transparent; cursor: pointer; transition: background-color .22s ease, border-color .22s ease, transform .15s ease, box-shadow .22s ease; }
+  .pg input[type=checkbox]::after { content: ""; width: 6px; height: 11px; border: solid var(--on-accent, #fff); border-width: 0 3px 3px 0; transform: translateY(-1px) rotate(45deg) scale(0); transition: transform .26s cubic-bezier(.34, 1.56, .64, 1) .04s; }
+  .pg input[type=checkbox]:checked { background: var(--accent); border-color: var(--accent); }
+  .pg input[type=checkbox]:checked::after { transform: translateY(-1px) rotate(45deg) scale(1); }
+  .pg input[type=checkbox]:active { transform: scale(.86); }
+  .pg input[type=checkbox]:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .pg .tk span, .pg .as-ti, .pg .as-s span { background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0% 2px; transition: background-size .32s ease, color .25s ease; text-decoration: none !important; }
+  .pg .tk.done span, .pg .as-t.done .as-ti, .pg .as-s.done span { background-size: 100% 2px; color: var(--muted); }
+  .pg .as-t { transition: border-color .25s ease, opacity .25s ease; }
+  .pg .as-t.done { opacity: .8; }
+  @keyframes tjIn { from { opacity: 0; transform: translateY(-10px) scale(.98); } to { opacity: 1; transform: none; } }
+  @keyframes tjDrop { from { opacity: 0; transform: translateY(-6px); max-height: 0; } to { opacity: 1; transform: none; max-height: 120px; } }
+  @keyframes tjFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .pg .enter { animation: tjIn .38s cubic-bezier(.22, 1, .36, 1) both; }
+  .pg .cf, .pg .as-cf { animation: tjDrop .28s ease both; overflow: hidden; }
+  .pg .vfade { animation: tjFade .3s ease both; }
+  .pg .as-sh { grid-column: 2 / 4; justify-self: start; display: inline-flex; gap: 6px; align-items: center; margin-top: 4px; padding: 3px 10px; font: inherit; font-size: .82rem; font-weight: 700; color: var(--muted); background: transparent; border: 1px solid var(--track, #e5e5e5); border-radius: 999px; cursor: pointer; }
+  .pg .as-sh .chev { display: inline-block; transition: transform .25s ease; }
+  .pg .as-sh.open .chev { transform: rotate(90deg); }
+  .pg .as-sb { grid-column: 2 / 4; display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s ease; }
+  .pg .as-sb.open { grid-template-rows: 1fr; }
+  .pg .as-sb > .as-subs { grid-column: auto; overflow: hidden; min-height: 0; margin-top: 0; opacity: 0; transition: opacity .25s ease, margin-top .3s ease; }
+  .pg .as-sb.open > .as-subs { opacity: 1; margin-top: 6px; }
+  @media (prefers-reduced-motion: reduce) { .pg *, .pg *::after { animation: none !important; transition: none !important; } }
   .pg .cl h3 { margin: 0 0 8px; font-size: 1rem; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
   .pg .cl h3 small { color: var(--muted); font-weight: 600; font-size: .8rem; }
   .pg .tk { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
@@ -386,6 +411,9 @@
   });
   var CFG = null, FB = null, ID = "";
   var TEAM = {"csikos.mate.ovb@gmail.com":"Csikós Máté","tolnai.bianka.ovb@gmail.com":"Tolnai Bianka","karsai.katalin2005@gmail.com":"Karsai Katalin","andrea.provics@gmail.com":"Provics Andrea","mayer.reka.ovb@gmail.com":"Mayer Réka","toth.oszkar.ovb@gmail.com":"Tóth Oszkár","borsos.viktoria.ovb@gmail.com":"Borsos Viktória","szilagyi.gyongyi.iroda@gmail.com":"Szilágyi Gyöngyi","szeker.szilvy.ovb@gmail.com":"Szeker Szilvi","farkas.nikolett.julianna.ovb@gmail.com":"Farkas Nikolett","feher.kitti.ovb@gmail.com":"Fehér Kitti","felber.dominik.ovb@gmail.com":"Felber Dominik","gulyas.anna.ovb@gmail.com":"Gulyás Anna","varga.zsofia.iroda@gmail.com":"Varga Zsófia","onodi.virag.ovb@gmail.com":"Ónodi Virág"};
+  var holdUntil = 0;
+  function soon(fn) { var w = holdUntil - Date.now(); if (w > 0) { clearTimeout(fn._t); fn._t = setTimeout(function () { soon(fn); }, w + 15); } else fn(); }
+  function hold() { holdUntil = Date.now() + 440; }
   function toast(t) {
     var n = document.getElementById("tj-toast");
     if (!n) { n = document.createElement("div"); n.id = "tj-toast"; n.setAttribute("role", "alert"); n.style.cssText = "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:90vw;padding:12px 18px;border-radius:12px;background:#c8102e;color:#fff;font-weight:700;z-index:9999;box-shadow:0 6px 24px rgba(0,0,0,.4)"; document.body.appendChild(n); }
@@ -406,7 +434,7 @@
       D = { clients: [], team: TEAM, updated: "" };
       F.onSnapshot(F.collection(db, "perf", ID, "clients"), function (snap) {
         D.clients = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; if (!o.tasks) o.tasks = []; return o; });
-        err(""); render();
+        err(""); soon(render);
       }, function (e) { err("Nem sikerült betölteni: " + e.message); });
       F.onSnapshot(F.doc(db, "perf", ID, "meta", "info"), function (d) { if (d.exists()) { D.updated = d.data().updated || ""; render(); } });
     }).catch(function (e) { err("Hiba: " + e.message); });
@@ -432,7 +460,7 @@
     }
     upd.tasks = tasks;
     if (!FB) { toast("Az adatbázis még nem töltött be, próbáld újra egy pillanat múlva."); return; }
-    c.tasks = tasks; if (upd.state) c.state = upd.state; render();
+    c.tasks = tasks; if (upd.state) c.state = upd.state; soon(render);
     try {
       FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "clients", c.id), upd).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
     } catch (e) { toast("Mentés sikertelen: " + e.message); }
@@ -504,6 +532,7 @@
   }
   function asTab(k) {
     $("v-perf").hidden = k !== "perf"; $("v-as").hidden = k !== "as";
+    var vv = $(k === "perf" ? "v-perf" : "v-as"); vv.classList.remove("vfade"); void vv.offsetWidth; vv.classList.add("vfade");
     $("mt-perf").classList.toggle("on", k === "perf"); $("mt-as").classList.toggle("on", k === "as");
     $("mt-perf").setAttribute("aria-selected", k === "perf" ? "true" : "false"); $("mt-as").setAttribute("aria-selected", k === "as" ? "true" : "false");
     try { sessionStorage.setItem("tj_view", k); } catch (e) {}
@@ -511,24 +540,26 @@
   function asStart() {
     if (asReady) return; asReady = true;
     FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "atasks"), function (snap) {
-      AS = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); asRender();
+      AS = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); soon(asRender);
     }, function (e) { toast("Asszisztensi feladatok: " + e.message); });
   }
   function asUpd(id, patch) { FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "atasks", id), patch).catch(function (e) { toast("Mentés sikertelen: " + e.message); }); }
+  var asSeen = null, asOpen = {};
   function asRender() {
     var st = $("as-f-status").value, ty = $("as-f-type").value, ow = $("as-f-owner").value, now = todayIso();
     $("as-cnt").textContent = AS.filter(function (x) { return !x.done; }).length || "";
     var L = AS.filter(function (x) { return (st === "all" || (st === "done") === !!x.done) && (!ty || x.type === ty) && (!ow || x.owner === ow); });
     L.sort(function (a, b) { return (a.due || "9999") < (b.due || "9999") ? -1 : (a.due || "9999") > (b.due || "9999") ? 1 : (b.created - a.created); });
     var groups = [["Lejárt", "late", function (x) { return !x.done && x.due && x.due < now; }], ["Ma esedékes", "", function (x) { return !x.done && x.due === now; }], ["Közelgő", "", function (x) { return !x.done && x.due && x.due > now; }], ["Nincs határidő", "", function (x) { return !x.done && !x.due; }], ["Kész", "", function (x) { return !!x.done; }]];
-    var box = $("as-list"); box.textContent = "";
+    var box = $("as-list"); box.textContent = ""; var firstRun = asSeen === null; if (firstRun) asSeen = {};
     groups.forEach(function (g) {
       var items = L.filter(g[2]); if (!items.length) return;
       box.appendChild(el("h4", "as-g" + (g[1] ? " " + g[1] : ""), g[0] + " (" + items.length + ")"));
       items.forEach(function (x) {
-        var late = !x.done && x.due && x.due < now, r = el("div", "as-t" + (x.done ? " done" : "") + (late ? " late" : ""));
+        var late = !x.done && x.due && x.due < now, r = el("div", "as-t" + (x.done ? " done" : "") + (late ? " late" : "") + (!firstRun && !asSeen[x.id] ? " enter" : ""));
+        asSeen[x.id] = 1;
         var ck = el("input"); ck.type = "checkbox"; ck.checked = !!x.done; ck.setAttribute("aria-label", "Kész");
-        ck.addEventListener("change", function () { r.classList.toggle("done", ck.checked); asUpd(x.id, { done: ck.checked, doneAt: ck.checked ? Date.now() : 0 }); });
+        ck.addEventListener("change", function () { hold(); r.classList.toggle("done", ck.checked); asUpd(x.id, { done: ck.checked, doneAt: ck.checked ? Date.now() : 0 }); });
         r.appendChild(ck); r.appendChild(el("div", "as-ti", x.title));
         var del = el("button", "x", "×"); del.type = "button"; del.title = "Törlés";
         if (asConfirm === x.id) {
@@ -547,9 +578,9 @@
         var subs = (x.subs || []).map(function (u) { return Object.assign({}, u); });
         var sw = el("div", "as-subs");
         subs.forEach(function (u, i) {
-          var ro = el("label", "as-s" + (u.done ? " done" : "")), c2 = el("input"); c2.type = "checkbox"; c2.checked = !!u.done;
-          c2.addEventListener("change", function () { ro.classList.toggle("done", c2.checked); var n = subs.map(function (z) { return Object.assign({}, z); }); n[i].done = c2.checked; asUpd(x.id, { subs: n }); });
-          ro.appendChild(c2); ro.appendChild(el("span", "", u.t));
+          var ro = el("label", "as-s" + (u.done ? " done" : "") + (!firstRun && !asSeen[u.id] ? " enter" : "")), c2 = el("input"); c2.type = "checkbox"; c2.checked = !!u.done;
+          c2.addEventListener("change", function () { hold(); ro.classList.toggle("done", c2.checked); var n = subs.map(function (z) { return Object.assign({}, z); }); n[i].done = c2.checked; asUpd(x.id, { subs: n }); });
+          asSeen[u.id] = 1; ro.appendChild(c2); ro.appendChild(el("span", "", u.t));
           var d2 = el("button", "x", "×"); d2.type = "button"; d2.title = "Alfeladat törlése";
           d2.addEventListener("click", function (ev) { ev.preventDefault(); asUpd(x.id, { subs: subs.filter(function (z, j) { return j !== i; }) }); });
           ro.appendChild(d2); sw.appendChild(ro);
@@ -557,7 +588,13 @@
         var sf = el("form", "as-sadd"), si = el("input"); si.type = "text"; si.maxLength = 160; si.placeholder = "Alfeladat hozzáadása…"; si.setAttribute("aria-label", "Alfeladat");
         var sb = el("button", "sm", "+"); sb.type = "submit"; sb.title = "Alfeladat hozzáadása"; sf.appendChild(si); sf.appendChild(sb);
         sf.addEventListener("submit", function (ev) { ev.preventDefault(); var t = si.value.trim(); if (!t) return; var n = subs.slice(); n.push({ id: "s" + Date.now().toString(36) + Math.floor(Math.random() * 1000), t: t, done: false }); si.value = ""; asUpd(x.id, { subs: n }); });
-        sw.appendChild(sf); r.appendChild(sw);
+        sw.appendChild(sf);
+        var wrap = el("div", "as-sb" + (asOpen[x.id] ? " open" : "")), sh = el("button", "as-sh" + (asOpen[x.id] ? " open" : "")); sh.type = "button";
+        sh.innerHTML = '<span class="chev">▸</span>';
+        sh.appendChild(document.createTextNode(subs.length ? " Alfeladatok (" + subs.filter(function (u) { return u.done; }).length + "/" + subs.length + ")" : " Alfeladat"));
+        sh.setAttribute("aria-expanded", asOpen[x.id] ? "true" : "false");
+        sh.addEventListener("click", function () { var o = !wrap.classList.contains("open"); asOpen[x.id] = o; wrap.classList.toggle("open", o); sh.classList.toggle("open", o); sh.setAttribute("aria-expanded", o ? "true" : "false"); });
+        wrap.appendChild(sw); r.appendChild(sh); r.appendChild(wrap);
         box.appendChild(r);
       });
     });
@@ -609,7 +646,7 @@
         }
         c.tasks.forEach(function (t) {
           var r = el("label", "tk" + (t.done ? " done" : "")), ck = el("input"); ck.type = "checkbox"; ck.checked = !!t.done;
-          ck.addEventListener("change", function () { r.classList.toggle("done", ck.checked); act({ action: "toggle", key: c.key, task: t.id, done: ck.checked }); });
+          ck.addEventListener("change", function () { hold(); r.classList.toggle("done", ck.checked); act({ action: "toggle", key: c.key, task: t.id, done: ck.checked }); });
           r.appendChild(ck); r.appendChild(el("span", "", t.t));
           if (PEND === "t|" + c.key + "|" + t.id) {
             var y2 = el("button", "sm", "Törlés"), n3 = el("button", "sm gh", "Mégse"); y2.type = n3.type = "button";
