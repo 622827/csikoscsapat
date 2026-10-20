@@ -334,6 +334,11 @@
   });
   var CFG = null, FB = null, ID = "", unsub = [];
   var TEAM = {"csikos.mate.ovb@gmail.com":"Csikós Máté","tolnai.bianka.ovb@gmail.com":"Tolnai Bianka","karsai.katalin2005@gmail.com":"Karsai Katalin","andrea.provics@gmail.com":"Provics Andrea","mayer.reka.ovb@gmail.com":"Mayer Réka","toth.oszkar.ovb@gmail.com":"Tóth Oszkár","borsos.viktoria.ovb@gmail.com":"Borsos Viktória","szilagyi.gyongyi.iroda@gmail.com":"Szilágyi Gyöngyi","szeker.szilvy.ovb@gmail.com":"Szeker Szilvi","farkas.nikolett.julianna.ovb@gmail.com":"Farkas Nikolett","feher.kitti.ovb@gmail.com":"Fehér Kitti","felber.dominik.ovb@gmail.com":"Felber Dominik","gulyas.anna.ovb@gmail.com":"Gulyás Anna","varga.zsofia.iroda@gmail.com":"Varga Zsófia","onodi.virag.ovb@gmail.com":"Ónodi Virág"};
+  function toast(t) {
+    var n = document.getElementById("tj-toast");
+    if (!n) { n = document.createElement("div"); n.id = "tj-toast"; n.setAttribute("role", "alert"); n.style.cssText = "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:90vw;padding:12px 18px;border-radius:12px;background:#c8102e;color:#fff;font-weight:700;z-index:9999;box-shadow:0 6px 24px rgba(0,0,0,.4)"; document.body.appendChild(n); }
+    n.textContent = t; n.hidden = false; clearTimeout(n._t); n._t = setTimeout(function () { n.hidden = true; }, 6000);
+  }
   function err(t) { $("err").textContent = t || ""; }
   function start() {
     err("Betöltés…");
@@ -373,7 +378,11 @@
       else { tasks = ["Újraegyeztetve", "Lemondta"].map(function (y, i) { return { id: "n" + i, t: y, done: false }; }); upd.state = "no"; }
     }
     upd.tasks = tasks;
-    FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "clients", c.id), upd).catch(function (e) { err("Mentés sikertelen: " + e.message); });
+    if (!FB) { toast("Az adatbázis még nem töltött be, próbáld újra egy pillanat múlva."); return; }
+    c.tasks = tasks; if (upd.state) c.state = upd.state; render();
+    try {
+      FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "clients", c.id), upd).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
+    } catch (e) { toast("Mentés sikertelen: " + e.message); }
   }
   $("per").addEventListener("change", render);
   /* Termelési hónap: az adott hónap első keddjének hétfőjétől (a zárás hetének hétfőjétől) a következő hónap ilyen hétfője előtti napig. */
