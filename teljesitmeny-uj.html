@@ -290,6 +290,14 @@
   .pg .as-meta { grid-column: 2 / 3; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: .85rem; color: var(--muted); }
   .pg .as-chip { padding: 2px 10px; border-radius: 999px; background: rgba(120,150,220,.2); color: var(--ink); font-weight: 600; font-size: .78rem; }
   .pg .as-meta input, .pg .as-meta select { font: inherit; font-size: .82rem; padding: 3px 6px; border-radius: 8px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  .pg .as-subs { grid-column: 2 / 4; margin-top: 6px; padding-left: 10px; border-left: 3px solid var(--track, #e5e5e5); }
+  .pg .as-s { display: flex; align-items: center; gap: 10px; padding: 3px 0; font-size: .92rem; }
+  .pg .as-s input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .pg .as-s.done span { text-decoration: line-through; color: var(--muted); }
+  .pg .as-s .x { margin-left: auto; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 1.05rem; }
+  .pg .as-sadd { display: flex; gap: 6px; margin-top: 6px; }
+  .pg .as-sadd input { flex: 1; min-width: 0; font: inherit; font-size: .9rem; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  .pg .as-sadd button { padding: 6px 12px; }
   .pg .as-note { grid-column: 2 / 3; font-size: .88rem; color: var(--muted); }
   .pg .as-t .x { grid-column: 3; grid-row: 1; }
   @media (max-width: 520px) { .pg .as-add { grid-template-columns: 1fr; } }
@@ -531,10 +539,25 @@
         } else { del.addEventListener("click", function () { asConfirm = x.id; asRender(); }); r.appendChild(del); }
         var m = el("div", "as-meta"); m.appendChild(el("span", "as-chip", x.type || "Egyéb"));
         if (x.client) m.appendChild(el("span", "", x.client));
+        if ((x.subs || []).length) m.appendChild(el("span", "as-chip", (x.subs.filter(function (u) { return u.done; }).length) + "/" + x.subs.length + " alfeladat"));
         m.appendChild(el("span", "", "Határidő:")); var due = el("input"); due.type = "date"; due.value = x.due || ""; due.title = "Határidő"; due.addEventListener("change", function () { asUpd(x.id, { due: due.value }); }); m.appendChild(due);
         var so = el("select"); Object.keys(TEAM).forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = TEAM[k]; so.appendChild(o); }); so.value = x.owner || AS_OWNER_DEFAULT; so.title = "Felelős"; so.addEventListener("change", function () { asUpd(x.id, { owner: so.value }); }); m.appendChild(so);
         r.appendChild(m);
         if (x.note) r.appendChild(el("div", "as-note", x.note));
+        var subs = (x.subs || []).map(function (u) { return Object.assign({}, u); });
+        var sw = el("div", "as-subs");
+        subs.forEach(function (u, i) {
+          var ro = el("label", "as-s" + (u.done ? " done" : "")), c2 = el("input"); c2.type = "checkbox"; c2.checked = !!u.done;
+          c2.addEventListener("change", function () { ro.classList.toggle("done", c2.checked); var n = subs.map(function (z) { return Object.assign({}, z); }); n[i].done = c2.checked; asUpd(x.id, { subs: n }); });
+          ro.appendChild(c2); ro.appendChild(el("span", "", u.t));
+          var d2 = el("button", "x", "×"); d2.type = "button"; d2.title = "Alfeladat törlése";
+          d2.addEventListener("click", function (ev) { ev.preventDefault(); asUpd(x.id, { subs: subs.filter(function (z, j) { return j !== i; }) }); });
+          ro.appendChild(d2); sw.appendChild(ro);
+        });
+        var sf = el("form", "as-sadd"), si = el("input"); si.type = "text"; si.maxLength = 160; si.placeholder = "Alfeladat hozzáadása…"; si.setAttribute("aria-label", "Alfeladat");
+        var sb = el("button", "sm", "+"); sb.type = "submit"; sb.title = "Alfeladat hozzáadása"; sf.appendChild(si); sf.appendChild(sb);
+        sf.addEventListener("submit", function (ev) { ev.preventDefault(); var t = si.value.trim(); if (!t) return; var n = subs.slice(); n.push({ id: "s" + Date.now().toString(36) + Math.floor(Math.random() * 1000), t: t, done: false }); si.value = ""; asUpd(x.id, { subs: n }); });
+        sw.appendChild(sf); r.appendChild(sw);
         box.appendChild(r);
       });
     });
