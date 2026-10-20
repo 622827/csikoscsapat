@@ -221,6 +221,7 @@
 
 
   .team.pp { --tc: var(--accent); margin-bottom: 14px; }
+  .team.pp.csk { --tc: var(--csk); }
   .teams { margin-top: 28px; }
   .teams h2 { font-size: 1.1rem; margin: 0 0 12px; }
   .team { margin-bottom: 18px; }
@@ -476,6 +477,8 @@
   }
 
   function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  var CSK_MEMBERS = ["csikos mate", "toth oszkar", "szilagyi gyongyi", "gulyas anna"];
+  function plain(t) { return String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim(); }
   function renderPeople(list) {
     var box = $("people-list"), L = (list || []).filter(function (x) { return x && x.name; });
     if (!L.length) { $("people").hidden = true; return; }
@@ -483,7 +486,7 @@
     var max = 1; L.forEach(function (x) { max = Math.max(max, x.total || 0, x.outlook || 0); });
     box.innerHTML = L.map(function (x) {
       var done = x.total || 0, out = Math.max(x.outlook || 0, done);
-      return '<div class="team pp"><div class="head"><span class="nm">' + esc(x.name) + '</span><span class="val">' + nf.format(done) + ' ' + LABEL + '</span></div>' +
+      return '<div class="team pp' + (CSK_MEMBERS.indexOf(plain(x.name)) > -1 ? ' csk' : '') + '"><div class="head"><span class="nm">' + esc(x.name) + '</span><span class="val">' + nf.format(done) + ' ' + LABEL + '</span></div>' +
         '<div class="bar"><div class="seg out" style="width:' + Math.min(100, out / max * 100) + '%"></div><div class="seg" style="width:' + Math.min(100, done / max * 100) + '%"></div></div>' +
         '<div class="sub">Kilátás: ' + nf.format(x.outlook || 0) + '</div></div>';
     }).join("");
