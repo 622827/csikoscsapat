@@ -343,7 +343,7 @@
     <form class="as-add" id="as-form" autocomplete="off">
       <input id="as-title" type="text" maxlength="160" placeholder="Mi a feladat?" aria-label="Feladat" required>
       <select id="as-type" aria-label="Típus"></select>
-      <input id="as-client" type="text" maxlength="60" placeholder="Ügyfél (pl. Kiss Ádám → K. Ádám)" aria-label="Ügyfél">
+      <input id="as-client" type="text" maxlength="60" placeholder="Ügyfél neve (automatikusan rövidül: K. Ádám)" aria-label="Ügyfél">
       <input id="as-due" type="date" aria-label="Határidő">
       <select id="as-owner" aria-label="Felelős"></select>
       <input id="as-note" type="text" maxlength="300" placeholder="Megjegyzés (nem kötelező)" aria-label="Megjegyzés">
@@ -481,6 +481,7 @@
     ["as-f-status", "as-f-type", "as-f-owner"].forEach(function (i) { $(i).addEventListener("change", asRender); });
     $("mt-perf").addEventListener("click", function () { asTab("perf"); });
     $("mt-as").addEventListener("click", function () { asTab("as"); });
+    $("as-client").addEventListener("blur", function () { this.value = shortName(this.value); });
     $("as-form").addEventListener("submit", function (ev) {
       ev.preventDefault(); if (!FB) { toast("Az adatbázis még nem töltött be."); return; }
       var title = $("as-title").value.trim(); if (!title) return;
