@@ -156,6 +156,9 @@
   input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   .steps { position: sticky; top: 56px; z-index: 30; background: var(--bg); margin: 0 -16px 18px; padding: 8px 16px; border-bottom: 1px solid var(--track); display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
   .steps::-webkit-scrollbar { display: none; }
+  .steps { scroll-padding: 0 40px; -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); }
+  .steps button { flex: none; }
+  body { overflow-x: clip; }
   .steps button { font: inherit; font-weight: 600; font-size: .92rem; border: 0; background: var(--card); color: var(--ink); border-radius: 999px; padding: 8px 14px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 7px; }
   .steps button .n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--bg); font-size: .78rem; }
   .steps button.has .n { background: var(--csk); color: #fff; }
@@ -163,7 +166,7 @@
   .steps button.on .n { background: var(--on-accent); color: var(--accent); }
   .sheet { display: none; }
   .sheet.on { display: block; }
-  @keyframes shIn { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: none; } }
+  @keyframes shIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
   .sheet.on { animation: shIn .38s cubic-bezier(.22, 1, .36, 1) both; }
   .steps button, .seg2 button, .rate button, .chip button, .nav2 .btn, .btn { transition: background-color .22s ease, color .22s ease, border-color .22s ease, transform .15s ease, filter .15s ease; }
   @media (prefers-reduced-motion: reduce) { .sheet.on { animation: none; } }
@@ -1172,7 +1175,7 @@ function go(id, noscroll) {
     if (pf && b > a && nmMissing(pf)) { NMW[pf] = 1; show(pf + "w", true); const w = $('[data-w="' + pf + 'w"]'); if (w) w.scrollIntoView({ block: "center", behavior: "smooth" }); return; } }
   CUR = id; document.body.dataset.sh = id; try { sessionStorage.setItem("csk_ef_tab", id); } catch (e) {}
   $$(".sheet").forEach(s => s.classList.toggle("on", s.id === "s_" + id));
-  $$(".steps button").forEach(b => { const on = b.dataset.s === id; b.classList.toggle("on", on); if (on) b.scrollIntoView({ block: "nearest", inline: "center" }); });
+  $$(".steps button").forEach(b => { const on = b.dataset.s === id; b.classList.toggle("on", on); if (on) b.scrollIntoView({ block: "nearest", inline: "center", behavior: noscroll ? "auto" : "smooth" }); });
   if (id === "ceg") { const f = $("#cegf"); if (f && !f.getAttribute("src")) { f.addEventListener("load", () => { try { const b = f.contentDocument.querySelector(".back"); if (b) b.style.display = "none"; } catch (e) {} }); f.src = f.dataset.src; } }
   const i = SHEETS.findIndex(s => s[0] === id);
   $("#prev").style.visibility = i > 0 ? "visible" : "hidden"; $("#next").style.visibility = i < SHEETS.length - 1 ? "visible" : "hidden";
