@@ -475,7 +475,7 @@
         }
         c.tasks.forEach(function (t) {
           var r = el("label", "tk" + (t.done ? " done" : "")), ck = el("input"); ck.type = "checkbox"; ck.checked = !!t.done;
-          ck.addEventListener("change", function () { act({ action: "toggle", key: c.key, task: t.id, done: ck.checked }); });
+          ck.addEventListener("change", function () { r.classList.toggle("done", ck.checked); act({ action: "toggle", key: c.key, task: t.id, done: ck.checked }); });
           r.appendChild(ck); r.appendChild(el("span", "", t.t));
           if (PEND === "t|" + c.key + "|" + t.id) {
             var y2 = el("button", "sm", "Törlés"), n3 = el("button", "sm gh", "Mégse"); y2.type = n3.type = "button";
