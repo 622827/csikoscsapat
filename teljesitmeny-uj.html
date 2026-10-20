@@ -326,6 +326,13 @@
   .pg .as-sb > .as-subs { grid-column: auto; overflow: hidden; min-height: 0; margin-top: 0; opacity: 0; transition: opacity .25s ease, margin-top .3s ease; }
   .pg .as-sb.open > .as-subs { opacity: 1; margin-top: 6px; }
   @media (prefers-reduced-motion: reduce) { .pg *, .pg *::after { animation: none !important; transition: none !important; } }
+  .pg button.sm { transition: transform .15s ease, filter .15s ease, box-shadow .2s ease, opacity .2s ease; }
+  .pg button.sm:hover { filter: brightness(1.08); }
+  .pg button.sm:active { transform: scale(.93); }
+  .pg .q button.sm.picked { transform: scale(1.08); box-shadow: 0 0 0 4px rgba(255,255,255,.18); }
+  .pg .q.out { opacity: 0; transform: translateY(-4px); transition: opacity .25s ease, transform .25s ease; pointer-events: none; }
+  .pg .q.out button.sm:not(.picked) { opacity: .35; }
+  .pg .st.enter, .pg .tk.enter { animation: tjIn .4s cubic-bezier(.34, 1.56, .64, 1) both; }
   .pg .cl h3 { margin: 0 0 8px; font-size: 1rem; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
   .pg .cl h3 small { color: var(--muted); font-weight: 600; font-size: .8rem; }
   .pg .tk { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
@@ -411,7 +418,7 @@
   });
   var CFG = null, FB = null, ID = "";
   var TEAM = {"csikos.mate.ovb@gmail.com":"Csikós Máté","tolnai.bianka.ovb@gmail.com":"Tolnai Bianka","karsai.katalin2005@gmail.com":"Karsai Katalin","andrea.provics@gmail.com":"Provics Andrea","mayer.reka.ovb@gmail.com":"Mayer Réka","toth.oszkar.ovb@gmail.com":"Tóth Oszkár","borsos.viktoria.ovb@gmail.com":"Borsos Viktória","szilagyi.gyongyi.iroda@gmail.com":"Szilágyi Gyöngyi","szeker.szilvy.ovb@gmail.com":"Szeker Szilvi","farkas.nikolett.julianna.ovb@gmail.com":"Farkas Nikolett","feher.kitti.ovb@gmail.com":"Fehér Kitti","felber.dominik.ovb@gmail.com":"Felber Dominik","gulyas.anna.ovb@gmail.com":"Gulyás Anna","varga.zsofia.iroda@gmail.com":"Varga Zsófia","onodi.virag.ovb@gmail.com":"Ónodi Virág"};
-  var holdUntil = 0;
+  var LASTST = {}, holdUntil = 0;
   function soon(fn) { var w = holdUntil - Date.now(); if (w > 0) { clearTimeout(fn._t); fn._t = setTimeout(function () { soon(fn); }, w + 15); } else fn(); }
   function hold() { holdUntil = Date.now() + 440; }
   function toast(t) {
@@ -628,13 +635,14 @@
         if (wk !== lastWk) { lastWk = wk; det.appendChild(el("h4", "wk", weekLabel(c.date))); }
         var box = el("div", "cl" + (c.gone ? " gone" : "")), h = el("h3", "", c.name); h.appendChild(el("small", "", fmt(c.date) + (c.gone ? " · a naptárból törölve" : ""))); box.appendChild(h);
         if (!c.state) {
+          LASTST[c.key] = "";
           var q = el("div", "q"); q.appendChild(el("span", "", "Megvalósult az elemzés?"));
           var by1 = el("button", "sm", "Igen"), by0 = el("button", "sm", "Nem"); by1.type = by0.type = "button";
-          by1.addEventListener("click", function () { act({ action: "answer", key: c.key, yes: true }); });
-          by0.addEventListener("click", function () { act({ action: "answer", key: c.key, yes: false }); });
+          by1.addEventListener("click", function () { hold(); by1.classList.add("picked"); q.classList.add("out"); act({ action: "answer", key: c.key, yes: true }); });
+          by0.addEventListener("click", function () { hold(); by0.classList.add("picked"); q.classList.add("out"); act({ action: "answer", key: c.key, yes: false }); });
           q.appendChild(by1); q.appendChild(by0); box.appendChild(q); det.appendChild(box); return;
         }
-        var chg = el("button", "st " + c.state, c.state === "yes" ? "✓ Megvalósult" : "✕ Nem valósult meg"); chg.type = "button"; chg.title = "Kattints a módosításhoz";
+        var fresh = LASTST[c.key] === "" && c.state; LASTST[c.key] = c.state; var chg = el("button", "st " + c.state + (fresh ? " enter" : ""), c.state === "yes" ? "✓ Megvalósult" : "✕ Nem valósult meg"); chg.type = "button"; chg.title = "Kattints a módosításhoz";
         chg.addEventListener("click", function () { PEND = PEND === "s|" + c.key ? "" : "s|" + c.key; render(); });
         box.appendChild(chg);
         if (PEND === "s|" + c.key) {
@@ -645,7 +653,7 @@
           cf.appendChild(y); cf.appendChild(n2); box.appendChild(cf);
         }
         c.tasks.forEach(function (t) {
-          var r = el("label", "tk" + (t.done ? " done" : "")), ck = el("input"); ck.type = "checkbox"; ck.checked = !!t.done;
+          var r = el("label", "tk" + (t.done ? " done" : "") + (fresh ? " enter" : "")), ck = el("input"); ck.type = "checkbox"; ck.checked = !!t.done;
           ck.addEventListener("change", function () { hold(); r.classList.toggle("done", ck.checked); act({ action: "toggle", key: c.key, task: t.id, done: ck.checked }); });
           r.appendChild(ck); r.appendChild(el("span", "", t.t));
           if (PEND === "t|" + c.key + "|" + t.id) {
