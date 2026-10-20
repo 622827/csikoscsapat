@@ -224,11 +224,10 @@
   .team.pp.csk { --tc: var(--csk); }
   .team.pp .bar { position: relative; }
   .team.pp .mk { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.18); z-index: 2; pointer-events: none; }
-  .pp-axis { position: relative; height: 40px; margin-bottom: 4px; }
-  .pp-axis .ax { position: absolute; transform: translateX(-50%); font-size: .8rem; font-weight: 700; white-space: nowrap; color: var(--ink); font-variant-numeric: tabular-nums; }
-  .pp-axis .ax::after { content: ""; position: absolute; left: 50%; width: 2px; margin-left: -1px; background: var(--muted); opacity: .6; }
-  .pp-axis .ax.r0 { top: 0; } .pp-axis .ax.r0::after { top: 18px; height: 22px; }
-  .pp-axis .ax.r1 { top: 18px; } .pp-axis .ax.r1::after { top: 18px; height: 4px; }
+  .pp-axis { position: relative; height: 40px; margin-bottom: 2px; }
+  .pp-axis .ax { position: absolute; top: 0; transform: translateX(-50%); font-size: .8rem; font-weight: 700; white-space: nowrap; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .pp-axis .ax::after { content: ""; position: absolute; left: 50%; top: 22px; height: 18px; width: 2px; margin-left: -1px; background: var(--muted); opacity: .6; }
+  @media (max-width: 520px) { .pp-axis .ax { font-size: .7rem; } .pp-axis .ax .u { display: none; } }
   .pp-key { color: var(--muted); font-size: .92rem; margin: -4px 0 14px; }
   .teams { margin-top: 28px; }
   .teams h2 { font-size: 1.1rem; margin: 0 0 12px; }
@@ -494,7 +493,7 @@
     if (!L.length) { $("people").hidden = true; return; }
     L.sort(function (a, b) { return (b.total - a.total) || ((b.outlook || 0) - (a.outlook || 0)); });
     var max = 1500, MARKS = [150, 300, 500, 1000];
-    $("pp-axis").innerHTML = MARKS.map(function (m, i) { return '<span class="ax r' + (i % 2) + '" style="left:' + (m / max * 100) + '%">' + nf.format(m) + ' ES</span>'; }).join("");
+    $("pp-axis").innerHTML = MARKS.map(function (m, i) { return '<span class="ax" style="left:' + (m / max * 100) + '%">' + nf.format(m) + '<span class="u"> ES</span></span>'; }).join("");
     var lines = MARKS.map(function (m) { return '<i class="mk" style="left:' + (m / max * 100) + '%"></i>'; }).join("");
     box.innerHTML = L.map(function (x) {
       var done = x.total || 0, out = Math.max(x.outlook || 0, done);
