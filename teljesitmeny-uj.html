@@ -375,6 +375,59 @@
     upd.tasks = tasks;
     FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "clients", c.id), upd).catch(function (e) { err("Mentés sikertelen: " + e.message); });
   }
+  $("per").addEventListener("change", render);
+  /* Termelési hónap: az adott hónap első keddjét követő naptól a következő hónap első keddjének végéig. */
+  function firstTue(y, m) { var d = new Date(y, m, 1); return new Date(y, m, 1 + ((2 - d.getDay() + 7) % 7), 23, 59, 59); }
+  function pmRange(y, m) { var s = firstTue(y, m); s = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 1, 0, 0, 0); return [s, firstTue(y, m + 1)]; }
+  var MN = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+  function sd(d) { return (d.getMonth() + 1) + "." + d.getDate() + "."; }
+  (function () {
+    var n = new Date(), cur = n.getFullYear() * 12 + n.getMonth(), r = pmRange(n.getFullYear(), n.getMonth());
+    if (n < r[0]) cur--;   /* a hónap első keddjéig még az előző termelési hónap tart */
+    var sel = $("per"); sel.textContent = "";
+    for (var k = 0; k < 7; k++) {
+      var v = cur - k, y = Math.floor(v / 12), m = v % 12, rg = pmRange(y, m), o = document.createElement("option");
+      o.value = String(v); o.textContent = y + ". " + MN[m] + " (" + sd(rg[0]) + " – " + sd(rg[1]) + ")" + (k === 0 ? " – jelenlegi" : "");
+      sel.appendChild(o);
+    }
+    var all = document.createElement("option"); all.value = "all"; all.textContent = "Mind"; sel.appendChild(all);
+  })();
+  function inPeriod(iso) {
+    var p = $("per").value; if (p === "all") return true;
+    var v = Number(p), rg = pmRange(Math.floor(v / 12), v % 12), d = new Date(iso.substring(0, 10) + "T12:00:00");
+    return d >= rg[0] && d <= rg[1];
+  }
+  function fmt(iso) { var d = new Date(iso + ":00"); return d.getFullYear() + "." + ("0" + (d.getMonth() + 1)).slice(-2) + "." + ("0" + d.getDate()).slice(-2) + ". " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); }
+  var PEND = "", SEL = ""; try { SEL = sessionStorage.getItem("tj_sel") || ""; } catch (e) {}
+  function mon(iso) { var d = new Date(iso.substring(0, 10) + "T12:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
+  function weekKey(iso) { var d = mon(iso); return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); }
+  function weekLabel(iso) {
+    var a = mon(iso), b = new Date(a); b.setDate(b.getDate() + 6);
+    var t = new Date(a); t.setDate(t.getDate() + 3); var y0 = new Date(t.getFullYear(), 0, 4); var w = 1 + Math.round(((t - y0) / 864e5 - 3 + ((y0.getDay() + 6) % 7)) / 7);
+    function f(d) { return ("0" + (d.getMonth() + 1)).slice(-2) + "." + ("0" + d.getDate()).slice(-2) + "."; }
+    return t.getFullYear() + ". " + w + ". hét (" + f(a) + " – " + f(b) + ")";
+  }
+  function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
+  var Q = [], running = false;
+  function local(b) {
+    var c = D.clients.filter(function (x) { return x.key === b.key; })[0]; if (!c) return;
+    if (b.action === "toggle") c.tasks.forEach(function (t) { if (t.id === b.task) t.done = !!b.done; });
+    else if (b.action === "deltask") c.tasks = c.tasks.filter(function (t) { return t.id !== b.task; });
+    else if (b.action === "addtask") c.tasks.push({ id: "tmp" + Date.now(), t: b.text, done: false, c: true });
+    else if (b.action === "answer") {
+      if (b.yes) { if (!c.tasks.length || c.state === "no") c.tasks = ["Bankszámla", "MEO hívás", "Ajánlások"].map(function (y, i) { return { id: "d" + i, t: y, done: false }; }); c.state = "yes"; }
+      else { c.tasks = ["Újraegyeztetve", "Lemondta"].map(function (y, i) { return { id: "n" + i, t: y, done: false }; }); c.state = "no"; }
+    }
+  }
+  function pump() {
+    if (running) return; running = true;
+    (function next(last) {
+      var b = Q.shift();
+      if (!b) { running = false; if (last) { D = last; keep(); render(); } return; }
+      call(b).then(function (d) { err(""); next(d); }).catch(function (e) { Q = []; running = false; err(e.message); load(); });
+    })(null);
+  }
+  function act(body) { local(body); keep(); render(); Q.push(body); pump(); }
   function render() {
     if (!D) return;
     $("upd").textContent = D.updated ? "Utolsó frissítés: " + new Date(D.updated).toLocaleString("hu-HU", { dateStyle: "short", timeStyle: "short" }) : "";
