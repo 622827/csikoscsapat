@@ -184,6 +184,10 @@
   .card input, .card select, .card textarea { background: var(--bg); }
   .fl.full { grid-column: 1 / -1; }
   .res { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin: 4px 0 0; }
+  .res.r3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .res.r3 .kpi { display: flex; flex-direction: column; justify-content: space-between; gap: 8px; min-height: 104px; }
+  @media (max-width: 760px) { .res.r3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 440px) { .res.r3 { grid-template-columns: 1fr; } .res.r3 .kpi { min-height: 0; } }
   .kpi { background: var(--bg); border-radius: 12px; padding: 11px 13px; min-width: 0; }
   .kpi .k { color: var(--muted); font-size: .82rem; }
   .kpi .v { font-size: 1.28rem; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
@@ -653,7 +657,7 @@ ${TXT.nyugdij}
  <p class="note">Várható nyugdíj a jövedelemhez képest (automatikus, életkor alapján): ma az átlagnyugdíj a nettó átlagkereset kb. 51%-a. Mivel 2050-re 2,3 helyett csak 1,5 dolgozó jut egy nyugdíjasra, a fiatalabbak várható aránya ennek arányában csökken (65 évesen kb. 50%, 55 évesen 40%, 45 évesen 40%, 28 évesen 30%; tízesre kerekítve). Nyugdíjba vonulás: 65 éves korban.</p>
 </div>
 <div class="card"><h3>2. Mennyi hiányzik?</h3>
- <div class="res">${kpi("ny_varhato", "Ügyfél várható nyugdíja")}${kpi("ny_hiany", "Szükséges havi kiegészítés")}${kpi("ny_celosszeg", "Öngondoskodás célösszege", { hl: 1 })}${kpi("ny_ido", "Hátralévő évek 65 éves korig")}${kpi("ny_kmentes", "Szükséges havi megtakarítás kamat nélkül")}${kpi("ny_8", "8% bruttó hozam esetén, havonta")}</div>
+ <div class="res r3">${kpi("ny_varhato", "Ügyfél várható nyugdíja")}${kpi("ny_hiany", "Szükséges havi kiegészítés")}${kpi("ny_celosszeg", "Öngondoskodás célösszege", { hl: 1 })}${kpi("ny_ido", "Hátralévő évek 65 éves korig")}${kpi("ny_kmentes", "Szükséges havi megtakarítás kamat nélkül")}${kpi("ny_8", "8% bruttó hozam esetén, havonta")}</div>
  <div class="warn" data-w="nyhiba" hidden></div>
 </div>
 <div class="card"><h3>3. Megoldástervezet – állami támogatással</h3>
