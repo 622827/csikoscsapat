@@ -235,12 +235,20 @@
   .team.pp.open .pp-dt { grid-template-rows: 1fr; }
   .team.pp .pp-dt > div { overflow: hidden; min-height: 0; opacity: 0; transition: opacity .25s ease; }
   .team.pp.open .pp-dt > div { opacity: 1; }
+  .pp-m .bx { min-width: 0; }
   .pp-m { display: grid; grid-template-columns: 96px 1fr; gap: 6px 12px; align-items: start; padding: 10px 0; border-top: 1px solid var(--track); }
   .pp-m:first-child { margin-top: 10px; }
   .pp-m .mn { font-weight: 700; } .pp-m .mn small { display: block; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
   .pp-m .ch { display: flex; flex-wrap: wrap; gap: 6px; }
   .pp-m .c { display: inline-flex; gap: 6px; align-items: baseline; padding: 4px 10px; border-radius: 999px; background: var(--card); font-size: .88rem; font-variant-numeric: tabular-nums; }
   .pp-m .c b { color: var(--tc); } .pp-m .c.lead { background: var(--tc); color: var(--on-accent, #fff); } .pp-m .c.lead b { color: inherit; }
+  .pp-sb { display: flex; height: 22px; border-radius: 999px; overflow: hidden; background: var(--card); }
+  .pp-sb i { display: block; height: 100%; min-width: 3px; box-shadow: inset -2px 0 0 var(--bg); transition: flex-grow .6s ease; }
+  .pp-sb i:last-child { box-shadow: none; }
+  .pp-lg { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-size: .86rem; font-variant-numeric: tabular-nums; }
+  .pp-lg span { display: inline-flex; align-items: center; gap: 6px; }
+  .pp-lg em { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .pp-lg b { font-weight: 800; }
   .pp-m .no { color: var(--muted); font-size: .88rem; }
   .pp-note { color: var(--muted); font-size: .85rem; margin: 2px 0 12px; }
   .pp-key { color: var(--muted); font-size: .92rem; margin: -4px 0 14px; }
@@ -505,6 +513,12 @@
   function plain(t) { return String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim(); }
   var PP_OPEN = {}, MONTH_HU = ["január","február","március","április","május","június","július","augusztus","szeptember","október","november","december"];
   function ppProc(p) { var o = ["igény", "ügyintézés", "szerződés", "100%", "befizet", "elszámolt"]; var i = o.map(function (k) { return plain(p).indexOf(plain(k)) > -1 ? 1 : 0; }).indexOf(1); return i < 0 ? 9 : i; }
+  function ppCol(k) { var p = plain(k);
+    if (p.indexOf("100") > -1 && p.indexOf("leadva") > -1) return "var(--tc)";
+    if (p.indexOf("elszamolt") > -1) return "#1f7a4a"; if (p.indexOf("befizet") > -1) return "#2e9e5b";
+    if (p.indexOf("szerzodes") > -1) return "#3fb8af"; if (p.indexOf("ugyintez") > -1) return "#f2b705";
+    if (p.indexOf("ta igeny") > -1) return "#6f8fd6"; if (p.indexOf("el igeny") > -1) return "#a3b1ca"; if (p.indexOf("igeny") > -1) return "#8da2c0";
+    return "#8a8f98"; }
   function renderPeople(list, months) {
     var box = $("people-list"), L = (list || []).filter(function (x) { return x && x.name; });
     if (!L.length) { $("people").hidden = true; return; }
@@ -515,10 +529,14 @@
     box.innerHTML = L.map(function (x, n) {
       var done = x.total || 0, out = Math.max(x.outlook || 0, done), key = plain(x.name);
       var det = (months || []).map(function (m) {
-        var pr = (x.proc || {})[m] || {}, names = Object.keys(pr).filter(function (k) { return pr[k] > 0; }).sort(function (a, b) { return ppProc(a) - ppProc(b); });
+        var raw = (x.proc || {})[m] || {}, pr = {};
+        Object.keys(raw).forEach(function (k) { var c = k.replace(/[^\p{L}\p{N}% ]+/gu, "").replace(/\s+/g, " ").trim() || k; pr[c] = (pr[c] || 0) + raw[k]; });
+        var names = Object.keys(pr).filter(function (k) { return pr[k] > 0; }).sort(function (a, b) { return ppProc(a) - ppProc(b); });
         var mt = (x.mt || {})[m] || 0;
-        return '<div class="pp-m"><div class="mn">' + MONTH_HU[(m % 100) - 1].replace(/^./, function (c) { return c.toUpperCase(); }) + '<small>' + nf.format(mt) + ' ' + LABEL + '</small></div><div class="ch">' +
-          (names.length ? names.map(function (k) { return '<span class="c' + (plain(k).indexOf("100") > -1 ? ' lead' : '') + '"><span>' + esc(k) + '</span><b>' + nf.format(pr[k]) + '</b></span>'; }).join("") : '<span class="no">' + (hasProc ? 'Nincs tétel ebben a hónapban.' : 'A folyamat szerinti bontás még nem érhető el.') + '</span>') + '</div></div>';
+        return '<div class="pp-m"><div class="mn">' + MONTH_HU[(m % 100) - 1].replace(/^./, function (c) { return c.toUpperCase(); }) + '<small>' + nf.format(mt) + ' ' + LABEL + '</small></div><div class="bx">' +
+          (names.length ? '<div class="pp-sb" role="img" aria-label="Egységek folyamat szerint">' + names.map(function (k) { return '<i style="flex:' + pr[k] + ' 1 0;background:' + ppCol(k) + '" title="' + esc(k) + ': ' + nf.format(pr[k]) + ' ' + LABEL + '"></i>'; }).join("") + '</div>' +
+            '<div class="pp-lg">' + names.map(function (k) { return '<span><em style="background:' + ppCol(k) + '"></em>' + esc(k) + ' <b>' + nf.format(pr[k]) + '</b></span>'; }).join("") + '</div>'
+            : '<span class="no">' + (hasProc ? 'Nincs tétel ebben a hónapban.' : 'A folyamat szerinti bontás még nem érhető el.') + '</span>') + '</div></div>';
       }).join("");
       return '<div class="team pp' + (CSK_MEMBERS.indexOf(key) > -1 ? ' csk' : '') + (PP_OPEN[key] ? ' open' : '') + '" data-k="' + esc(key) + '"><button type="button" class="pp-hd" aria-expanded="' + (PP_OPEN[key] ? 'true' : 'false') + '"><div class="head"><span class="nm">' + esc(x.name) + '</span><span class="val">' + nf.format(done) + ' ' + LABEL + '</span></div>' +
         '<div class="bar"><div class="seg out" style="width:' + Math.min(100, out / max * 100) + '%"></div><div class="seg" style="width:' + Math.min(100, done / max * 100) + '%"></div>' + lines + '</div>' +
