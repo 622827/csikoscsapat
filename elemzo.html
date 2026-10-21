@@ -236,6 +236,10 @@
   details.guide li { margin: 0 0 5px; break-inside: avoid; }
   details.guide em, .note-i { color: var(--muted); font-style: italic; }
   .nav2 { display: flex; justify-content: space-between; gap: 12px; margin-top: 22px; }
+  .ib { position: relative; display: inline-grid; place-items: center; width: 18px; height: 18px; margin-left: 8px; border-radius: 50%; border: 1.5px solid var(--muted); color: var(--muted); font: 700 .72rem/1 serif; font-style: italic; cursor: pointer; vertical-align: 1px; transition: background-color .2s ease, color .2s ease, transform .15s ease; }
+  .ib:hover, .ib:focus-visible, .ib.open { background: var(--accent); border-color: var(--accent); color: var(--on-accent); outline: 0; }
+  .ibtip { position: absolute; z-index: 60; max-width: min(340px, calc(100vw - 24px)); padding: 10px 14px; border-radius: 12px; background: var(--bg); color: var(--ink); border: 1px solid var(--muted); box-shadow: 0 10px 30px rgba(0,0,0,.3); font-size: .9rem; line-height: 1.4; font-weight: 500; opacity: 0; transform: translateY(-4px); transition: opacity .18s ease, transform .18s ease; pointer-events: none; }
+  .ibtip.on { opacity: 1; transform: none; }
   .ctip { position: absolute; z-index: 5; pointer-events: none; background: var(--bg); color: var(--ink); border: 1px solid var(--muted); border-radius: 10px; padding: 6px 10px; font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.18); max-width: 260px; }
   .ctip i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
   .svgc { width: 100%; height: auto; display: block; background: var(--bg); border-radius: 12px; }
@@ -328,7 +332,8 @@ function fld(k, l, o) {
   if (o.t === "s") return `<label class="fl${w}"><span>${esc(l)}</span><select data-k="${k}"><option value=""></option>${o.o.map(x => `<option>${esc(x)}</option>`).join("")}</select></label>`;
   if (o.t === "d") return `<label class="fl${w}"><span>${esc(l)}</span><input data-k="${k}" class="dm" inputmode="numeric" maxlength="10" placeholder="éééé.hh.nn" autocomplete="off"></label>`;
   if (o.t === "c") return `<label class="fl${w}" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" data-k="${k}" style="width:20px;height:20px;flex:none"><span style="font-weight:600">${esc(l)}</span></label>`;
-  return `<label class="fl${w}"><span>${esc(l)}</span><span class="inp"><input data-k="${k}"${o.m ? ' class="money"' : ""}${o.n || o.m ? ' inputmode="decimal"' : ""}${o.ph ? ` placeholder="${esc(o.ph)}"` : ""}${o.u ? `>` + `<i>${esc(o.u)}</i>` : ">"}</span></label>`;
+  const inf = o.info ? `<span class="ib" role="button" tabindex="0" aria-label="Magyarázat" data-tip="${esc(o.info)}">i</span>` : "";
+  return `<label class="fl${w}"><span>${esc(l)}${inf}</span><span class="inp"><input data-k="${k}"${o.m ? ' class="money"' : ""}${o.n || o.m ? ' inputmode="decimal"' : ""}${o.ph ? ` placeholder="${esc(o.ph)}"` : ""}${o.u ? `>` + `<i>${esc(o.u)}</i>` : ">"}</span></label>`;
 }
 const M = (k, l, o) => fld(k, l, Object.assign({ m: 1, u: "Ft" }, o));
 const CX = {
@@ -638,11 +643,10 @@ H.nyugdij = () => `
 ${TXT.nyugdij}
 <div class="card"><h3>1. Helyzet</h3>
  <div class="grid g3">
-  ${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}${M("c_egyeb", "Egyéb bevétel", { u: "Ft/hó" })}${kpi("ny_osszbev", "Összes havi bevétel", { hl: 1 })}${M("ny_megel", "Havi megélhetési költség", { u: "Ft/hó" })}
+  ${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${kpi("c_kor_out", "Életkor")}${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}${M("c_egyeb", "Egyéb bevétel", { u: "Ft/hó" })}${kpi("ny_osszbev", "Összes havi bevétel", { hl: 1 })}${M("ny_cel", "Havi nyugdíj igény", { u: "Ft/hó", info: "Az a havi összeg, amennyiből az ügyfél nyugdíjas korában is fenn tudná tartani a mostani életszínvonalát (lakhatás, étel, számlák, ruházkodás, benzin stb.). Ebből levonjuk a várható állami nyugdíjat, a különbség a szükséges havi kiegészítés." })}
   ${fld("nem", "Nem", { t: "s", o: ["Férfi", "Nő"] })}${kpi("ny_pct_out", "Várható nyugdíj a jövedelem %-ában")}${fld("ny_ev", "Nyugdíjban töltött évek", { n: 1, u: "év", ph: "férfi 14, nő 18" })}
-  ${M("ny_cel", "Nyugdíj célösszege (az életszínvonalhoz)", { u: "Ft/hó" })}${M("ny_meglevo", "Eddigi nyugdíj-megtakarítás", { u: "Ft/hó" })}
+  ${M("ny_meglevo", "Eddigi nyugdíj-megtakarítás", { u: "Ft/hó" })}
  </div>
- <p class="note">Megélhetési költség: amit lakhatásra, ételre, számlákra, ruházkodásra, benzinre stb. költ havonta.</p>
  <p class="note">Várható nyugdíj a jövedelemhez képest (automatikus, életkor alapján): ma az átlagnyugdíj a nettó átlagkereset kb. 51%-a. Mivel 2050-re 2,3 helyett csak 1,5 dolgozó jut egy nyugdíjasra, a fiatalabbak várható aránya ennek arányában csökken (65 évesen kb. 50%, 55 évesen 40%, 45 évesen 40%, 28 évesen 30%; tízesre kerekítve). Nyugdíjba vonulás: 65 éves korban.</p>
 </div>
 <div class="card"><h3>2. Mennyi hiányzik?</h3>
@@ -1334,6 +1338,20 @@ document.addEventListener("DOMContentLoaded", init);
     document.addEventListener("click", function (ev) { if (!wrap.contains(ev.target)) set(false); });
     document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") set(false); });
   })();
+</script>
+<script>
+(function () {
+  var tip = document.createElement("div"); tip.className = "ibtip"; tip.setAttribute("role", "tooltip"); document.body.appendChild(tip);
+  var cur = null;
+  function show(b) { cur = b; tip.textContent = b.getAttribute("data-tip"); var r = b.getBoundingClientRect();
+    tip.style.left = Math.max(8, Math.min(r.left + scrollX, scrollX + innerWidth - tip.offsetWidth - 8)) + "px"; tip.style.top = (r.bottom + scrollY + 8) + "px"; tip.classList.add("on"); b.classList.add("open"); }
+  function hide() { if (cur) cur.classList.remove("open"); cur = null; tip.classList.remove("on"); }
+  document.addEventListener("click", function (e) { var b = e.target.closest && e.target.closest(".ib"); if (b) { e.preventDefault(); e.stopPropagation(); cur === b ? hide() : (hide(), show(b)); } else hide(); }, true);
+  document.addEventListener("mouseover", function (e) { var b = e.target.closest && e.target.closest(".ib"); if (b && b !== cur) { hide(); show(b); } });
+  document.addEventListener("mouseout", function (e) { var b = e.target.closest && e.target.closest(".ib"); if (b && b === cur && !(e.relatedTarget && b.contains(e.relatedTarget))) hide(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") hide(); if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("ib")) { e.preventDefault(); e.target.click(); } });
+  window.addEventListener("scroll", hide, { passive: true });
+})();
 </script>
 <script src="anim.js" defer></script>
 </body>
