@@ -575,7 +575,7 @@
 <script>
 (function () {
   // ===== Téli Incentive állás: Google Táblázat (Közzététel a weben, CSV) =====
-  var TELI_CSV = "";   // ide kerül a táblázat „Közzététel a weben” CSV linkje
+  var TELI_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS_C6ZJ4dM1__BReD_CPdEi9n0lgFAhEFruVua9EyjkBovi5cL7vkZBwJXBP5kpxm_Y1zjJZB8IXQiA/pub?output=csv";   // ide kerül a táblázat „Közzététel a weben” CSV linkje
   var CATS = [["GST", "GST", 3], ["Reprezentáns", "Reprezentáns", 3], ["VR", "VR", 2]];
   function csv(t) { var rows = [], r = [], c = "", q = false, i = 0; for (; i < t.length; i++) { var ch = t[i];
       if (q) { if (ch === '"') { if (t[i + 1] === '"') { c += '"'; i++; } else q = false; } else c += ch; }
