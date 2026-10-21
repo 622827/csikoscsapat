@@ -1238,7 +1238,7 @@ function fxLoad(cb) {
 }
 function eqHints() {
   $$(".cur-btn").forEach(b => { b.classList.toggle("on", FX.on); b.textContent = FX.on ? "EUR · 1 € = " + FX.rate.toFixed(1).replace(".", ",") + " Ft" : "EUR / HUF"; });
-  ["lakas", "gyermek", "nyugdij", "befektetes"].forEach(id => $$("#s_" + id + " label.fl .inp input.money").forEach(i => {
+  ["nyugdij", "befektetes"].forEach(id => $$("#s_" + id + " label.fl .inp input.money").forEach(i => {
     const lb = i.closest("label"); let e = $(".eq", lb); if (!e) { e = document.createElement("small"); e.className = "eq"; lb.appendChild(e); }
     const v = num(i.value); e.textContent = FX.on && FX.rate && v ? "≈ " + fnum(v / FX.rate) + " € (" + (FX.date || "") + " árfolyam)" : "";
   }));
@@ -1252,7 +1252,7 @@ document.addEventListener("click", e => {
 function init() {
   load();
   $("#sheets").innerHTML = SHEETS.map(s => `<section class="sheet" id="s_${s[0]}"><div class="pr-h"><b>Pénzügyi elemző füzet</b> – <span class="pn"></span></div>${H[s[0]]()}</section>`).join("");
-  ["lakas", "gyermek", "nyugdij", "befektetes"].forEach(id => { const h = $("#s_" + id + " h2"); if (h) h.insertAdjacentHTML("beforebegin", '<button type="button" class="cur-btn" title="Összegek átváltása euróra az aznapi árfolyamon">EUR / HUF</button>'); });
+  ["nyugdij", "befektetes"].forEach(id => { const h = $("#s_" + id + " h2"); if (h) h.insertAdjacentHTML("beforebegin", '<button type="button" class="cur-btn" title="Összegek átváltása euróra az aznapi árfolyamon">EUR / HUF</button>'); });
   $("#steps").innerHTML = SHEETS.map((s, i) => `<button type="button" data-s="${s[0]}"><span class="n">${i + 1}</span>${s[1]}</button>`).join("");
   $("#steps").addEventListener("click", e => { const b = e.target.closest("button"); if (b) go(b.dataset.s); });
   $("#prev").addEventListener("click", () => { const i = SHEETS.findIndex(s => s[0] === CUR); if (i > 0) go(SHEETS[i - 1][0]); });
