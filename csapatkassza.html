@@ -159,6 +159,14 @@
   button.primary { font: inherit; font-weight: 700; border: 0; border-radius: 999px; padding: 10px 18px; cursor: pointer; background: var(--accent); color: var(--on-accent); }
   button.primary:hover { filter: brightness(1.08); }
   button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .wsl { display: grid; gap: 12px; max-width: 760px; }
+  .wsc { background: var(--card); border-radius: 14px; padding: 14px 16px; }
+  .wsh { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .wsd { color: var(--muted); font-size: .88rem; font-variant-numeric: tabular-nums; }
+  .wsk { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 8px; font-size: .92rem; }
+  .wsk a { color: var(--accent); }
+  .wsp { margin: 0; padding-left: 18px; }
+  .wsn { margin: 8px 0 0; color: var(--muted); font-size: .92rem; }
   .list { border-top: 1px solid var(--track); }
   .row { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto auto; gap: 4px 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--track); }
   .row .d { color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
@@ -295,11 +303,16 @@
 
 <div id="v-iroda" hidden>
   <p class="eyebrow">BB IRODÁK HOLDING</p>
-  <div class="ktabs" id="itabs" role="tablist" style="margin-top:6px"><button type="button" class="on" data-i="fo">Főszámla</button><button type="button" data-i="fl">Flotta számla</button><button type="button" data-i="hp">Házipénztár</button><button type="button" data-i="ko">Könyvelés</button><button type="button" data-i="fx">Foxpost csomag</button></div>
+  <div class="ktabs" id="itabs" role="tablist" style="margin-top:6px"><button type="button" class="on" data-i="fo">Főszámla</button><button type="button" data-i="fl">Flotta számla</button><button type="button" data-i="hp">Házipénztár</button><button type="button" data-i="ko">Könyvelés</button><button type="button" data-i="fx">Foxpost csomag</button><button type="button" data-i="ws">Webshop rendelések</button></div>
   <section class="ipane" data-ip="fo"><h2>Főszámla</h2><p class="balsub">A tartalom hamarosan.</p></section>
   <section class="ipane" data-ip="fl" hidden><h2>Flotta számla</h2><p class="balsub">A tartalom hamarosan.</p></section>
   <section class="ipane" data-ip="hp" hidden><h2>Házipénztár</h2><p class="balsub">A tartalom hamarosan.</p></section>
   <section class="ipane" data-ip="ko" hidden><h2>Könyvelés</h2><p class="balsub">A tartalom hamarosan.</p></section>
+  <section class="ipane" data-ip="ws" hidden><h2>Webshop rendelések</h2>
+    <p class="balsub" id="ws-msg">Betöltés…</p>
+    <div style="margin:0 0 12px"><button class="primary" type="button" id="ws-ref">Frissítés</button></div>
+    <div id="ws-list" class="wsl"></div>
+  </section>
   <section class="ipane" data-ip="fx" hidden><h2>Foxpost csomag</h2>
     <p class="balsub">Csomag adatai a címkéhez.</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 16px;max-width:720px">
@@ -704,6 +717,34 @@
     Array.prototype.forEach.call($("itabs").children, function (c) { c.classList.toggle("on", c === b); });
     Array.prototype.forEach.call(document.querySelectorAll(".ipane"), function (p) { p.hidden = p.getAttribute("data-ip") !== i; });
   });
+  /* ===== Webshop rendelések listája ===== */
+  (function () {
+    var IRODA_API = "https://script.google.com/macros/s/AKfycbyeBUhK2P5wGl9YbQKG_MSewVomcXoqL9mxP5NioW91kUEsMH8VSV165YuIUqV0C3nU/exec";
+    var loaded = false, busyW = false;
+    function wsMsg(t, bad) { var m = $("ws-msg"); m.textContent = t; m.style.color = bad ? "var(--gold, #cc0066)" : ""; }
+    function fmtD(iso) { try { return new Date(iso).toLocaleString("hu-HU", { dateStyle: "medium", timeStyle: "short" }); } catch (e) { return iso; } }
+    function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; }
+    function wsLoad() {
+      if (busyW) return; busyW = true; wsMsg("Betöltés…");
+      fetch(IRODA_API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ webshoplist: 1, t: token(), kt: kt() }) })
+        .then(function (r) { return r.json(); }).then(function (d) {
+          busyW = false;
+          if (d && d.error === "kauth") { gate("A belépés lejárt, add meg újra a jelszót."); return; }
+          if (!d || !d.orders) { wsMsg((d && d.error) || "Nem sikerült betölteni a rendeléseket.", 1); return; }
+          loaded = true; var box = $("ws-list"); box.textContent = "";
+          wsMsg(d.orders.length ? d.orders.length + " rendelés (a legújabb elöl)" : "Még nem érkezett rendelés.");
+          d.orders.forEach(function (o) {
+            var c = el("article", "wsc"), h = el("div", "wsh"); h.appendChild(el("b", "", o.nev)); h.appendChild(el("span", "wsd", fmtD(o.ts))); c.appendChild(h);
+            var ct = el("div", "wsk"); var a1 = el("a", "", o.tel); a1.href = "tel:" + o.tel; var a2 = el("a", "", o.email); a2.href = "mailto:" + o.email; ct.appendChild(a1); ct.appendChild(a2); c.appendChild(ct);
+            var ul = el("ul", "wsp"); (o.termekek || []).forEach(function (t) { ul.appendChild(el("li", "", t)); }); c.appendChild(ul);
+            if (o.megj) c.appendChild(el("p", "wsn", "Megjegyzés: " + o.megj));
+            box.appendChild(c);
+          });
+        }).catch(function () { busyW = false; wsMsg("Nem sikerült csatlakozni a rendelések betöltéséhez.", 1); });
+    }
+    $("itabs").addEventListener("click", function (ev) { var b = ev.target.closest("button"); if (b && b.getAttribute("data-i") === "ws") wsLoad(); });
+    $("ws-ref").addEventListener("click", wsLoad);
+  })();
   /* ===== Foxpost csomag: a háttérszkript (Apps Script) hozza létre a csomagot és a címkét ===== */
   (function () {
     var IRODA_API = "https://script.google.com/macros/s/AKfycbyeBUhK2P5wGl9YbQKG_MSewVomcXoqL9mxP5NioW91kUEsMH8VSV165YuIUqV0C3nU/exec";
