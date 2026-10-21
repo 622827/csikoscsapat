@@ -663,9 +663,9 @@ ${TXT.nyugdij}
 <div class="card"><h3>3. Megoldástervezet – állami támogatással</h3>
  <div class="grid">${M("ny_havi", "Havonta elkülönített összeg (javasolt, max. 55 000 Ft)", { u: "Ft/hó" })}</div>
  <div class="tw" style="margin-top:10px"><table class="dt"><thead><tr><th></th><th>Javasolt</th></tr></thead><tbody>
-  <tr><td>Igényelhető adókedvezmény</td><td data-o="ny_ado1">–</td></tr>
-  <tr><td>Kamatadó-kedvezmény</td><td data-o="ny_kam1">–</td></tr>
   <tr><td><b>Összegyűjtött összeg 65 évesen</b></td><td data-o="ny_osszeg1"><b>–</b></td></tr>
+  <tr><td>ebből nyugdíj-adókedvezmény (hozammal együtt)</td><td data-o="ny_ado1">–</td></tr>
+  <tr><td>ebből kamatadó-kedvezmény (a hozam 28%-a, tőke nélkül)</td><td data-o="ny_kam1">–</td></tr>
  </tbody></table></div>
  <div class="warn" data-w="nyszja" hidden>Az ügyfél SZJA-mentes: az adókedvezményt a saját nevén nem tudja igénybe venni (lásd Alapadatok).</div>
  <p class="note">Az adatok tájékoztató jellegűek és nem minősülnek ajánlattételnek.</p>
@@ -997,16 +997,16 @@ function compute() {
   const sim = (h, months) => {
     if (!(h > 0) || !(months > 0)) return null;
     const start = new Date(endD.getTime()); start.setMonth(start.getMonth() - months); if (start < today) start.setTime(today.getTime());
-    const dr = 0.08 / 365; let bal = 0, dep = 0, tax = 0, yDep = 0, nextDep = 0, di = 0;
+    const dr = 0.08 / 365; let bal = 0, cb = 0, dep = 0, tax = 0, yDep = 0, nextDep = 0, di = 0;
     const depDate = i => { const x = new Date(start.getTime()); x.setMonth(x.getMonth() + i); return x; };
     nextDep = depDate(0).getTime();
     for (let d = new Date(start.getTime()); d <= endD; d.setDate(d.getDate() + 1)) {
       while (di < months && nextDep <= d.getTime()) { bal += h; dep += h; yDep += h; di++; nextDep = depDate(di).getTime(); }
-      bal *= 1 + dr;
+      bal *= 1 + dr; cb *= 1 + dr;
       const last = d.getTime() >= endD.getTime() - 43200000;
-      if ((d.getMonth() === 11 && d.getDate() === 31) || last) { const c = Math.min(yDep, 55000 * 12) * 0.2; bal += c; tax += c; yDep = 0; }
+      if ((d.getMonth() === 11 && d.getDate() === 31) || last) { const c = Math.min(yDep, 55000 * 12) * 0.2; bal += c; cb += c; tax += c; yDep = 0; }
     }
-    return { o: bal, dep, ado: tax, kam: (bal - dep) * 0.15 };
+    return { o: bal, dep, ado: cb, kam: ((bal - dep - tax)) * 0.28 };
   };
   const ok = net > 0 && kor > 0;
   out("ny_osszbev", n("c_net") + n("c_egyeb") > 0 ? ft(n("c_net") + n("c_egyeb")) : "–");
