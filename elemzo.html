@@ -181,7 +181,8 @@
   .fl .inp { position: relative; display: block; }
   .eq { font-size: .8rem; color: var(--muted); min-height: 0; }
   .eq:empty { display: none; }
-  .cur-btn { float: right; margin: 0 0 0 10px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--accent, #6699cc); background: transparent; color: inherit; font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; transition: background .2s, color .2s, transform .15s; }
+  .cur-btn { display: none; position: fixed; right: 12px; top: 45%; z-index: 50; box-shadow: 0 4px 14px rgba(0,0,0,.35); background: var(--card, #13366a); padding: 8px 14px; border-radius: 999px; border: 1px solid var(--accent, #6699cc); background: transparent; color: inherit; font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; transition: background .2s, color .2s, transform .15s; }
+  body[data-sh="nyugdij"] .cur-btn, body[data-sh="befektetes"] .cur-btn { display: block; }
   .cur-btn.on { background: var(--accent, #6699cc); color: var(--on-accent, #003366); }
   .cur-btn:active { transform: scale(.94); }
   @media print { .cur-btn { display: none; } }
@@ -1254,7 +1255,7 @@ document.addEventListener("click", e => {
 function init() {
   load();
   $("#sheets").innerHTML = SHEETS.map(s => `<section class="sheet" id="s_${s[0]}"><div class="pr-h"><b>Pénzügyi elemző füzet</b> – <span class="pn"></span></div>${H[s[0]]()}</section>`).join("");
-  ["nyugdij", "befektetes"].forEach(id => { const h = $("#s_" + id + " h2"); if (h) h.insertAdjacentHTML("beforebegin", '<button type="button" class="cur-btn" title="Összegek átváltása euróra az aznapi árfolyamon">EUR / HUF</button>'); });
+  document.body.insertAdjacentHTML("beforeend", '<button type="button" class="cur-btn" title="Összegek átváltása euróra az aznapi árfolyamon">EUR / HUF</button>');
   $("#steps").innerHTML = SHEETS.map((s, i) => `<button type="button" data-s="${s[0]}"><span class="n">${i + 1}</span>${s[1]}</button>`).join("");
   $("#steps").addEventListener("click", e => { const b = e.target.closest("button"); if (b) go(b.dataset.s); });
   $("#prev").addEventListener("click", () => { const i = SHEETS.findIndex(s => s[0] === CUR); if (i > 0) go(SHEETS[i - 1][0]); });
