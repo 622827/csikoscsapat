@@ -647,7 +647,7 @@ ${TXT.nyugdij}
  <div class="grid g3">
   ${fld("c_nev", "Név")}${fld("c_szul", "Születési dátum", { t: "d" })}${M("c_net", "Nettó jövedelem", { u: "Ft/hó" })}${M("c_egyeb", "Egyéb bevétel", { u: "Ft/hó" })}${M("ny_cel", "Havi nyugdíj igény", { u: "Ft/hó", info: "Az a havi összeg, amennyiből az ügyfél nyugdíjas korában is fenn tudná tartani a mostani életszínvonalát (lakhatás, étel, számlák, ruházkodás, benzin stb.). Ebből levonjuk a várható állami nyugdíjat, a különbség a szükséges havi kiegészítés." })}
   ${fld("nem", "Nem", { t: "s", o: ["Férfi", "Nő"] })}${fld("ny_ev", "Nyugdíjban töltött évek", { n: 1, u: "év", ph: "férfi 14, nő 18" })}
-  ${M("ny_meglevo", "Eddigi nyugdíj-megtakarítás", { u: "Ft/hó" })}
+  ${M("ny_meglevo", "Eddigi nyugdíj-megtakarítás", { u: "Ft/hó", info: "Amennyit az ügyfél most már havonta félretesz nyugdíjra (pl. nyugdíjbiztosítás, nyugdíjcélú megtakarítás, önkéntes nyugdíjpénztár). A számolás ezt beleszámítja, így az ajánlott havi megtakarítás csak a még hiányzó részt mutatja." })}
   <div class="kcol">${kpi("c_kor_out", "Életkor")}${kpi("ny_osszbev", "Összes havi bevétel", { hl: 1 })}${kpi("ny_pct_out", "Várható nyugdíj a jövedelem %-ában")}</div>
  </div>
  <p class="note">Várható nyugdíj a jövedelemhez képest (automatikus, életkor alapján): ma az átlagnyugdíj a nettó átlagkereset kb. 51%-a. Mivel 2050-re 2,3 helyett csak 1,5 dolgozó jut egy nyugdíjasra, a fiatalabbak várható aránya ennek arányában csökken (65 évesen kb. 50%, 55 évesen 40%, 45 évesen 40%, 28 évesen 30%; tízesre kerekítve). Nyugdíjba vonulás: 65 éves korban.</p>
