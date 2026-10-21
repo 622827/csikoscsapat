@@ -3,13 +3,14 @@
 /* Almenü: a fejléc menüpontjai fölé víve megjelennek az aloldalak */
 (function () {
   var SUB = { "verseny.html": [["Erdélyi Incentive", "verseny.html#erdely"], ["Téli Incentive", "verseny.html#teli"]],
+              "csapatkassza.html": [["Csapatkassza", "csapatkassza.html#kassza"], ["OVB flotta", "csapatkassza.html#flotta"], ["Iroda kassza", "csapatkassza.html#iroda"]],
               "teljesitmeny-uj.html": [["Elemzések utáni teendők", "teljesitmeny-uj.html#elemzesek"], ["Asszisztensi feladatok", "teljesitmeny-uj.html#asszisztens"]] };
   function init() {
     var nav = document.querySelector(".topnav"); if (!nav || !window.matchMedia("(hover:hover)").matches) return;
     var st = document.createElement("style");
     st.textContent = ".csk-sub{position:fixed;z-index:60;min-width:210px;padding:6px;border-radius:14px;background:var(--bg,#fff);color:var(--ink,#111);border:1px solid var(--track,#ddd);box-shadow:0 10px 30px rgba(0,0,0,.18);opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}" +
       ".csk-sub.on{opacity:1;transform:none;pointer-events:auto}.csk-sub a{display:block;padding:9px 14px;border-radius:10px;color:inherit;text-decoration:none;font-weight:600;white-space:nowrap}.csk-sub a:hover,.csk-sub a:focus-visible{background:var(--track,#eee)}";
-    st.textContent += ".csk-sub a.cur{background:var(--accent,#036);color:var(--on-accent,#fff)}html.csk-hastabs .vtabs,html.csk-hastabs .vtabs2{display:none!important}";
+    st.textContent += ".csk-sub a.cur{background:var(--accent,#036);color:var(--on-accent,#fff)}html.csk-hastabs .vtabs,html.csk-hastabs .vtabs2,html.csk-hastabs .ktabs{display:none!important}";
     document.head.appendChild(st); document.documentElement.classList.add("csk-hastabs");
     var box = document.createElement("div"); box.className = "csk-sub"; document.body.appendChild(box);
     var tm = 0, cur = null;
@@ -21,7 +22,7 @@
         clearTimeout(tm); if (cur === a) return; cur = a; box.textContent = "";
         items.forEach(function (it) { var l = document.createElement("a"); l.href = it[1]; l.textContent = it[0];
           var h = location.hash, onPage = location.pathname.split("/").pop() === key || (key === "verseny.html" && location.pathname.slice(-1) === "/" && false);
-          var curKey = ""; try { curKey = key === "verseny.html" ? (h === "#teli" ? "#teli" : "#erdely") : (h ? h : (sessionStorage.getItem("tj_view") === "as" ? "#asszisztens" : "#elemzesek")); } catch (e) {}
+          var curKey = ""; try { curKey = key === "csapatkassza.html" ? (h === "#flotta" || h === "#iroda" ? h : "#kassza") : key === "verseny.html" ? (h === "#teli" ? "#teli" : "#erdely") : (h ? h : (sessionStorage.getItem("tj_view") === "as" ? "#asszisztens" : "#elemzesek")); } catch (e) {}
           if (onPage && it[1].slice(it[1].indexOf("#")) === curKey) l.className = "cur";
           box.appendChild(l); });
         var r = a.getBoundingClientRect(); box.style.top = (r.bottom + 4) + "px"; box.style.left = Math.max(8, Math.min(r.left, innerWidth - 230)) + "px";

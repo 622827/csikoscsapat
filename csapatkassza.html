@@ -781,7 +781,8 @@
         }).catch(function (e) { clearTimeout(tm); busy = false; $("fx-go").disabled = false; msg("Nem sikerült csatlakozni (" + (e && e.name === "AbortError" ? "időtúllépés 45 mp után" : (e && e.message) || "ismeretlen hiba") + "). A csomag ettől még létrejöhetett a Foxpostnál, nézd meg ott, mielőtt újra próbálod.", 1); });
     });
   })();
-  if (location.hash === "#flotta") view("flotta"); else if (location.hash === "#iroda") view("iroda");
+  function fromHash() { var h = location.hash; if (h === "#flotta") view("flotta"); else if (h === "#iroda") view("iroda"); else if (h === "#kassza") view("kassza"); }
+  fromHash(); window.addEventListener("hashchange", fromHash);
   var w = $("who"); w.value = ""; try { w.value = localStorage.getItem("kassza_who") || ""; } catch (e) {}
   w.addEventListener("input", function () { try { localStorage.setItem("kassza_who", w.value.trim()); } catch (e) {} });
   load();
