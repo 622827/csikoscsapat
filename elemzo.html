@@ -989,18 +989,38 @@ function compute() {
   const ev = has(g("ny_ev")) ? n("ny_ev") : (g("nem") === "Nő" ? 18 : g("nem") === "Férfi" ? 14 : 0);
   const varh = net * pct, hiany = Math.max(0, n("ny_cel") - varh), cel = hiany * 12 * ev;
   const af = AF(ido);
+  /* napi szimuláció: havi befizetés, évvégi 20% adójóváírás, 8% éves hozam napi kamatozással, a mai naptól a 65. születésnapig */
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+  let endD = new Date(today.getTime()); endD.setFullYear(endD.getFullYear() + ido);
+  if (bd) { endD = new Date(+bd[1] + 65, +bd[2] - 1, +bd[3], 12); }
+  const NM = (ido && endD > today) ? Math.max(0, (endD.getFullYear() - today.getFullYear()) * 12 + endD.getMonth() - today.getMonth() - (endD.getDate() < today.getDate() ? 1 : 0)) : 0;
+  const sim = (h, months) => {
+    if (!(h > 0) || !(months > 0)) return null;
+    const start = new Date(endD.getTime()); start.setMonth(start.getMonth() - months); if (start < today) start.setTime(today.getTime());
+    const dr = 0.08 / 365; let bal = 0, dep = 0, tax = 0, yDep = 0, nextDep = 0, di = 0;
+    const depDate = i => { const x = new Date(start.getTime()); x.setMonth(x.getMonth() + i); return x; };
+    nextDep = depDate(0).getTime();
+    for (let d = new Date(start.getTime()); d <= endD; d.setDate(d.getDate() + 1)) {
+      while (di < months && nextDep <= d.getTime()) { bal += h; dep += h; yDep += h; di++; nextDep = depDate(di).getTime(); }
+      bal *= 1 + dr;
+      const last = d.getTime() >= endD.getTime() - 43200000;
+      if ((d.getMonth() === 11 && d.getDate() === 31) || last) { const c = Math.min(yDep, 55000 * 12) * 0.2; bal += c; tax += c; yDep = 0; }
+    }
+    return { o: bal, dep, ado: tax, kam: (bal - dep) * 0.15 };
+  };
   const ok = net > 0 && kor > 0;
   out("ny_osszbev", n("c_net") + n("c_egyeb") > 0 ? ft(n("c_net") + n("c_egyeb")) : "–");
   out("ny_varhato", ok ? ft(varh) : "–"); out("ny_hiany", n("ny_cel") ? ft(hiany) : "–");
   out("ny_celosszeg", cel > 0 ? ft(cel) : "–"); out("ny_ido", ido ? ido + " év" : "–");
   out("ny_kmentes", cel > 0 && ido ? ft(cel / ido / 12) : "–");
-  out("ny_8", cel > 0 && af ? ft(Math.max(0, (cel / af / 12 - n("ny_meglevo")) * .85)) : "–");
+  const s1 = sim(1000, NM);
+  out("ny_8", cel > 0 && s1 ? ft(Math.max(0, cel / (s1.o / 1000) - n("ny_meglevo"))) : "–");
   const w = $('[data-w="nyhiba"]');
   if (w) { let m = ""; if (!kor) m = "Add meg az életkort."; else if (kor >= 65) m = "Az ügyfél elérte a nyugdíjkorhatárt, a kalkuláció nem értelmezhető."; else if (ido < 5) m = "5 évnél rövidebb időtávra nincs számítási tábla."; if (!ev && kor && kor < 65) m = (m ? m + " " : "") + "Add meg a nemet vagy a nyugdíjban töltött évek számát."; w.hidden = !m; w.textContent = m; }
-  const plan = h => { if (!af || h <= 0) return null; const o = af * h * 12, hz = o - h * 12 * ido; return { o, ado: af * Math.min(h, 55000) * 12 * .2, kam: hz * .15 }; };
+  const plan = h => sim(h, NM);
   [[1, n("ny_havi")]].forEach(([i, h]) => { const p = plan(h); out("ny_ado" + i, p ? ft(p.ado) : "–"); out("ny_kam" + i, p ? ft(p.kam) : "–"); out("ny_osszeg" + i, p ? ft(p.o) : "–"); });
   const p1 = plan(n("ny_havi"));
-  [[2, "ny_d2"], [5, "ny_d5"], [10, "ny_d10"]].forEach(([dd, id]) => { if (!p1) { out(id, "–"); return; } const a = AF(ido - dd); out(id, ft(p1.o - (a ? a * n("ny_havi") * 12 : 0))); });
+  [[2, "ny_d2"], [5, "ny_d5"], [10, "ny_d10"]].forEach(([dd, id]) => { if (!p1) { out(id, "–"); return; } const q = sim(n("ny_havi"), NM - 12 * dd); out(id, ft(p1.o - (q ? q.o : 0))); });
   show("nyszja", sz && sz !== "Nem");
 
   /* lakás */
