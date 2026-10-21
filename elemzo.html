@@ -370,8 +370,7 @@ const CX = {
   "Hiteltörlesztő védelem": "Betegség, baleset vagy kiesés esetén a biztosítás átveszi a törlesztést, vagy kifizeti a hitelt.",
   "Okos hitel lehetősége": "A hitel mellett külön gyűlik a végtörlesztésre szánt pénz, így a hitel előbb kifizethető.",
   "Hozzáférhető": "A felgyűlt pénz szükség esetén elérhető.",
-  "Hibrid (rész előbb is elérhető)": "A pénz egy része már nyugdíjkor előtt is felhasználható, a többi a nyugdíjra marad.",
-  "Nyugdíjkorhatár-rugalmas": "A nyugdíjba vonulás ideje változtatható, a megtakarítás ehhez igazodik."
+  "Hibrid": "A pénz egy része már nyugdíjkor előtt is felhasználható, a többi a nyugdíjra marad."
 };
 function chip(k, l, a) { a = a || "Fontos"; return `<div class="chip"><span>${esc(l)}</span><span class="seg2" data-ck="${k}"><button type="button" data-v="${a}">${a}</button></span>${CX[l] ? `<div class="cx" data-cx="${k}" hidden>${esc(CX[l])}</div>` : ""}</div>`; }
 function yn(k, l) { return chip(k, l, "Igen", "Nem"); }
@@ -675,7 +674,7 @@ ${TXT.nyugdij}
  <div class="res">${kpi("ny_d2", "2 év halogatás", { c: "out" })}${kpi("ny_d5", "5 év halogatás", { c: "out" })}${kpi("ny_d10", "10 év halogatás", { c: "out" })}</div>
 </div>
 <div class="card"><h3>5. Szempontok</h3>
- <div class="chips">${chip("ny_c1", "Szüneteltethető")}${chip("ny_c2", "Államtól független")}${chip("ny_c3", "Szabadon felhasználható")}${chip("ny_c4", "Hozzáférhető")}${chip("ny_c5", "Hibrid (rész előbb is elérhető)")}${chip("ny_c6", "Nyugdíjkorhatár-rugalmas")}${chip("ny_c7", "Deviza (euró)")}</div>
+ <div class="chips">${chip("ny_c1", "Szüneteltethető")}${chip("ny_c2", "Államtól független")}${chip("ny_c3", "Szabadon felhasználható")}${chip("ny_c4", "Hozzáférhető")}${chip("ny_c5", "Hibrid")}${chip("ny_c7", "Deviza (euró)")}</div>
  <div class="grid" style="margin-top:10px">${fld("ny_c8", "Egyéb szempont")}${fld("ny_hibrid", "Hibrid megosztás aránya")}</div>
  ${fld("ny_jegy", "Jegyzetek", { t: "ta", r: 3, full: 1 })}
 </div>
