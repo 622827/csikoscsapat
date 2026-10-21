@@ -661,11 +661,11 @@ ${TXT.nyugdij}
  <div class="warn" data-w="nyhiba" hidden></div>
 </div>
 <div class="card"><h3>3. Megoldástervezet – állami támogatással</h3>
- <div class="grid g2">${M("ny_havi", "Havonta elkülönített összeg (javasolt, max. 55 000 Ft)", { u: "Ft/hó" })}${M("ny_havi2", "Egyéb megoldás – havi összeg", { u: "Ft/hó" })}</div>
- <div class="tw" style="margin-top:10px"><table class="dt"><thead><tr><th></th><th>Javasolt</th><th>Egyéb</th></tr></thead><tbody>
-  <tr><td>Igényelhető adókedvezmény</td><td data-o="ny_ado1">–</td><td data-o="ny_ado2">–</td></tr>
-  <tr><td>Kamatadó-kedvezmény</td><td data-o="ny_kam1">–</td><td data-o="ny_kam2">–</td></tr>
-  <tr><td><b>Összegyűjtött összeg 65 évesen</b></td><td data-o="ny_osszeg1"><b>–</b></td><td data-o="ny_osszeg2"><b>–</b></td></tr>
+ <div class="grid">${M("ny_havi", "Havonta elkülönített összeg (javasolt, max. 55 000 Ft)", { u: "Ft/hó" })}</div>
+ <div class="tw" style="margin-top:10px"><table class="dt"><thead><tr><th></th><th>Javasolt</th></tr></thead><tbody>
+  <tr><td>Igényelhető adókedvezmény</td><td data-o="ny_ado1">–</td></tr>
+  <tr><td>Kamatadó-kedvezmény</td><td data-o="ny_kam1">–</td></tr>
+  <tr><td><b>Összegyűjtött összeg 65 évesen</b></td><td data-o="ny_osszeg1"><b>–</b></td></tr>
  </tbody></table></div>
  <div class="warn" data-w="nyszja" hidden>Az ügyfél SZJA-mentes: az adókedvezményt a saját nevén nem tudja igénybe venni (lásd Alapadatok).</div>
  <p class="note">Az adatok tájékoztató jellegűek és nem minősülnek ajánlattételnek.</p>
@@ -998,7 +998,7 @@ function compute() {
   const w = $('[data-w="nyhiba"]');
   if (w) { let m = ""; if (!kor) m = "Add meg az életkort."; else if (kor >= 65) m = "Az ügyfél elérte a nyugdíjkorhatárt, a kalkuláció nem értelmezhető."; else if (ido < 5) m = "5 évnél rövidebb időtávra nincs számítási tábla."; if (!ev && kor && kor < 65) m = (m ? m + " " : "") + "Add meg a nemet vagy a nyugdíjban töltött évek számát."; w.hidden = !m; w.textContent = m; }
   const plan = h => { if (!af || h <= 0) return null; const o = af * h * 12, hz = o - h * 12 * ido; return { o, ado: af * Math.min(h, 55000) * 12 * .2, kam: hz * .15 }; };
-  [[1, n("ny_havi")], [2, n("ny_havi2")]].forEach(([i, h]) => { const p = plan(h); out("ny_ado" + i, p ? ft(p.ado) : "–"); out("ny_kam" + i, p ? ft(p.kam) : "–"); out("ny_osszeg" + i, p ? ft(p.o) : "–"); });
+  [[1, n("ny_havi")]].forEach(([i, h]) => { const p = plan(h); out("ny_ado" + i, p ? ft(p.ado) : "–"); out("ny_kam" + i, p ? ft(p.kam) : "–"); out("ny_osszeg" + i, p ? ft(p.o) : "–"); });
   const p1 = plan(n("ny_havi"));
   [[2, "ny_d2"], [5, "ny_d5"], [10, "ny_d10"]].forEach(([dd, id]) => { if (!p1) { out(id, "–"); return; } const a = AF(ido - dd); out(id, ft(p1.o - (a ? a * n("ny_havi") * 12 : 0))); });
   show("nyszja", sz && sz !== "Nem");
