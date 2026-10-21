@@ -105,6 +105,21 @@
   .vtabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 18px; }
   .vtab { font: inherit; font-weight: 700; padding: 10px 20px; border-radius: 999px; cursor: pointer; border: 2px solid var(--track, #cfd6e4); background: transparent; color: var(--ink); }
   .vtab.on { background: var(--accent); color: var(--on-accent, #fff); border-color: var(--accent); }
+  .tcats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 18px 0 8px; }
+  .tcat { background: var(--card); border-radius: 16px; padding: 16px 18px; }
+  .tcat h2 { margin: 0 0 2px; font-size: 1.15rem; }
+  .tcat .sub { margin: 0 0 10px; color: var(--muted); font-size: .85rem; font-weight: 600; }
+  .tcat ol { list-style: none; margin: 0; padding: 0; }
+  .tcat li { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--track); }
+  .tcat li:first-child { border-top: 0; }
+  .tcat li .rk { font-weight: 800; color: var(--muted); text-align: center; }
+  .tcat li.win .rk { background: var(--accent); color: var(--on-accent); border-radius: 50%; width: 26px; height: 26px; line-height: 26px; }
+  .tcat li.win .nm { font-weight: 700; }
+  .tcat li .pt { font-weight: 800; }
+  .tcat li.out { opacity: .6; }
+  .tcat .cut { margin: 6px 0 2px; font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border-top: 2px dashed var(--track); padding-top: 6px; }
+  .tcat .empty { color: var(--muted); margin: 6px 0; }
+  .tnote { color: var(--muted); font-size: .85rem; margin: 6px 0 0; }
   .tpost { display: block; width: min(100%, 720px); height: auto; border-radius: 16px; margin: 22px 0 8px; box-shadow: 0 10px 40px rgba(0,0,0,.28); }
   .lead { color: var(--muted); font-size: clamp(1rem, 2vw, 1.2rem); margin: 0; max-width: 62ch; }
   .meta { color: var(--muted); font-size: .9rem; margin: 10px 0 0; min-height: 1.2em; }
@@ -297,6 +312,8 @@
   <div id="vp-teli" role="tabpanel" aria-labelledby="vt-teli" hidden>
     <h1>Téli Incentive</h1>
     <p class="lead">Február 18–21. · síelés, hószánozás, szánkózás. Október–január teljesítménye alapján: TOP 3 GST, TOP 3 reprezentáns, TOP 2 VR. A részletes feltételeket a versenyszabályzat tartalmazza.</p>
+    <div class="tcats" id="tcats" aria-live="polite"></div>
+    <p class="tnote" id="tnote"></p>
     <img class="tpost" src="teli-incentive.jpg" alt="Téli Incentive plakát: február 18–21., síelés, hószánozás, szánkózás. Október–január teljesítménye alapján TOP 3 GST, TOP 3 reprezentáns, TOP 2 VR. Regisztrált munkatárs 150 egységgel vagy MNB + 500 technikai." width="956" height="1434">
   </div>
 </main>
@@ -554,6 +571,39 @@
     function fromHash() { if (location.hash === "#teli") show("teli"); else if (location.hash === "#erdely") show("erdely"); }
     fromHash(); window.addEventListener("hashchange", fromHash);
   })();
+</script>
+<script>
+(function () {
+  // ===== Téli Incentive állás: Google Táblázat (Közzététel a weben, CSV) =====
+  var TELI_CSV = "";   // ide kerül a táblázat „Közzététel a weben” CSV linkje
+  var CATS = [["GST", "GST", 3], ["Reprezentáns", "Reprezentáns", 3], ["VR", "VR", 2]];
+  function csv(t) { var rows = [], r = [], c = "", q = false, i = 0; for (; i < t.length; i++) { var ch = t[i];
+      if (q) { if (ch === '"') { if (t[i + 1] === '"') { c += '"'; i++; } else q = false; } else c += ch; }
+      else if (ch === '"') q = true; else if (ch === ",") { r.push(c); c = ""; } else if (ch === "\n" || ch === "\r") { if (ch === "\r" && t[i + 1] === "\n") i++; r.push(c); c = ""; rows.push(r); r = []; } else c += ch; }
+    if (c !== "" || r.length) { r.push(c); rows.push(r); } return rows; }
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; }
+  function draw(rows) {
+    var box = document.getElementById("tcats"); box.textContent = "";
+    CATS.forEach(function (cat) {
+      var people = rows.slice(1).filter(function (r) { return (r[0] || "").trim().toLowerCase() === cat[0].toLowerCase() && (r[1] || "").trim(); })
+        .map(function (r) { return { n: r[1].trim(), p: parseFloat(String(r[2] || "").replace(/\s/g, "").replace(",", ".")) || 0 }; })
+        .sort(function (a, b) { return b.p - a.p; });
+      var card = el("section", "tcat"); card.appendChild(el("h2", "", cat[1])); card.appendChild(el("p", "sub", "TOP " + cat[2] + " nyer"));
+      if (!people.length) card.appendChild(el("p", "empty", "Még nincs rögzített pont."));
+      else { var ol = el("ol"), rank = 0, prev = null, cut = false;
+        people.forEach(function (x, i) { if (x.p !== prev) { rank = i + 1; prev = x.p; }
+          if (rank > cat[2] && !cut) { cut = true; ol.appendChild(el("li", "cut", "Nyereményzóna alatt")); ol.lastChild.style.display = "block"; }
+          var li = el("li", rank <= cat[2] ? "win" : "out"); li.appendChild(el("span", "rk", rank)); li.appendChild(el("span", "nm", x.n)); li.appendChild(el("span", "pt", x.p.toLocaleString("hu-HU") + " pont")); ol.appendChild(li); });
+        card.appendChild(ol); }
+      box.appendChild(card);
+    });
+  }
+  var note = document.getElementById("tnote");
+  if (!TELI_CSV) { draw([]); note.textContent = "A pontok hamarosan megjelennek."; return; }
+  fetch(TELI_CSV + (TELI_CSV.indexOf("?") > -1 ? "&" : "?") + "_=" + Date.now()).then(function (r) { return r.text(); })
+    .then(function (t) { draw(csv(t)); note.textContent = "A pontok a táblázatból frissülnek (október–január teljesítménye alapján)."; })
+    .catch(function () { draw([]); note.textContent = "A pontok most nem tölthetők be."; });
+})();
 </script>
 <script src="anim.js" defer></script>
 </body>
