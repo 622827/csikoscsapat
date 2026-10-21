@@ -314,8 +314,8 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&am
 const num = v => { if (typeof v === "number") return isFinite(v) ? v : 0; const x = parseFloat(String(v == null ? "" : v).replace(/[\s ]/g, "").replace(",", ".")); return isFinite(x) ? x : 0; };
 const has = v => v !== undefined && v !== null && String(v).trim() !== "";
 const fnum = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0");
-const FX = { on: false, rate: 0, date: "" };
-const ft = n => (n == null || !isFinite(n)) ? "–" : (FX.on && FX.rate ? fnum(n / FX.rate) + "\u00a0€" : fnum(n) + "\u00a0Ft");
+const FX = { on: false, rate: 0, date: "", both: false };
+const ft = n => (n == null || !isFinite(n)) ? "–" : (FX.on && FX.rate ? fnum(n / FX.rate) + "\u00a0€" + (FX.both ? " (" + fnum(n) + "\u00a0Ft)" : "") : fnum(n) + "\u00a0Ft");
 const note = t => esc(t).replace(/«([^»]*)»/g, "<em>$1</em>");
 
 const SHEETS = [
@@ -1104,6 +1104,7 @@ function compute() {
   const ew = $('[data-w="eh_w"]'); if (ew) { let m = ""; if (vedelem > 0 && kor && (!rk)) m = "Az életkorhoz (15–80 év) nincs kockázati díjtétel."; else if (vedelem > 0 && kor && !ck) m = "A kritikus betegségi díj 3–70 éves korig számolható."; if (raf && dij && raf < dij) m = (m ? m + " " : "") + "A díjak együtt: " + ft(dij) + "/hó – ez meghaladja a ráfordítható összeget; csökkenthető a tartalék éve vagy a fedezet."; ew.hidden = !m; ew.textContent = m; }
 
   /* befektetés */
+  FX.both = true;
   const reg = has(g("bf_reg")) ? n("bf_reg") : net * .1, hz = has(g("bf_hozam")) ? n("bf_hozam") / 100 : .08, inf = -(has(g("bf_infl")) ? n("bf_infl") / 100 : .1);
   if (reg > 0) {
     const A = [], Bk = [], xs = [], cum = []; let a = 0, b = 0;
@@ -1115,6 +1116,7 @@ function compute() {
   const kh = { "Óvatos": .06, "Mérsékelt": .08, "Lendületes": .1 }[g("bf_koc")] || .08, h2 = has(g("bf_h2")) ? n("bf_h2") / 100 : kh, be = n("bf_ossz"), ye = n("bf_evek") || 10;
   out("bf_e1", be ? ft(be * Math.pow(1 + h2, ye)) : "–"); out("bf_e2", be ? ft(be * Math.pow(1 + h2, ye) - be) : "–", be ? "in" : "");
 
+  FX.both = false;
   /* összegzés */
   let s = 0; (d.oz || []).forEach((r, i) => { s += num(r[1]); }); out("oz_sum", ft(s)); out("oz_sum_x", ""); out("oz_sum", s ? ft(s) : "–");
   const sm = $('[data-o="oz_sum"]'); void sm;
