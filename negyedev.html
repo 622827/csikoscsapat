@@ -253,6 +253,10 @@
   .pp-lg { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; font-size: .84rem; color: var(--muted); font-variant-numeric: tabular-nums; }
   .pp-lg span { display: inline-flex; align-items: center; gap: 6px; }
   .pp-lg em { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .team.pp .bar .sgs { position: absolute; inset: 0; display: flex; }
+  .sgs i { display: block; height: 100%; box-shadow: inset -2px 0 0 var(--track); transition: width .8s ease; }
+  .sgs i.f, .pp-sb i.f, .pp-lg em.f { opacity: .42; }
+  .pp-lg.pp-top { margin: 0 0 12px; }
   .pp-lg b { font-weight: 800; color: var(--ink); }
   .pp-m .no { color: var(--muted); font-size: .88rem; }
   .pp-note { color: var(--muted); font-size: .85rem; margin: 2px 0 12px; }
@@ -518,8 +522,9 @@
   function plain(t) { return String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim(); }
   var PP_OPEN = {}, MONTH_HU = ["január","február","március","április","május","június","július","augusztus","szeptember","október","november","december"];
   function ppProc(p) { var o = ["igény", "ügyintézés", "szerződés", "100%", "befizet", "elszámolt"]; var i = o.map(function (k) { return plain(p).indexOf(plain(k)) > -1 ? 1 : 0; }).indexOf(1); return i < 0 ? 9 : i; }
+  function isLead(k) { var p = plain(k); return p.indexOf("100") > -1 && p.indexOf("leadva") > -1; }
   function ppCol(k) { var p = plain(k);
-    if (p.indexOf("100") > -1 && p.indexOf("leadva") > -1) return "var(--tc)";
+    if (isLead(k)) return "#0c9a55";
     if (p.indexOf("elszamolt") > -1) return "#1f7a4a"; if (p.indexOf("befizet") > -1) return "#2e9e5b";
     if (p.indexOf("szerzodes") > -1) return "#3fb8af"; if (p.indexOf("ugyintez") > -1) return "#f2b705";
     if (p.indexOf("ta igeny") > -1) return "#6f8fd6"; if (p.indexOf("el igeny") > -1) return "#a3b1ca"; if (p.indexOf("igeny") > -1) return "#8da2c0";
@@ -531,20 +536,27 @@
     var max = 1500, MARKS = [150, 300, 500, 1000], hasProc = L.some(function (x) { return x.proc; });
     $("pp-axis").innerHTML = MARKS.map(function (m, i) { return '<span class="ax" style="left:' + (m / max * 100) + '%">' + nf.format(m) + '<span class="u"> ES</span></span>'; }).join("");
     var lines = MARKS.map(function (m) { return '<i class="mk" style="left:' + (m / max * 100) + '%"></i>'; }).join("");
-    box.innerHTML = L.map(function (x, n) {
+    var seen = {}; L.forEach(function (x) { Object.keys(x.proc || {}).forEach(function (m) { Object.keys(x.proc[m] || {}).forEach(function (k) { var c = k.replace(/[^\p{L}\p{N}% ]+/gu, "").replace(/\s+/g, " ").trim() || k; if (x.proc[m][k] > 0 && !Object.keys(seen).some(function (q) { return plain(q) === plain(c); })) seen[c] = 1; }); }); });
+    var lgk = Object.keys(seen).sort(function (a, b) { return ppProc(b) - ppProc(a); }); lgk.sort(function (a, b) { return (isLead(b) ? 1 : 0) - (isLead(a) ? 1 : 0); });
+    var legend = lgk.length ? '<div class="pp-lg pp-top">' + lgk.map(function (k) { return '<span><em' + (isLead(k) ? '' : ' class="f"') + ' style="background:' + ppCol(k) + '"></em>' + esc(k) + '</span>'; }).join("") + '</div>' : "";
+    box.innerHTML = legend + L.map(function (x, n) {
       var done = x.total || 0, out = Math.max(x.outlook || 0, done), key = plain(x.name);
+      var tot = {}; Object.keys(x.proc || {}).forEach(function (m) { var r = x.proc[m] || {}; Object.keys(r).forEach(function (k) { var c = k.replace(/[^\p{L}\p{N}% ]+/gu, "").replace(/\s+/g, " ").trim() || k; tot[c] = (tot[c] || 0) + r[k]; }); });
+      var oth = Object.keys(tot).filter(function (k) { return !isLead(k) && tot[k] > 0; }).sort(function (a, b) { return ppProc(b) - ppProc(a); }), sum = 0, sgs = '<i style="width:' + Math.min(100, done / max * 100) + '%;background:' + ppCol("100% leadva") + '" title="100% leadva: ' + nf.format(done) + ' ' + LABEL + '"></i>';
+      oth.forEach(function (k) { sum += tot[k]; sgs += '<i class="f" style="width:' + Math.min(100, tot[k] / max * 100) + '%;background:' + ppCol(k) + '" title="' + esc(k) + ': ' + nf.format(tot[k]) + ' ' + LABEL + '"></i>'; });
+      if (out - done - sum > 0.5) sgs += '<i class="f" style="width:' + Math.min(100, (out - done - sum) / max * 100) + '%;background:#8a8f98" title="Egyéb"></i>';
       var det = (months || []).map(function (m) {
         var raw = (x.proc || {})[m] || {}, pr = {};
         Object.keys(raw).forEach(function (k) { var c = k.replace(/[^\p{L}\p{N}% ]+/gu, "").replace(/\s+/g, " ").trim() || k; pr[c] = (pr[c] || 0) + raw[k]; });
         var names = Object.keys(pr).filter(function (k) { return pr[k] > 0; }).sort(function (a, b) { return ppProc(a) - ppProc(b); });
         var mt = (x.mt || {})[m] || 0;
         return '<div class="pp-m"><div class="mn">' + MONTH_HU[(m % 100) - 1].replace(/^./, function (c) { return c.toUpperCase(); }) + '<small>' + nf.format(mt) + ' ' + LABEL + '</small></div><div class="bx">' +
-          (names.length ? '<div class="pp-sb" role="img" aria-label="Egységek folyamat szerint">' + names.map(function (k) { return '<i style="flex:' + pr[k] + ' 1 0;background:' + ppCol(k) + '" title="' + esc(k) + ': ' + nf.format(pr[k]) + ' ' + LABEL + '"></i>'; }).join("") + '</div>' +
-            '<div class="pp-lg">' + names.map(function (k) { return '<span><em style="background:' + ppCol(k) + '"></em>' + esc(k) + ' <b>' + nf.format(pr[k]) + '</b></span>'; }).join("") + '</div>'
+          (names.length ? '<div class="pp-sb" role="img" aria-label="Egységek folyamat szerint">' + names.map(function (k) { return '<i' + (isLead(k) ? '' : ' class="f"') + ' style="flex:' + pr[k] + ' 1 0;background:' + ppCol(k) + '" title="' + esc(k) + ': ' + nf.format(pr[k]) + ' ' + LABEL + '"></i>'; }).join("") + '</div>' +
+            '<div class="pp-lg">' + names.map(function (k) { return '<span><em' + (isLead(k) ? '' : ' class="f"') + ' style="background:' + ppCol(k) + '"></em>' + esc(k) + ' <b>' + nf.format(pr[k]) + '</b></span>'; }).join("") + '</div>'
             : '<span class="no">' + (hasProc ? 'Nincs tétel ebben a hónapban.' : 'A folyamat szerinti bontás még nem érhető el.') + '</span>') + '</div></div>';
       }).join("");
       return '<div class="team pp' + (CSK_MEMBERS.indexOf(key) > -1 ? ' csk' : '') + (PP_OPEN[key] ? ' open' : '') + '" data-k="' + esc(key) + '"><button type="button" class="pp-hd" aria-expanded="' + (PP_OPEN[key] ? 'true' : 'false') + '"><div class="head"><span class="nm">' + esc(x.name) + '</span><span class="val">' + nf.format(done) + ' ' + LABEL + '</span></div>' +
-        '<div class="bar"><div class="seg out" style="width:' + Math.min(100, out / max * 100) + '%"></div><div class="seg" style="width:' + Math.min(100, done / max * 100) + '%"></div>' + lines + '</div>' +
+        '<div class="bar"><div class="sgs">' + sgs + '</div>' + lines + '</div>' +
         '<div class="sub">Kilátás: ' + nf.format(x.outlook || 0) + '</div></button><div class="pp-dt"><div>' + det + '</div></div></div>';
     }).join("");
     $("people").hidden = false;
