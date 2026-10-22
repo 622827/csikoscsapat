@@ -258,6 +258,9 @@
   .sgs i.f, .pp-sb i.f, .pp-lg em.f { opacity: .42; }
   .sgs .rest { flex: 1 1 0; display: flex; min-width: 0; height: 100%; }
   .sgs .rest i { min-width: 3px; }
+  .csk-tt { position: fixed; z-index: 2000; pointer-events: none; padding: 6px 10px; border-radius: 8px; background: var(--ink); color: var(--bg); font-size: .85rem; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,.3); white-space: nowrap; opacity: 0; transition: opacity .12s; }
+  .csk-tt.on { opacity: 1; }
+  .sgs i[data-t], .pp-sb i[data-t] { cursor: default; }
   .pp-lg.pp-top { margin: 0 0 12px; }
   .pp-lg b { font-weight: 800; color: var(--ink); }
   .pp-m .no { color: var(--muted); font-size: .88rem; }
@@ -547,10 +550,10 @@
       var isEl = function (k) { return plain(k).indexOf("elszamolt") > -1; };
       var oth = Object.keys(tot).filter(function (k) { return !isLead(k) && !isEl(k) && tot[k] > 0; }).sort(function (a, b) { return ppProc(a) - ppProc(b); }), sum = 0, elSum = 0;
       Object.keys(tot).forEach(function (k) { if (isEl(k)) elSum += tot[k]; });
-      var sgs = '<i style="width:' + Math.min(100, done / max * 100) + '%;background:' + ppCol("100% leadva") + '" title="100% leadva: ' + nf.format(done) + ' ' + LABEL + '"></i>';
-      if (elSum > 0) sgs += '<i style="width:' + Math.min(100, elSum / max * 100) + '%;background:' + ppCol("elszámolt") + '" title="Elszámolt: ' + nf.format(elSum) + ' ' + LABEL + '"></i>';
-      var rest = ''; oth.forEach(function (k) { sum += tot[k]; rest += '<i class="f" style="flex:' + tot[k] + ' 1 0;background:' + ppCol(k) + '" title="' + esc(k) + ': ' + nf.format(tot[k]) + ' ' + LABEL + '"></i>'; });
-      if (out - done - elSum - sum > 0.5) rest += '<i class="f" style="flex:' + (out - done - elSum - sum) + ' 1 0;background:#8a8f98" title="Egyéb"></i>';
+      var sgs = '<i style="width:' + Math.min(100, done / max * 100) + '%;background:' + ppCol("100% leadva") + '" data-t="100% leadva: ' + nf.format(done) + ' ' + LABEL + '"></i>';
+      if (elSum > 0) sgs += '<i style="width:' + Math.min(100, elSum / max * 100) + '%;background:' + ppCol("elszámolt") + '" data-t="Elszámolt: ' + nf.format(elSum) + ' ' + LABEL + '"></i>';
+      var rest = ''; oth.forEach(function (k) { sum += tot[k]; rest += '<i class="f" style="flex:' + tot[k] + ' 1 0;background:' + ppCol(k) + '" data-t="' + esc(k) + ': ' + nf.format(tot[k]) + ' ' + LABEL + '"></i>'; });
+      if (out - done - elSum - sum > 0.5) rest += '<i class="f" style="flex:' + (out - done - elSum - sum) + ' 1 0;background:#8a8f98" data-t="Egyéb"></i>';
       if (rest) sgs += '<span class="rest">' + rest + '</span>';
       var det = (months || []).map(function (m) {
         var raw = (x.proc || {})[m] || {}, pr = {};
@@ -558,7 +561,7 @@
         var names = Object.keys(pr).filter(function (k) { return pr[k] > 0; }).sort(function (a, b) { return ppProc(a) - ppProc(b); });
         var mt = (x.mt || {})[m] || 0;
         return '<div class="pp-m"><div class="mn">' + MONTH_HU[(m % 100) - 1].replace(/^./, function (c) { return c.toUpperCase(); }) + '<small>' + nf.format(mt) + ' ' + LABEL + '</small></div><div class="bx">' +
-          (names.length ? '<div class="pp-sb" role="img" aria-label="Egységek folyamat szerint">' + names.map(function (k) { return '<i' + (isLead(k) || plain(k).indexOf('elszamolt') > -1 ? '' : ' class="f"') + ' style="flex:' + pr[k] + ' 1 0;background:' + ppCol(k) + '" title="' + esc(k) + ': ' + nf.format(pr[k]) + ' ' + LABEL + '"></i>'; }).join("") + '</div>' +
+          (names.length ? '<div class="pp-sb" role="img" aria-label="Egységek folyamat szerint">' + names.map(function (k) { return '<i' + (isLead(k) || plain(k).indexOf('elszamolt') > -1 ? '' : ' class="f"') + ' style="flex:' + pr[k] + ' 1 0;background:' + ppCol(k) + '" data-t="' + esc(k) + ': ' + nf.format(pr[k]) + ' ' + LABEL + '"></i>'; }).join("") + '</div>' +
             '<div class="pp-lg">' + names.map(function (k) { return '<span><em' + (isLead(k) || plain(k).indexOf('elszamolt') > -1 ? '' : ' class="f"') + ' style="background:' + ppCol(k) + '"></em>' + esc(k) + ' <b>' + nf.format(pr[k]) + '</b></span>'; }).join("") + '</div>'
             : '<span class="no">' + (hasProc ? 'Nincs tétel ebben a hónapban.' : 'A folyamat szerinti bontás még nem érhető el.') + '</span>') + '</div></div>';
       }).join("");
@@ -568,6 +571,15 @@
     }).join("");
     $("people").hidden = false;
   }
+  (function () {
+    var tt = document.createElement("div"); tt.className = "csk-tt"; document.body.appendChild(tt);
+    function show(e) { var t = e.target.closest && e.target.closest("[data-t]"); if (!t) { tt.classList.remove("on"); return; }
+      tt.textContent = t.getAttribute("data-t"); tt.classList.add("on");
+      var w = tt.offsetWidth, x = Math.min(Math.max(8, e.clientX - w / 2), window.innerWidth - w - 8); tt.style.left = x + "px"; tt.style.top = Math.max(8, e.clientY - 44) + "px"; }
+    document.addEventListener("mousemove", show); document.addEventListener("mouseover", show);
+    document.addEventListener("click", function (e) { if (e.target.closest && e.target.closest("[data-t]")) { show(e); clearTimeout(tt._h); tt._h = setTimeout(function () { tt.classList.remove("on"); }, 2200); } });
+    document.addEventListener("scroll", function () { tt.classList.remove("on"); }, true);
+  })();
   document.addEventListener("click", function (ev) {
     var b = ev.target.closest && ev.target.closest(".team.pp .pp-hd"); if (!b) return;
     var t = b.parentNode, o = !t.classList.contains("open"); t.classList.toggle("open", o); b.setAttribute("aria-expanded", o ? "true" : "false"); PP_OPEN[t.getAttribute("data-k")] = o;
