@@ -278,7 +278,7 @@
   .pg .as-add input, .pg .as-add select { font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); min-width: 0; }
   .pg .as-lb { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--muted); }
   .pg .as-lb input, .pg .as-lb select { flex: 1; }
-  .pg .as-add #as-title, .pg .as-add #as-note { grid-column: 1 / -1; }
+  .pg .as-add #as-client, .pg .as-add #as-title, .pg .as-add #as-note { grid-column: 1 / -1; }
   .pg .as-add button { grid-column: 1 / -1; }
   .pg .as-g { margin: 18px 0 8px; font-size: .95rem; color: var(--muted); border-bottom: 1px solid var(--track, #e5e5e5); padding-bottom: 4px; }
   .pg .as-g.late { color: #ff8095; }
@@ -414,6 +414,7 @@
     <form class="as-add" id="as-form" autocomplete="off">
       <input id="as-title" type="text" maxlength="160" placeholder="Mi a feladat?" aria-label="Feladat" required>
       <select id="as-type" aria-label="Típus"></select>
+      <select id="as-prod" aria-label="Termék"></select>
       <input id="as-client" type="text" maxlength="60" placeholder="Ügyfél neve (automatikusan rövidül: K. Ádám)" aria-label="Ügyfél">
       <label class="as-lb">Határidő <input id="as-due" type="date" aria-label="Határidő"></label>
       <label class="as-lb">Felelős <select id="as-owner" aria-label="Felelős"></select></label>
@@ -554,6 +555,7 @@
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
   /* ===== Asszisztensi feladatok ===== */
   var AS_TYPES = ["Kárbejelentés", "Nyomtatvány kitöltés", "Csoportos beszedés", "Intervenciós hívás", "Alapváltás, díjmódosítás", "Visszavásárlás", "KGFB / Casco felülvizsgálat", "Lakásbiztosítás kötés", "Értékpapírszámla", "Bankszámla", "Egyéb"];
+  var AS_PRODS = ["Signal Öngondoskodási Terv", "Signal Nyugdíj terv", "Kabala", "Kabala Nyugdíj", "Signal EV 2.0", "Uniqa Lifeguard / Bodyguard", "Generali Testőr", "Uniqa Premium Life", "Uniqa Pension Invest", "Union Yes"];
   var AS_OWNERS = {"csikos.mate.ovb@gmail.com": "Csikós Máté", "farkas.nikolett.julianna.ovb@gmail.com": "Farkas Nikolett", "gulyas.anna.ovb@gmail.com": "Gulyás Anna"};
   var AS = [], AS_OWNER_DEFAULT = "gulyas.anna.ovb@gmail.com", asConfirm = "", asReady = false;
   function shortName(t) {
@@ -568,6 +570,7 @@
     var team = Object.keys(AS_OWNERS).map(function (k) { return [k, AS_OWNERS[k]]; });
     fillSel($("as-type"), AS_TYPES.map(function (x) { return [x, x]; }));
     fillSel($("as-f-type"), AS_TYPES.map(function (x) { return [x, x]; }), "Minden típus");
+    fillSel($("as-prod"), AS_PRODS.map(function (x) { return [x, x]; }), "Termék (nem kötelező)");
     fillSel($("as-owner"), team); $("as-owner").value = AS_OWNER_DEFAULT;
     fillSel($("as-f-owner"), team, "Mindenki");
     ["as-f-status", "as-f-type", "as-f-owner"].forEach(function (i) { $(i).addEventListener("change", asRender); });
@@ -577,10 +580,10 @@
     $("as-form").addEventListener("submit", function (ev) {
       ev.preventDefault(); if (!FB) { toast("Az adatbázis még nem töltött be."); return; }
       var title = $("as-title").value.trim(); if (!title) return;
-      var data = { title: title, type: $("as-type").value, client: shortName($("as-client").value), due: $("as-due").value || "", owner: $("as-owner").value, note: $("as-note").value.trim(), done: false, created: Date.now(), doneAt: 0 };
+      var data = { title: title, type: $("as-type").value, product: $("as-prod").value, client: shortName($("as-client").value), due: $("as-due").value || "", owner: $("as-owner").value, note: $("as-note").value.trim(), done: false, created: Date.now(), doneAt: 0 };
       var ref = FB.F.doc(FB.F.collection(FB.db, "perf", ID, "atasks"));
       FB.F.setDoc(ref, data).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
-      $("as-title").value = ""; $("as-client").value = ""; $("as-note").value = ""; $("as-due").value = ""; $("as-title").focus();
+      $("as-title").value = ""; $("as-prod").value = ""; $("as-client").value = ""; $("as-note").value = ""; $("as-due").value = ""; $("as-title").focus();
     });
     try { var tv = sessionStorage.getItem("tj_view"); if (tv === "as" || tv === "sb") asTab(tv); } catch (e) {}
     function fromHash() { if (location.hash === "#asszisztens") asTab("as"); else if (location.hash === "#startbonusz") asTab("sb"); else if (location.hash === "#elemzesek") asTab("perf"); }
@@ -691,7 +694,7 @@
           n.addEventListener("click", function () { asConfirm = ""; asRender(); });
           w.appendChild(y); w.appendChild(n); r.appendChild(w);
         } else { del.addEventListener("click", function () { asConfirm = x.id; asRender(); }); r.appendChild(del); }
-        var m = el("div", "as-meta"); m.appendChild(el("span", "as-chip", x.type || "Egyéb"));
+        var m = el("div", "as-meta"); m.appendChild(el("span", "as-chip", x.type || "Egyéb")); if (x.product) m.appendChild(el("span", "as-chip", x.product));
         if (x.client) m.appendChild(el("span", "", x.client));
         if ((x.subs || []).length) m.appendChild(el("span", "as-chip", (x.subs.filter(function (u) { return u.done; }).length) + "/" + x.subs.length + " alfeladat"));
         m.appendChild(el("span", "", "Határidő:")); var due = el("input"); due.type = "date"; due.value = x.due || ""; due.title = "Határidő"; due.addEventListener("change", function () { asUpd(x.id, { due: due.value }); }); m.appendChild(due);
