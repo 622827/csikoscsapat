@@ -523,7 +523,7 @@
   var CSK_MEMBERS = ["csikos mate", "toth oszkar", "szilagyi gyongyi", "gulyas anna"];
   function plain(t) { return String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim(); }
   var PP_OPEN = {}, MONTH_HU = ["január","február","március","április","május","június","július","augusztus","szeptember","október","november","december"];
-  function ppProc(p) { var o = ["igény", "ügyintézés", "szerződés", "100%", "befizet", "elszámolt"]; var i = o.map(function (k) { return plain(p).indexOf(plain(k)) > -1 ? 1 : 0; }).indexOf(1); return i < 0 ? 9 : i; }
+  function ppProc(p) { var q = plain(p); if (q.indexOf("100") > -1 && q.indexOf("leadva") > -1) return 0; if (q.indexOf("elszamolt") > -1) return 1; if (q.indexOf("szerzodes") > -1) return 2; if (q.indexOf("ta igeny") > -1) return 3; if (q.indexOf("befizet") > -1) return 4; if (q.indexOf("ugyintez") > -1) return 5; if (q.indexOf("el igeny") > -1) return 6; if (q.indexOf("igeny") > -1) return 7; return 9; }
   function isLead(k) { var p = plain(k); return p.indexOf("100") > -1 && p.indexOf("leadva") > -1; }
   function ppCol(k) { var p = plain(k);
     if (isLead(k)) return "#0c9a55";
@@ -539,13 +539,13 @@
     $("pp-axis").innerHTML = MARKS.map(function (m, i) { return '<span class="ax" style="left:' + (m / max * 100) + '%">' + nf.format(m) + '<span class="u"> ES</span></span>'; }).join("");
     var lines = MARKS.map(function (m) { return '<i class="mk" style="left:' + (m / max * 100) + '%"></i>'; }).join("");
     var seen = {}; L.forEach(function (x) { Object.keys(x.proc || {}).forEach(function (m) { Object.keys(x.proc[m] || {}).forEach(function (k) { var c = k.replace(/[^\p{L}\p{N}% ]+/gu, "").replace(/\s+/g, " ").trim() || k; if (x.proc[m][k] > 0 && !Object.keys(seen).some(function (q) { return plain(q) === plain(c); })) seen[c] = 1; }); }); });
-    var lgk = Object.keys(seen).sort(function (a, b) { return ppProc(b) - ppProc(a); }); lgk.sort(function (a, b) { return (isLead(b) ? 1 : 0) - (isLead(a) ? 1 : 0); });
+    var lgk = Object.keys(seen).sort(function (a, b) { return ppProc(a) - ppProc(b); }); 
     var legend = lgk.length ? '<div class="pp-lg pp-top">' + lgk.map(function (k) { return '<span><em' + (isLead(k) || plain(k).indexOf('elszamolt') > -1 ? '' : ' class="f"') + ' style="background:' + ppCol(k) + '"></em>' + esc(k) + '</span>'; }).join("") + '</div>' : "";
     box.innerHTML = legend + L.map(function (x, n) {
       var done = x.total || 0, out = Math.max(x.outlook || 0, done), key = plain(x.name);
       var tot = {}; Object.keys(x.proc || {}).forEach(function (m) { var r = x.proc[m] || {}; Object.keys(r).forEach(function (k) { var c = k.replace(/[^\p{L}\p{N}% ]+/gu, "").replace(/\s+/g, " ").trim() || k; tot[c] = (tot[c] || 0) + r[k]; }); });
       var isEl = function (k) { return plain(k).indexOf("elszamolt") > -1; };
-      var oth = Object.keys(tot).filter(function (k) { return !isLead(k) && !isEl(k) && tot[k] > 0; }).sort(function (a, b) { return ppProc(b) - ppProc(a); }), sum = 0, elSum = 0;
+      var oth = Object.keys(tot).filter(function (k) { return !isLead(k) && !isEl(k) && tot[k] > 0; }).sort(function (a, b) { return ppProc(a) - ppProc(b); }), sum = 0, elSum = 0;
       Object.keys(tot).forEach(function (k) { if (isEl(k)) elSum += tot[k]; });
       var sgs = '<i style="width:' + Math.min(100, done / max * 100) + '%;background:' + ppCol("100% leadva") + '" title="100% leadva: ' + nf.format(done) + ' ' + LABEL + '"></i>';
       if (elSum > 0) sgs += '<i style="width:' + Math.min(100, elSum / max * 100) + '%;background:' + ppCol("elszámolt") + '" title="Elszámolt: ' + nf.format(elSum) + ' ' + LABEL + '"></i>';
