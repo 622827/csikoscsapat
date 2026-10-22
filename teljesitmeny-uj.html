@@ -363,6 +363,8 @@
   .pg .wk-a { border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 800; font-size: 1rem; border-radius: 8px; width: 24px; height: 24px; cursor: pointer; transition: background .15s, color .15s; }
   .pg .wk-a:hover { background: var(--accent); color: var(--on-accent, #fff); }
   .pg .wk-c { text-align: left; border: 2px solid transparent; background: rgba(120,150,220,.22); color: var(--ink); font: inherit; font-size: .82rem; font-weight: 700; border-radius: 9px; padding: 5px 8px; cursor: pointer; display: flex; flex-direction: column; gap: 1px; transition: border-color .15s, transform .12s; }
+  .pg .as-cl { padding: 2px 12px; border-radius: 999px; background: var(--accent); color: var(--on-accent, #fff); font-weight: 800; font-size: .85rem; }
+  .pg .wk-cl { font-style: normal; font-weight: 800; font-size: .75rem; padding: 1px 8px; margin: 2px 0; border-radius: 999px; background: var(--accent); color: var(--on-accent, #fff); align-self: flex-start; }
   .pg .wk-c small { font-weight: 600; font-size: .7rem; color: var(--muted); }
   .pg .wk-c:hover, .pg .wk-c.on { border-color: var(--accent); } .pg .wk-c:active { transform: scale(.97); }
   .pg .wk-c.late { background: rgba(255,128,149,.28); } .pg .wk-c.done { opacity: .6; text-decoration: line-through; }
@@ -781,7 +783,7 @@
           w.appendChild(y); w.appendChild(n); r.appendChild(w);
         } else { del.addEventListener("click", function () { asConfirm = x.id; asRender(); }); r.appendChild(del); }
         var m = el("div", "as-meta"); m.appendChild(el("span", "as-chip", x.type || "Egyéb")); if (x.product) m.appendChild(el("span", "as-chip", x.product));
-        if (x.client) m.appendChild(el("span", "", x.client));
+        if (x.client) m.appendChild(el("span", "as-cl", x.client));
         if ((x.subs || []).length) m.appendChild(el("span", "as-chip", (x.subs.filter(function (u) { return u.done; }).length) + "/" + x.subs.length + " alfeladat"));
         m.appendChild(el("span", "", "Határidő:")); var due = el("input"); dpAttach(due); due.value = x.due || ""; due.title = "Határidő"; due.addEventListener("change", function () { asUpd(x.id, { due: due.value }); }); m.appendChild(due);
         m.appendChild(el("span", "", "Felelős:")); var so = el("select"); var ownK = Object.keys(AS_OWNERS); if (x.owner && ownK.indexOf(x.owner) < 0) ownK.push(x.owner); ownK.forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = AS_OWNERS[k] || TEAM[k] || k; so.appendChild(o); }); so.value = x.owner || AS_OWNER_DEFAULT; so.title = "Felelős"; so.addEventListener("change", function () { asUpd(x.id, { owner: so.value }); }); m.appendChild(so);
@@ -832,7 +834,7 @@
       hd.appendChild(ad); c.appendChild(hd);
       (by[iso] || []).forEach(function (x) {
         var late = !x.done && x.due < now, ch = el("button", "wk-c" + (x.done ? " done" : "") + (late ? " late" : "") + (calTask === x.id ? " on" : ""), x.title); ch.type = "button";
-        ch.appendChild(el("small", "", (x.type || "Egyéb") + (x.client ? " · " + x.client : "")));
+        if (x.client) ch.appendChild(el("em", "wk-cl", x.client)); ch.appendChild(el("small", "", (x.type || "Egyéb")));
         ch.addEventListener("click", function () { calTask = calTask === x.id ? "" : x.id; asRender(); });
         c.appendChild(ch); if (calTask === x.id) open = x;
       });
