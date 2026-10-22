@@ -256,6 +256,8 @@
   .team.pp .bar .sgs { position: absolute; inset: 0; display: flex; }
   .sgs i { display: block; height: 100%; box-shadow: inset -2px 0 0 var(--track); transition: width .8s ease; }
   .sgs i.f, .pp-sb i.f, .pp-lg em.f { opacity: .42; }
+  .sgs .rest { flex: 1 1 0; display: flex; min-width: 0; height: 100%; }
+  .sgs .rest i { min-width: 3px; }
   .pp-lg.pp-top { margin: 0 0 12px; }
   .pp-lg b { font-weight: 800; color: var(--ink); }
   .pp-m .no { color: var(--muted); font-size: .88rem; }
@@ -538,21 +540,26 @@
     var lines = MARKS.map(function (m) { return '<i class="mk" style="left:' + (m / max * 100) + '%"></i>'; }).join("");
     var seen = {}; L.forEach(function (x) { Object.keys(x.proc || {}).forEach(function (m) { Object.keys(x.proc[m] || {}).forEach(function (k) { var c = k.replace(/[^\p{L}\p{N}% ]+/gu, "").replace(/\s+/g, " ").trim() || k; if (x.proc[m][k] > 0 && !Object.keys(seen).some(function (q) { return plain(q) === plain(c); })) seen[c] = 1; }); }); });
     var lgk = Object.keys(seen).sort(function (a, b) { return ppProc(b) - ppProc(a); }); lgk.sort(function (a, b) { return (isLead(b) ? 1 : 0) - (isLead(a) ? 1 : 0); });
-    var legend = lgk.length ? '<div class="pp-lg pp-top">' + lgk.map(function (k) { return '<span><em' + (isLead(k) ? '' : ' class="f"') + ' style="background:' + ppCol(k) + '"></em>' + esc(k) + '</span>'; }).join("") + '</div>' : "";
+    var legend = lgk.length ? '<div class="pp-lg pp-top">' + lgk.map(function (k) { return '<span><em' + (isLead(k) || plain(k).indexOf('elszamolt') > -1 ? '' : ' class="f"') + ' style="background:' + ppCol(k) + '"></em>' + esc(k) + '</span>'; }).join("") + '</div>' : "";
     box.innerHTML = legend + L.map(function (x, n) {
       var done = x.total || 0, out = Math.max(x.outlook || 0, done), key = plain(x.name);
       var tot = {}; Object.keys(x.proc || {}).forEach(function (m) { var r = x.proc[m] || {}; Object.keys(r).forEach(function (k) { var c = k.replace(/[^\p{L}\p{N}% ]+/gu, "").replace(/\s+/g, " ").trim() || k; tot[c] = (tot[c] || 0) + r[k]; }); });
-      var oth = Object.keys(tot).filter(function (k) { return !isLead(k) && tot[k] > 0; }).sort(function (a, b) { return ppProc(b) - ppProc(a); }), sum = 0, sgs = '<i style="width:' + Math.min(100, done / max * 100) + '%;background:' + ppCol("100% leadva") + '" title="100% leadva: ' + nf.format(done) + ' ' + LABEL + '"></i>';
-      oth.forEach(function (k) { sum += tot[k]; sgs += '<i class="f" style="width:' + Math.min(100, tot[k] / max * 100) + '%;background:' + ppCol(k) + '" title="' + esc(k) + ': ' + nf.format(tot[k]) + ' ' + LABEL + '"></i>'; });
-      if (out - done - sum > 0.5) sgs += '<i class="f" style="width:' + Math.min(100, (out - done - sum) / max * 100) + '%;background:#8a8f98" title="Egyéb"></i>';
+      var isEl = function (k) { return plain(k).indexOf("elszamolt") > -1; };
+      var oth = Object.keys(tot).filter(function (k) { return !isLead(k) && !isEl(k) && tot[k] > 0; }).sort(function (a, b) { return ppProc(b) - ppProc(a); }), sum = 0, elSum = 0;
+      Object.keys(tot).forEach(function (k) { if (isEl(k)) elSum += tot[k]; });
+      var sgs = '<i style="width:' + Math.min(100, done / max * 100) + '%;background:' + ppCol("100% leadva") + '" title="100% leadva: ' + nf.format(done) + ' ' + LABEL + '"></i>';
+      if (elSum > 0) sgs += '<i style="width:' + Math.min(100, elSum / max * 100) + '%;background:' + ppCol("elszámolt") + '" title="Elszámolt: ' + nf.format(elSum) + ' ' + LABEL + '"></i>';
+      var rest = ''; oth.forEach(function (k) { sum += tot[k]; rest += '<i class="f" style="flex:' + tot[k] + ' 1 0;background:' + ppCol(k) + '" title="' + esc(k) + ': ' + nf.format(tot[k]) + ' ' + LABEL + '"></i>'; });
+      if (out - done - elSum - sum > 0.5) rest += '<i class="f" style="flex:' + (out - done - elSum - sum) + ' 1 0;background:#8a8f98" title="Egyéb"></i>';
+      if (rest) sgs += '<span class="rest">' + rest + '</span>';
       var det = (months || []).map(function (m) {
         var raw = (x.proc || {})[m] || {}, pr = {};
         Object.keys(raw).forEach(function (k) { var c = k.replace(/[^\p{L}\p{N}% ]+/gu, "").replace(/\s+/g, " ").trim() || k; pr[c] = (pr[c] || 0) + raw[k]; });
         var names = Object.keys(pr).filter(function (k) { return pr[k] > 0; }).sort(function (a, b) { return ppProc(a) - ppProc(b); });
         var mt = (x.mt || {})[m] || 0;
         return '<div class="pp-m"><div class="mn">' + MONTH_HU[(m % 100) - 1].replace(/^./, function (c) { return c.toUpperCase(); }) + '<small>' + nf.format(mt) + ' ' + LABEL + '</small></div><div class="bx">' +
-          (names.length ? '<div class="pp-sb" role="img" aria-label="Egységek folyamat szerint">' + names.map(function (k) { return '<i' + (isLead(k) ? '' : ' class="f"') + ' style="flex:' + pr[k] + ' 1 0;background:' + ppCol(k) + '" title="' + esc(k) + ': ' + nf.format(pr[k]) + ' ' + LABEL + '"></i>'; }).join("") + '</div>' +
-            '<div class="pp-lg">' + names.map(function (k) { return '<span><em' + (isLead(k) ? '' : ' class="f"') + ' style="background:' + ppCol(k) + '"></em>' + esc(k) + ' <b>' + nf.format(pr[k]) + '</b></span>'; }).join("") + '</div>'
+          (names.length ? '<div class="pp-sb" role="img" aria-label="Egységek folyamat szerint">' + names.map(function (k) { return '<i' + (isLead(k) || plain(k).indexOf('elszamolt') > -1 ? '' : ' class="f"') + ' style="flex:' + pr[k] + ' 1 0;background:' + ppCol(k) + '" title="' + esc(k) + ': ' + nf.format(pr[k]) + ' ' + LABEL + '"></i>'; }).join("") + '</div>' +
+            '<div class="pp-lg">' + names.map(function (k) { return '<span><em' + (isLead(k) || plain(k).indexOf('elszamolt') > -1 ? '' : ' class="f"') + ' style="background:' + ppCol(k) + '"></em>' + esc(k) + ' <b>' + nf.format(pr[k]) + '</b></span>'; }).join("") + '</div>'
             : '<span class="no">' + (hasProc ? 'Nincs tétel ebben a hónapban.' : 'A folyamat szerinti bontás még nem érhető el.') + '</span>') + '</div></div>';
       }).join("");
       return '<div class="team pp' + (CSK_MEMBERS.indexOf(key) > -1 ? ' csk' : '') + (PP_OPEN[key] ? ' open' : '') + '" data-k="' + esc(key) + '"><button type="button" class="pp-hd" aria-expanded="' + (PP_OPEN[key] ? 'true' : 'false') + '"><div class="head"><span class="nm">' + esc(x.name) + '</span><span class="val">' + nf.format(done) + ' ' + LABEL + '</span></div>' +
