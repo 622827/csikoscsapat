@@ -339,6 +339,34 @@
   .pg .cal-m { font-size: .72rem; color: var(--muted); font-weight: 700; }
   .pg .cal-n { margin-top: 14px; color: var(--muted); font-size: .9rem; }
   @media (max-width: 640px) { .pg .cal-d { min-height: 64px; padding: 3px; } .pg .cal-c { font-size: .62rem; padding: 1px 3px; } }
+  .dp { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238fa8c8' stroke-width='2' stroke-linecap='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='3'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 30px !important; }
+  .pg .as-meta input.dp, .pg .sb-m input.dp { width: 128px; }
+  .dp-pop { position: fixed; z-index: 3000; width: 280px; padding: 12px; border-radius: 16px; background: var(--bg); color: var(--ink); border: 1px solid var(--track, #ddd); box-shadow: 0 12px 34px rgba(0,0,0,.35); animation: dpIn .16s ease; }
+  .dp-pop[hidden] { display: none; }
+  @keyframes dpIn { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+  .dp-h { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .dp-h b { flex: 1; text-align: center; }
+  .dp-h button, .dp-f button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; padding: 4px 10px; border-radius: 8px; cursor: pointer; transition: background .15s, transform .12s; }
+  .dp-h button:hover, .dp-f button:hover { background: var(--card, rgba(127,127,127,.18)); } .dp-h button:active, .dp-f button:active { transform: scale(.9); }
+  .dp-g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .dp-w { text-align: center; font-size: .7rem; font-weight: 700; color: var(--muted); padding: 2px 0; text-transform: uppercase; }
+  .dp-d { aspect-ratio: 1; border: 0; border-radius: 50%; background: transparent; color: inherit; font: inherit; font-size: .85rem; cursor: pointer; transition: background .15s, transform .12s; }
+  .dp-d:hover { background: var(--card, rgba(127,127,127,.2)); } .dp-d:active { transform: scale(.88); }
+  .dp-d.o { color: var(--muted); opacity: .55; } .dp-d.t { box-shadow: inset 0 0 0 2px var(--accent); }
+  .dp-d.s { background: var(--accent); color: var(--on-accent, #fff); opacity: 1; font-weight: 800; }
+  .dp-f { display: flex; justify-content: space-between; margin-top: 8px; }
+  .pg .wk-g { display: grid; grid-template-columns: repeat(7, minmax(112px, 1fr)); gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+  .pg .wk-d { min-height: 150px; padding: 6px; border-radius: 12px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); display: flex; flex-direction: column; gap: 5px; }
+  .pg .wk-d.t { border: 2px solid var(--accent); }
+  .pg .wk-h { display: flex; align-items: center; justify-content: space-between; font-size: .78rem; font-weight: 700; color: var(--muted); }
+  .pg .wk-d.t .wk-h { color: var(--accent); }
+  .pg .wk-a { border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 800; font-size: 1rem; border-radius: 8px; width: 24px; height: 24px; cursor: pointer; transition: background .15s, color .15s; }
+  .pg .wk-a:hover { background: var(--accent); color: var(--on-accent, #fff); }
+  .pg .wk-c { text-align: left; border: 2px solid transparent; background: rgba(120,150,220,.22); color: var(--ink); font: inherit; font-size: .82rem; font-weight: 700; border-radius: 9px; padding: 5px 8px; cursor: pointer; display: flex; flex-direction: column; gap: 1px; transition: border-color .15s, transform .12s; }
+  .pg .wk-c small { font-weight: 600; font-size: .7rem; color: var(--muted); }
+  .pg .wk-c:hover, .pg .wk-c.on { border-color: var(--accent); } .pg .wk-c:active { transform: scale(.97); }
+  .pg .wk-c.late { background: rgba(255,128,149,.28); } .pg .wk-c.done { opacity: .6; text-decoration: line-through; }
+  .pg .wk-p { margin-top: 12px; animation: tjIn .25s ease; }
   .pg .as-sadd { display: flex; gap: 6px; margin-top: 6px; }
   .pg .as-sadd input { flex: 1; min-width: 0; font: inherit; font-size: .9rem; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
   .pg .as-sadd button { padding: 6px 12px; }
@@ -435,7 +463,7 @@
       <select id="as-type" aria-label="Típus"></select>
       <select id="as-prod" aria-label="Termék"></select>
       <input id="as-client" type="text" maxlength="60" placeholder="Ügyfél neve (automatikusan rövidül: K. Ádám)" aria-label="Ügyfél">
-      <label class="as-lb">Határidő <input id="as-due" type="date" aria-label="Határidő"></label>
+      <label class="as-lb">Határidő <input id="as-due" type="text" aria-label="Határidő"></label>
       <label class="as-lb">Felelős <select id="as-owner" aria-label="Felelős"></select></label>
       <input id="as-note" type="text" maxlength="300" placeholder="Megjegyzés (nem kötelező)" aria-label="Megjegyzés">
       <button class="sm" type="submit">Hozzáadás</button>
@@ -454,7 +482,7 @@
     <p class="lead">Start bónusz: az új munkatársak betanulásának követése. Minden újoncnak ugyanaz a lépéslista és ugyanazok a számszerű célok; a pipákból és a számokból áll össze a haladása.</p>
     <form class="as-add" id="sb-form" autocomplete="off">
       <input id="sb-name" type="text" maxlength="60" placeholder="Új munkatárs neve" aria-label="Név" required>
-      <label class="as-lb">Kezdés <input id="sb-start" type="date" aria-label="Kezdés dátuma"></label>
+      <label class="as-lb">Kezdés <input id="sb-start" type="text" aria-label="Kezdés dátuma"></label>
       <label class="as-lb">Betanító <select id="sb-mentor" aria-label="Betanító"></select></label>
       <button class="sm" type="submit">Hozzáadás</button>
     </form>
@@ -596,6 +624,7 @@
     fillSel($("as-f-owner"), team, "Mindenki");
     ["as-f-status", "as-f-type", "as-f-owner"].forEach(function (i) { $(i).addEventListener("change", asRender); });
     $("mt-perf").addEventListener("click", function () { asTab("perf"); });
+    dpAttach($("as-due"));
     $("as-vl").addEventListener("click", function () { asView("list"); }); $("as-vc").addEventListener("click", function () { asView("cal"); });
     try { if (sessionStorage.getItem("tj_asv") === "cal") { AS_VIEW = "cal"; $("as-vl").classList.remove("on"); $("as-vc").classList.add("on"); } } catch (e) {}
     $("mt-as").addEventListener("click", function () { asTab("as"); }); sbInit();
@@ -632,7 +661,7 @@
     L.forEach(function (p) {
       var card = el("div", "sb-c"), pc = sbPct(p), h = el("div", "sb-h");
       h.appendChild(el("span", "sb-n", p.name));
-      var m = el("span", "sb-m"); m.appendChild(document.createTextNode("Kezdés:")); var di = el("input"); di.type = "date"; di.value = p.start || ""; di.addEventListener("change", function () { sbUpd(p.id, { start: di.value }); }); m.appendChild(di);
+      var m = el("span", "sb-m"); m.appendChild(document.createTextNode("Kezdés:")); var di = el("input"); dpAttach(di); di.value = p.start || ""; di.addEventListener("change", function () { sbUpd(p.id, { start: di.value }); }); m.appendChild(di);
       if (p.start) { var d = Math.floor((Date.now() - new Date(p.start + "T12:00:00").getTime()) / 864e5); if (d >= 0) m.appendChild(el("span", "", d + ". nap")); }
       m.appendChild(document.createTextNode("Betanító:")); var so = el("select"); var ks = Object.keys(SB_OWN); if (p.mentor && ks.indexOf(p.mentor) < 0) ks.push(p.mentor); ks.forEach(function (k) { var o = el("option", "", SB_OWN[k] || k); o.value = k; so.appendChild(o); }); so.value = p.mentor || "gulyas.anna.ovb@gmail.com"; so.addEventListener("change", function () { sbUpd(p.id, { mentor: so.value }); }); m.appendChild(so);
       h.appendChild(m); h.appendChild(el("span", "sb-pct", pc + "%"));
@@ -665,7 +694,7 @@
   }
   function sbInit() {
     var so = $("sb-mentor"); Object.keys(SB_OWN).forEach(function (k) { var o = el("option", "", SB_OWN[k]); o.value = k; so.appendChild(o); }); so.value = "gulyas.anna.ovb@gmail.com";
-    $("sb-start").value = todayIso();
+    dpAttach($("sb-start")); $("sb-start").value = todayIso();
     $("mt-sb").addEventListener("click", function () { asTab("sb"); });
     $("sb-form").addEventListener("submit", function (ev) {
       ev.preventDefault(); if (!FB) { toast("Az adatbázis még nem töltött be."); return; }
@@ -694,47 +723,51 @@
   }
   function asUpd(id, patch) { FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "atasks", id), patch).catch(function (e) { toast("Mentés sikertelen: " + e.message); }); }
   var asSeen = null, asOpen = {};
-  var AS_VIEW = "list", calY = new Date().getFullYear(), calM = new Date().getMonth();
-  function asCal(L, now) {
-    var box = $("as-cal"), MN = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"];
-    box.textContent = "";
-    var h = el("div", "cal-h"), pv = el("button", "", "‹"), nx = el("button", "", "›"), td = el("button", "", "Ma"); pv.type = nx.type = td.type = "button";
-    pv.setAttribute("aria-label", "Előző hónap"); nx.setAttribute("aria-label", "Következő hónap");
-    pv.addEventListener("click", function () { calM--; if (calM < 0) { calM = 11; calY--; } asRender(); });
-    nx.addEventListener("click", function () { calM++; if (calM > 11) { calM = 0; calY++; } asRender(); });
-    td.addEventListener("click", function () { var d = new Date(); calY = d.getFullYear(); calM = d.getMonth(); asRender(); });
-    h.appendChild(pv); h.appendChild(el("b", "", calY + ". " + MN[calM])); h.appendChild(td); h.appendChild(nx); box.appendChild(h);
-    var g = el("div", "cal-g"); ["H", "K", "Sze", "Cs", "P", "Szo", "V"].forEach(function (d) { g.appendChild(el("div", "cal-w", d)); });
-    var first = new Date(calY, calM, 1), off = (first.getDay() + 6) % 7, start = new Date(calY, calM, 1 - off), by = {};
-    L.forEach(function (x) { if (x.due) (by[x.due] = by[x.due] || []).push(x); });
-    var months = Math.ceil((off + new Date(calY, calM + 1, 0).getDate()) / 7) * 7;
-    for (var i = 0; i < months; i++) {
-      var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), iso = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
-      var c = el("div", "cal-d" + (d.getMonth() !== calM ? " o" : "") + (iso === now ? " t" : "")); c.appendChild(el("i", "", String(d.getDate())));
-      var T = by[iso] || [];
-      T.slice(0, 3).forEach(function (x) { var late = !x.done && x.due < now, ch = el("div", "cal-c" + (x.done ? " done" : "") + (late ? " late" : ""), x.title); ch.title = x.title + (x.client ? " – " + x.client : "") + " (" + (x.type || "Egyéb") + (x.product ? ", " + x.product : "") + ", " + (AS_OWNERS[x.owner] || (TEAM[x.owner] || "")) + ")"; c.appendChild(ch); });
-      if (T.length > 3) c.appendChild(el("div", "cal-m", "+" + (T.length - 3) + " további"));
-      (function (iso) { c.addEventListener("click", function (ev) { if (ev.target.closest(".cal-c")) return; $("as-due").value = iso; $("as-form").scrollIntoView({ behavior: "smooth", block: "center" }); $("as-title").focus({ preventScroll: true }); }); })(iso);
-      g.appendChild(c);
-    }
-    box.appendChild(g);
-    var nd = L.filter(function (x) { return !x.due; }).length; if (nd) box.appendChild(el("p", "cal-n", nd + " feladatnak nincs határideje – ezek a lista nézetben látszanak."));
-    box.appendChild(el("p", "cal-n", "Egy napra kattintva az új feladat határideje beáll arra a napra."));
+  /* ---- témához igazított mini naptár (a natív dátumválasztó helyett) ---- */
+  var DP = null;
+  function dpIso(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function dpAttach(inp) {
+    inp.type = "text"; inp.readOnly = true; inp.classList.add("dp"); inp.placeholder = "éééé-hh-nn"; inp.setAttribute("autocomplete", "off");
+    inp.addEventListener("click", function () { dpOpen(inp); });
+    inp.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") { e.preventDefault(); dpOpen(inp); } });
   }
-  function asView(v) { AS_VIEW = v; $("as-vl").classList.toggle("on", v === "list"); $("as-vc").classList.toggle("on", v === "cal"); try { sessionStorage.setItem("tj_asv", v); } catch (e) {} asRender(); }
-  function asRender() {
-    var st = $("as-f-status").value, ty = $("as-f-type").value, ow = $("as-f-owner").value, now = todayIso();
-    $("as-cnt").textContent = AS.filter(function (x) { return !x.done; }).length || "";
-    var L = AS.filter(function (x) { return (st === "all" || (st === "done") === !!x.done) && (!ty || x.type === ty) && (!ow || x.owner === ow); });
-    L.sort(function (a, b) { return (a.due || "9999") < (b.due || "9999") ? -1 : (a.due || "9999") > (b.due || "9999") ? 1 : (b.created - a.created); });
-    $("as-list").hidden = AS_VIEW === "cal"; $("as-cal").hidden = AS_VIEW !== "cal";
-    if (AS_VIEW === "cal") { $("as-none").textContent = ""; asCal(L, now); return; }
-    var groups = [["Lejárt", "late", function (x) { return !x.done && x.due && x.due < now; }], ["Ma esedékes", "", function (x) { return !x.done && x.due === now; }], ["Közelgő", "", function (x) { return !x.done && x.due && x.due > now; }], ["Nincs határidő", "", function (x) { return !x.done && !x.due; }], ["Kész", "", function (x) { return !!x.done; }]];
-    var box = $("as-list"); box.textContent = ""; var firstRun = asSeen === null; if (firstRun) asSeen = {};
-    groups.forEach(function (g) {
-      var items = L.filter(g[2]); if (!items.length) return;
-      box.appendChild(el("h4", "as-g" + (g[1] ? " " + g[1] : ""), g[0] + " (" + items.length + ")"));
-      items.forEach(function (x) {
+  function dpOpen(inp) {
+    if (!DP) {
+      DP = el("div", "dp-pop"); DP.hidden = true; document.body.appendChild(DP);
+      document.addEventListener("mousedown", function (e) { if (!DP.hidden && !DP.contains(e.target) && !e.target.classList.contains("dp")) DP.hidden = true; });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape") DP.hidden = true; });
+      window.addEventListener("scroll", function () { if (!DP.hidden && DP._in) dpPlace(DP._in); }, true);
+    }
+    DP._in = inp; var cur = /^\d{4}-\d{2}-\d{2}$/.test(inp.value) ? new Date(inp.value + "T12:00:00") : new Date();
+    DP._y = cur.getFullYear(); DP._m = cur.getMonth(); dpDraw(); DP.hidden = false; dpPlace(inp);
+  }
+  function dpPlace(inp) {
+    var r = inp.getBoundingClientRect(), w = DP.offsetWidth || 280, h = DP.offsetHeight || 320;
+    var top = r.bottom + 6; if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    DP.style.top = top + "px"; DP.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + "px";
+  }
+  function dpDraw() {
+    var MN = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"], inp = DP._in, sel = inp.value, today = dpIso(new Date());
+    DP.textContent = "";
+    var h = el("div", "dp-h"), pv = el("button", "", "‹"), nx = el("button", "", "›"); pv.type = nx.type = "button";
+    pv.addEventListener("click", function () { DP._m--; if (DP._m < 0) { DP._m = 11; DP._y--; } dpDraw(); dpPlace(inp); });
+    nx.addEventListener("click", function () { DP._m++; if (DP._m > 11) { DP._m = 0; DP._y++; } dpDraw(); dpPlace(inp); });
+    h.appendChild(pv); h.appendChild(el("b", "", DP._y + ". " + MN[DP._m])); h.appendChild(nx); DP.appendChild(h);
+    var g = el("div", "dp-g"); ["H", "K", "Sze", "Cs", "P", "Szo", "V"].forEach(function (d) { g.appendChild(el("span", "dp-w", d)); });
+    var off = (new Date(DP._y, DP._m, 1).getDay() + 6) % 7, n = Math.ceil((off + new Date(DP._y, DP._m + 1, 0).getDate()) / 7) * 7;
+    for (var i = 0; i < n; i++) {
+      var d = new Date(DP._y, DP._m, 1 - off + i), iso = dpIso(d), b = el("button", "dp-d" + (d.getMonth() !== DP._m ? " o" : "") + (iso === today ? " t" : "") + (iso === sel ? " s" : ""), String(d.getDate())); b.type = "button";
+      (function (iso) { b.addEventListener("click", function () { inp.value = iso; inp.dispatchEvent(new Event("change", { bubbles: true })); DP.hidden = true; }); })(iso);
+      g.appendChild(b);
+    }
+    DP.appendChild(g);
+    var f = el("div", "dp-f"), t = el("button", "", "Ma"), c = el("button", "", "Törlés"); t.type = c.type = "button";
+    t.addEventListener("click", function () { inp.value = today; inp.dispatchEvent(new Event("change", { bubbles: true })); DP.hidden = true; });
+    c.addEventListener("click", function () { inp.value = ""; inp.dispatchEvent(new Event("change", { bubbles: true })); DP.hidden = true; });
+    f.appendChild(t); f.appendChild(c); DP.appendChild(f);
+  }
+  function asCard(x, now, firstRun) {
+    if (asSeen === null) asSeen = {};
         var late = !x.done && x.due && x.due < now, r = el("div", "as-t" + (x.done ? " done" : "") + (late ? " late" : "") + (!firstRun && !asSeen[x.id] ? " enter" : ""));
         asSeen[x.id] = 1;
         var ck = el("input"); ck.type = "checkbox"; ck.checked = !!x.done; ck.setAttribute("aria-label", "Kész");
@@ -750,7 +783,7 @@
         var m = el("div", "as-meta"); m.appendChild(el("span", "as-chip", x.type || "Egyéb")); if (x.product) m.appendChild(el("span", "as-chip", x.product));
         if (x.client) m.appendChild(el("span", "", x.client));
         if ((x.subs || []).length) m.appendChild(el("span", "as-chip", (x.subs.filter(function (u) { return u.done; }).length) + "/" + x.subs.length + " alfeladat"));
-        m.appendChild(el("span", "", "Határidő:")); var due = el("input"); due.type = "date"; due.value = x.due || ""; due.title = "Határidő"; due.addEventListener("change", function () { asUpd(x.id, { due: due.value }); }); m.appendChild(due);
+        m.appendChild(el("span", "", "Határidő:")); var due = el("input"); dpAttach(due); due.value = x.due || ""; due.title = "Határidő"; due.addEventListener("change", function () { asUpd(x.id, { due: due.value }); }); m.appendChild(due);
         m.appendChild(el("span", "", "Felelős:")); var so = el("select"); var ownK = Object.keys(AS_OWNERS); if (x.owner && ownK.indexOf(x.owner) < 0) ownK.push(x.owner); ownK.forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = AS_OWNERS[k] || TEAM[k] || k; so.appendChild(o); }); so.value = x.owner || AS_OWNER_DEFAULT; so.title = "Felelős"; so.addEventListener("change", function () { asUpd(x.id, { owner: so.value }); }); m.appendChild(so);
         r.appendChild(m);
         if (x.note) r.appendChild(el("div", "as-note", x.note));
@@ -774,8 +807,81 @@
         sh.setAttribute("aria-expanded", asOpen[x.id] ? "true" : "false");
         sh.addEventListener("click", function () { var o = !wrap.classList.contains("open"); asOpen[x.id] = o; wrap.classList.toggle("open", o); sh.classList.toggle("open", o); sh.setAttribute("aria-expanded", o ? "true" : "false"); });
         wrap.appendChild(sw); r.appendChild(sh); r.appendChild(wrap);
-        box.appendChild(r);
+    return r;
+  }
+  var AS_VIEW = "list", calY = new Date().getFullYear(), calM = new Date().getMonth();
+  var calWeek = null, calTask = "";
+  function calMon(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)); }
+  function asWeek(L, now) {
+    var box = $("as-cal"), MS = ["jan.", "febr.", "márc.", "ápr.", "máj.", "jún.", "júl.", "aug.", "szept.", "okt.", "nov.", "dec."], DN = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
+    box.textContent = "";
+    var e = new Date(calWeek.getFullYear(), calWeek.getMonth(), calWeek.getDate() + 6);
+    var h = el("div", "cal-h"), bk = el("button", "", "‹ Hónap"), pv = el("button", "", "‹"), nx = el("button", "", "›"), td = el("button", "", "Ma"); bk.type = pv.type = nx.type = td.type = "button";
+    bk.addEventListener("click", function () { calY = calWeek.getFullYear(); calM = calWeek.getMonth(); calWeek = null; calTask = ""; asRender(); });
+    pv.addEventListener("click", function () { calWeek = new Date(calWeek.getFullYear(), calWeek.getMonth(), calWeek.getDate() - 7); calTask = ""; asRender(); });
+    nx.addEventListener("click", function () { calWeek = new Date(calWeek.getFullYear(), calWeek.getMonth(), calWeek.getDate() + 7); calTask = ""; asRender(); });
+    td.addEventListener("click", function () { calWeek = calMon(new Date()); calTask = ""; asRender(); });
+    h.appendChild(bk); h.appendChild(pv); h.appendChild(el("b", "", calWeek.getFullYear() + ". " + MS[calWeek.getMonth()] + " " + calWeek.getDate() + " – " + (e.getMonth() !== calWeek.getMonth() ? MS[e.getMonth()] + " " : "") + e.getDate())); h.appendChild(td); h.appendChild(nx); box.appendChild(h);
+    var by = {}; L.forEach(function (x) { if (x.due) (by[x.due] = by[x.due] || []).push(x); });
+    var g = el("div", "wk-g"), open = null;
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(calWeek.getFullYear(), calWeek.getMonth(), calWeek.getDate() + i), iso = dpIso(d), c = el("div", "wk-d" + (iso === now ? " t" : "")), hd = el("div", "wk-h");
+      hd.appendChild(el("span", "", DN[i] + " " + d.getDate() + "."));
+      var ad = el("button", "wk-a", "+"); ad.type = "button"; ad.title = "Új feladat erre a napra";
+      (function (iso) { ad.addEventListener("click", function () { $("as-due").value = iso; $("as-form").scrollIntoView({ behavior: "smooth", block: "center" }); $("as-title").focus({ preventScroll: true }); }); })(iso);
+      hd.appendChild(ad); c.appendChild(hd);
+      (by[iso] || []).forEach(function (x) {
+        var late = !x.done && x.due < now, ch = el("button", "wk-c" + (x.done ? " done" : "") + (late ? " late" : "") + (calTask === x.id ? " on" : ""), x.title); ch.type = "button";
+        ch.appendChild(el("small", "", (x.type || "Egyéb") + (x.client ? " · " + x.client : "")));
+        ch.addEventListener("click", function () { calTask = calTask === x.id ? "" : x.id; asRender(); });
+        c.appendChild(ch); if (calTask === x.id) open = x;
       });
+      g.appendChild(c);
+    }
+    box.appendChild(g);
+    if (open) { var pn = el("div", "wk-p"); pn.appendChild(asCard(open, now, false)); box.appendChild(pn); }
+  }
+  function asCal(L, now) {
+    if (calWeek) { asWeek(L, now); return; }
+    var box = $("as-cal"), MN = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"];
+    box.textContent = "";
+    var h = el("div", "cal-h"), pv = el("button", "", "‹"), nx = el("button", "", "›"), td = el("button", "", "Ma"); pv.type = nx.type = td.type = "button";
+    pv.setAttribute("aria-label", "Előző hónap"); nx.setAttribute("aria-label", "Következő hónap");
+    pv.addEventListener("click", function () { calM--; if (calM < 0) { calM = 11; calY--; } asRender(); });
+    nx.addEventListener("click", function () { calM++; if (calM > 11) { calM = 0; calY++; } asRender(); });
+    td.addEventListener("click", function () { var d = new Date(); calY = d.getFullYear(); calM = d.getMonth(); asRender(); });
+    h.appendChild(pv); h.appendChild(el("b", "", calY + ". " + MN[calM])); h.appendChild(td); h.appendChild(nx); box.appendChild(h);
+    var g = el("div", "cal-g"); ["H", "K", "Sze", "Cs", "P", "Szo", "V"].forEach(function (d) { g.appendChild(el("div", "cal-w", d)); });
+    var first = new Date(calY, calM, 1), off = (first.getDay() + 6) % 7, start = new Date(calY, calM, 1 - off), by = {};
+    L.forEach(function (x) { if (x.due) (by[x.due] = by[x.due] || []).push(x); });
+    var months = Math.ceil((off + new Date(calY, calM + 1, 0).getDate()) / 7) * 7;
+    for (var i = 0; i < months; i++) {
+      var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), iso = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+      var c = el("div", "cal-d" + (d.getMonth() !== calM ? " o" : "") + (iso === now ? " t" : "")); c.appendChild(el("i", "", String(d.getDate())));
+      var T = by[iso] || [], d0 = d;
+      T.slice(0, 3).forEach(function (x) { var late = !x.done && x.due < now, ch = el("div", "cal-c" + (x.done ? " done" : "") + (late ? " late" : ""), x.title); ch.addEventListener("click", function () { calWeek = calMon(new Date(x.due + "T12:00:00")); calTask = x.id; asRender(); }); ch.title = x.title + (x.client ? " – " + x.client : "") + " (" + (x.type || "Egyéb") + (x.product ? ", " + x.product : "") + ", " + (AS_OWNERS[x.owner] || (TEAM[x.owner] || "")) + ")"; c.appendChild(ch); });
+      if (T.length > 3) c.appendChild(el("div", "cal-m", "+" + (T.length - 3) + " további"));
+      (function (dd) { c.addEventListener("click", function (ev) { if (ev.target.closest(".cal-c")) return; calWeek = calMon(dd); calTask = ""; asRender(); }); })(d);
+      g.appendChild(c);
+    }
+    box.appendChild(g);
+    var nd = L.filter(function (x) { return !x.due; }).length; if (nd) box.appendChild(el("p", "cal-n", nd + " feladatnak nincs határideje – ezek a lista nézetben látszanak."));
+    box.appendChild(el("p", "cal-n", "Egy napra kattintva megnyílik az adott hét, a feladatra kattintva pedig szerkeszthető."));
+  }
+  function asView(v) { AS_VIEW = v; $("as-vl").classList.toggle("on", v === "list"); $("as-vc").classList.toggle("on", v === "cal"); try { sessionStorage.setItem("tj_asv", v); } catch (e) {} asRender(); }
+  function asRender() {
+    var st = $("as-f-status").value, ty = $("as-f-type").value, ow = $("as-f-owner").value, now = todayIso();
+    $("as-cnt").textContent = AS.filter(function (x) { return !x.done; }).length || "";
+    var L = AS.filter(function (x) { return (st === "all" || (st === "done") === !!x.done) && (!ty || x.type === ty) && (!ow || x.owner === ow); });
+    L.sort(function (a, b) { return (a.due || "9999") < (b.due || "9999") ? -1 : (a.due || "9999") > (b.due || "9999") ? 1 : (b.created - a.created); });
+    $("as-list").hidden = AS_VIEW === "cal"; $("as-cal").hidden = AS_VIEW !== "cal";
+    if (AS_VIEW === "cal") { $("as-none").textContent = ""; asCal(L, now); return; }
+    var groups = [["Lejárt", "late", function (x) { return !x.done && x.due && x.due < now; }], ["Ma esedékes", "", function (x) { return !x.done && x.due === now; }], ["Közelgő", "", function (x) { return !x.done && x.due && x.due > now; }], ["Nincs határidő", "", function (x) { return !x.done && !x.due; }], ["Kész", "", function (x) { return !!x.done; }]];
+    var box = $("as-list"); box.textContent = ""; var firstRun = asSeen === null; if (firstRun) asSeen = {};
+    groups.forEach(function (g) {
+      var items = L.filter(g[2]); if (!items.length) return;
+      box.appendChild(el("h4", "as-g" + (g[1] ? " " + g[1] : ""), g[0] + " (" + items.length + ")"));
+      items.forEach(function (x) { box.appendChild(asCard(x, now, firstRun)); });
     });
     $("as-none").textContent = L.length ? "" : (AS.length ? "Nincs a szűrőnek megfelelő feladat." : "Még nincs feladat. Vegyél fel egyet fent.");
   }
