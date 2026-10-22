@@ -300,6 +300,9 @@
   .pg .as-sadd button { padding: 6px 12px; }
   .pg .as-note { grid-column: 2 / 3; font-size: .88rem; color: var(--muted); }
   .pg .as-t .x { grid-column: 3; grid-row: 1; }
+  .pg .as-t .x { display: grid; place-content: center; width: 34px; height: 34px; padding: 0; border-radius: 10px; border: 2px solid var(--track, rgba(127,127,127,.35)); background: transparent; color: var(--muted); font: inherit; font-size: 1.25rem; line-height: 1; cursor: pointer; transition: background .2s, color .2s, border-color .2s, transform .15s; }
+  .pg .as-t .x:hover, .pg .as-t .x:focus-visible { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); outline: none; }
+  .pg .as-t .x:active { transform: scale(.88); }
   @media (max-width: 520px) { .pg .as-add { grid-template-columns: 1fr; } }
   /* ===== animációk ===== */
   .pg input[type=checkbox] { appearance: none; -webkit-appearance: none; display: grid; place-content: center; width: 22px; height: 22px; flex: none; margin: 0; border: 2px solid var(--muted); border-radius: 7px; background: transparent; cursor: pointer; transition: background-color .22s ease, border-color .22s ease, transform .15s ease, box-shadow .22s ease; }
