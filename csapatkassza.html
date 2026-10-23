@@ -161,6 +161,20 @@
   button.primary:hover { filter: brightness(1.08); }
   button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   .wsl { display: grid; gap: 12px; max-width: 760px; }
+  .wtr { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--track, #ddd); }
+  .wbar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .wst2 { text-align: center; font-size: .75rem; font-weight: 700; color: var(--muted); position: relative; padding-top: 30px; }
+  .wst2 i { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 24px; height: 24px; border-radius: 50%; display: grid; place-content: center; font-style: normal; font-size: .75rem; background: var(--track, #ddd); color: var(--muted); transition: background .3s, color .3s; z-index: 1; }
+  .wst2::before { content: ""; position: absolute; top: 11px; left: -50%; width: 100%; height: 3px; background: var(--track, #ddd); }
+  .wst2:first-child::before { display: none; }
+  .wst2.on::before { background: var(--accent); } .wst2.on i { background: var(--accent); color: var(--on-accent, #fff); } .wst2.on { color: var(--ink); }
+  .wst2.cur i { box-shadow: 0 0 0 4px rgba(120,150,220,.3); }
+  .wbar.ok .wst2.on i, .wbar.ok .wst2.on::before { background: #1f9d55; color: #fff; }
+  .wsx { margin: 8px 0 6px; font-size: .88rem; color: var(--muted); }
+  .wrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .wrow input[type=text] { flex: 1; min-width: 150px; font: inherit; padding: 8px 10px; border-radius: 10px; border: 2px solid var(--track, #ddd); background: var(--bg); color: var(--ink); }
+  .wrow button { font: inherit; font-weight: 700; padding: 8px 14px; border-radius: 10px; border: 0; background: var(--accent); color: var(--on-accent, #fff); cursor: pointer; }
+  .wman { font-size: .85rem; font-weight: 600; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
   .wsc { background: var(--card); border-radius: 14px; padding: 14px 16px; }
   .wsh { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
   .wsd { color: var(--muted); font-size: .88rem; font-variant-numeric: tabular-nums; }
@@ -725,6 +739,31 @@
     function wsMsg(t, bad) { var m = $("ws-msg"); m.textContent = t; m.style.color = bad ? "var(--gold, #cc0066)" : ""; }
     function fmtD(iso) { try { return new Date(iso).toLocaleString("hu-HU", { dateStyle: "medium", timeStyle: "short" }); } catch (e) { return iso; } }
     function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; }
+    var WS_ST = ["Megrendelve", "Feladva", "Úton", "Kiszállítva"];
+    function wsStage(o) { return o.manual ? 4 : o.bc ? ((o.fx && o.fx.stage) || 2) : 1; }
+    function wsSet(o, patch, tw, btn) {
+      var body = { webshopset: 1, t: token(), kt: kt(), k: o.k }; for (var x in patch) body[x] = patch[x];
+      if (btn) btn.disabled = true;
+      fetch(IRODA_API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) })
+        .then(function (r) { return r.json(); }).then(function (d) {
+          if (btn) btn.disabled = false;
+          if (d && d.error === "kauth") { gate("A belépés lejárt, add meg újra a jelszót."); return; }
+          if (d && d.ok && d.order) { o.bc = d.order.bc; o.fx = d.order.fx; o.manual = d.order.manual; wsTrack(tw, o); }
+          else wsMsg((d && d.error) || "A mentés nem sikerült.", 1);
+        }).catch(function () { if (btn) btn.disabled = false; wsMsg("Nem sikerült csatlakozni.", 1); });
+    }
+    function wsTrack(tw, o) {
+      tw.textContent = ""; var st = wsStage(o);
+      var bar = el("div", "wbar" + (st === 4 ? " ok" : "")); WS_ST.forEach(function (n, i) { var s = el("div", "wst2" + (i + 1 <= st ? " on" : "") + (i + 1 === st ? " cur" : "")); s.appendChild(el("i", "", i + 1 < st || st === 4 ? "✓" : String(i + 1))); s.appendChild(el("span", "", n)); bar.appendChild(s); });
+      tw.appendChild(bar);
+      var tx = o.manual ? "Kézzel kiszállítottnak jelölve." : (o.bc ? ((o.fx && o.fx.txt) || "Feladva.") : "Add meg a Foxpost csomagszámot a követéshez.");
+      if (o.fx && o.fx.ts && !o.manual) tx += " (" + o.fx.ts.replace("T", " ").slice(0, 16) + ")";
+      tw.appendChild(el("p", "wsx", tx));
+      var row = el("div", "wrow"), inp = el("input"); inp.type = "text"; inp.placeholder = "Foxpost csomagszám"; inp.value = o.bc || ""; inp.setAttribute("aria-label", "Foxpost csomagszám");
+      var sv = el("button", "", "Mentés"); sv.type = "button"; sv.addEventListener("click", function () { wsSet(o, { bc: inp.value.trim() }, tw, sv); });
+      var lb = el("label", "wman"), ck = el("input"); ck.type = "checkbox"; ck.checked = !!o.manual; ck.addEventListener("change", function () { wsSet(o, { done: ck.checked }, tw); }); lb.appendChild(ck); lb.appendChild(document.createTextNode(" Kézzel kiszállítva"));
+      row.appendChild(inp); row.appendChild(sv); row.appendChild(lb); tw.appendChild(row);
+    }
     function wsLoad() {
       if (busyW) return; busyW = true; wsMsg("Betöltés…");
       fetch(IRODA_API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ webshoplist: 1, t: token(), kt: kt() }) })
@@ -740,6 +779,7 @@
             var ul = el("ul", "wsp"); (o.termekek || []).forEach(function (t) { ul.appendChild(el("li", "", t)); }); c.appendChild(ul);
             if (o.osszesen) c.appendChild(el("p", "wst", "Végösszeg: " + String(Math.round(o.osszesen)).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0") + "\u00a0Ft"));
             if (o.megj) c.appendChild(el("p", "wsn", "Megjegyzés: " + o.megj));
+            var tw = el("div", "wtr"); c.appendChild(tw); wsTrack(tw, o);
             box.appendChild(c);
           });
         }).catch(function () { busyW = false; wsMsg("Nem sikerült csatlakozni a rendelések betöltéséhez.", 1); });
