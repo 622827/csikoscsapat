@@ -31,6 +31,24 @@
   .chk input { width: 22px; height: 22px; accent-color: var(--accent); }
   .opt { margin-top: 12px; }
   .opt h2 { color: var(--muted); font-weight: 600; font-size: .95rem; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 4px; }
+  .tile { position: relative; display: flex; flex-direction: column; border: 2px solid var(--track); border-radius: 16px; background: var(--bg); overflow: hidden; cursor: pointer; transition: border-color .2s, box-shadow .2s, transform .2s; -webkit-tap-highlight-color: transparent; }
+  .tile:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,30,60,.14); }
+  .tile:active { transform: scale(.97); }
+  .tile input { position: absolute; opacity: 0; pointer-events: none; }
+  .tile .ph { display: block; aspect-ratio: 1; background: #fff; }
+  .tile .ph img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .tile .nm { padding: 10px 8px 12px; text-align: center; font-weight: 700; font-size: .95rem; background: var(--bg); }
+  .tile .ck { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--track); background: #fff; transition: background .2s, border-color .2s, transform .25s; }
+  .tile .ck::after { content: ""; position: absolute; left: 8px; top: 3px; width: 6px; height: 11px; border: solid #fff; border-width: 0 3px 3px 0; transform: rotate(45deg) scale(0); transition: transform .2s; }
+  .tile:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent) inset; }
+  .tile:has(input:checked) .ck { background: var(--accent); border-color: var(--accent); transform: scale(1.08); }
+  .tile:has(input:checked) .ck::after { transform: rotate(45deg) scale(1); border-color: var(--on-accent); }
+  .tile:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+  @media (max-width: 420px) { .tiles { gap: 8px; } .tile .nm { font-size: .82rem; padding: 8px 4px 10px; } }
+  .card { box-shadow: 0 1px 0 rgba(0,0,0,.03); }
+  .opt { padding: 14px; border-radius: 14px; background: var(--bg); animation: wsIn .25s ease; }
+  @keyframes wsIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
   .prev { max-width: 160px; max-height: 160px; border-radius: 10px; margin-top: 8px; display: block; }
   button.primary { font: inherit; font-weight: 700; font-size: 1.05rem; padding: 14px; border: 0; border-radius: 12px; cursor: pointer; background: var(--accent); color: var(--on-accent); }
   button[disabled] { opacity: .6; cursor: wait; }
@@ -68,9 +86,11 @@
     <div class="card">
       <h2>Mit rendelsz?</h2>
       <p class="small" style="margin:0 0 12px">A névjegykártyát és a kulcstartót egyszerre, de külön munkatársnak is lehet rendelni, ezért a munkatárs (MT) nevét termékenként kell megadni.</p>
-      <label class="chk"><input type="checkbox" id="c-nj"> Névjegykártya</label>
-      <label class="chk"><input type="checkbox" id="c-pe"> Pezsgő</label>
-      <label class="chk"><input type="checkbox" id="c-ku"> Kulcstartó</label>
+      <div class="tiles">
+        <label class="tile"><input type="checkbox" id="c-nj"><span class="ph"><img src="img-webshop/nevjegykartya.jpg" alt="" width="400" height="400" loading="lazy"></span><span class="nm">Névjegykártya</span><i class="ck" aria-hidden="true"></i></label>
+        <label class="tile"><input type="checkbox" id="c-pe"><span class="ph"><img src="img-webshop/pezsgo.jpg" alt="" width="400" height="400" loading="lazy"></span><span class="nm">Pezsgő</span><i class="ck" aria-hidden="true"></i></label>
+        <label class="tile"><input type="checkbox" id="c-ku"><span class="ph"><img src="img-webshop/kulcstarto.jpg" alt="" width="400" height="400" loading="lazy"></span><span class="nm">Kulcstartó</span><i class="ck" aria-hidden="true"></i></label>
+      </div>
 
       <div class="opt" id="o-nj" hidden>
         <h2>Névjegykártya</h2>
