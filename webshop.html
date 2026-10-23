@@ -248,11 +248,13 @@
       }).catch(function () { b.disabled = false; $("ok").textContent = ""; err("Nem sikerült csatlakozni, próbáld újra."); });
   });
 })();
-  (function () { var b = document.getElementById("pe-inf"); if (!b) return; var t = null;
-    b.addEventListener("click", function (ev) { ev.preventDefault(); ev.stopPropagation();
-      if (t) { t.remove(); t = null; return; }
-      t = document.createElement("span"); t.className = "tip"; t.textContent = b.title; b.parentNode.appendChild(t);
-      setTimeout(function () { if (t) { t.remove(); t = null; } }, 5000); }); })();
+  (function () { var b = document.getElementById("pe-inf"); if (!b) return; var t = null, tm = null;
+    function show() { if (t) return; t = document.createElement("span"); t.className = "tip"; t.setAttribute("role", "tooltip"); t.textContent = b.getAttribute("data-tip"); b.parentNode.appendChild(t); }
+    function hide() { clearTimeout(tm); if (t) { t.remove(); t = null; } }
+    b.setAttribute("data-tip", b.title); b.removeAttribute("title");
+    b.addEventListener("mouseenter", show); b.addEventListener("mouseleave", hide);
+    b.addEventListener("focus", show); b.addEventListener("blur", hide);
+    b.addEventListener("click", function (ev) { ev.preventDefault(); ev.stopPropagation(); if (t) hide(); else { show(); tm = setTimeout(hide, 5000); } }); })();
 </script>
 <script src="anim.js?v=3" defer></script>
 </body>
