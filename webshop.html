@@ -88,7 +88,7 @@
       <h2>Mit rendelsz?</h2>
       <p class="small" style="margin:0 0 12px">A névjegykártyát és a kulcstartót egyszerre, de külön munkatársnak is lehet rendelni, ezért a munkatárs (MT) nevét termékenként kell megadni.</p>
       <div class="tiles">
-        <label class="tile"><input type="checkbox" id="c-nj"><span class="ph"><img src="img-webshop/nevjegykartya.jpg" alt="" width="400" height="400" loading="lazy"></span><span class="nm">Névjegykártya<b class="pr">2 500 Ft</b></span><i class="ck" aria-hidden="true"></i></label>
+        <label class="tile"><input type="checkbox" id="c-nj"><span class="ph"><img src="img-webshop/nevjegykartya.jpg" alt="" width="400" height="400" loading="lazy"></span><span class="nm">Névjegykártya<b class="pr">2 500 Ft / 50 db</b></span><i class="ck" aria-hidden="true"></i></label>
         <label class="tile"><input type="checkbox" id="c-pe"><span class="ph"><img src="img-webshop/pezsgo.jpg" alt="" width="400" height="400" loading="lazy"></span><span class="nm">Pezsgő<b class="pr">2 000 Ft</b></span><i class="ck" aria-hidden="true"></i></label>
         <label class="tile"><input type="checkbox" id="c-ku"><span class="ph"><img src="img-webshop/kulcstarto.jpg?v=2" alt="" width="400" height="400" loading="lazy"></span><span class="nm">Kulcstartó<b class="pr">12 000 Ft</b></span><i class="ck" aria-hidden="true"></i></label>
       </div>
@@ -137,6 +137,7 @@
       return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
     });
   }
+  var PRICE = { nj: 2500, pe: 2000, ku: 12000 };
   var PW = "";
   var H = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2";
   function open() { $("gate").hidden = true; $("app").hidden = false; }
@@ -210,17 +211,18 @@
       if (!v("nj-nev") || !v("nj-poz")) return err("Névjegykártya: add meg az MT nevét és a pozíciót.");
       if (!phone(v("nj-tel"))) return err("Névjegykártya: az MT telefonszáma legyen magyar mobilszám.");
       if (!mailRe.test(v("nj-mail"))) return err("Névjegykártya: az MT e-mail címe hibás.");
-      o.nevjegykartya = { nev: v("nj-nev"), pozicio: v("nj-poz"), tel: phone(v("nj-tel")), email: v("nj-mail") };
+      o.nevjegykartya = { nev: v("nj-nev"), pozicio: v("nj-poz"), tel: phone(v("nj-tel")), email: v("nj-mail"), db: 50, ar: PRICE.nj };
     }
     if (pe) {
       if (!v("pe-db")) return err("Pezsgő: válaszd ki a darabszámot.");
-      o.pezsgo = { db: Number(v("pe-db")) };
+      o.pezsgo = { db: Number(v("pe-db")), egysegar: PRICE.pe, ar: PRICE.pe * Number(v("pe-db")) };
     }
     if (ku) {
       if (!v("ku-nev")) return err("Kulcstartó: add meg az MT nevét.");
       if (!IMG) return err("Kulcstartó: tölts fel egy képet, enélkül nem küldhető el.");
-      o.kulcstarto = { nev: v("ku-nev"), kep: IMG };
+      o.kulcstarto = { nev: v("ku-nev"), kep: IMG, ar: PRICE.ku };
     }
+    o.osszesen = (o.nevjegykartya ? PRICE.nj : 0) + (o.pezsgo ? o.pezsgo.ar : 0) + (o.kulcstarto ? PRICE.ku : 0);
     err(""); var b = $("send"); b.disabled = true; $("ok").textContent = "Küldés…";
     fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ webshop: 1, pw: PW, order: o }) })
       .then(function (r) { return r.json(); }).then(function (d) {
