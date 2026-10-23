@@ -27,6 +27,7 @@
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body::before, :root:not([data-theme="light"]) #csk-gate::before { opacity: .09; } }
   :root[data-theme="dark"] body::before, :root[data-theme="dark"] #csk-gate::before { opacity: .09; }
 @media print { body::before { display: none; } }
+  .wst{margin:8px 0 0;font-weight:800;font-size:1.05rem}
 </style>
 <script>
 (function () {
@@ -737,6 +738,7 @@
             var c = el("article", "wsc"), h = el("div", "wsh"); h.appendChild(el("b", "", o.nev)); h.appendChild(el("span", "wsd", fmtD(o.ts))); c.appendChild(h);
             var ct = el("div", "wsk"); var a1 = el("a", "", o.tel); a1.href = "tel:" + o.tel; var a2 = el("a", "", o.email); a2.href = "mailto:" + o.email; ct.appendChild(a1); ct.appendChild(a2); c.appendChild(ct);
             var ul = el("ul", "wsp"); (o.termekek || []).forEach(function (t) { ul.appendChild(el("li", "", t)); }); c.appendChild(ul);
+            if (o.osszesen) c.appendChild(el("p", "wst", "Végösszeg: " + String(Math.round(o.osszesen)).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0") + "\u00a0Ft"));
             if (o.megj) c.appendChild(el("p", "wsn", "Megjegyzés: " + o.megj));
             box.appendChild(c);
           });
