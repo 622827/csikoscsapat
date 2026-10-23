@@ -318,30 +318,31 @@
 
 <div id="v-iroda" hidden>
   <p class="eyebrow">BB IRODÁK HOLDING</p>
-  <div class="ktabs" id="itabs" role="tablist" style="margin-top:6px"><button type="button" class="on" data-i="fo">Főszámla</button><button type="button" data-i="fl">Flotta számla</button><button type="button" data-i="hp">Házipénztár</button><button type="button" data-i="ko">Könyvelés</button><button type="button" data-i="fx">Foxpost csomag</button><button type="button" data-i="ws">Webshop rendelések</button></div>
+  <div class="ktabs" id="itabs" role="tablist" style="margin-top:6px"><button type="button" class="on" data-i="fo">Főszámla</button><button type="button" data-i="fl">Flotta számla</button><button type="button" data-i="hp">Házipénztár</button><button type="button" data-i="ko">Könyvelés</button><button type="button" data-i="ws">Webshop rendelések</button></div>
   <section class="ipane" data-ip="fo"><h2>Főszámla</h2><p class="balsub">A tartalom hamarosan.</p></section>
   <section class="ipane" data-ip="fl" hidden><h2>Flotta számla</h2><p class="balsub">A tartalom hamarosan.</p></section>
   <section class="ipane" data-ip="hp" hidden><h2>Házipénztár</h2><p class="balsub">A tartalom hamarosan.</p></section>
   <section class="ipane" data-ip="ko" hidden><h2>Könyvelés</h2><p class="balsub">A tartalom hamarosan.</p></section>
   <section class="ipane" data-ip="ws" hidden><h2>Webshop rendelések</h2>
-    <p class="balsub" id="ws-msg">Betöltés…</p>
-    <div style="margin:0 0 12px"><button class="primary" type="button" id="ws-ref">Frissítés</button></div>
-    <div id="ws-list" class="wsl"></div>
-  </section>
-  <section class="ipane" data-ip="fx" hidden><h2>Foxpost csomag</h2>
-    <p class="balsub">Csomag adatai a címkéhez.</p>
+    <div id="fx-box" style="border:2px solid var(--track);border-radius:14px;padding:14px 16px;margin:0 0 18px">
+    <h3 style="margin:0 0 4px">Foxpost csomagcímke</h3>
+    <label style="max-width:720px">Rendelés<select class="srch" id="fx-ord"></select></label>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 16px;max-width:720px">
-      <label>Név<input class="srch" id="fx-nev" value="Kollmann Eszter" autocomplete="off" placeholder="Címzett neve"></label>
-      <label>Telefonszám<input class="srch" id="fx-tel" type="tel" value="+36203910612" autocomplete="off" placeholder="+36 30 123 4567"></label>
+      <label>Név<input class="srch" id="fx-nev" autocomplete="off" placeholder="Címzett neve"></label>
+      <label>Telefonszám<input class="srch" id="fx-tel" type="tel" autocomplete="off" placeholder="+36 30 123 4567"></label>
       <label style="position:relative">Csomagautomata
         <input class="srch" id="fx-aut" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="fx-list" placeholder="Kattints, majd válassz vagy gépelj (név, város, cím)">
         <div id="fx-list" role="listbox" hidden style="position:absolute;left:0;right:0;top:100%;z-index:30;max-height:280px;overflow:auto;background:var(--card);border:2px solid var(--track);border-radius:12px;margin-top:-6px;box-shadow:0 8px 24px rgba(0,0,0,.18)"></div>
       </label>
-      <label>E-mail<input class="srch" id="fx-mail" type="email" value="kollmann.eszter.ovb@gmail.com" autocomplete="off" placeholder="cim@pelda.hu"></label>
+      <label>E-mail<input class="srch" id="fx-mail" type="email" autocomplete="off" placeholder="cim@pelda.hu"></label>
     </div>
     <button class="primary" type="button" id="fx-go">Csomagcímke létrehozása</button>
     <p class="balsub" id="fx-msg" style="margin-top:10px"></p>
     <div id="fx-cand" class="list"></div>
+    </div>
+    <p class="balsub" id="ws-msg">Betöltés…</p>
+    <div style="margin:0 0 12px"><button class="primary" type="button" id="ws-ref">Frissítés</button></div>
+    <div id="ws-list" class="wsl"></div>
   </section>
 </div>
 
@@ -771,7 +772,7 @@
           busyW = false;
           if (d && d.error === "kauth") { gate("A belépés lejárt, add meg újra a jelszót."); return; }
           if (!d || !d.orders) { wsMsg((d && d.error) || "Nem sikerült betölteni a rendeléseket.", 1); return; }
-          loaded = true; var box = $("ws-list"); box.textContent = "";
+          loaded = true; window.WSO = d.orders; if (window.fxFill) window.fxFill(); var box = $("ws-list"); box.textContent = "";
           wsMsg(d.orders.length ? d.orders.length + " rendelés (a legújabb elöl)" : "Még nem érkezett rendelés.");
           d.orders.forEach(function (o) {
             var c = el("article", "wsc"), h = el("div", "wsh"); h.appendChild(el("b", "", o.nev)); h.appendChild(el("span", "wsd", fmtD(o.ts))); c.appendChild(h);
@@ -785,7 +786,7 @@
         }).catch(function () { busyW = false; wsMsg("Nem sikerült csatlakozni a rendelések betöltéséhez.", 1); });
     }
     $("itabs").addEventListener("click", function (ev) { var b = ev.target.closest("button"); if (b && b.getAttribute("data-i") === "ws") wsLoad(); });
-    $("ws-ref").addEventListener("click", wsLoad);
+    $("ws-ref").addEventListener("click", wsLoad); window.wsReload = wsLoad;
   })();
   /* ===== Foxpost csomag: a háttérszkript (Apps Script) hozza létre a csomagot és a címkét ===== */
   (function () {
@@ -836,6 +837,21 @@
     $("fx-aut").addEventListener("input", function () { apmSel = ""; showApm(); });
     $("fx-aut").addEventListener("blur", function () { setTimeout(closeApm, 150); });
     $("fx-aut").addEventListener("keydown", function (ev) { if (ev.key === "Escape") closeApm(); });
+    var ordSel = "";
+    function unl() { return (window.WSO || []).filter(function (o) { return !o.bc && !o.manual; }).sort(function (x, y) { return x.ts < y.ts ? -1 : 1; }); }
+    window.fxFill = function () {
+      var sel = $("fx-ord"), list = unl(), keep = sel.value; sel.innerHTML = "";
+      list.forEach(function (o) { var op = document.createElement("option"); op.value = o.k; op.textContent = o.nev + " – " + fmtDt(o.ts); sel.appendChild(op); });
+      var n = document.createElement("option"); n.value = ""; n.textContent = list.length ? "Nincs hozzárendelve (szabad címke)" : "Nincs címkére váró rendelés"; sel.appendChild(n);
+      if (keep && Array.prototype.some.call(sel.options, function (x) { return x.value === keep; })) sel.value = keep;
+      fill();
+    };
+    function fmtDt(iso) { try { return new Date(iso).toLocaleDateString("hu-HU", { month: "short", day: "numeric" }); } catch (e) { return iso; } }
+    function fill() {
+      var k = $("fx-ord").value, o = (window.WSO || []).filter(function (x) { return x.k === k; })[0];
+      if (o) { $("fx-nev").value = o.nev || ""; $("fx-tel").value = o.tel || ""; $("fx-mail").value = o.email || ""; }
+    }
+    $("fx-ord").addEventListener("change", fill);
     $("fx-go").addEventListener("click", function () {
       if (busy) return; $("fx-cand").innerHTML = "";
       var nev = $("fx-nev").value.trim(), tel = phone($("fx-tel").value), mail = $("fx-mail").value.trim(), aut = apmSel;
@@ -861,6 +877,14 @@
           if (!d || !d.ok) return msg((d && d.error) || "Nem sikerült a csomag létrehozása.", 1);
           msg("Kész. Csomagszám: " + (d.barcode || d.clFoxId) + (d.pdf ? " – a címke letöltődik." : " – a címkét nem sikerült lekérni."));
           if (d.pdf) pdfDown(d.pdf, "foxpost-" + (d.barcode || d.clFoxId) + ".pdf");
+          var k = $("fx-ord").value, bc = d.barcode || d.clFoxId;
+          if (k && bc) {
+            fetch(IRODA_API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ webshopset: 1, t: token(), kt: kt(), k: k, bc: String(bc) }) })
+              .then(function (r) { return r.json(); }).then(function (x) {
+                if (x && x.ok) { msg("Kész. Csomagszám: " + bc + " – a rendeléshez automatikusan hozzáírva." + (d.pdf ? " A címke letöltődik." : "")); if (window.wsReload) window.wsReload(); }
+                else msg("A címke elkészült (" + bc + "), de a rendeléshez nem sikerült hozzáírni: " + ((x && x.error) || "ismeretlen hiba"), 1);
+              }).catch(function () { msg("A címke elkészült (" + bc + "), de a rendeléshez nem sikerült hozzáírni.", 1); });
+          }
         }).catch(function (e) { clearTimeout(tm); busy = false; $("fx-go").disabled = false; msg("Nem sikerült csatlakozni (" + (e && e.name === "AbortError" ? "időtúllépés 45 mp után" : (e && e.message) || "ismeretlen hiba") + "). A csomag ettől még létrejöhetett a Foxpostnál, nézd meg ott, mielőtt újra próbálod.", 1); });
     });
   })();
