@@ -39,6 +39,7 @@
   .tile .ph { display: block; aspect-ratio: 1; background: #fff; }
   .tile .ph img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .tile .nm { padding: 10px 8px 12px; text-align: center; font-weight: 700; font-size: .95rem; background: var(--bg); }
+  .tile .pr { display: block; margin-top: 2px; font-size: .88rem; font-weight: 700; color: var(--muted); }
   .tile .ck { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--track); background: #fff; transition: background .2s, border-color .2s, transform .25s; }
   .tile .ck::after { content: ""; position: absolute; left: 8px; top: 3px; width: 6px; height: 11px; border: solid #fff; border-width: 0 3px 3px 0; transform: rotate(45deg) scale(0); transition: transform .2s; }
   .tile:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent) inset; }
@@ -87,9 +88,9 @@
       <h2>Mit rendelsz?</h2>
       <p class="small" style="margin:0 0 12px">A névjegykártyát és a kulcstartót egyszerre, de külön munkatársnak is lehet rendelni, ezért a munkatárs (MT) nevét termékenként kell megadni.</p>
       <div class="tiles">
-        <label class="tile"><input type="checkbox" id="c-nj"><span class="ph"><img src="img-webshop/nevjegykartya.jpg" alt="" width="400" height="400" loading="lazy"></span><span class="nm">Névjegykártya</span><i class="ck" aria-hidden="true"></i></label>
-        <label class="tile"><input type="checkbox" id="c-pe"><span class="ph"><img src="img-webshop/pezsgo.jpg" alt="" width="400" height="400" loading="lazy"></span><span class="nm">Pezsgő</span><i class="ck" aria-hidden="true"></i></label>
-        <label class="tile"><input type="checkbox" id="c-ku"><span class="ph"><img src="img-webshop/kulcstarto.jpg?v=2" alt="" width="400" height="400" loading="lazy"></span><span class="nm">Kulcstartó</span><i class="ck" aria-hidden="true"></i></label>
+        <label class="tile"><input type="checkbox" id="c-nj"><span class="ph"><img src="img-webshop/nevjegykartya.jpg" alt="" width="400" height="400" loading="lazy"></span><span class="nm">Névjegykártya<b class="pr">2 500 Ft</b></span><i class="ck" aria-hidden="true"></i></label>
+        <label class="tile"><input type="checkbox" id="c-pe"><span class="ph"><img src="img-webshop/pezsgo.jpg" alt="" width="400" height="400" loading="lazy"></span><span class="nm">Pezsgő<b class="pr">2 000 Ft</b></span><i class="ck" aria-hidden="true"></i></label>
+        <label class="tile"><input type="checkbox" id="c-ku"><span class="ph"><img src="img-webshop/kulcstarto.jpg?v=2" alt="" width="400" height="400" loading="lazy"></span><span class="nm">Kulcstartó<b class="pr">12 000 Ft</b></span><i class="ck" aria-hidden="true"></i></label>
       </div>
 
       <div class="opt" id="o-nj" hidden>
