@@ -835,14 +835,14 @@ ${TXT.befektetes}
 </div>
 <div class="card"><h3>2. Rendszeres megtakarítás – kamatos kamat</h3>
  <div class="grid g3">${M("bf_reg", "Havi összeg (alapértelmezés: a jövedelem 10%-a)", { u: "Ft/hó" })}${fld("bf_hozam", "Hozam (éves)", { n: 1, u: "%", ph: "8" })}${fld("bf_infl", "Bankszámlán tartott pénz éves értékvesztése", { n: 1, u: "%", ph: "10" })}</div>
- <div class="res" style="margin-top:12px">${kpi("bf_m10b", "10. évben – bankszámlán / párnában")}${kpi("bf_m10h", "10. évben – hozamot hozó helyen", { c: "in" })}${kpi("bf_m10p", "10. évi hozam (a befizetésekhez képest)", { c: "in" })}</div>
+ <div class="res" style="margin-top:12px">${kpi("bf_m10b", "10. évben – bankszámlán / párnában")}${kpi("bf_m10h", "10. évben – hozamot hozó helyen", { c: "in" })}${kpi("bf_m10p", "10. évi hozam (a befizetésekhez képest)", { c: "in" })}${kpi("bf_m10v", "10. évi értékvesztés bankszámlán (a befizetésekhez képest)")}</div>
  <div data-chart="bf" style="margin-top:12px"></div>
  <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Évenkénti táblázat</summary><div class="tw"><table class="dt" id="bf_tbl"></table></div></details>
  <p class="note">Befizetés = havi összeg × 12 × évek. Az egyenleg minden évben a hozammal (bankszámlánál −10%) nő. Az adatok tájékoztató jellegűek.</p>
 </div>
 <div class="card"><h3>3. Egyösszegű befektetés</h3>
  <div class="grid g3">${M("bf_ossz", "Befektetett összeg")}${fld("bf_h2", "Hozam (éves)", { n: 1, u: "%", ph: "kockázati szint szerint" })}${fld("bf_evek", "Időtáv", { n: 1, u: "év", ph: "10" })}</div>
- <div class="res" style="margin-top:12px">${kpi("bf_e1", "Összeg az időtáv végén", { hl: 1 })}${kpi("bf_e2", "Ebből hozam", { c: "in" })}</div>
+ <div class="res" style="margin-top:12px">${kpi("bf_e1", "Összeg az időtáv végén", { hl: 1 })}${kpi("bf_e2", "Ebből hozam", { c: "in" })}${kpi("bf_e3", "Bankszámlán tartva az időtáv végén")}${kpi("bf_e4", "Ebből értékvesztés (infláció)")}</div>
  <div data-chart="bf2" style="margin-top:12px"></div>
  <p class="note">Alapértelmezett hozam: óvatos 6%, mérsékelt 8%, lendületes 10% – átírható.</p>
 </div>
@@ -1112,11 +1112,11 @@ function compute() {
     const A = [], Bk = [], xs = [], cum = []; let a = 0, b = 0;
     for (let y = 1; y <= 30; y++) { a = (a + reg * 12) * (1 + inf); /* alapképlet: (előző + éves befizetés)*(1+hozam) */ b = (b + reg * 12) * (1 + hz); A.push(a); Bk.push(b); cum.push(reg * 12 * y); xs.push(y); }
     chart("bf", xs, [{ n: "Bankszámlán / párnában", c: "var(--frk)", v: A }, { n: "Hozamot hozó helyen", c: "var(--csk)", v: Bk }, { n: "Összes befizetés", c: "var(--muted)", v: cum }], { alt: "Rendszeres megtakarítás alakulása" });
-    out("bf_m10b", ft(A[9])); out("bf_m10h", ft(Bk[9])); out("bf_m10p", ft(Bk[9] - cum[9]));
+    out("bf_m10b", ft(A[9])); out("bf_m10h", ft(Bk[9])); out("bf_m10p", ft(Bk[9] - cum[9])); out("bf_m10v", ft(cum[9] - A[9]));
     const t = $("#bf_tbl"); if (t) t.innerHTML = "<thead><tr><th>Év</th><th>Befizetés</th><th>Bankszámlán</th><th>Hozamos</th></tr></thead><tbody>" + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30].map(y => `<tr><td>${y}</td><td>${fnum(cum[y - 1])}</td><td>${fnum(A[y - 1])}</td><td>${fnum(Bk[y - 1])}</td></tr>`).join("") + "</tbody>";
-  } else { const c = $('[data-chart="bf"]'); if (c) c.innerHTML = ""; ["bf_m10b", "bf_m10h", "bf_m10p"].forEach(i => out(i, "–")); const t = $("#bf_tbl"); if (t) t.innerHTML = ""; }
+  } else { const c = $('[data-chart="bf"]'); if (c) c.innerHTML = ""; ["bf_m10b", "bf_m10h", "bf_m10p", "bf_m10v"].forEach(i => out(i, "–")); const t = $("#bf_tbl"); if (t) t.innerHTML = ""; }
   const kh = { "Óvatos": .06, "Mérsékelt": .08, "Lendületes": .1 }[g("bf_koc")] || .08, h2 = has(g("bf_h2")) ? n("bf_h2") / 100 : kh, be = n("bf_ossz"), ye = n("bf_evek") || 10;
-  out("bf_e1", be ? ft(be * Math.pow(1 + h2, ye)) : "–"); out("bf_e2", be ? ft(be * Math.pow(1 + h2, ye) - be) : "–", be ? "in" : "");
+  out("bf_e1", be ? ft(be * Math.pow(1 + h2, ye)) : "–"); out("bf_e2", be ? ft(be * Math.pow(1 + h2, ye) - be) : "–", be ? "in" : ""); out("bf_e3", be ? ft(be * Math.pow(1 + inf, ye)) : "–"); out("bf_e4", be ? ft(be - be * Math.pow(1 + inf, ye)) : "–");
   if (be > 0) {
     const N = Math.max(1, Math.min(60, Math.round(ye))), xs2 = [], P = [], Q = [], R2 = [];
     for (let y = 0; y <= N; y++) { xs2.push(y); P.push(be * Math.pow(1 + inf, y)); Q.push(be * Math.pow(1 + h2, y)); R2.push(be); }
