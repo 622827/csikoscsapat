@@ -176,6 +176,7 @@
   .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
   .grid.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .fl { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
   .fl > span:first-child { font-weight: 600; font-size: .88rem; }
   .fl .inp { position: relative; display: block; }
@@ -268,7 +269,7 @@
   .nm { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
   .tag { display: inline-block; font-size: .75rem; font-weight: 700; background: var(--track); border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
   .names li { margin-bottom: 3px; }
-  @media (max-width: 640px) { .grid.g2, .grid.g3 { grid-template-columns: 1fr; } details.guide .gb { columns: 1; } }
+  @media (max-width: 640px) { .grid.g2, .grid.g3, .grid.g4 { grid-template-columns: 1fr; } details.guide .gb { columns: 1; } }
   @media print {
     .topnav, .steps, .nav2, .bar0, details.guide, .xb, .btn, #csk-gate { display: none !important; }
     html.csklock body > *:not(#csk-gate) { visibility: visible !important; }
@@ -841,7 +842,7 @@ ${TXT.befektetes}
  <p class="note">Befizetés = havi összeg × 12 × évek. Az egyenleg minden évben a hozammal (bankszámlánál −10%) nő. Az adatok tájékoztató jellegűek.</p>
 </div>
 <div class="card"><h3>3. Egyösszegű befektetés</h3>
- <div class="grid">${M("bf_ossz", "Befektetett összeg")}${fld("bf_h2", "Hozam (éves)", { n: 1, u: "%", ph: "kockázati szint szerint" })}${fld("bf_evek", "Időtáv", { n: 1, u: "év", ph: "10" })}${fld("bf_infl2", "Bankszámlán tartott pénz éves értékvesztése (infláció)", { n: 1, u: "%", ph: "10" })}</div>
+ <div class="grid g4">${M("bf_ossz", "Befektetett összeg")}${fld("bf_h2", "Hozam (éves)", { n: 1, u: "%", ph: "kockázati szint szerint" })}${fld("bf_evek", "Időtáv", { n: 1, u: "év", ph: "10" })}${fld("bf_infl2", "Értékvesztés (infláció, éves)", { n: 1, u: "%", ph: "10" })}</div>
  <div class="res" style="margin-top:12px">${kpi("bf_e1", "Összeg az időtáv végén", { hl: 1 })}${kpi("bf_e2", "Ebből hozam", { c: "in" })}${kpi("bf_e3", "Bankszámlán tartva az időtáv végén")}${kpi("bf_e4", "Ebből értékvesztés (infláció)")}</div>
  <div data-chart="bf2" style="margin-top:12px"></div>
  <p class="note">Alapértelmezett hozam: óvatos 6%, mérsékelt 8%, lendületes 10% – átírható.</p>
