@@ -843,6 +843,7 @@ ${TXT.befektetes}
 <div class="card"><h3>3. Egyösszegű befektetés</h3>
  <div class="grid g3">${M("bf_ossz", "Befektetett összeg")}${fld("bf_h2", "Hozam (éves)", { n: 1, u: "%", ph: "kockázati szint szerint" })}${fld("bf_evek", "Időtáv", { n: 1, u: "év", ph: "10" })}</div>
  <div class="res" style="margin-top:12px">${kpi("bf_e1", "Összeg az időtáv végén", { hl: 1 })}${kpi("bf_e2", "Ebből hozam", { c: "in" })}</div>
+ <div data-chart="bf2" style="margin-top:12px"></div>
  <p class="note">Alapértelmezett hozam: óvatos 6%, mérsékelt 8%, lendületes 10% – átírható.</p>
 </div>
 <div class="card"><h3>4. Szempontok</h3>
@@ -1116,6 +1117,11 @@ function compute() {
   } else { const c = $('[data-chart="bf"]'); if (c) c.innerHTML = ""; ["bf_m10b", "bf_m10h", "bf_m10p"].forEach(i => out(i, "–")); const t = $("#bf_tbl"); if (t) t.innerHTML = ""; }
   const kh = { "Óvatos": .06, "Mérsékelt": .08, "Lendületes": .1 }[g("bf_koc")] || .08, h2 = has(g("bf_h2")) ? n("bf_h2") / 100 : kh, be = n("bf_ossz"), ye = n("bf_evek") || 10;
   out("bf_e1", be ? ft(be * Math.pow(1 + h2, ye)) : "–"); out("bf_e2", be ? ft(be * Math.pow(1 + h2, ye) - be) : "–", be ? "in" : "");
+  if (be > 0) {
+    const N = Math.max(1, Math.min(60, Math.round(ye))), xs2 = [], P = [], Q = [], R2 = [];
+    for (let y = 0; y <= N; y++) { xs2.push(y); P.push(be * Math.pow(1 + inf, y)); Q.push(be * Math.pow(1 + h2, y)); R2.push(be); }
+    chart("bf2", xs2, [{ n: "Bankszámlán / párnában", c: "var(--frk)", v: P }, { n: "Hozamot hozó helyen", c: "var(--csk)", v: Q }, { n: "Befektetett összeg", c: "var(--muted)", v: R2 }], { alt: "Egyösszegű befektetés alakulása" });
+  } else { const c = $('[data-chart="bf2"]'); if (c) c.innerHTML = ""; }
 
   FX.both = false;
   /* összegzés */
