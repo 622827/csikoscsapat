@@ -618,17 +618,24 @@
         document.body.classList.remove("loading");
         if (d.error) throw new Error(d.error);
         if (!d.counter) throw new Error("a szkript még nem a legújabb verzió (nincs benne counter adat)");
+        try { localStorage.setItem("nev_cache_v1", JSON.stringify({ t: Date.now(), d: d })); } catch (e) {}
         applyData(d);
       })
       .catch(function (e) {
         document.body.classList.remove("loading");
         if (timer) clearTimeout(timer);
+        if ($("basis").innerHTML) $("status").textContent = "";
         if (!$("basis").innerHTML) $("status").textContent = "Az adatok betöltése most nem sikerült" + (e && e.message ? ": " + e.message : "") + ". Frissítsd az oldalt egy perc múlva.";
       });
   }
 
   /* ---- Indulás ---- */
   renderTotals(0);
+  /* gyorsítótár: az utoljára látott adat azonnal megjelenik, a friss betöltés közben frissül */
+  try {
+    var cc = JSON.parse(localStorage.getItem("nev_cache_v1") || "null");
+    if (cc && cc.d && cc.d.counter && Date.now() - cc.t < 7 * 86400000) { applyData(cc.d); $("status").textContent = "Frissítés…"; }
+  } catch (e) {}
   load();
   setInterval(load, 300000);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) load(); });
