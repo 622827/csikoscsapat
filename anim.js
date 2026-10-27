@@ -1,5 +1,85 @@
 /* Közös animációk: minden kattintásra visszajelzés (hullám + lenyomás), oldal be-/kifakulás */
 
+/* Oldalsó menüsáv: ikonok + címek, összecsukható (összecsukva csak az ikon látszik) */
+(function () {
+  var IC = {
+    index: '<path d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    negyedev: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+    verseny: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
+    kassza: '<path d="M3 7a2 2 0 0 1 2-2h13v4M3 7v11a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2"/><circle cx="16.5" cy="14.5" r="1"/>',
+    elemzo: '<path d="M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6zM6 3v18M9.5 8h6M9.5 12h6"/>',
+    teljesitmeny: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',
+    vizsga: '<path d="M2 9l10-5 10 5-10 5zM6 11v5c0 1 3 3 6 3s6-2 6-3v-5"/>',
+    ppt: '<path d="M3 4h18v12H3zM8 20h8M12 16v4"/>',
+    star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>'
+  };
+  function icon(href, txt) {
+    var h = href || "";
+    if (h.indexOf("negyedev") === 0) return IC.negyedev; if (h.indexOf("verseny") === 0) return IC.verseny;
+    if (h.indexOf("csapatkassza") === 0) return IC.kassza; if (h.indexOf("elemzo") === 0) return IC.elemzo;
+    if (h.indexOf("teljesitmeny") === 0) return IC.teljesitmeny; if (h.indexOf("vizsga") === 0) return IC.vizsga;
+    if (h.indexOf("index") === 0) return IC.index; if (/PPT/i.test(txt)) return IC.ppt; return IC.star;
+  }
+  function init() {
+    var nav = document.querySelector(".topnav"), host = nav && nav.querySelector(".in"), ul = host && host.querySelector("ul");
+    if (!ul || document.querySelector(".csk-sidebar")) return;
+    var root = document.documentElement, KEY = "csk_side", mobile = function () { return window.innerWidth < 800; };
+    var st = document.createElement("style");
+    st.textContent =
+      "html.csk-side{--csk-sw:264px}html.csk-side.csk-rail{--csk-sw:68px}" +
+      ".topnav ul{display:none!important}" +
+      "html.csk-side body{padding-left:var(--csk-sw)!important;transition:padding-left .22s ease}" +
+      "html.csk-side .topnav{padding-left:var(--csk-sw)!important;transition:padding-left .22s ease}" +
+      ".csk-sidebar{position:fixed;top:57px;left:0;bottom:0;width:var(--csk-sw);background:var(--bg);border-right:1px solid var(--track);z-index:35;padding:10px 10px 16px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:3px;transition:width .22s ease,transform .22s ease;scrollbar-width:none}" +
+      ".csk-sidebar::-webkit-scrollbar{display:none}" +
+      ".csk-sidebar a,.csk-sidebar button.csk-tg{display:flex;align-items:center;gap:14px;height:44px;padding:0 13px;border-radius:12px;color:var(--ink);text-decoration:none;font:inherit;font-weight:600;font-size:.95rem;white-space:nowrap;border:0;background:none;cursor:pointer;width:100%;text-align:left;box-sizing:border-box}" +
+      ".csk-sidebar svg{flex:none;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}" +
+      ".csk-sidebar a:hover,.csk-sidebar button.csk-tg:hover{background:var(--track)}" +
+      ".csk-sidebar a[aria-current=page]{background:var(--accent);color:var(--on-accent,#fff)}" +
+      ".csk-sidebar a[aria-disabled=true]{opacity:.5;cursor:default;pointer-events:none}" +
+      ".csk-sidebar .csk-tg{margin-bottom:6px;color:var(--muted)}.csk-sidebar .csk-tg svg{transition:transform .22s}" +
+      "html.csk-rail .csk-sidebar .csk-tg svg{transform:rotate(180deg)}" +
+      ".csk-sidebar .lb{overflow:hidden;text-overflow:ellipsis;transition:opacity .15s}" +
+      "html.csk-rail .csk-sidebar .lb{opacity:0;width:0}html.csk-rail .csk-sidebar a,html.csk-rail .csk-sidebar button.csk-tg{padding:0;justify-content:center;gap:0}" +
+      ".csk-mbtn{display:none;align-items:center;justify-content:center;width:40px;height:40px;margin-right:6px;border:0;border-radius:12px;background:var(--track);color:var(--ink);cursor:pointer;flex:none}" +
+      ".csk-mbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}" +
+      ".csk-bd{display:none;position:fixed;inset:57px 0 0 0;background:rgba(0,0,0,.4);z-index:34}" +
+      "@media (max-width:799px){html.csk-side{--csk-sw:0px}html.csk-side body,html.csk-side .topnav{padding-left:0!important}" +
+      ".csk-sidebar{width:260px;transform:translateX(-100%);box-shadow:none}html.csk-mopen .csk-sidebar{transform:none;box-shadow:0 0 40px rgba(0,0,0,.35)}html.csk-mopen .csk-bd{display:block}" +
+      "html.csk-rail .csk-sidebar .lb{opacity:1;width:auto}html.csk-rail .csk-sidebar a{padding:0 13px;justify-content:flex-start;gap:14px}.csk-mbtn{display:inline-flex}.csk-sidebar button.csk-tg{display:none!important}}";
+    document.head.appendChild(st);
+    var side = document.createElement("nav"); side.className = "csk-sidebar"; side.setAttribute("aria-label", "Oldalsó menü");
+    function svg(inner) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + inner + "</svg>"; }
+    var tg = document.createElement("button"); tg.type = "button"; tg.className = "csk-tg"; tg.setAttribute("aria-label", "Menüsáv összecsukása / kinyitása");
+    tg.innerHTML = svg('<path d="M15 6l-6 6 6 6"/>') + '<span class="lb">Menü összecsukása</span>'; side.appendChild(tg);
+    var lis = document.createElement("ul"); lis.style.cssText = "list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px";
+    ul.querySelectorAll("li > a").forEach(function (a) {
+      var href = a.getAttribute("href"), txt = a.textContent.replace(/\s*🔒\s*/, "").trim(), lock = /🔒/.test(a.textContent);
+      var li = document.createElement("li"), n = document.createElement("a");
+      if (href && !lock) n.href = href; else n.setAttribute("aria-disabled", "true");
+      if (a.getAttribute("aria-current")) n.setAttribute("aria-current", a.getAttribute("aria-current"));
+      n.title = txt + (lock ? " (hamarosan)" : "");
+      n.innerHTML = svg(icon(href, txt)) + '<span class="lb">' + txt.replace(/</g, "&lt;") + (lock ? " 🔒" : "") + "</span>";
+      li.appendChild(n); lis.appendChild(li);
+    });
+    side.appendChild(lis); document.body.appendChild(side);
+    var bd = document.createElement("div"); bd.className = "csk-bd"; document.body.appendChild(bd);
+    var mb = document.createElement("button"); mb.type = "button"; mb.className = "csk-mbtn"; mb.setAttribute("aria-label", "Menü");
+    mb.innerHTML = svg('<path d="M4 7h16M4 12h16M4 17h16"/>'); host.insertBefore(mb, host.firstChild);
+    var pref = null; try { pref = localStorage.getItem(KEY); } catch (e) {}
+    root.classList.add("csk-side"); if (pref ? pref === "rail" : window.innerWidth < 1100) root.classList.add("csk-rail");
+    tg.addEventListener("click", function () {
+      var r = root.classList.toggle("csk-rail"); try { localStorage.setItem(KEY, r ? "rail" : "open"); } catch (e) {}
+    });
+    function closeM() { root.classList.remove("csk-mopen"); }
+    mb.addEventListener("click", function () { root.classList.toggle("csk-mopen"); });
+    bd.addEventListener("click", closeM); side.addEventListener("click", function (e) { if (e.target.closest("a[href]") && mobile()) closeM(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeM(); });
+    window.addEventListener("resize", function () { if (!mobile()) closeM(); });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
+})();
+
 /* Almenü: a fejléc menüpontjai fölé víve megjelennek az aloldalak */
 (function () {
   var SUB = { "verseny.html": [["Erdélyi Incentive", "verseny.html#erdely"], ["Téli Incentive", "verseny.html#teli"], ["2026 Lengyelország karácsony", "verseny.html#lengyel"]],
@@ -16,7 +96,7 @@
     var tm = 0, cur = null;
     function hide() { box.classList.remove("on"); cur = null; }
     function later() { clearTimeout(tm); tm = setTimeout(hide, 180); }
-    nav.querySelectorAll("li > a[href]").forEach(function (a) {
+    document.querySelectorAll(".topnav li > a[href], .csk-sidebar li > a[href]").forEach(function (a) {
       var key = (a.getAttribute("href") || "").split("#")[0]; var items = SUB[key]; if (!items) return;
       a.addEventListener("mouseenter", function () {
         clearTimeout(tm); if (cur === a) return; cur = a; box.textContent = "";
@@ -25,7 +105,7 @@
           var curKey = ""; try { curKey = key === "csapatkassza.html" ? (h === "#flotta" || h === "#iroda" ? h : "#kassza") : key === "verseny.html" ? (h === "#teli" ? "#teli" : "#erdely") : (h ? h : (sessionStorage.getItem("tj_view") === "as" ? "#asszisztens" : "#elemzesek")); } catch (e) {}
           if (onPage && it[1].slice(it[1].indexOf("#")) === curKey) l.className = "cur";
           box.appendChild(l); });
-        var r = a.getBoundingClientRect(); box.style.top = (r.bottom + 4) + "px"; box.style.left = Math.max(8, Math.min(r.left, innerWidth - 230)) + "px";
+        var r = a.getBoundingClientRect(), sd = !!a.closest(".csk-sidebar"); box.style.top = (sd ? r.top : r.bottom + 4) + "px"; box.style.left = sd ? (r.right + 8) + "px" : Math.max(8, Math.min(r.left, innerWidth - 230)) + "px";
         box.classList.add("on");
       });
       a.addEventListener("mouseleave", later);
@@ -103,47 +183,4 @@
     if (added.length && added.length <= 3) added.forEach(animIn);
   }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden"] });
   window.addEventListener("pageshow", function (e) { if (e.persisted) document.body.classList.remove("csk-leave"); });
-})();
-
-/* Főmenü: ha a menüpontok nem férnek ki egy sorba, "☰ Menü" lenyíló lista lesz (nem kell tekergetni) */
-(function () {
-  function init() {
-    var nav = document.querySelector(".topnav"), host = nav && nav.querySelector(".in"), ul = host && host.querySelector("ul");
-    if (!ul || host.querySelector(".csk-burger-btn")) return;
-    var st = document.createElement("style");
-    st.textContent =
-      ".csk-burger-btn{display:none;align-items:center;gap:8px;margin-right:auto;padding:8px 14px;border-radius:999px;border:0;background:var(--track);color:var(--ink);font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}" +
-      ".csk-burger-btn[aria-expanded=true]{background:var(--accent);color:var(--on-accent,#fff)}" +
-      ".topnav.csk-nolock ul li:has(a[aria-disabled=true]){display:none}" +
-      ".topnav.csk-compact li a{padding:8px 10px;font-size:.92rem}" +
-      ".topnav.csk-burger .csk-burger-btn{display:inline-flex}" +
-      ".topnav.csk-burger ul{display:none;position:fixed;top:62px;left:16px;right:auto;width:max-content;min-width:250px;max-width:calc(100vw - 16px);flex:none;flex-direction:column;gap:2px;padding:8px;background:var(--bg);border:1px solid var(--track);border-radius:18px;box-shadow:0 18px 44px rgba(0,0,0,.28);max-height:calc(100vh - 76px);overflow-y:auto;z-index:45}" +
-      "@media (max-width:640px){.topnav.csk-burger ul{left:8px!important;right:8px;width:auto}}" +
-      ".topnav.csk-burger.csk-open ul{display:flex}" +
-      ".topnav.csk-burger li a{padding:10px 16px;border-radius:12px;font-size:1rem}" +
-      ".topnav.csk-burger li:has(a[aria-disabled=true]){display:block}";
-    document.head.appendChild(st);
-    var btn = document.createElement("button"); btn.type = "button"; btn.className = "csk-burger-btn";
-    btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-label", "Főmenü megnyitása");
-    btn.innerHTML = "<span aria-hidden='true'>☰</span><span>Menü</span>";
-    host.insertBefore(btn, ul);
-    function set(o) { if (o) ul.style.left = Math.max(8, btn.getBoundingClientRect().left) + "px"; nav.classList.toggle("csk-open", o); btn.setAttribute("aria-expanded", o ? "true" : "false"); }
-    btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("csk-open")); });
-    document.addEventListener("click", function (e) { if (nav.classList.contains("csk-open") && !ul.contains(e.target)) set(false); });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
-    ul.addEventListener("click", function (e) { if (e.target.closest("a")) set(false); });
-    function fit() {
-      nav.classList.remove("csk-burger", "csk-open", "csk-nolock", "csk-compact"); btn.setAttribute("aria-expanded", "false");
-      if (ul.scrollWidth <= ul.clientWidth + 1) return;
-      nav.classList.add("csk-nolock");
-      if (ul.scrollWidth <= ul.clientWidth + 1) return;
-      nav.classList.add("csk-compact");
-      if (ul.scrollWidth <= ul.clientWidth + 1) return;
-      nav.classList.remove("csk-nolock", "csk-compact"); nav.classList.add("csk-burger");
-    }
-    var t; function later() { clearTimeout(t); t = setTimeout(fit, 80); }
-    window.addEventListener("resize", later); window.addEventListener("load", later);
-    fit(); setTimeout(fit, 600); setTimeout(fit, 1800);
-  }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();
