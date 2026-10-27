@@ -398,9 +398,9 @@
 
   // kategória: a táblázat G oszlopa, ha üres, a megnevezésből tippeli
   function plain(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
-  var CATS = ["Jegyzet hiány", "Oktatás jelenlét", "Heti admin bünti", "Utazás/program", "Egyéb", "Vezetői hozzájárulás"];
+  var CATS = ["Jegyzet hiány", "Oktatás jelenlét", "Heti admin bünti", "Utazás/program", "Iroda", "Egyéb", "Vezetői hozzájárulás"];
   var RULES = [["jegyzet", "Jegyzet hiány"], ["admin", "Heti admin bünti"], ["szombati", "Oktatás jelenlét"], ["szb", "Oktatás jelenlét"], ["oktatas", "Oktatás jelenlét"], ["jelenlet", "Oktatás jelenlét"],
-    ["utaz", "Utazás/program"], ["program", "Utazás/program"], ["csapatep", "Utazás/program"], ["sportnap", "Utazás/program"], ["vezet", "Vezetői hozzájárulás"], ["hozzajarul", "Vezetői hozzájárulás"]];
+    ["utaz", "Utazás/program"], ["program", "Utazás/program"], ["csapatep", "Utazás/program"], ["sportnap", "Utazás/program"], ["vezet", "Vezetői hozzájárulás"], ["hozzajarul", "Vezetői hozzájárulás"], ["iroda", "Iroda"]];
   function isF(x) { return /^Flotta/.test(x.kat || ""); }
   function K() { return S.tetelek.filter(function (x) { return !isF(x); }); }
   function cat(x) {
