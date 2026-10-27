@@ -268,6 +268,8 @@
   .vz{max-width:860px;margin-top:22px}
   .vz .card{background:var(--card);border-radius:14px;padding:20px 22px}
   .vz h2{margin:0 0 12px;font-size:1.25rem}
+  .vz .tabs.bank{margin-bottom:14px}
+  .vz .tabs.bank button{padding:13px 20px;font-size:1.02rem}
   .vz .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
   .vz .tabs button,.vz .btn{font:inherit;font-weight:700;border:0;border-radius:10px;padding:11px 18px;cursor:pointer;background:var(--track);color:var(--ink)}
   .vz .tabs button[aria-pressed="true"],.vz .btn.pri{background:var(--accent);color:var(--on-accent,#fff)}
@@ -301,8 +303,13 @@
   .vz [hidden]{display:none!important}
 </style>
 <h1>Vizsga gyakorló</h1>
-<p class="lead">Függő biztosításközvetítői hatósági vizsga – gyakorlás és próbavizsga az MNB hivatalos kérdésbankjával.</p>
+<p class="lead" id="vz-lead"></p>
 <div class="vz" id="vz">
+  <div class="tabs bank" id="bank-tabs" role="group" aria-label="Vizsgatípus">
+    <button type="button" data-b="biztositas" aria-pressed="true">Függő biztosításközvetítő</button>
+    <button type="button" data-b="penzugyi" aria-pressed="false">Pénzügyi közvetítő</button>
+    <button type="button" data-b="tokepiaci" aria-pressed="false">Tőkepiaci</button>
+  </div>
   <div class="card" id="vz-setup">
     <div class="tabs" role="group" aria-label="Mód"><button type="button" id="m-gy" aria-pressed="true">Gyakorlás</button><button type="button" id="m-pv" aria-pressed="false">Próbavizsga</button></div>
     <div class="row">
@@ -313,7 +320,7 @@
     </div>
     <p class="meta" id="vz-meta">Kérdésbank betöltése…</p>
     <div class="acts"><button type="button" class="btn pri" id="vz-go" disabled>Indítás</button><button type="button" class="btn" id="vz-reset" hidden>Hibák törlése</button></div>
-    <p class="note">Forrás: Magyar Nemzeti Bank – biztosításközvetítői kérdésbank megoldókulccsal (2026.06.02-től érvényes). A gyakorlás eredménye csak ezen az eszközön marad meg.</p>
+    <p class="note" id="vz-src"></p>
   </div>
   <div class="card" id="vz-run" hidden>
     <div class="qhead"><span id="r-pos"></span><span id="r-sc"></span><span id="r-tm"></span></div>
@@ -335,19 +342,38 @@
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
-  var D=null,mode="gy",LS="csk_vizsga_hibak_v1",wrong={};
-  try{wrong=JSON.parse(localStorage.getItem(LS)||"{}")||{}}catch(e){}
+  var D=null,mode="gy",LS="",wrong={},bank="biztositas",cache={};
+  var BANKS={
+    biztositas:{f:"kerdesbank-biztositas.json",n:"Függő biztosításközvetítői",src:"Magyar Nemzeti Bank – biztosításközvetítői kérdésbank megoldókulccsal (2026.06.02-től érvényes)."},
+    penzugyi:{f:"kerdesbank-penzugyi.json",n:"Pénzügyi közvetítői",src:"Magyar Nemzeti Bank – pénzügyi közvetítői kérdésbank megoldókulccsal (2026.08.01-től érvényes)."},
+    tokepiaci:{f:"kerdesbank-tokepiaci.json",n:"Tőkepiaci",src:"Magyar Nemzeti Bank – tőkepiaci kérdésbank megoldással (2026.06.02-től érvényes)."}
+  };
   function saveW(){try{localStorage.setItem(LS,JSON.stringify(wrong))}catch(e){}}
   function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
   function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
-  fetch("kerdesbank.json").then(function(r){return r.json()}).then(function(d){D=d;init()}).catch(function(){$("vz-meta").textContent="A kérdésbank betöltése nem sikerült. Frissítsd az oldalt."});
+  function loadBank(b){
+    bank=b;LS="csk_vizsga_hibak_v2_"+b;wrong={};
+    try{wrong=JSON.parse(localStorage.getItem(LS)||"{}")||{}}catch(e){}
+    try{localStorage.setItem("csk_vizsga_bank",b)}catch(e){}
+    clearInterval(tm);show("vz-setup");
+    var tabs=document.querySelectorAll("#bank-tabs button");for(var i=0;i<tabs.length;i++)tabs[i].setAttribute("aria-pressed",tabs[i].dataset.b===b);
+    $("vz-lead").textContent=BANKS[b].n+" hatósági vizsga – gyakorlás és próbavizsga az MNB hivatalos kérdésbankjával.";
+    $("vz-src").textContent="Forrás: "+BANKS[b].src+" A gyakorlás eredménye csak ezen az eszközön marad meg.";
+    $("vz-meta").textContent="Kérdésbank betöltése…";$("vz-go").disabled=true;
+    if(cache[b]){D=cache[b];init();return}
+    fetch(BANKS[b].f).then(function(r){return r.json()}).then(function(d){cache[b]=d;if(bank===b){D=d;init()}}).catch(function(){$("vz-meta").textContent="A kérdésbank betöltése nem sikerült. Frissítsd az oldalt."});
+  }
+  document.querySelectorAll("#bank-tabs button").forEach(function(bt){bt.onclick=function(){if(bt.dataset.b!==bank)loadBank(bt.dataset.b)}});
+  var b0="biztositas";try{b0=localStorage.getItem("csk_vizsga_bank")||b0}catch(e){}
+  if(location.hash.replace("#","") in BANKS)b0=location.hash.replace("#","");
+  if(!(b0 in BANKS))b0="biztositas";
   function init(){
     var fs=$("f-s");fs.innerHTML="";
-    var o=el("option",0,"Mind a négy vizsgatárgy");o.value="-1";fs.appendChild(o);
+    var o=el("option",0,"Minden vizsgatárgy");o.value="-1";fs.appendChild(o);
     D.s.forEach(function(s,i){var o=el("option",0,s);o.value=i;fs.appendChild(o)});
     fs.onchange=fillT;$("f-t").onchange=meta;$("f-w").onchange=meta;
     $("m-gy").onclick=function(){setMode("gy")};$("m-pv").onclick=function(){setMode("pv")};
-    fillT();
+    setMode(mode);fillT();
   }
   function setMode(m){
     mode=m;$("m-gy").setAttribute("aria-pressed",m==="gy");$("m-pv").setAttribute("aria-pressed",m==="pv");
@@ -461,6 +487,7 @@
     show("vz-res");
   }
   $("x-again").onclick=function(){setMode(mode);meta();show("vz-setup")};
+  loadBank(b0);
   document.addEventListener("keydown",function(e){
     if($("vz-run").hidden)return;
     if(/^[1-9]$/.test(e.key)){var k=+e.key-1,bs=$("r-a").children;if(k<bs.length&&!bs[k].disabled)choose(k)}
