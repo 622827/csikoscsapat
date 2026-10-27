@@ -309,6 +309,13 @@
   .news .item.red { border-left: 8px solid var(--red); background: color-mix(in srgb, var(--red) 10%, var(--card)); box-shadow: 0 0 0 2px var(--red) inset; }
   .news .item.red .tag { color: var(--red); }
   .news .item.red h2 { color: var(--red); }
+  .news .item.green { --grn: #1f9d55; border-left: 8px solid var(--grn); background: color-mix(in srgb, var(--grn) 12%, var(--card)); box-shadow: 0 0 0 2px var(--grn) inset; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .news .item.green { --grn: #3ddc84; } }
+  :root[data-theme="dark"] .news .item.green { --grn: #3ddc84; }
+  .news .item.green .tag, .news .item.green h2 { color: var(--grn); }
+  .news .item.green .btn { background: var(--grn); color: #fff; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .news .item.green .btn { color: #00220f; } }
+  :root[data-theme="dark"] .news .item.green .btn { color: #00220f; }
   :root { --red: #d6213a; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --red: #ff5a6e; } }
   :root[data-theme="dark"] { --red: #ff5a6e; }
@@ -350,6 +357,9 @@
   // ====== HÍREK: új hír = új blokk, törlés = a blokk törlése ======
   var SURVEY_API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
   var NEWS = [
+    { green: true, tag: "Kérdőív", title: "2026 Lengyel Karácsony 🎄",
+      text: "Lássuk meg a karácsonyi asztalnál ki mit alakít! Töltsd ki a kérdőívet.",
+      button: "Kérdőív kitöltése", href: "https://docs.google.com/forms/d/e/1FAIpQLSes7ztnPius0X1u4HJ-kiKQ3S7MVf28_t2bOlMnIAqqrDIV2Q/viewform" },
     { red: true, tag: "Nagyon fontos – határidő: november 8.", title: "IDD vizsgák – új határidő: 2026. november 8.",
       text: "Év végéig minden érintett kollégának teljesítenie kell az előírt szakmai képzéseket és vizsgákat, a határidőt előrehozták. A képzési formákhoz a személyes „Általános pénzügyek” képzést kell teljesíteni (ha már elvégezted korábban, végezd el újra). Ha a határidő lejár, 2026. november 9-től értékesítési tiltás kerül beállításra." },
     { tag: "Jelentkezés október 30-ig", title: "Pozsonyi adventi vásár – dec. 12.",
@@ -371,7 +381,7 @@
   (function () {
     var box = document.getElementById("news");
     NEWS.forEach(function (n) {
-      var item = document.createElement("div"); item.className = "item" + (n.red ? " red" : "");
+      var item = document.createElement("div"); item.className = "item" + (n.red ? " red" : "") + (n.green ? " green" : "");
       var left = document.createElement("div");
       var t = document.createElement("p"); t.className = "tag"; t.textContent = n.tag; left.appendChild(t);
       var h = document.createElement("h2"); h.textContent = n.title; left.appendChild(h);
