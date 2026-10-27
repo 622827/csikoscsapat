@@ -345,6 +345,7 @@
   .pg .sb-ta { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
   .pg .sb-tr { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 8px; border-radius: 10px; background: var(--bg); border: 2px solid transparent; }
   .pg .sb-tr.ok { border-color: #1f9d5c; }
+  .pg .sb-tr.live input[readonly] { border-style: dashed; opacity: .85; }
   .pg .sb-tr input[type=text] { flex: 1 1 160px; min-width: 0; } .pg .sb-tr input[type=number] { width: 70px; }
   .pg .sb-tr label { display: flex; align-items: center; gap: 4px; font-size: .85rem; color: var(--muted); font-weight: 700; }
   .pg .sb-trv { margin-left: auto; font-weight: 800; font-size: .85rem; white-space: nowrap; color: var(--muted); } .pg .sb-tr.ok .sb-trv { color: #1f9d5c; }
@@ -707,8 +708,18 @@
     return { found: true, v: v, part: part };
   }
   function sbTaOk(t, c) { return (+t.es || 0) >= c.taEs || (+t.sz || 0) >= c.taSz; }
+  // Ugyanaz a szabály, mint a technikai ES-nél: múlt hónapok elszámolt + aktuális hónap 100% leadott tételei, a kezdés hónapjától
+  function sbCount(r, sm, cm) { if (!r.month || r.month < sm || r.month > cm) return false; var q = sbPlain(r.proc); return q.indexOf("elszamolt") > -1 || (r.month === cm && q.indexOf("100% leadva") > -1); }
+  function sbAgg(p) {
+    var pp = SBPIPE[sbPlain(p.esName || p.name)]; if (!pp || !pp.rows) return null;
+    var sm = p.start ? +(p.start.slice(0, 4) + p.start.slice(5, 7)) : 0, nw = new Date(), cm = nw.getFullYear() * 100 + nw.getMonth() + 1, by = {}, order = [];
+    pp.rows.forEach(function (r) { if (!r.cust || !sbCount(r, sm, cm)) return; var k = sbPlain(r.cust); if (!by[k]) { by[k] = { nev: r.cust, es: 0, sz: 0 }; order.push(k); } by[k].es += r.es; by[k].sz++; });
+    return { by: by, list: order.map(function (k) { return by[k]; }) };
+  }
+  // Pipeline-ból választott TA: mindig a pipeline aktuális adatával számol (új szerződés, ES automatikusan hozzájön)
+  function sbTaLive(t, ag) { if (t.src === "pipeline" && ag) { var o = ag.by[sbPlain(t.nev)]; return o ? { nev: t.nev, es: o.es, sz: o.sz, src: t.src } : { nev: t.nev, es: 0, sz: 0, src: t.src }; } return t; }
   function sbCalc(p) {
-    var c = sbCfg(), e = sbEs(p), ta = (p.ta || []).filter(function (t) { return sbTaOk(t, c); }).length;
+    var c = sbCfg(), e = sbEs(p), ag = sbAgg(p), ta = (p.ta || []).filter(function (t) { return sbTaOk(sbTaLive(t, ag), c); }).length;
     var mnb = p.mnb ? c.mnb : 0, kev = p.kev ? c.kev : 0, tab = ta * c.ta, esv = e ? e.v : 0;
     return { c: c, e: e, es: esv, ok: esv >= c.es, ta: ta, mnb: mnb, kev: kev, tab: tab, sum: mnb + kev + tab };
   }
@@ -768,9 +779,10 @@
       var tk = el("div", "sb-k"), th = el("div", "sb-kh"); th.appendChild(el("b", "", "Mentorált TA")); th.appendChild(el("span", "sb-tag", R.ta + " érvényes")); th.appendChild(el("span", "sb-v", sbFt(R.tab))); tk.appendChild(th);
       tk.appendChild(el("div", "sb-note", "Legalább " + c.taEs + " ES vagy " + c.taSz + " db szerződés · " + sbFt(c.ta) + " / TA"));
       var tl = el("div", "sb-ta");
-      (p.ta || []).forEach(function (t, i) {
-        var r = el("div", "sb-tr" + (sbTaOk(t, c) ? " ok" : ""));
-        function inp(k, ph, ty) { var x = el("input"); x.type = ty; x.placeholder = ph; x.value = t[k] || ""; if (ty === "number") x.min = "0"; x.addEventListener("change", function () { var a = (p.ta || []).slice(); a[i] = Object.assign({}, a[i]); a[i][k] = ty === "number" ? (+x.value || 0) : x.value.trim(); sbUpd(p.id, { ta: a }); }); return x; }
+      var AG = sbAgg(p);
+      (p.ta || []).forEach(function (t0, i) {
+        var t = sbTaLive(t0, AG), live = t0.src === "pipeline" && AG, r = el("div", "sb-tr" + (sbTaOk(t, c) ? " ok" : "") + (live ? " live" : ""));
+        function inp(k, ph, ty) { var x = el("input"); x.type = ty; x.placeholder = ph; x.value = t[k] || ""; if (ty === "number") x.min = "0"; if (live && k !== "nev") { x.readOnly = true; x.title = "A pipeline-ból számolva"; } x.addEventListener("change", function () { var a = (p.ta || []).slice(); a[i] = Object.assign({}, a[i]); a[i][k] = ty === "number" ? (+x.value || 0) : x.value.trim(); sbUpd(p.id, { ta: a }); }); return x; }
         r.appendChild(inp("nev", "Ügyfél neve", "text")); var e1 = el("label", "", "ES "); e1.appendChild(inp("es", "0", "number")); r.appendChild(e1); var e2 = el("label", "", "Szerz. "); e2.appendChild(inp("sz", "0", "number")); r.appendChild(e2);
         r.appendChild(el("span", "sb-trv", sbTaOk(t, c) ? "✓ " + sbFt(c.ta) : "még nem"));
         var x = el("button", "x", "×"); x.type = "button"; x.title = "Sor törlése"; x.addEventListener("click", function () { var a = (p.ta || []).slice(); a.splice(i, 1); sbUpd(p.id, { ta: a }); }); r.appendChild(x);
@@ -779,10 +791,11 @@
       tk.appendChild(tl);
       var pp = sbPipe(p), used = {}; (p.ta || []).forEach(function (t) { used[sbPlain(t.nev)] = 1; });
       var pr = el("div", "sb-pick");
+      if (AG) pp = { list: AG.list };
       if (pp.list) {
         var opts = pp.list.filter(function (o) { return !used[sbPlain(o.nev)]; });
         if (opts.length) {
-          var ps = el("select"); var o0 = el("option", "", "Választás a pipeline elszámolt szerződéseiből (" + opts.length + ")…"); o0.value = ""; ps.appendChild(o0);
+          var ps = el("select"); var o0 = el("option", "", "Választás a pipeline szerződéseiből (" + opts.length + ")…"); o0.value = ""; ps.appendChild(o0);
           opts.forEach(function (o, i) { var op = el("option", "", o.nev + " · " + sbNum(o.es) + " ES · " + o.sz + " szerz." + (sbTaOk(o, c) ? " ✓" : "")); op.value = String(i); ps.appendChild(op); });
           ps.addEventListener("change", function () { var o = opts[+ps.value]; if (!o) return; var a = (p.ta || []).slice(); a.push({ nev: o.nev, es: o.es, sz: o.sz, src: "pipeline" }); sbUpd(p.id, { ta: a }); });
           pr.appendChild(ps);
