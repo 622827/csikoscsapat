@@ -682,7 +682,7 @@
 (function(){
   var CARS=["Gulyás Anna autója","Csikós Máté autója","Farkas Niki autója","Eöry Péter autója","Sznyt Alex autója","Tóth Oszkár autója"];
   var DEF={"Gulyás Anna autója":1,"Csikós Máté autója":1,"Farkas Niki autója":2};
-  var K="csk_lengyel_autok_v1",st={};
+  var API="",K="csk_lengyel_autok_v1",st={};  /* API: ide kerül az Apps Script /exec címe a közös mentéshez */
   try{st=JSON.parse(localStorage.getItem(K)||"{}")||{}}catch(e){}
   function z(c){return st[c]!=null?st[c]:(DEF[c]||0)}
   var zones=document.querySelectorAll("#vp-lengyel .zn");
@@ -696,7 +696,16 @@
       });
     });
   }
-  function save(){try{localStorage.setItem(K,JSON.stringify(st))}catch(e){}}
+  function save(){
+    try{localStorage.setItem(K,JSON.stringify(st))}catch(e){}
+    if(API)fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({lengyelauto:1,state:st})}).catch(function(){});
+  }
+  function pull(){
+    if(!API||cur)return;
+    fetch(API+"?lengyelauto=1&_="+Date.now()).then(function(r){return r.json()}).then(function(d){
+      if(d&&d.state&&!cur){st=d.state;try{localStorage.setItem(K,JSON.stringify(st))}catch(e){}render();}
+    }).catch(function(){});
+  }
   var cur=null,ghost=null,dx=0,dy=0;
   function zoneAt(x,y){
     var e=document.elementFromPoint(x,y);
@@ -728,6 +737,7 @@
   document.addEventListener("pointerup",end);
   document.addEventListener("pointercancel",end);
   render();
+  if(API){var h=document.querySelector("#vp-lengyel .hint");if(h)h.textContent="Az autókat húzással lehet másik csoportba tenni (telefonon is). A változtatást mindenki látja.";pull();setInterval(pull,15000);}
 })();
 </script>
 <script src="anim.js?v=4" defer></script>
