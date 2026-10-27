@@ -357,7 +357,8 @@
   .csb button.sec2{background:#e3e7f0;color:#333;font-weight:600}
   .rz{grid-template-columns:repeat(3,1fr)}
   .zn small{display:block;font-size:.75rem;color:#666;margin:-4px 0 8px}
-  .ppl{background:#fff;border:1px solid #003b95;color:#003b95;border-radius:6px;padding:8px 10px;font-size:.92rem;font-weight:600;cursor:grab;touch-action:none;user-select:none}
+  .ppl{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #003b95;color:#003b95;border-radius:6px;padding:8px 10px;font-size:.92rem;font-weight:600;cursor:grab;touch-action:none;user-select:none}
+  .ppl svg{width:32px;height:23px;flex:none}
   .ppl.drag{opacity:.5}.ppl.ghost{position:fixed;z-index:9999;pointer-events:none;box-shadow:0 6px 18px #0004}
   .zn[data-z="0"] .ppl{border-color:#999;color:#444}
   @media(max-width:620px){.rz{grid-template-columns:1fr}}
@@ -705,6 +706,8 @@
     muscle:'<svg viewBox="0 0 48 28" aria-hidden="true"><path d="M2 21v-5l6-2 8-5h14l8 5 8 1v6z" fill="currentColor"/><path d="M17 10.5h9l5 3.5H14zM2 21v-2h4v2z" fill="#fff" opacity=".85"/><path d="M0 16h48" stroke="#fff" stroke-width="1" opacity=".5"/>'+W+'</svg>'
   };
   var TYPE={"Gulyás Anna autója":"van","Farkas Niki autója":"wagon","Csikós Máté autója":"muscle"};
+  var DOGS=["Akela","Koda","Mia"];
+  var DOG='<svg viewBox="0 0 36 26" aria-hidden="true"><path d="M2 5l3 2 2 4c2 1 4 1 6 1h10c2 0 3-1 4-3l-1-5 3-1 2 4 5 1-3 3v3l-3 2v10h-3v-8h-3v8h-3v-8h-9v8H9v-8l-3-2c-2-2-3-5-3-8z" fill="currentColor"/><path d="M24 5c3 0 4 3 3 7-2-1-3-4-3-7z" fill="#fff" opacity=".4"/><circle cx="5.5" cy="7" r="1" fill="#fff"/></svg>';
   var OLD={"Eöry Péter autója":"Őry Péter autója","Eöry Péter":"Őry Péter","Vendég (Eöry)":"Vendég (Őry)"};
   function norm(o){var r={};Object.keys(o||{}).forEach(function(k){r[OLD[k]||k]=o[k]});return r}
   function make(cfg){
@@ -781,7 +784,7 @@
   make({id:"szoba",key:"lengyelszoba",ls:"csk_lengyel_szobak_v1",cls:"ppl",
     items:["Gulyás Anna","Farkas Niki","Farkas Mónika","Akela","Csikós Máté","Ónodi Virág","Koda","Mia","Tóth Oszkár","Nagy Bettina","Sznyt Alex","Vendég (Sznyt) 1","Vendég (Sznyt) 2","Őry Péter","Vendég (Őry)"],
     def:{"Gulyás Anna":1,"Farkas Niki":1,"Farkas Mónika":1,"Akela":1,"Csikós Máté":2,"Ónodi Virág":2,"Koda":2,"Mia":2,"Tóth Oszkár":3,"Nagy Bettina":3,"Sznyt Alex":4,"Vendég (Sznyt) 1":4,"Vendég (Sznyt) 2":4,"Őry Péter":5,"Vendég (Őry)":5},
-    chip:function(c){return "<span>"+(c.indexOf("Vendég")===0?"+ vendég (még nincs név)":c)+"</span>"}});
+    chip:function(c){return (DOGS.indexOf(c)>-1?DOG:"")+"<span>"+(c.indexOf("Vendég")===0?"+ vendég (még nincs név)":c)+"</span>"}});
 })();
 </script>
 <script src="anim.js?v=4" defer></script>
