@@ -301,6 +301,9 @@
   .vz .acts{display:flex;gap:10px;flex-wrap:wrap}
   .vz .note{font-size:.8rem;color:var(--muted);margin-top:14px}
   .vz [hidden]{display:none!important}
+  .cnt{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--track);border-radius:14px;padding:12px 16px;margin:0 0 16px;max-width:560px}
+  .cnt[hidden]{display:none}
+  .cnt b{font-size:2rem;line-height:1;color:var(--accent)}.cnt span{font-size:.92rem}.cnt small{display:block;color:var(--muted);font-size:.74rem;margin-top:2px}
   .st .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:10px 0 14px}
   .st .k{background:var(--track);border-radius:12px;padding:10px 12px}.st .k b{display:block;font-size:1.35rem;line-height:1.2}.st .k span{font-size:.78rem;color:var(--muted)}
   .st h3{font-size:.95rem;margin:14px 0 6px}
@@ -313,6 +316,7 @@
   .st .sj .p{text-align:right;font-weight:600}
 </style>
 <h1>Vizsga gyakorló</h1>
+<div class="cnt" id="cnt" hidden><b id="cnt-n">0</b><span>sikeres próbavizsgát tettek eddig az oldal látogatói<small> (sikeres: legalább 45 helyes válasz a 60-ból)</small></span></div>
 <p class="lead" id="vz-lead"></p>
 <div class="vz" id="vz">
   <div class="tabs bank" id="bank-tabs" role="group" aria-label="Vizsgatípus">
@@ -424,6 +428,10 @@
   $("vz-reset").onclick=function(){wrong={};saveW();meta()};
   var picks=[],orders=[],Q=[],pos=0,score=0,answered=false,log=[],tm=null,left=0,pick=-1,order=[];
   function show(id){["vz-setup","vz-stat","vz-run","vz-res"].forEach(function(x){$(x).hidden=(x==="vz-stat"?id!=="vz-setup":x!==id)});if(id==="vz-setup")renderStat();window.scrollTo(0,0)}
+  var CAPI="https://script.google.com/macros/s/AKfycbw8Y42fZakxtGzr1CwUwahYviEhkfktzV6JhYfmKXQPjOpZQ6jb7X2-gBQqchDkAKgkeQ/exec";
+  function showCnt(n){if(typeof n!=="number")return;$("cnt-n").textContent=n.toLocaleString("hu-HU");$("cnt").hidden=false}
+  function loadCnt(){fetch(CAPI+"?count=1").then(function(r){return r.json()}).then(function(d){showCnt(d.count)}).catch(function(){})}
+  function bumpCnt(){fetch(CAPI,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({vizsgaszam:1})}).then(function(r){return r.json()}).then(function(d){showCnt(d.count)}).catch(function(){})}
   var SK="",ST={pv:[],sj:{},seen:{},gy:[0,0]};
   function loadStat(){SK="csk_vizsga_stat_v1_"+bank;ST={pv:[],sj:{},seen:{},gy:[0,0]};try{var o=JSON.parse(localStorage.getItem(SK)||"null");if(o)ST=o}catch(e){}}
   function saveStat(){try{localStorage.setItem(SK,JSON.stringify(ST))}catch(e){}}
@@ -521,6 +529,7 @@
       var okc=log.filter(function(l){return l.ok}).length,dt=new Date();
       ST.pv.push({p:Math.round(okc/Q.length*100),s:Math.min(3600,Math.max(0,3600-Math.max(left,0))),d:dt.toLocaleDateString("hu-HU")});
       if(ST.pv.length>50)ST.pv=ST.pv.slice(-50);saveStat();
+      if(okc>=45)bumpCnt();
     }
     var n=mode==="pv"?Q.length:log.length,ok=log.filter(function(l){return l.ok}).length;
     $("x-t").textContent=mode==="pv"?"Próbavizsga eredménye (60 kérdés)":"Gyakorlás eredménye";
@@ -538,7 +547,7 @@
     show("vz-res");
   }
   $("x-again").onclick=function(){setMode(mode);meta();show("vz-setup")};
-  loadBank(b0);
+  loadBank(b0);loadCnt();
   document.addEventListener("keydown",function(e){
     if($("vz-run").hidden)return;
     if(/^[1-9]$/.test(e.key)){var k=+e.key-1,bs=$("r-a").children;if(k<bs.length&&!bs[k].disabled)choose(k)}
