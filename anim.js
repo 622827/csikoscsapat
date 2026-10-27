@@ -80,13 +80,13 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();
 
-/* Almenü: a fejléc menüpontjai fölé víve megjelennek az aloldalak */
+/* Almenü: a lefelé nyíllal jelölt menüpontra kattintva lenyílnak az aloldalak */
 (function () {
   var SUB = { "verseny.html": [["Erdélyi Incentive", "verseny.html#erdely"], ["Téli Incentive", "verseny.html#teli"], ["2026 Lengyelország karácsony", "verseny.html#lengyel"]],
               "csapatkassza.html": [["Csapatkassza", "csapatkassza.html#kassza"], ["OVB flotta", "csapatkassza.html#flotta"], ["Iroda kassza", "csapatkassza.html#iroda"]],
               "teljesitmeny-uj.html": [["Elemzések utáni teendők", "teljesitmeny-uj.html#elemzesek"], ["Asszisztensi feladatok", "teljesitmeny-uj.html#asszisztens"], ["Start bónusz", "teljesitmeny-uj.html#startbonusz"]] };
   function init() {
-    var nav = document.querySelector(".topnav"); if (!nav || !window.matchMedia("(hover:hover)").matches) return;
+    var nav = document.querySelector(".topnav"); if (!nav) return;
     var st = document.createElement("style");
     st.textContent = ".csk-sub{position:fixed;z-index:60;min-width:210px;padding:6px;border-radius:14px;background:var(--bg,#fff);color:var(--ink,#111);border:1px solid var(--track,#ddd);box-shadow:0 10px 30px rgba(0,0,0,.18);opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}" +
       ".csk-sub.on{opacity:1;transform:none;pointer-events:auto}.csk-sub a{display:block;padding:9px 14px;border-radius:10px;color:inherit;text-decoration:none;font-weight:600;white-space:nowrap}.csk-sub a:hover,.csk-sub a:focus-visible{background:var(--track,#eee)}";
@@ -94,20 +94,24 @@
     st.textContent += ".csk-sub a.cur{background:var(--accent,#036);color:var(--on-accent,#fff)}html.csk-hastabs .vtabs,html.csk-hastabs .vtabs2,html.csk-hastabs #ktabs{display:none!important}";
     document.head.appendChild(st); document.documentElement.classList.add("csk-hastabs");
     var box = document.createElement("div"); box.className = "csk-sub"; document.body.appendChild(box);
-    var tm = 0, op = 0, cur = null, warm = false; // warm: már nyílt almenü, kattintásig a többi azonnal nyílik
-    document.addEventListener("click", function () { warm = false; }, true);
-    function hide() { box.classList.remove("on"); cur = null; }
-    function later() { clearTimeout(tm); tm = setTimeout(hide, 180); }
+    st.textContent += ".csk-chev{display:inline-flex;margin-left:auto;padding-left:6px;opacity:.75;transition:transform .2s ease}.csk-chev svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}a.csk-open .csk-chev{transform:rotate(180deg)}.topnav .csk-chev{margin-left:4px;padding-left:0;vertical-align:middle}html.csk-rail .csk-sidebar:not(.csk-peek) .csk-chev{display:none}";
+    var cur = null;
+    function hide() { box.classList.remove("on"); if (cur) cur.classList.remove("csk-open"); cur = null; }
     document.querySelectorAll(".topnav li > a[href], .csk-sidebar li > a[href]").forEach(function (a) {
       var key = (a.getAttribute("href") || "").split("#")[0]; var items = SUB[key]; if (!items) return;
-      a.addEventListener("mouseenter", function () {
-        clearTimeout(tm); if (cur === a) return; clearTimeout(op); if (warm) open(); else op = setTimeout(function () { open(); }, 550);
+      var ch = document.createElement("span"); ch.className = "csk-chev"; ch.setAttribute("aria-hidden", "true"); ch.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'; a.appendChild(ch);
+      a.setAttribute("aria-haspopup", "true"); a.setAttribute("aria-expanded", "false");
+      a.addEventListener("click", function (e) {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+        e.preventDefault(); e.stopPropagation();
+        if (cur === a) { hide(); a.setAttribute("aria-expanded", "false"); return; }
+        hide(); open(); a.setAttribute("aria-expanded", "true");
       });
       function open() {
-        cur = a; warm = true; box.textContent = "";
+        cur = a; a.classList.add("csk-open"); box.textContent = "";
         items.forEach(function (it) { var l = document.createElement("a"); l.href = it[1]; l.textContent = it[0];
-          var h = location.hash, onPage = location.pathname.split("/").pop() === key || (key === "verseny.html" && location.pathname.slice(-1) === "/" && false);
-          var curKey = ""; try { curKey = key === "csapatkassza.html" ? (h === "#flotta" || h === "#iroda" ? h : "#kassza") : key === "verseny.html" ? (h === "#teli" ? "#teli" : "#erdely") : (h ? h : (sessionStorage.getItem("tj_view") === "as" ? "#asszisztens" : "#elemzesek")); } catch (e) {}
+          var h = location.hash, onPage = location.pathname.split("/").pop() === key;
+          var curKey = ""; try { curKey = key === "csapatkassza.html" ? (h === "#flotta" || h === "#iroda" ? h : "#kassza") : key === "verseny.html" ? (h === "#teli" || h === "#lengyel" ? h : "#erdely") : (h ? h : (sessionStorage.getItem("tj_view") === "as" ? "#asszisztens" : "#elemzesek")); } catch (e) {}
           if (onPage && it[1].slice(it[1].indexOf("#")) === curKey) l.className = "cur";
           box.appendChild(l); });
         var r = a.getBoundingClientRect(), sd = !!a.closest(".csk-sidebar");
@@ -115,14 +119,12 @@
         else { box.classList.remove("inl"); document.body.appendChild(box); box.style.top = (r.bottom + 4) + "px"; box.style.left = Math.max(8, Math.min(r.left, innerWidth - 230)) + "px"; }
         box.classList.add("on");
       }
-      a.addEventListener("mouseleave", function () { clearTimeout(op); later(); });
     });
-    box.addEventListener("mouseenter", function () { clearTimeout(tm); });
-    function inS(t) { return t && t.closest && t.closest(".csk-sidebar"); }
     var sb = document.querySelector(".csk-sidebar");
-    if (sb) sb.addEventListener("mouseleave", function (e) { if (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".csk-sub")) return; if (cur && cur.closest(".csk-sidebar")) { clearTimeout(op); clearTimeout(tm); hide(); } });
-    box.addEventListener("mouseleave", function (e) { if (cur && cur.closest(".csk-sidebar") && !inS(e.relatedTarget)) { if (sb) sb.classList.remove("csk-peek"); clearTimeout(tm); hide(); return; } later(); });
-    box.addEventListener("click", hide);
+    if (sb) sb.addEventListener("mouseleave", function () { if (cur && cur.closest(".csk-sidebar") && !document.documentElement.classList.contains("csk-mopen")) hide(); });
+    document.addEventListener("click", function (e) { if (cur && !box.contains(e.target) && !cur.contains(e.target)) hide(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") hide(); });
+    box.addEventListener("click", function () { setTimeout(hide, 0); });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();
