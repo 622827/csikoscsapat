@@ -356,6 +356,7 @@
   .pg .sb-tl { font-size: .74rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .pg .sb-tv { font-size: clamp(1.5rem, 3.4vw, 2.1rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pg .sb-ts { font-size: .82rem; color: var(--muted); font-weight: 600; }
+  .pg .sb-ts.two { display: flex; justify-content: space-between; gap: 8px; white-space: nowrap; } .pg .sb-ts.two span { overflow: hidden; text-overflow: ellipsis; } .pg .sb-ts.two b { flex: none; font-weight: 700; }
   .pg .sb-tile.bon .sb-tv { color: var(--muted); } .pg .sb-tile.bon.ok { border-color: #1f9d5c; } .pg .sb-tile.bon.ok .sb-tv, .pg .sb-tile.bon.ok .sb-ts { color: #1f9d5c; }
   .pg .sb-tile.all { background: var(--accent); color: var(--on-accent, #fff); } .pg .sb-tile.all .sb-tl, .pg .sb-tile.all .sb-ts { color: inherit; opacity: .8; }
   .pg .sb-pick { margin: 4px 0 8px; }
@@ -686,7 +687,7 @@
   var SBC = null, SB = [], sbReady = false, sbConfirm = "", SBES = null, sbEsErr = "";
   function sbCfg() { var c = {}, s = (SBC && SBC.bon) || {}; Object.keys(SB_DEF).forEach(function (k) { c[k] = s[k] !== undefined && s[k] !== "" ? +s[k] : SB_DEF[k]; }); return c; }
   function sbPlain(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim(); }
-  function sbFt(n) { return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " Ft"; }
+  function sbFt(n) { return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0") + "\u00a0Ft"; }
   function sbNum(n) { return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
   // Technikai ES: a munkatárs azonos nevű pipeline-jából, a kezdés hónapjától (elszámolt + aktuális hónap 100% leadott)
   function sbEs(p) {
@@ -805,9 +806,9 @@
       var ad = el("button", "sm gh", "+ Kézzel"); ad.type = "button"; ad.addEventListener("click", function () { var a = (p.ta || []).slice(); a.push({ nev: "", es: 0, sz: 0 }); sbUpd(p.id, { ta: a }); }); tk.appendChild(ad);
       card.appendChild(tk);
       var sm = el("div", "sb-sum");
-      function tile(cls, lab, val, sub) { var t = el("div", "sb-tile " + cls); t.appendChild(el("span", "sb-tl", lab)); t.appendChild(el("b", "sb-tv", val)); [].concat(sub || []).forEach(function (x) { t.appendChild(el("span", "sb-ts", x)); }); sm.appendChild(t); }
+      function tile(cls, lab, val, sub) { var t = el("div", "sb-tile " + cls); t.appendChild(el("span", "sb-tl", lab)); t.appendChild(el("b", "sb-tv", val)); [].concat(sub || []).forEach(function (x) { var ln = el("span", "sb-ts"); if (Array.isArray(x)) { ln.classList.add("two"); ln.appendChild(el("span", "", x[0])); if (x[1]) ln.appendChild(el("b", "", x[1])); } else ln.textContent = x; t.appendChild(ln); }); sm.appendChild(t); }
       var miss = sbNum(Math.max(0, c.es - R.es)) + " ES hiányzik", gross = R.mnb + R.kev + R.tab;
-      tile("bon" + (R.ok ? " ok" : ""), "Ösztöndíj", sbFt(R.mnb + R.kev), [(p.mnb ? "✓ " : "– ") + "MNB vizsga" + (p.mnb ? " · " + sbFt(c.mnb) : ""), (p.kev ? "✓ " : "– ") + "Kezdő elemző vizsga" + (p.kev ? " · " + sbFt(c.kev) : "")]);
+      tile("bon" + (R.ok ? " ok" : ""), "Ösztöndíj", sbFt(R.mnb + R.kev), [[(p.mnb ? "✓ " : "– ") + "MNB vizsga", p.mnb ? sbFt(c.mnb) : ""], [(p.kev ? "✓ " : "– ") + "Kezdő elemző", p.kev ? sbFt(c.kev) : ""]]);
       tile("bon" + (R.ok ? " ok" : ""), "Start bónusz", sbFt(R.tab), R.ta + " érvényes mentorált TA");
       tile("all", "Összesen", sbFt(R.ok ? gross : 0), R.ok ? (gross ? "kifizethető" : "még nincs teljesített tétel") : (gross ? sbFt(gross) + " jár a(z) " + sbNum(c.es) + " ES után · " + miss : miss + " a jogosultsághoz"));
       card.appendChild(sm);
