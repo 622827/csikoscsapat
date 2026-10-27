@@ -523,7 +523,7 @@
     <p class="none" id="as-none"></p>
   </div>
   <div id="v-sb" hidden>
-    <p class="lead">Start bónusz: új munkatársanként négy mérőszám. A sikeres MNB és kezdő elemző vizsga ösztöndíjat ér, a mentorált tanácsadások (TA) a start bónuszt adják. Mindkettő kifizetésének feltétele az 500 ES technikai teljesítmény (a pipeline-ból számolva).</p>
+    <p class="lead">Start bónusz: új munkatársanként négy mérőszám. A sikeres MNB és elemző vizsga ösztöndíjat ér, a mentorált tanácsadások (TA) a start bónuszt adják. Mindkettő kifizetésének feltétele az 500 ES technikai teljesítmény (a pipeline-ból számolva).</p>
     <form class="as-add" id="sb-form" autocomplete="off">
       <input id="sb-name" type="text" maxlength="60" placeholder="Új munkatárs neve" aria-label="Név" required>
       <label class="as-lb">Kezdés <input id="sb-start" type="text" aria-label="Kezdés dátuma"></label>
@@ -680,7 +680,7 @@
     fromHash(); window.addEventListener("hashchange", fromHash);
   }
   /* ---- Start bónusz ---- */
-  // Négy mérőszám újonconként: Technikai ES (jogosultsági feltétel, a pipeline-ból), Sikeres MNB vizsga, Sikeres kezdő elemző vizsga, Mentorált TA (mentorált tanácsadás).
+  // Négy mérőszám újonconként: Technikai ES (jogosultsági feltétel, a pipeline-ból), Sikeres MNB vizsga, Sikeres elemző vizsga, Mentorált TA (mentorált tanácsadás).
   var SB_OWN = {"csikos.mate.ovb@gmail.com": "Csikós Máté", "farkas.nikolett.julianna.ovb@gmail.com": "Farkas Nikolett", "gulyas.anna.ovb@gmail.com": "Gulyás Anna"};
   var SB_ES_URL = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec"; // ugyanaz a forrás, mint a negyedéves céloké
   var SB_DEF = { es: 500, mnb: 20000, kev: 20000, ta: 10000, taEs: 25, taSz: 2 };
@@ -770,7 +770,7 @@
       if (R.e && !R.e.found || p.esName) { var ni = el("input"); ni.type = "text"; ni.placeholder = "Név a pipeline-ban"; ni.value = p.esName || ""; ni.className = "sb-in"; ni.addEventListener("change", function () { sbUpd(p.id, { esName: ni.value.trim() }); }); es.appendChild(ni); }
       card.appendChild(es);
       // 2–3. Vizsgák
-      [["mnb", "Sikeres MNB vizsga · ösztöndíj", c.mnb], ["kev", "Sikeres kezdő elemző vizsga · ösztöndíj", c.kev]].forEach(function (q) {
+      [["mnb", "Sikeres MNB vizsga · ösztöndíj", c.mnb], ["kev", "Sikeres elemző vizsga · ösztöndíj", c.kev]].forEach(function (q) {
         var on = !!p[q[0]], an = sbAnim === p.id + ":" + q[0], k = el("label", "sb-k sb-ck" + (on ? " done" : "") + (an ? (on ? " fillin" : " unfill") : "")), ck = el("input"); ck.type = "checkbox"; ck.checked = on;
         ck.addEventListener("change", function () { var o = {}; o[q[0]] = ck.checked ? todayIso() : false; p[q[0]] = o[q[0]]; sbAnim = p.id + ":" + q[0]; sbRender(); setTimeout(function () { if (sbAnim === p.id + ":" + q[0]) { sbAnim = ""; } }, 800); sbUpd(p.id, o); });
         k.appendChild(ck); var tx = el("span", "sb-ckt"); tx.appendChild(el("b", "", q[1])); if (on && typeof p[q[0]] === "string") tx.appendChild(el("small", "", " · " + p[q[0]].replace(/-/g, ". ") + ".")); k.appendChild(tx);
@@ -808,7 +808,7 @@
       var sm = el("div", "sb-sum");
       function tile(cls, lab, val, sub) { var t = el("div", "sb-tile " + cls); t.appendChild(el("span", "sb-tl", lab)); t.appendChild(el("b", "sb-tv", val)); [].concat(sub || []).forEach(function (x) { var ln = el("span", "sb-ts"); if (Array.isArray(x)) { ln.classList.add("two"); ln.appendChild(el("span", "", x[0])); if (x[1]) ln.appendChild(el("b", "", x[1])); } else ln.textContent = x; t.appendChild(ln); }); sm.appendChild(t); }
       var miss = sbNum(Math.max(0, c.es - R.es)) + " ES hiányzik", gross = R.mnb + R.kev + R.tab;
-      tile("bon" + (R.ok ? " ok" : ""), "Ösztöndíj", sbFt(R.mnb + R.kev), [[(p.mnb ? "✓ " : "– ") + "MNB vizsga", p.mnb ? sbFt(c.mnb) : ""], [(p.kev ? "✓ " : "– ") + "Kezdő elemző", p.kev ? sbFt(c.kev) : ""]]);
+      tile("bon" + (R.ok ? " ok" : ""), "Ösztöndíj", sbFt(R.mnb + R.kev), [[(p.mnb ? "✓ " : "– ") + "MNB vizsga", p.mnb ? sbFt(c.mnb) : ""], [(p.kev ? "✓ " : "– ") + "Elemző vizsga", p.kev ? sbFt(c.kev) : ""]]);
       tile("bon" + (R.ok ? " ok" : ""), "Start bónusz", sbFt(R.tab), R.ta + " érvényes mentorált TA");
       tile("all", "Összesen", sbFt(R.ok ? gross : 0), R.ok ? (gross ? "kifizethető" : "még nincs teljesített tétel") : (gross ? sbFt(gross) + " jár a(z) " + sbNum(c.es) + " ES után · " + miss : miss + " a jogosultsághoz"));
       card.appendChild(sm);
