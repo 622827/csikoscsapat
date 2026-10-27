@@ -41,8 +41,8 @@
       "html.csk-rail .csk-sidebar .csk-tg svg{transform:rotate(180deg)}" +
       ".csk-sidebar .lb{overflow:hidden;text-overflow:ellipsis;transition:opacity .15s}" +
       "html.csk-rail .csk-sidebar .lb{opacity:0;width:0}html.csk-rail .csk-sidebar a,html.csk-rail .csk-sidebar button.csk-tg{padding:0;justify-content:center;gap:0}" +
-      "@media (hover:hover) and (min-width:800px){html.csk-rail .csk-sidebar:hover{width:264px;box-shadow:8px 0 30px rgba(0,0,0,.16)}" +
-      "html.csk-rail .csk-sidebar:hover .lb{opacity:1;width:auto}html.csk-rail .csk-sidebar:hover a,html.csk-rail .csk-sidebar:hover button.csk-tg{padding:0 13px;justify-content:flex-start;gap:14px}}" +
+      "@media (hover:hover) and (min-width:800px){html.csk-rail .csk-sidebar.csk-peek{width:264px;box-shadow:8px 0 30px rgba(0,0,0,.16)}" +
+      "html.csk-rail .csk-sidebar.csk-peek .lb{opacity:1;width:auto}html.csk-rail .csk-sidebar.csk-peek a,html.csk-rail .csk-sidebar.csk-peek button.csk-tg{padding:0 13px;justify-content:flex-start;gap:14px}}" +
       ".csk-mbtn{display:none;align-items:center;justify-content:center;width:40px;height:40px;margin-right:6px;border:0;border-radius:12px;background:var(--track);color:var(--ink);cursor:pointer;flex:none}" +
       ".csk-mbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}" +
       ".csk-bd{display:none;position:fixed;inset:57px 0 0 0;background:rgba(0,0,0,.4);z-index:34}" +
@@ -68,6 +68,9 @@
     var bd = document.createElement("div"); bd.className = "csk-bd"; document.body.appendChild(bd);
     var mb = document.createElement("button"); mb.type = "button"; mb.className = "csk-mbtn"; mb.setAttribute("aria-label", "Menü");
     mb.innerHTML = svg('<path d="M4 7h16M4 12h16M4 17h16"/>'); host.insertBefore(mb, host.firstChild);
+    var pt = 0;
+    side.addEventListener("mouseenter", function () { clearTimeout(pt); pt = setTimeout(function () { side.classList.add("csk-peek"); }, 450); });
+    side.addEventListener("mouseleave", function () { clearTimeout(pt); side.classList.remove("csk-peek"); });
     var pref = null; try { pref = localStorage.getItem(KEY); } catch (e) {}
     root.classList.add("csk-side"); if (pref ? pref === "rail" : window.innerWidth < 1100) root.classList.add("csk-rail");
     tg.addEventListener("click", function () {
@@ -95,13 +98,16 @@
     st.textContent += ".csk-sub a.cur{background:var(--accent,#036);color:var(--on-accent,#fff)}html.csk-hastabs .vtabs,html.csk-hastabs .vtabs2,html.csk-hastabs #ktabs{display:none!important}";
     document.head.appendChild(st); document.documentElement.classList.add("csk-hastabs");
     var box = document.createElement("div"); box.className = "csk-sub"; document.body.appendChild(box);
-    var tm = 0, cur = null;
+    var tm = 0, op = 0, cur = null;
     function hide() { box.classList.remove("on"); cur = null; }
     function later() { clearTimeout(tm); tm = setTimeout(hide, 180); }
     document.querySelectorAll(".topnav li > a[href], .csk-sidebar li > a[href]").forEach(function (a) {
       var key = (a.getAttribute("href") || "").split("#")[0]; var items = SUB[key]; if (!items) return;
       a.addEventListener("mouseenter", function () {
-        clearTimeout(tm); if (cur === a) return; cur = a; box.textContent = "";
+        clearTimeout(tm); if (cur === a) return; clearTimeout(op); op = setTimeout(function () { open(); }, 350);
+      });
+      function open() {
+        cur = a; box.textContent = "";
         items.forEach(function (it) { var l = document.createElement("a"); l.href = it[1]; l.textContent = it[0];
           var h = location.hash, onPage = location.pathname.split("/").pop() === key || (key === "verseny.html" && location.pathname.slice(-1) === "/" && false);
           var curKey = ""; try { curKey = key === "csapatkassza.html" ? (h === "#flotta" || h === "#iroda" ? h : "#kassza") : key === "verseny.html" ? (h === "#teli" ? "#teli" : "#erdely") : (h ? h : (sessionStorage.getItem("tj_view") === "as" ? "#asszisztens" : "#elemzesek")); } catch (e) {}
@@ -109,8 +115,8 @@
           box.appendChild(l); });
         var r = a.getBoundingClientRect(), sd = !!a.closest(".csk-sidebar"); box.style.top = (sd ? r.top : r.bottom + 4) + "px"; box.style.left = sd ? (r.right + 8) + "px" : Math.max(8, Math.min(r.left, innerWidth - 230)) + "px";
         box.classList.add("on");
-      });
-      a.addEventListener("mouseleave", later);
+      }
+      a.addEventListener("mouseleave", function () { clearTimeout(op); later(); });
     });
     box.addEventListener("mouseenter", function () { clearTimeout(tm); });
     box.addEventListener("mouseleave", later);
