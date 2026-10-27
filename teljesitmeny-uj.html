@@ -758,7 +758,7 @@
       });
       // 4. Mentorált TA
       var tk = el("div", "sb-k"), th = el("div", "sb-kh"); th.appendChild(el("b", "", "Mentorált TA")); th.appendChild(el("span", "sb-tag", R.ta + " érvényes")); th.appendChild(el("span", "sb-v", sbFt(R.tab))); tk.appendChild(th);
-      tk.appendChild(el("div", "sb-note", "Legalább " + c.taEs + " ES vagy " + c.taSz + " db szerződés · " + sbFt(c.ta) + " / db"));
+      tk.appendChild(el("div", "sb-note", "Legalább " + c.taEs + " ES vagy " + c.taSz + " db szerződés · " + sbFt(c.ta) + " / TA"));
       var tl = el("div", "sb-ta");
       (p.ta || []).forEach(function (t, i) {
         var r = el("div", "sb-tr" + (sbTaOk(t, c) ? " ok" : ""));
