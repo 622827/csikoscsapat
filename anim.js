@@ -52,8 +52,7 @@
     document.head.appendChild(st);
     var side = document.createElement("nav"); side.className = "csk-sidebar"; side.setAttribute("aria-label", "Oldalsó menü");
     function svg(inner) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + inner + "</svg>"; }
-    var tg = document.createElement("button"); tg.type = "button"; tg.className = "csk-tg"; tg.setAttribute("aria-label", "Menüsáv összecsukása / kinyitása");
-    tg.innerHTML = svg('<path d="M15 6l-6 6 6 6"/>') + '<span class="lb">Menü összecsukása</span>'; side.appendChild(tg);
+    
     var lis = document.createElement("ul"); lis.style.cssText = "list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px";
     ul.querySelectorAll("li > a").forEach(function (a) {
       var href = a.getAttribute("href"), txt = a.textContent.replace(/\s*🔒\s*/, "").trim(), lock = /🔒/.test(a.textContent);
@@ -71,11 +70,7 @@
     var pt = 0;
     side.addEventListener("mouseenter", function () { clearTimeout(pt); pt = setTimeout(function () { side.classList.add("csk-peek"); }, 1000); });
     side.addEventListener("mouseleave", function () { clearTimeout(pt); side.classList.remove("csk-peek"); });
-    var pref = null; try { pref = localStorage.getItem(KEY); } catch (e) {}
-    root.classList.add("csk-side"); if (pref ? pref === "rail" : window.innerWidth < 1100) root.classList.add("csk-rail");
-    tg.addEventListener("click", function () {
-      var r = root.classList.toggle("csk-rail"); try { localStorage.setItem(KEY, r ? "rail" : "open"); } catch (e) {}
-    });
+    root.classList.add("csk-side", "csk-rail");
     function closeM() { root.classList.remove("csk-mopen"); }
     mb.addEventListener("click", function () { root.classList.toggle("csk-mopen"); });
     bd.addEventListener("click", closeM); side.addEventListener("click", function (e) { if (e.target.closest("a[href]") && mobile()) closeM(); });
