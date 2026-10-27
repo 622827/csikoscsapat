@@ -348,6 +348,19 @@
   .car.drag{opacity:.5;cursor:grabbing}
   .car.ghost{position:fixed;z-index:9999;pointer-events:none;box-shadow:0 6px 18px #0004;opacity:.95}
   .zn[data-z="0"] .car{border-color:#999;color:#444}
+  .csb{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;background:#fff4e5;border-left:4px solid #febb02;border-radius:4px;padding:10px 12px;font-size:.9rem}
+  .csb[hidden]{display:none}
+  .csr{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .csr[hidden]{display:none}
+  .csb input{font:inherit;padding:7px 10px;border:1px solid #9aa3b8;border-radius:6px;width:120px}
+  .csb button{font:inherit;font-weight:700;padding:7px 14px;border:0;border-radius:6px;background:#003b95;color:#fff;cursor:pointer}
+  .csb button.sec2{background:#e3e7f0;color:#333;font-weight:600}
+  .rz{grid-template-columns:repeat(3,1fr)}
+  .zn small{display:block;font-size:.75rem;color:#666;margin:-4px 0 8px}
+  .ppl{background:#fff;border:1px solid #003b95;color:#003b95;border-radius:6px;padding:8px 10px;font-size:.92rem;font-weight:600;cursor:grab;touch-action:none;user-select:none}
+  .ppl.drag{opacity:.5}.ppl.ghost{position:fixed;z-index:9999;pointer-events:none;box-shadow:0 6px 18px #0004}
+  .zn[data-z="0"] .ppl{border-color:#999;color:#444}
+  @media(max-width:620px){.rz{grid-template-columns:1fr}}
   .hint{font-size:.8rem;color:#666;margin-top:8px}
   @media(max-width:620px){.cz{grid-template-columns:1fr}}
   .bk-ok{color:#008009;font-weight:600}
@@ -363,12 +376,11 @@
         <div><small>2. csoport</small><b>Délután</b><span>Indulás: kb. 15:00<br>Pontos időpontot még pontosítjuk</span></div>
       </div>
       <div class="bk-s"><h3>Autók beosztása</h3>
-        <div class="cz">
+        <div class="cz" data-b="auto">
           <div class="zn" data-z="1"><h4>1. csoport · délelőtt</h4><div class="zl"></div></div>
           <div class="zn" data-z="2"><h4>2. csoport · délután</h4><div class="zl"></div></div>
           <div class="zn" data-z="0"><h4>Még nincs beosztva</h4><div class="zl"></div></div>
         </div>
-        <p class="hint">Az autókat húzással lehet másik csoportba tenni (telefonon is). A változtatás csak ezen az eszközön marad meg.</p>
       </div>
       <div class="bk-s"><div class="bk-note">Az utazás kb. 5–6 óra Budapestről autóval (Szlovákián át). A beosztást és a pontos időpontokat később pontosítjuk.</div></div>
     </div>
@@ -380,13 +392,16 @@
         <div><small>Szállásegység · éjszaka</small><b>5 / 4</b><span>5 szoba, 4 éjszaka</span></div>
         <div><small>Csoport</small><b>14</b><span>felnőtt</span></div>
       </div>
-      <div class="bk-s"><h3>Szobák és beosztás</h3><div class="bk-r">
-        <div><b>Négyágyas szoba erkéllyel</b><i>4 egyszemélyes ágy · 20 m²</i><p>Gulyás Anna, Farkas Niki, Farkas Mónika + Akela</p></div>
-        <div><b>Kétszemélyes szoba erkéllyel</b><i>1 franciaágy · 18 m²</i><p>Csikós Máté, Ónodi Virág</p></div>
-        <div><b>Négyágyas szoba fürdőszobával</b><i>4 egyszemélyes ágy</i><p>Tóth Oszkár és Nagy Bettina</p></div>
-        <div><b>Háromágyas szoba fürdőszobával</b><i>1 egyszemélyes + 1 franciaágy · 25 m²</i><p>Sznyt Alex + 2 fő</p></div>
-        <div><b>Kétszemélyes szoba fürdőszobával</b><i>2 egyszemélyes ágy · 15 m²</i><p>Eöry Péter + 1 fő</p></div>
-      </div></div>
+      <div class="bk-s"><h3>Szobák és beosztás</h3>
+        <div class="cz rz" data-b="szoba">
+          <div class="zn" data-z="1"><h4>Négyágyas szoba erkéllyel</h4><small>4 egyszemélyes ágy · 20 m²</small><div class="zl"></div></div>
+          <div class="zn" data-z="2"><h4>Kétszemélyes szoba erkéllyel</h4><small>1 franciaágy · 18 m²</small><div class="zl"></div></div>
+          <div class="zn" data-z="3"><h4>Négyágyas szoba fürdőszobával</h4><small>4 egyszemélyes ágy</small><div class="zl"></div></div>
+          <div class="zn" data-z="4"><h4>Háromágyas szoba fürdőszobával</h4><small>1 egyszemélyes + 1 franciaágy · 25 m²</small><div class="zl"></div></div>
+          <div class="zn" data-z="5"><h4>Kétszemélyes szoba fürdőszobával</h4><small>2 egyszemélyes ágy · 15 m²</small><div class="zl"></div></div>
+          <div class="zn" data-z="0"><h4>Még nincs szobában</h4><small></small><div class="zl"></div></div>
+        </div>
+      </div>
       <div class="bk-s"><h3>Szobák felszereltsége</h3><ul><li>Saját fürdőszoba, törölköző, ingyenes piperecikkek, hajszárító</li><li>Konyhasarok: hűtő, kávé- és teafőző, mikró, konyhai eszközök</li><li>TV, fűtés, hegyi kilátás</li><li class="bk-ok">Ingyenes privát parkoló és WiFi a helyszínen</li></ul></div>
       <div class="bk-s"><h3>Fontos tudnivalók</h3><div class="bk-note"><b>Reggeli nincs az árban</b> – a szobaár semmilyen ellátást nem tartalmaz.</div><ul style="margin-top:10px"><li>Az idegenforgalmi adó (2 PLN/fő/éjszaka) nincs az árban, a helyszínen fizetendő.</li><li>A foglalás nem módosítható díjmentesen, és nem téríthető vissza.</li></ul></div>
     </div>
@@ -681,7 +696,7 @@
 })();
 
 (function(){
-  var CARS=["Gulyás Anna autója","Csikós Máté autója","Farkas Niki autója","Eöry Péter autója","Sznyt Alex autója","Tóth Oszkár autója"];
+  var API="https://script.google.com/macros/s/AKfycbw8Y42fZakxtGzr1CwUwahYviEhkfktzV6JhYfmKXQPjOpZQ6jb7X2-gBQqchDkAKgkeQ/exec";
   var W='<circle cx="11" cy="22" r="3.2" fill="#222"/><circle cx="37" cy="22" r="3.2" fill="#222"/>';
   var ICON={
     car:'<svg viewBox="0 0 48 28" aria-hidden="true"><path d="M4 21v-5l5-1 5-6h16l6 6 7 1v5z" fill="currentColor"/><path d="M15 10.5h7v5h-11zM24 10.5h6l4 5H24z" fill="#fff" opacity=".85"/>'+W+'</svg>',
@@ -690,63 +705,81 @@
     muscle:'<svg viewBox="0 0 48 28" aria-hidden="true"><path d="M2 21v-5l6-2 8-5h14l8 5 8 1v6z" fill="currentColor"/><path d="M17 10.5h9l5 3.5H14zM2 21v-2h4v2z" fill="#fff" opacity=".85"/><path d="M0 16h48" stroke="#fff" stroke-width="1" opacity=".5"/>'+W+'</svg>'
   };
   var TYPE={"Gulyás Anna autója":"van","Farkas Niki autója":"wagon","Csikós Máté autója":"muscle"};
-  var DEF={"Gulyás Anna autója":1,"Csikós Máté autója":1,"Farkas Niki autója":2};
-  var API="https://script.google.com/macros/s/AKfycbw8Y42fZakxtGzr1CwUwahYviEhkfktzV6JhYfmKXQPjOpZQ6jb7X2-gBQqchDkAKgkeQ/exec",K="csk_lengyel_autok_v1",st={};  /* API: ide kerül az Apps Script /exec címe a közös mentéshez */
-  try{st=JSON.parse(localStorage.getItem(K)||"{}")||{}}catch(e){}
-  function z(c){return st[c]!=null?st[c]:(DEF[c]||0)}
-  var zones=document.querySelectorAll("#vp-lengyel .zn");
-  if(!zones.length)return;
-  function render(){
-    zones.forEach(function(zn){
-      var l=zn.querySelector(".zl");l.innerHTML="";
-      CARS.forEach(function(c){
-        if(z(c)!=+zn.dataset.z)return;
-        var d=document.createElement("div");d.className="car";d.dataset.c=c;d.innerHTML=ICON[TYPE[c]||"car"]+"<span>"+c.split(" ")[0]+"</span>";l.appendChild(d);
+  function make(cfg){
+    var root=document.querySelector('#vp-lengyel [data-b="'+cfg.id+'"]');
+    if(!root)return;
+    var zones=root.querySelectorAll(".zn"),st={},cur=null,ghost=null,dx=0,dy=0,dirty=false,saved="{}";
+    try{st=JSON.parse(localStorage.getItem(cfg.ls)||"{}")||{}}catch(e){}
+    saved=JSON.stringify(st);
+    function z(c){return st[c]!=null?st[c]:(cfg.def[c]||0)}
+    var bar=document.createElement("div");bar.className="csb";bar.hidden=true;
+    bar.innerHTML='<span class="csr"><span>Nem mentett változtatás</span><input type="password" placeholder="Jelszó" autocomplete="off" aria-label="Mentési jelszó"><button type="button" class="ok">Mentés</button><button type="button" class="sec2">Elvetés</button></span><span class="csm" role="status"></span>';
+    root.appendChild(bar);
+    var pw=bar.querySelector("input"),msg=bar.querySelector(".csm"),row=bar.querySelector(".csr");
+    function say(t,c){msg.style.color=c||"#555";msg.textContent=t}
+    function setDirty(v){dirty=v;bar.hidden=!v;if(!v)say("")}
+    function render(){
+      zones.forEach(function(zn){
+        var l=zn.querySelector(".zl");l.innerHTML="";
+        cfg.items.forEach(function(c){
+          if(z(c)!=+zn.dataset.z)return;
+          var d=document.createElement("div");d.className=cfg.cls;d.dataset.c=c;d.innerHTML=cfg.chip(c);l.appendChild(d);
+        });
       });
+    }
+    function save(){
+      say("Mentés…");
+      var body={lengyel:1,key:cfg.key,pw:pw.value,state:st};
+      if(cfg.key==="lengyelauto")body.lengyelauto=1;
+      fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})
+        .then(function(r){return r.json()}).then(function(d){
+          if(!d||!d.ok){say((d&&d.error)||"Hibás jelszó.","#c8102e");return;}
+          try{localStorage.setItem(cfg.ls,JSON.stringify(st))}catch(e){}
+          saved=JSON.stringify(st);pw.value="";row.hidden=true;say("Elmentve.","#008009");
+          setTimeout(function(){row.hidden=false;setDirty(false)},1600);
+        }).catch(function(){say("Nem sikerült menteni, próbáld újra.","#c8102e")});
+    }
+    bar.querySelector(".ok").addEventListener("click",function(){if(!pw.value){say("Add meg a jelszót.","#c8102e");return;}save()});
+    pw.addEventListener("keydown",function(e){if(e.key==="Enter")bar.querySelector(".ok").click()});
+    bar.querySelector(".sec2").addEventListener("click",function(){st=JSON.parse(saved);setDirty(false);render()});
+    function pull(){
+      if(cur||dirty)return;
+      fetch(API+"?key="+cfg.key+"&_="+Date.now()).then(function(r){return r.json()}).then(function(d){
+        if(d&&d.state&&!cur&&!dirty&&Object.keys(d.state).length){st=d.state;saved=JSON.stringify(st);try{localStorage.setItem(cfg.ls,saved)}catch(e){}render();}
+      }).catch(function(){});
+    }
+    function zoneAt(x,y){var e=document.elementFromPoint(x,y);var n=e&&e.closest?e.closest(".zn"):null;return n&&root.contains(n)?n:null}
+    root.addEventListener("pointerdown",function(e){
+      var c=e.target.closest&&e.target.closest("."+cfg.cls);
+      if(!c||!root.contains(c))return;
+      e.preventDefault();cur=c;
+      var r=c.getBoundingClientRect();dx=e.clientX-r.left;dy=e.clientY-r.top;
+      ghost=c.cloneNode(true);ghost.classList.add("ghost");ghost.style.width=r.width+"px";
+      ghost.style.left=r.left+"px";ghost.style.top=r.top+"px";document.body.appendChild(ghost);c.classList.add("drag");
     });
+    document.addEventListener("pointermove",function(e){
+      if(!cur)return;
+      ghost.style.left=(e.clientX-dx)+"px";ghost.style.top=(e.clientY-dy)+"px";
+      var t=zoneAt(e.clientX,e.clientY);zones.forEach(function(zn){zn.classList.toggle("over",zn===t)});
+    });
+    function end(e){
+      if(!cur)return;
+      var t=zoneAt(e.clientX,e.clientY),k=cur.dataset.c;
+      if(t&&z(k)!==+t.dataset.z){st[k]=+t.dataset.z;setDirty(true);}
+      ghost.remove();ghost=null;cur=null;zones.forEach(function(zn){zn.classList.remove("over")});render();
+    }
+    document.addEventListener("pointerup",end);document.addEventListener("pointercancel",end);
+    render();pull();setInterval(pull,15000);
   }
-  function save(){
-    try{localStorage.setItem(K,JSON.stringify(st))}catch(e){}
-    if(API)fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({lengyelauto:1,state:st})}).catch(function(){});
-  }
-  function pull(){
-    if(!API||cur)return;
-    fetch(API+"?lengyelauto=1&_="+Date.now()).then(function(r){return r.json()}).then(function(d){
-      if(d&&d.state&&!cur){st=d.state;try{localStorage.setItem(K,JSON.stringify(st))}catch(e){}render();}
-    }).catch(function(){});
-  }
-  var cur=null,ghost=null,dx=0,dy=0;
-  function zoneAt(x,y){
-    var e=document.elementFromPoint(x,y);
-    return e&&e.closest?e.closest("#vp-lengyel .zn"):null;
-  }
-  document.addEventListener("pointerdown",function(e){
-    var c=e.target.closest&&e.target.closest("#vp-lengyel .car");
-    if(!c)return;
-    e.preventDefault();
-    cur=c;var r=c.getBoundingClientRect();dx=e.clientX-r.left;dy=e.clientY-r.top;
-    ghost=c.cloneNode(true);ghost.classList.add("ghost");ghost.style.width=r.width+"px";
-    ghost.style.left=r.left+"px";ghost.style.top=r.top+"px";document.body.appendChild(ghost);
-    c.classList.add("drag");
-  });
-  document.addEventListener("pointermove",function(e){
-    if(!cur)return;
-    ghost.style.left=(e.clientX-dx)+"px";ghost.style.top=(e.clientY-dy)+"px";
-    var t=zoneAt(e.clientX,e.clientY);
-    zones.forEach(function(zn){zn.classList.toggle("over",zn===t)});
-  });
-  function end(e){
-    if(!cur)return;
-    var t=zoneAt(e.clientX,e.clientY);
-    if(t){st[cur.dataset.c]=+t.dataset.z;save();}
-    ghost.remove();ghost=null;cur=null;
-    zones.forEach(function(zn){zn.classList.remove("over")});
-    render();
-  }
-  document.addEventListener("pointerup",end);
-  document.addEventListener("pointercancel",end);
-  render();
-  if(API){var h=document.querySelector("#vp-lengyel .hint");if(h)h.textContent="Az autókat húzással lehet másik csoportba tenni (telefonon is). A változtatást mindenki látja.";pull();setInterval(pull,15000);}
+  make({id:"auto",key:"lengyelauto",ls:"csk_lengyel_autok_v1",cls:"car",
+    items:["Gulyás Anna autója","Csikós Máté autója","Farkas Niki autója","Eöry Péter autója","Sznyt Alex autója","Tóth Oszkár autója"],
+    def:{"Gulyás Anna autója":1,"Csikós Máté autója":1,"Farkas Niki autója":2},
+    chip:function(c){return ICON[TYPE[c]||"car"]+"<span>"+c.split(" ")[0]+"</span>"}});
+  /* szobák: zóna 1–5 = szoba, 0 = még nincs szobában */
+  make({id:"szoba",key:"lengyelszoba",ls:"csk_lengyel_szobak_v1",cls:"ppl",
+    items:["Gulyás Anna","Farkas Niki","Farkas Mónika","Akela","Csikós Máté","Ónodi Virág","Tóth Oszkár","Nagy Bettina","Sznyt Alex","Vendég (Sznyt) 1","Vendég (Sznyt) 2","Eöry Péter","Vendég (Eöry)"],
+    def:{"Gulyás Anna":1,"Farkas Niki":1,"Farkas Mónika":1,"Akela":1,"Csikós Máté":2,"Ónodi Virág":2,"Tóth Oszkár":3,"Nagy Bettina":3,"Sznyt Alex":4,"Vendég (Sznyt) 1":4,"Vendég (Sznyt) 2":4,"Eöry Péter":5,"Vendég (Eöry)":5},
+    chip:function(c){return "<span>"+(c.indexOf("Vendég")===0?"+ vendég (még nincs név)":c)+"</span>"}});
 })();
 </script>
 <script src="anim.js?v=4" defer></script>
