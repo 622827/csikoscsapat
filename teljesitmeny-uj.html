@@ -685,8 +685,12 @@
   function sbEs(p) {
     if (!SBES) return null; var key = sbPlain(p.esName || p.name), x = SBES.people.filter(function (q) { return sbPlain(q.name) === key; })[0];
     if (!x) return { found: false, v: 0 };
-    var sm = p.start ? +(p.start.slice(0, 4) + p.start.slice(5, 7)) : 0, v = 0, part = false;
-    (SBES.months || Object.keys(x.mt || {}).map(Number)).forEach(function (m) { if (m >= sm) v += +((x.mt || {})[m]) || 0; });
+    var sm = p.start ? +(p.start.slice(0, 4) + p.start.slice(5, 7)) : 0, v = 0, part = false, now = new Date(), cm = now.getFullYear() * 100 + now.getMonth() + 1;
+    // múlt hónapok: elszámolt tételek; aktuális termelési hónap: 100% leadott (+ a már elszámolt) tételek
+    Object.keys(x.proc || {}).map(Number).forEach(function (m) {
+      if (m < sm || m > cm) return; var r = x.proc[m] || {};
+      Object.keys(r).forEach(function (k) { var q = sbPlain(k); if (q.indexOf("elszamolt") > -1 || (m === cm && q.indexOf("100% leadva") > -1)) v += +r[k] || 0; });
+    });
     if (sm && SBES.months && SBES.months.length && sm < Math.min.apply(null, SBES.months)) part = true;
     return { found: true, v: v, part: part };
   }
