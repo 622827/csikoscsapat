@@ -69,7 +69,7 @@
     var mb = document.createElement("button"); mb.type = "button"; mb.className = "csk-mbtn"; mb.setAttribute("aria-label", "Menü");
     mb.innerHTML = svg('<path d="M4 7h16M4 12h16M4 17h16"/>'); host.insertBefore(mb, host.firstChild);
     var pt = 0;
-    side.addEventListener("mouseenter", function () { clearTimeout(pt); pt = setTimeout(function () { side.classList.add("csk-peek"); }, 450); });
+    side.addEventListener("mouseenter", function () { clearTimeout(pt); pt = setTimeout(function () { side.classList.add("csk-peek"); }, 1000); });
     side.addEventListener("mouseleave", function () { clearTimeout(pt); side.classList.remove("csk-peek"); });
     var pref = null; try { pref = localStorage.getItem(KEY); } catch (e) {}
     root.classList.add("csk-side"); if (pref ? pref === "rail" : window.innerWidth < 1100) root.classList.add("csk-rail");
@@ -104,7 +104,7 @@
     document.querySelectorAll(".topnav li > a[href], .csk-sidebar li > a[href]").forEach(function (a) {
       var key = (a.getAttribute("href") || "").split("#")[0]; var items = SUB[key]; if (!items) return;
       a.addEventListener("mouseenter", function () {
-        clearTimeout(tm); if (cur === a) return; clearTimeout(op); op = setTimeout(function () { open(); }, 350);
+        clearTimeout(tm); if (cur === a) return; clearTimeout(op); op = setTimeout(function () { open(); }, 1000);
       });
       function open() {
         cur = a; box.textContent = "";
