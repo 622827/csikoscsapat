@@ -267,6 +267,7 @@
   <div class="vtabs" role="tablist" aria-label="Verseny">
     <button type="button" role="tab" id="vt-erdely" class="vtab on" aria-selected="true" aria-controls="vp-erdely">Erdélyi Incentive</button>
     <button type="button" role="tab" id="vt-teli" class="vtab" aria-selected="false" aria-controls="vp-teli">Téli Incentive</button>
+    <button type="button" role="tab" id="vt-lengyel" class="vtab" aria-selected="false" aria-controls="vp-lengyel">2025 Lengyelország karácsony</button>
   </div>
   <div id="vp-erdely" role="tabpanel" aria-labelledby="vt-erdely">
   <section class="poster" aria-label="Erdélyi incentive versenykiírás">
@@ -315,6 +316,10 @@
     <div class="tcats" id="tcats" aria-live="polite"></div>
     <p class="tnote" id="tnote"></p>
     <img class="tpost" src="teli-incentive.jpg" alt="Téli Incentive plakát: február 18–21., síelés, hószánozás, szánkózás. Október–január teljesítménye alapján TOP 3 GST, TOP 3 reprezentáns, TOP 2 VR. Regisztrált munkatárs 150 egységgel vagy MNB + 500 technikai." width="956" height="1434">
+  </div>
+  <div id="vp-lengyel" role="tabpanel" aria-labelledby="vt-lengyel" hidden>
+    <h1>2025 Lengyelország karácsony</h1>
+    <p class="lead">A tartalom hamarosan.</p>
   </div>
 </main>
 
@@ -557,7 +562,7 @@
 </script>
 <script>
   (function () {
-    var T = [["vt-erdely", "vp-erdely", "erdely"], ["vt-teli", "vp-teli", "teli"]];
+    var T = [["vt-erdely", "vp-erdely", "erdely"], ["vt-teli", "vp-teli", "teli"], ["vt-lengyel", "vp-lengyel", "lengyel"]];
     function show(k) {
       T.forEach(function (t) {
         var on = t[2] === k;
@@ -565,10 +570,10 @@
         document.getElementById(t[0]).setAttribute("aria-selected", on ? "true" : "false");
         document.getElementById(t[1]).hidden = !on;
       });
-      try { history.replaceState(null, "", k === "teli" ? "#teli" : location.pathname); } catch (e) {}
+      try { history.replaceState(null, "", k === "teli" ? "#teli" : k === "lengyel" ? "#lengyel" : location.pathname); } catch (e) {}
     }
     T.forEach(function (t) { document.getElementById(t[0]).addEventListener("click", function () { show(t[2]); }); });
-    function fromHash() { if (location.hash === "#teli") show("teli"); else if (location.hash === "#erdely") show("erdely"); }
+    function fromHash() { if (location.hash === "#teli") show("teli"); else if (location.hash === "#lengyel") show("lengyel"); else if (location.hash === "#erdely") show("erdely"); }
     fromHash(); window.addEventListener("hashchange", fromHash);
   })();
 </script>
@@ -605,6 +610,6 @@
     .catch(function () { draw([]); note.textContent = "A pontok most nem tölthetők be."; });
 })();
 </script>
-<script src="anim.js?v=3" defer></script>
+<script src="anim.js?v=4" defer></script>
 </body>
 </html>
