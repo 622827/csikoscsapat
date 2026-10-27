@@ -530,17 +530,6 @@
     </form>
     <div id="sb-list"></div>
     <p class="none" id="sb-none"></p>
-    <details class="sb-cfg" id="sb-cfg"><summary>Bónusz összegek és feltételek</summary>
-      <div class="sb-cg">
-        <label class="sb-l">Technikai ES feltétel (ES)<input id="sbc-es" inputmode="numeric"></label>
-        <label class="sb-l">Ösztöndíj: sikeres MNB vizsga (Ft)<input id="sbc-mnb" inputmode="numeric"></label>
-        <label class="sb-l">Ösztöndíj: sikeres kezdő elemző vizsga (Ft)<input id="sbc-kev" inputmode="numeric"></label>
-        <label class="sb-l">Mentorált TA darabonként (Ft)<input id="sbc-ta" inputmode="numeric"></label>
-        <label class="sb-l">Érvényes TA: legalább ennyi ES<input id="sbc-taEs" inputmode="numeric"></label>
-        <label class="sb-l">… vagy legalább ennyi szerződés<input id="sbc-taSz" inputmode="numeric"></label>
-      </div>
-      <button type="button" class="sm" id="sb-save">Mentés</button>
-    </details>
   </div>
 </main>
 
@@ -571,7 +560,7 @@
   }
   function err(t) { $("err").textContent = t || ""; }
   function start() {
-    err("Betöltés…"); setTimeout(asInit, 0);
+    err("Betöltés…"); setTimeout(asInit, 0); sbLoadEs();
     sha("csk-perf|" + PW).then(function (h) { ID = h; return fetch("firebase-config.json").then(function (r) { return r.json(); }); }).then(function (cfg) {
       CFG = cfg;
       var V = "https://www.gstatic.com/firebasejs/10.14.1/";
@@ -700,6 +689,12 @@
   function sbNum(n) { return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
   // Technikai ES: a munkatárs azonos nevű pipeline-jából, a kezdés hónapjától (elszámolt + aktuális hónap 100% leadott)
   function sbEs(p) {
+    var pp = SBPIPE[sbPlain(p.esName || p.name)];
+    if (pp && pp.rows) {
+      var sm0 = p.start ? +(p.start.slice(0, 4) + p.start.slice(5, 7)) : 0, nw = new Date(), cm0 = nw.getFullYear() * 100 + nw.getMonth() + 1, v0 = 0;
+      pp.rows.forEach(function (r) { if (!r.month || r.month < sm0 || r.month > cm0) return; var q = sbPlain(r.proc); if (q.indexOf("elszamolt") > -1 || (r.month === cm0 && q.indexOf("100% leadva") > -1)) v0 += r.es; });
+      return { found: true, v: v0, part: false };
+    }
     if (!SBES) return null; var key = sbPlain(p.esName || p.name), x = SBES.people.filter(function (q) { return sbPlain(q.name) === key; })[0];
     if (!x) return { found: false, v: 0 };
     var sm = p.start ? +(p.start.slice(0, 4) + p.start.slice(5, 7)) : 0, v = 0, part = false, now = new Date(), cm = now.getFullYear() * 100 + now.getMonth() + 1;
@@ -726,19 +721,18 @@
     var want = L.map(function (p) { var sg = sbSig(p), o = have[p.id]; if (o && o.dataset.sig === sg) return o; var n = sbCard(p); n.dataset.id = p.id; n.dataset.sig = sg; return n; });
     want.forEach(function (n, i) { var at = box.children[i]; if (at !== n) { if (at && at.dataset && at.dataset.id && want.indexOf(at) < 0) box.replaceChild(n, at); else box.insertBefore(n, at || null); } });
     while (box.children.length > want.length) box.removeChild(box.lastChild);
-    var cf = sbCfg(); if (!$("sb-cfg").open) Object.keys(SB_DEF).forEach(function (k) { var x = $("sbc-" + k); if (x) x.value = cf[k]; });
   }
   var sbAnim = "", sbEsVer = 0, SBPIPE = {};
   // A munkatárs pipeline-jának elszámolt tételei ügyfelenként összesítve: ezekből lehet mentorált TA-t választani
   function sbPipe(p) {
     var nm = p.esName || p.name, k = sbPlain(nm); if (SBPIPE[k]) return SBPIPE[k];
-    SBPIPE[k] = { loading: true };
+    var cached = sbLsGet("sb_pipe2_" + k); SBPIPE[k] = cached && cached.list ? cached : { loading: true };
     fetch(SB_ES_URL + "?pipe=" + encodeURIComponent(nm) + "&_=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
-      if (!d || !d.ok) { SBPIPE[k] = { err: (d && d.error) || "nem elérhető" }; sbEsVer++; soon(sbRender); return; }
-      var by = {}, order = [];
-      d.rows.forEach(function (r) { var c = sbPlain(r.cust); if (!by[c]) { by[c] = { nev: r.cust, es: 0, sz: 0 }; order.push(c); } by[c].es += r.es; by[c].sz++; });
-      SBPIPE[k] = { list: order.map(function (c) { return by[c]; }) }; sbEsVer++; soon(sbRender);
-    }).catch(function () { SBPIPE[k] = { err: "nem tölthető be" }; sbEsVer++; soon(sbRender); });
+      if (!d || !d.ok) { if (SBPIPE[k] && SBPIPE[k].list) return; SBPIPE[k] = { err: (d && d.error) || "nem elérhető" }; sbEsVer++; soon(sbRender); return; }
+      var by = {}, order = [], rows = d.rows.map(function (r) { return { cust: r.cust, month: +r.month || 0, proc: r.proc || "elszámolt", es: +r.es || 0 }; });
+      rows.forEach(function (r) { if (!r.cust || sbPlain(r.proc).indexOf("elszamolt") < 0) return; var c = sbPlain(r.cust); if (!by[c]) { by[c] = { nev: r.cust, es: 0, sz: 0 }; order.push(c); } by[c].es += r.es; by[c].sz++; });
+      SBPIPE[k] = { list: order.map(function (c) { return by[c]; }), rows: rows }; sbLsSet("sb_pipe2_" + k, SBPIPE[k]); sbEsVer++; soon(sbRender);
+    }).catch(function () { if (SBPIPE[k] && SBPIPE[k].list) return; SBPIPE[k] = { err: "nem tölthető be" }; sbEsVer++; soon(sbRender); });
     return SBPIPE[k];
   }
   function sbSig(p) { return JSON.stringify([p.name, p.start, p.mentor, p.mnb, p.kev, p.ta, p.esName, sbConfirm === p.id, sbEsVer, sbEsErr, SBC && SBC.bon, sbAnim.indexOf(p.id + ":") === 0 ? sbAnim : ""]); }
@@ -757,11 +751,11 @@
       // 1. Technikai ES – jogosultság
       var es = el("div", "sb-k"), eh = el("div", "sb-kh");
       eh.appendChild(el("b", "", "Technikai ES")); eh.appendChild(el("span", "sb-tag " + (R.ok ? "ok" : "wait"), R.ok ? "jogosult" : "feltétel"));
-      eh.appendChild(el("span", "sb-v", (SBES ? sbNum(R.es) : "…") + " / " + sbNum(c.es) + " ES")); es.appendChild(eh);
+      eh.appendChild(el("span", "sb-v", (R.e ? sbNum(R.es) : "…") + " / " + sbNum(c.es) + " ES")); es.appendChild(eh);
       var bar = el("div", "sb-bar"), bi = el("i"); bi.style.width = Math.min(100, c.es > 0 ? R.es / c.es * 100 : 0) + "%"; bar.appendChild(bi); es.appendChild(bar);
-      var note = !SBES ? (sbEsErr || "A pipeline betöltése…") : !R.e.found ? "Nincs „" + (p.esName || p.name) + "” nevű sor a pipeline-ban. Írd be a pipeline-ban szereplő nevet:" : "A(z) " + (p.esName || p.name) + " pipeline-ból, a kezdés hónapjától: korábbi hónapok elszámolt tételei + az aktuális hónap 100% leadott tételei." + (R.e.part ? " A kezdés az aktuális negyedév előtt volt, a korábbi hónapok itt nem látszanak." : "");
+      var note = !R.e ? (sbEsErr || "A pipeline betöltése…") : !R.e.found ? "Nincs „" + (p.esName || p.name) + "” nevű sor a pipeline-ban. Írd be a pipeline-ban szereplő nevet:" : "A(z) " + (p.esName || p.name) + " pipeline-ból, a kezdés hónapjától: korábbi hónapok elszámolt tételei + az aktuális hónap 100% leadott tételei." + (R.e.part ? " A kezdés az aktuális negyedév előtt volt, a korábbi hónapok itt nem látszanak." : "");
       var nt = el("div", "sb-note", note); es.appendChild(nt);
-      if (SBES && !R.e.found || p.esName) { var ni = el("input"); ni.type = "text"; ni.placeholder = "Név a pipeline-ban"; ni.value = p.esName || ""; ni.className = "sb-in"; ni.addEventListener("change", function () { sbUpd(p.id, { esName: ni.value.trim() }); }); es.appendChild(ni); }
+      if (R.e && !R.e.found || p.esName) { var ni = el("input"); ni.type = "text"; ni.placeholder = "Név a pipeline-ban"; ni.value = p.esName || ""; ni.className = "sb-in"; ni.addEventListener("change", function () { sbUpd(p.id, { esName: ni.value.trim() }); }); es.appendChild(ni); }
       card.appendChild(es);
       // 2–3. Vizsgák
       [["mnb", "Sikeres MNB vizsga · ösztöndíj", c.mnb], ["kev", "Sikeres kezdő elemző vizsga · ösztöndíj", c.kev]].forEach(function (q) {
@@ -806,15 +800,20 @@
       return card;
   }
   function sbUpd(id, patch) { FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "sb", id), patch).catch(function (e) { toast("Mentés sikertelen: " + e.message); }); }
+  function sbLsGet(k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function sbLsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  var sbEsReq = false;
   function sbLoadEs() {
+    if (sbEsReq) return; sbEsReq = true;
+    var c = sbLsGet("sb_es"); if (c && c.people && !SBES) { SBES = c; sbEsVer++; }
     fetch(SB_ES_URL + "?_=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
       if (!d || d.error || !d.people) { sbEsVer++; sbEsErr = "A pipeline adatai nem érhetők el" + (d && d.error ? " (" + d.error + ")" : "") + "."; soon(sbRender); return; }
-      SBES = { people: d.people, months: d.months || [] }; sbEsVer++; soon(sbRender);
+      SBES = { people: d.people.map(function (x) { return { name: x.name, proc: x.proc, mt: x.mt }; }), months: d.months || [] }; sbLsSet("sb_es", SBES); sbEsVer++; soon(sbRender);
     }).catch(function () { sbEsVer++; sbEsErr = "A pipeline adatai nem tölthetők be."; soon(sbRender); });
   }
   function sbStart() {
-    if (sbReady) return; sbReady = true; sbLoadEs();
-    FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "sb"), function (snap) { SB = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); soon(sbRender); }, function (e) { toast("Start bónusz: " + e.message); });
+    if (sbReady) return; sbReady = true;
+    FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "sb"), function (snap) { SB = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); SB.forEach(sbPipe); soon(sbRender); }, function (e) { toast("Start bónusz: " + e.message); });
     FB.F.onSnapshot(FB.F.doc(FB.db, "perf", ID, "sbcfg", "main"), function (d) { SBC = d.exists() ? d.data() : null; soon(sbRender); }, function () {});
   }
   function sbInit() {
@@ -826,11 +825,6 @@
       var nm = $("sb-name").value.trim(); if (!nm) return;
       FB.F.setDoc(FB.F.doc(FB.F.collection(FB.db, "perf", ID, "sb")), { name: nm, start: $("sb-start").value || todayIso(), mentor: $("sb-mentor").value, mnb: false, kev: false, ta: [], created: Date.now() }).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
       $("sb-name").value = ""; $("sb-name").focus();
-    });
-    $("sb-save").addEventListener("click", function () {
-      if (!FB) return; var bon = {};
-      for (var k in SB_DEF) { var v = String($("sbc-" + k).value).replace(/\s/g, "").replace(",", "."); if (v === "" || !isFinite(+v) || +v < 0) { toast("Az értékek nem negatív számok legyenek."); return; } bon[k] = +v; }
-      FB.F.setDoc(FB.F.doc(FB.db, "perf", ID, "sbcfg", "main"), { bon: bon }, { merge: true }).then(function () { toast("Mentve."); $("sb-cfg").open = false; }).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
     });
   }
   function asTab(k) {
