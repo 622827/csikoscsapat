@@ -301,6 +301,16 @@
   .vz .acts{display:flex;gap:10px;flex-wrap:wrap}
   .vz .note{font-size:.8rem;color:var(--muted);margin-top:14px}
   .vz [hidden]{display:none!important}
+  .st .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:10px 0 14px}
+  .st .k{background:var(--track);border-radius:12px;padding:10px 12px}.st .k b{display:block;font-size:1.35rem;line-height:1.2}.st .k span{font-size:.78rem;color:var(--muted)}
+  .st h3{font-size:.95rem;margin:14px 0 6px}
+  .st .hist{display:flex;align-items:flex-end;gap:5px;height:90px;border-bottom:1px solid var(--track)}
+  .st .hist i{flex:1;min-width:6px;max-width:34px;background:var(--accent);border-radius:5px 5px 0 0;position:relative}
+  .st .hist i em{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:.68rem;font-style:normal;color:var(--muted);white-space:nowrap}
+  .st .sj{display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:4px 10px;align-items:center;font-size:.85rem;margin-bottom:8px}
+  .st .sj .t{grid-column:1/-1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .st .sj .b{height:8px;background:var(--track);border-radius:6px;overflow:hidden}.st .sj .b i{display:block;height:100%;background:var(--accent)}
+  .st .sj .p{text-align:right;font-weight:600}
 </style>
 <h1>Vizsga gyakorló</h1>
 <p class="lead" id="vz-lead"></p>
@@ -321,6 +331,16 @@
     <p class="meta" id="vz-meta">Kérdésbank betöltése…</p>
     <div class="acts"><button type="button" class="btn pri" id="vz-go" disabled>Indítás</button><button type="button" class="btn" id="vz-reset" hidden>Hibák törlése</button></div>
     <p class="note" id="vz-src"></p>
+  </div>
+  <div class="card st" id="vz-stat">
+    <h2>Statisztika</h2>
+    <p class="meta" id="st-empty">Még nincs adat. Az első gyakorlás vagy próbavizsga után itt jelenik meg.</p>
+    <div id="st-body" hidden>
+      <div class="grid" id="st-grid"></div>
+      <h3>Utolsó próbavizsgák (%)</h3><div class="hist" id="st-hist"></div>
+      <h3>Pontosság vizsgatárgyanként</h3><div id="st-sj"></div>
+    </div>
+    <div class="acts"><button type="button" class="btn" id="st-reset" hidden>Statisztika törlése</button></div>
   </div>
   <div class="card" id="vz-run" hidden>
     <div class="qhead"><span id="r-pos"></span><span id="r-sc"></span><span id="r-tm"></span></div>
@@ -355,13 +375,14 @@
     bank=b;LS="csk_vizsga_hibak_v2_"+b;wrong={};
     try{wrong=JSON.parse(localStorage.getItem(LS)||"{}")||{}}catch(e){}
     try{localStorage.setItem("csk_vizsga_bank",b)}catch(e){}
-    clearInterval(tm);show("vz-setup");
+    clearInterval(tm);
     var tabs=document.querySelectorAll("#bank-tabs button");for(var i=0;i<tabs.length;i++)tabs[i].setAttribute("aria-pressed",tabs[i].dataset.b===b);
     $("vz-lead").textContent=BANKS[b].n+" hatósági vizsga – gyakorlás és próbavizsga az MNB hivatalos kérdésbankjával.";
     $("vz-src").textContent="Forrás: "+BANKS[b].src+" A gyakorlás eredménye csak ezen az eszközön marad meg.";
     $("vz-meta").textContent="Kérdésbank betöltése…";$("vz-go").disabled=true;
-    if(cache[b]){D=cache[b];init();return}
-    fetch(BANKS[b].f).then(function(r){return r.json()}).then(function(d){cache[b]=d;if(bank===b){D=d;init()}}).catch(function(){$("vz-meta").textContent="A kérdésbank betöltése nem sikerült. Frissítsd az oldalt."});
+    loadStat();
+    if(cache[b]){D=cache[b];init();show("vz-setup");return}
+    fetch(BANKS[b].f).then(function(r){return r.json()}).then(function(d){cache[b]=d;if(bank===b){D=d;init();show("vz-setup")}}).catch(function(){$("vz-meta").textContent="A kérdésbank betöltése nem sikerült. Frissítsd az oldalt."});
   }
   document.querySelectorAll("#bank-tabs button").forEach(function(bt){bt.onclick=function(){if(bt.dataset.b!==bank)loadBank(bt.dataset.b)}});
   var b0="biztositas";try{b0=localStorage.getItem("csk_vizsga_bank")||b0}catch(e){}
@@ -402,7 +423,34 @@
   }
   $("vz-reset").onclick=function(){wrong={};saveW();meta()};
   var picks=[],orders=[],Q=[],pos=0,score=0,answered=false,log=[],tm=null,left=0,pick=-1,order=[];
-  function show(id){["vz-setup","vz-run","vz-res"].forEach(function(x){$(x).hidden=x!==id});window.scrollTo(0,0)}
+  function show(id){["vz-setup","vz-stat","vz-run","vz-res"].forEach(function(x){$(x).hidden=(x==="vz-stat"?id!=="vz-setup":x!==id)});if(id==="vz-setup")renderStat();window.scrollTo(0,0)}
+  var SK="",ST={pv:[],sj:{},seen:{},gy:[0,0]};
+  function loadStat(){SK="csk_vizsga_stat_v1_"+bank;ST={pv:[],sj:{},seen:{},gy:[0,0]};try{var o=JSON.parse(localStorage.getItem(SK)||"null");if(o)ST=o}catch(e){}}
+  function saveStat(){try{localStorage.setItem(SK,JSON.stringify(ST))}catch(e){}}
+  function rec(qi,ok,gy){var q=D.q[qi],a=ST.sj[q[0]]||(ST.sj[q[0]]=[0,0]);a[0]++;if(ok)a[1]++;ST.seen[qi]=1;if(gy){ST.gy[0]++;if(ok)ST.gy[1]++}}
+  function pc(a,b){return b?Math.round(a/b*100):0}
+  function renderStat(){
+    if(!D)return;
+    var tot=ST.gy[0],pv=ST.pv,has=tot||pv.length;
+    $("st-empty").hidden=!!has;$("st-body").hidden=!has;$("st-reset").hidden=!has;if(!has)return;
+    var g=$("st-grid");g.innerHTML="";
+    function k(v,l){var d=el("div","k");d.appendChild(el("b",0,v));d.appendChild(el("span",0,l));g.appendChild(d)}
+    var seen=Object.keys(ST.seen).length;
+    k(pv.length,"próbavizsga");
+    if(pv.length){var av=Math.round(pv.reduce(function(s,x){return s+x.p},0)/pv.length),bs=Math.max.apply(null,pv.map(function(x){return x.p})),tt=Math.round(pv.reduce(function(s,x){return s+x.s},0)/pv.length/60);
+      k(av+"%","átlag eredmény");k(bs+"%","legjobb eredmény");k(pv[pv.length-1].p+"%","legutóbbi");k(tt+" perc","átlagos idő")}
+    k(tot,"gyakorolt kérdés");if(tot)k(pc(ST.gy[1],tot)+"%","gyakorlás pontossága");
+    k(pc(seen,D.q.length)+"%","a bankból már láttad ("+seen+"/"+D.q.length+")");
+    k(Object.keys(wrong).length,"jelenleg hibásnak jelölt");
+    var h=$("st-hist");h.innerHTML="";
+    pv.slice(-12).forEach(function(x){var i=el("i");i.style.height=Math.max(x.p,3)+"%";i.title=x.d+" · "+x.p+"%";i.appendChild(el("em",0,x.p));h.appendChild(i)});
+    if(!pv.length)h.appendChild(el("span","meta","Még nem volt próbavizsga."));
+    var sj=$("st-sj");sj.innerHTML="";
+    D.s.forEach(function(nm,i){var a=ST.sj[i];if(!a||!a[0])return;
+      var r=el("div","sj"),p=pc(a[1],a[0]);r.appendChild(el("div","t",nm+" ("+a[0]+" válasz)"));
+      var b=el("div","b"),f=el("i");f.style.width=p+"%";b.appendChild(f);r.appendChild(b);r.appendChild(el("div","p",p+"%"));sj.appendChild(r)});
+  }
+  $("st-reset").onclick=function(){if(confirm("Biztosan törlöd ennek a vizsgatípusnak a statisztikáját?")){ST={pv:[],sj:{},seen:{},gy:[0,0]};saveStat();renderStat()}};
   $("vz-go").onclick=function(){
     var p=shuf(pool());
     if(mode==="pv"){p=p.slice(0,60);left=0}
@@ -447,7 +495,7 @@
       for(var i=0;i<bs.length;i++){bs[i].disabled=true;if(order[i]===q[4])bs[i].classList.add("ok")}
       if(!ok)bs[k].classList.add("bad");
       $("r-fb").hidden=false;$("r-fb").className="fb "+(ok?"ok":"bad");$("r-fb").textContent=ok?"Helyes!":"Nem jó. A helyes válasz zölddel jelölve.";
-      if(ok){score++;delete wrong[qi]}else wrong[qi]=1;saveW();$("r-sc").textContent="Helyes: "+score+" / "+(pos+1);
+      if(ok){score++;delete wrong[qi]}else wrong[qi]=1;saveW();rec(qi,ok,true);saveStat();$("r-sc").textContent="Helyes: "+score+" / "+(pos+1);
       log.push({qi:qi,ok:ok,given:q[3][order[k]]});
     }else{
       picks[pos]=k;for(var j=0;j<bs.length;j++)bs[j].classList.toggle("sel",j===k);
@@ -468,8 +516,11 @@
     clearInterval(tm);
     if(mode==="pv"){
       log=[];Q.forEach(function(qi,i){var q=D.q[qi],o=orders[i],k=picks[i],ok=k!=null&&o[k]===q[4];
-        if(ok)delete wrong[qi];else wrong[qi]=1;log.push({qi:qi,ok:ok,given:k!=null?q[3][o[k]]:null})});
+        if(ok)delete wrong[qi];else wrong[qi]=1;rec(qi,ok,false);log.push({qi:qi,ok:ok,given:k!=null?q[3][o[k]]:null})});
       saveW();
+      var okc=log.filter(function(l){return l.ok}).length,dt=new Date();
+      ST.pv.push({p:Math.round(okc/Q.length*100),s:Math.min(3600,Math.max(0,3600-Math.max(left,0))),d:dt.toLocaleDateString("hu-HU")});
+      if(ST.pv.length>50)ST.pv=ST.pv.slice(-50);saveStat();
     }
     var n=mode==="pv"?Q.length:log.length,ok=log.filter(function(l){return l.ok}).length;
     $("x-t").textContent=mode==="pv"?"Próbavizsga eredménye (60 kérdés)":"Gyakorlás eredménye";
