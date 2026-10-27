@@ -357,6 +357,8 @@
   .pg .sb-ts { font-size: .82rem; color: var(--muted); font-weight: 600; }
   .pg .sb-tile.bon .sb-tv { color: var(--muted); } .pg .sb-tile.bon.ok { border-color: #1f9d5c; } .pg .sb-tile.bon.ok .sb-tv, .pg .sb-tile.bon.ok .sb-ts { color: #1f9d5c; }
   .pg .sb-tile.all { background: var(--accent); color: var(--on-accent, #fff); } .pg .sb-tile.all .sb-tl, .pg .sb-tile.all .sb-ts { color: inherit; opacity: .8; }
+  .pg .sb-pick { margin: 4px 0 8px; }
+  .pg .sb-pick select { width: 100%; font: inherit; font-size: .92rem; font-weight: 600; padding: 8px 10px; border-radius: 10px; border: 2px solid var(--accent); background: var(--bg); color: var(--ink); cursor: pointer; }
   .pg .sb-cg { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 16px; }
   .pg .vw { display: inline-flex; margin-left: auto; border: 2px solid var(--track, #e5e5e5); border-radius: 999px; overflow: hidden; }
   .pg .vw button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; padding: 6px 14px; cursor: pointer; transition: background .2s, color .2s; }
@@ -726,7 +728,19 @@
     while (box.children.length > want.length) box.removeChild(box.lastChild);
     var cf = sbCfg(); if (!$("sb-cfg").open) Object.keys(SB_DEF).forEach(function (k) { var x = $("sbc-" + k); if (x) x.value = cf[k]; });
   }
-  var sbAnim = "", sbEsVer = 0;
+  var sbAnim = "", sbEsVer = 0, SBPIPE = {};
+  // A munkatárs pipeline-jának elszámolt tételei ügyfelenként összesítve: ezekből lehet mentorált TA-t választani
+  function sbPipe(p) {
+    var nm = p.esName || p.name, k = sbPlain(nm); if (SBPIPE[k]) return SBPIPE[k];
+    SBPIPE[k] = { loading: true };
+    fetch(SB_ES_URL + "?pipe=" + encodeURIComponent(nm) + "&_=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || !d.ok) { SBPIPE[k] = { err: (d && d.error) || "nem elérhető" }; sbEsVer++; soon(sbRender); return; }
+      var by = {}, order = [];
+      d.rows.forEach(function (r) { var c = sbPlain(r.cust); if (!by[c]) { by[c] = { nev: r.cust, es: 0, sz: 0 }; order.push(c); } by[c].es += r.es; by[c].sz++; });
+      SBPIPE[k] = { list: order.map(function (c) { return by[c]; }) }; sbEsVer++; soon(sbRender);
+    }).catch(function () { SBPIPE[k] = { err: "nem tölthető be" }; sbEsVer++; soon(sbRender); });
+    return SBPIPE[k];
+  }
   function sbSig(p) { return JSON.stringify([p.name, p.start, p.mentor, p.mnb, p.kev, p.ta, p.esName, sbConfirm === p.id, sbEsVer, sbEsErr, SBC && SBC.bon, sbAnim.indexOf(p.id + ":") === 0 ? sbAnim : ""]); }
   function sbCard(p) {
       var R = sbCalc(p), c = R.c, card = el("div", "sb-c csk-keep"), h = el("div", "sb-h");
@@ -769,7 +783,19 @@
         tl.appendChild(r);
       });
       tk.appendChild(tl);
-      var ad = el("button", "sm gh", "+ Mentorált TA"); ad.type = "button"; ad.addEventListener("click", function () { var a = (p.ta || []).slice(); a.push({ nev: "", es: 0, sz: 0 }); sbUpd(p.id, { ta: a }); }); tk.appendChild(ad);
+      var pp = sbPipe(p), used = {}; (p.ta || []).forEach(function (t) { used[sbPlain(t.nev)] = 1; });
+      var pr = el("div", "sb-pick");
+      if (pp.list) {
+        var opts = pp.list.filter(function (o) { return !used[sbPlain(o.nev)]; });
+        if (opts.length) {
+          var ps = el("select"); var o0 = el("option", "", "Választás a pipeline elszámolt szerződéseiből (" + opts.length + ")…"); o0.value = ""; ps.appendChild(o0);
+          opts.forEach(function (o, i) { var op = el("option", "", o.nev + " · " + sbNum(o.es) + " ES · " + o.sz + " szerz." + (sbTaOk(o, c) ? " ✓" : "")); op.value = String(i); ps.appendChild(op); });
+          ps.addEventListener("change", function () { var o = opts[+ps.value]; if (!o) return; var a = (p.ta || []).slice(); a.push({ nev: o.nev, es: o.es, sz: o.sz, src: "pipeline" }); sbUpd(p.id, { ta: a }); });
+          pr.appendChild(ps);
+        } else pr.appendChild(el("span", "sb-note", pp.list.length ? "A pipeline összes elszámolt ügyfele fel van véve." : "A pipeline-ban még nincs elszámolt tétel."));
+      } else pr.appendChild(el("span", "sb-note", pp.loading ? "Pipeline betöltése…" : "Pipeline: " + pp.err + (pp.err === "Ismeretlen kérés." ? "" : "")));
+      tk.appendChild(pr);
+      var ad = el("button", "sm gh", "+ Kézzel"); ad.type = "button"; ad.addEventListener("click", function () { var a = (p.ta || []).slice(); a.push({ nev: "", es: 0, sz: 0 }); sbUpd(p.id, { ta: a }); }); tk.appendChild(ad);
       card.appendChild(tk);
       var sm = el("div", "sb-sum");
       function tile(cls, lab, val, sub) { var t = el("div", "sb-tile " + cls); t.appendChild(el("span", "sb-tl", lab)); t.appendChild(el("b", "sb-tv", val)); if (sub) t.appendChild(el("span", "sb-ts", sub)); sm.appendChild(t); }
