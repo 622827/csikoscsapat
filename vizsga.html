@@ -429,7 +429,7 @@
   var picks=[],orders=[],Q=[],pos=0,score=0,answered=false,log=[],tm=null,left=0,pick=-1,order=[];
   function show(id){["vz-setup","vz-stat","vz-run","vz-res"].forEach(function(x){$(x).hidden=(x==="vz-stat"?id!=="vz-setup":x!==id)});if(id==="vz-setup")renderStat();window.scrollTo(0,0)}
   var CAPI="https://script.google.com/macros/s/AKfycbw8Y42fZakxtGzr1CwUwahYviEhkfktzV6JhYfmKXQPjOpZQ6jb7X2-gBQqchDkAKgkeQ/exec";
-  function showCnt(n){if(typeof n!=="number")return;$("cnt-n").textContent=n.toLocaleString("hu-HU");$("cnt").hidden=false}
+  function showCnt(n){if(typeof n!=="number"||n<11)return;$("cnt-n").textContent=n.toLocaleString("hu-HU");$("cnt").hidden=false}
   function loadCnt(){fetch(CAPI+"?count=1").then(function(r){return r.json()}).then(function(d){showCnt(d.count)}).catch(function(){})}
   function bumpCnt(){fetch(CAPI,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({vizsgaszam:1})}).then(function(r){return r.json()}).then(function(d){showCnt(d.count)}).catch(function(){})}
   var SK="",ST={pv:[],sj:{},seen:{},gy:[0,0]};
