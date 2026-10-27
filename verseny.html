@@ -705,11 +705,13 @@
     muscle:'<svg viewBox="0 0 48 28" aria-hidden="true"><path d="M2 21v-5l6-2 8-5h14l8 5 8 1v6z" fill="currentColor"/><path d="M17 10.5h9l5 3.5H14zM2 21v-2h4v2z" fill="#fff" opacity=".85"/><path d="M0 16h48" stroke="#fff" stroke-width="1" opacity=".5"/>'+W+'</svg>'
   };
   var TYPE={"Gulyás Anna autója":"van","Farkas Niki autója":"wagon","Csikós Máté autója":"muscle"};
+  var OLD={"Eöry Péter autója":"Őry Péter autója","Eöry Péter":"Őry Péter","Vendég (Eöry)":"Vendég (Őry)"};
+  function norm(o){var r={};Object.keys(o||{}).forEach(function(k){r[OLD[k]||k]=o[k]});return r}
   function make(cfg){
     var root=document.querySelector('#vp-lengyel [data-b="'+cfg.id+'"]');
     if(!root)return;
     var zones=root.querySelectorAll(".zn"),st={},cur=null,ghost=null,dx=0,dy=0,dirty=false,saved="{}";
-    try{st=JSON.parse(localStorage.getItem(cfg.ls)||"{}")||{}}catch(e){}
+    try{st=norm(JSON.parse(localStorage.getItem(cfg.ls)||"{}")||{})}catch(e){}
     saved=JSON.stringify(st);
     function z(c){return st[c]!=null?st[c]:(cfg.def[c]||0)}
     var bar=document.createElement("div");bar.className="csb";bar.hidden=true;
@@ -745,7 +747,7 @@
     function pull(){
       if(cur||dirty)return;
       fetch(API+"?key="+cfg.key+"&_="+Date.now()).then(function(r){return r.json()}).then(function(d){
-        if(d&&d.state&&!cur&&!dirty&&Object.keys(d.state).length){st=d.state;saved=JSON.stringify(st);try{localStorage.setItem(cfg.ls,saved)}catch(e){}render();}
+        if(d&&d.state&&!cur&&!dirty&&Object.keys(d.state).length){st=norm(d.state);saved=JSON.stringify(st);try{localStorage.setItem(cfg.ls,saved)}catch(e){}render();}
       }).catch(function(){});
     }
     function zoneAt(x,y){var e=document.elementFromPoint(x,y);var n=e&&e.closest?e.closest(".zn"):null;return n&&root.contains(n)?n:null}
@@ -772,13 +774,13 @@
     render();pull();setInterval(pull,15000);
   }
   make({id:"auto",key:"lengyelauto",ls:"csk_lengyel_autok_v1",cls:"car",
-    items:["Gulyás Anna autója","Csikós Máté autója","Farkas Niki autója","Eöry Péter autója","Sznyt Alex autója","Tóth Oszkár autója"],
+    items:["Gulyás Anna autója","Csikós Máté autója","Farkas Niki autója","Őry Péter autója","Sznyt Alex autója","Tóth Oszkár autója"],
     def:{"Gulyás Anna autója":1,"Csikós Máté autója":1,"Farkas Niki autója":2},
     chip:function(c){return ICON[TYPE[c]||"car"]+"<span>"+c.split(" ")[0]+"</span>"}});
   /* szobák: zóna 1–5 = szoba, 0 = még nincs szobában */
   make({id:"szoba",key:"lengyelszoba",ls:"csk_lengyel_szobak_v1",cls:"ppl",
-    items:["Gulyás Anna","Farkas Niki","Farkas Mónika","Akela","Csikós Máté","Ónodi Virág","Koda","Mia","Tóth Oszkár","Nagy Bettina","Sznyt Alex","Vendég (Sznyt) 1","Vendég (Sznyt) 2","Eöry Péter","Vendég (Eöry)"],
-    def:{"Gulyás Anna":1,"Farkas Niki":1,"Farkas Mónika":1,"Akela":1,"Csikós Máté":2,"Ónodi Virág":2,"Koda":2,"Mia":2,"Tóth Oszkár":3,"Nagy Bettina":3,"Sznyt Alex":4,"Vendég (Sznyt) 1":4,"Vendég (Sznyt) 2":4,"Eöry Péter":5,"Vendég (Eöry)":5},
+    items:["Gulyás Anna","Farkas Niki","Farkas Mónika","Akela","Csikós Máté","Ónodi Virág","Koda","Mia","Tóth Oszkár","Nagy Bettina","Sznyt Alex","Vendég (Sznyt) 1","Vendég (Sznyt) 2","Őry Péter","Vendég (Őry)"],
+    def:{"Gulyás Anna":1,"Farkas Niki":1,"Farkas Mónika":1,"Akela":1,"Csikós Máté":2,"Ónodi Virág":2,"Koda":2,"Mia":2,"Tóth Oszkár":3,"Nagy Bettina":3,"Sznyt Alex":4,"Vendég (Sznyt) 1":4,"Vendég (Sznyt) 2":4,"Őry Péter":5,"Vendég (Őry)":5},
     chip:function(c){return "<span>"+(c.indexOf("Vendég")===0?"+ vendég (még nincs név)":c)+"</span>"}});
 })();
 </script>
