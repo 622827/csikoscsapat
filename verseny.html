@@ -338,6 +338,17 @@
   .bk-r i{font-style:normal;font-size:.8rem;color:#555;white-space:nowrap}
   .bk-r p{grid-column:1/-1;font-size:.93rem}
   .bk-note{background:#fff4e5;border-left:4px solid #febb02;padding:10px 14px;font-size:.9rem;border-radius:4px}
+  .cz{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .zn{border:2px dashed #c3cadb;border-radius:8px;padding:10px;min-height:96px;background:#f6f8fc}
+  .zn.over{border-color:#003b95;background:#e8f0ff}
+  .zn h4{margin:0 0 8px;font-size:.78rem;letter-spacing:.04em;text-transform:uppercase;color:#555}
+  .zl{display:grid;gap:6px;min-height:36px}
+  .car{background:#fff;border:1px solid #003b95;color:#003b95;border-radius:6px;padding:8px 10px;font-size:.92rem;font-weight:600;cursor:grab;touch-action:none;user-select:none}
+  .car.drag{opacity:.5;cursor:grabbing}
+  .car.ghost{position:fixed;z-index:9999;pointer-events:none;box-shadow:0 6px 18px #0004;opacity:.95}
+  .zn[data-z="0"] .car{border-color:#999;color:#444}
+  .hint{font-size:.8rem;color:#666;margin-top:8px}
+  @media(max-width:620px){.cz{grid-template-columns:1fr}}
   .bk-ok{color:#008009;font-weight:600}
   @media(max-width:620px){.bk-d{grid-template-columns:1fr 1fr}.bk-d>div:nth-child(2){border-right:0}.bk-d>div:nth-child(-n+2){border-bottom:1px solid #e0e4ec}.bk-r>div{grid-template-columns:1fr}}
 </style>
@@ -347,8 +358,16 @@
     <div class="bk">
       <div class="bk-h"><h2>Utazás</h2><p>Indulás december 23-án, szerdán · két csoportban</p></div>
       <div class="bk-d" style="grid-template-columns:1fr 1fr">
-        <div><small>1. csoport</small><b>Délelőtt</b><span>Indulás: 11:00<br>Találkozó Hatvanban: 11:45<br>Onnan tovább Lengyelországba<br><b style="display:inline;font-size:inherit;color:inherit">Autók:</b> Gulyás Anna autója, Csikós Máté autója</span></div>
-        <div><small>2. csoport</small><b>Délután</b><span>Indulás: kb. 15:00<br>Pontos időpontot még pontosítjuk<br><b style="display:inline;font-size:inherit;color:inherit">Autók:</b> Farkas Niki autója</span></div>
+        <div><small>1. csoport</small><b>Délelőtt</b><span>Indulás: 11:00<br>Találkozó Hatvanban: 11:45<br>Onnan tovább Lengyelországba</span></div>
+        <div><small>2. csoport</small><b>Délután</b><span>Indulás: kb. 15:00<br>Pontos időpontot még pontosítjuk</span></div>
+      </div>
+      <div class="bk-s"><h3>Autók beosztása</h3>
+        <div class="cz">
+          <div class="zn" data-z="1"><h4>1. csoport · délelőtt</h4><div class="zl"></div></div>
+          <div class="zn" data-z="2"><h4>2. csoport · délután</h4><div class="zl"></div></div>
+          <div class="zn" data-z="0"><h4>Még nincs beosztva</h4><div class="zl"></div></div>
+        </div>
+        <p class="hint">Az autókat húzással lehet másik csoportba tenni (telefonon is). A változtatás csak ezen az eszközön marad meg.</p>
       </div>
       <div class="bk-s"><div class="bk-note">Az utazás kb. 5–6 óra Budapestről autóval (Szlovákián át). A beosztást és a pontos időpontokat később pontosítjuk.</div></div>
     </div>
@@ -658,6 +677,57 @@
   fetch(TELI_CSV + (TELI_CSV.indexOf("?") > -1 ? "&" : "?") + "_=" + Date.now()).then(function (r) { return r.text(); })
     .then(function (t) { draw(csv(t)); note.textContent = "A pontok a táblázatból frissülnek (október–január teljesítménye alapján)."; })
     .catch(function () { draw([]); note.textContent = "A pontok most nem tölthetők be."; });
+})();
+
+(function(){
+  var CARS=["Gulyás Anna autója","Csikós Máté autója","Farkas Niki autója","Eöry Péter autója","Sznyt Alex autója","Tóth Oszkár autója"];
+  var DEF={"Gulyás Anna autója":1,"Csikós Máté autója":1,"Farkas Niki autója":2};
+  var K="csk_lengyel_autok_v1",st={};
+  try{st=JSON.parse(localStorage.getItem(K)||"{}")||{}}catch(e){}
+  function z(c){return st[c]!=null?st[c]:(DEF[c]||0)}
+  var zones=document.querySelectorAll("#vp-lengyel .zn");
+  if(!zones.length)return;
+  function render(){
+    zones.forEach(function(zn){
+      var l=zn.querySelector(".zl");l.innerHTML="";
+      CARS.forEach(function(c){
+        if(z(c)!=+zn.dataset.z)return;
+        var d=document.createElement("div");d.className="car";d.textContent=c;d.dataset.c=c;l.appendChild(d);
+      });
+    });
+  }
+  function save(){try{localStorage.setItem(K,JSON.stringify(st))}catch(e){}}
+  var cur=null,ghost=null,dx=0,dy=0;
+  function zoneAt(x,y){
+    var e=document.elementFromPoint(x,y);
+    return e&&e.closest?e.closest("#vp-lengyel .zn"):null;
+  }
+  document.addEventListener("pointerdown",function(e){
+    var c=e.target.closest&&e.target.closest("#vp-lengyel .car");
+    if(!c)return;
+    e.preventDefault();
+    cur=c;var r=c.getBoundingClientRect();dx=e.clientX-r.left;dy=e.clientY-r.top;
+    ghost=c.cloneNode(true);ghost.classList.add("ghost");ghost.style.width=r.width+"px";
+    ghost.style.left=r.left+"px";ghost.style.top=r.top+"px";document.body.appendChild(ghost);
+    c.classList.add("drag");
+  });
+  document.addEventListener("pointermove",function(e){
+    if(!cur)return;
+    ghost.style.left=(e.clientX-dx)+"px";ghost.style.top=(e.clientY-dy)+"px";
+    var t=zoneAt(e.clientX,e.clientY);
+    zones.forEach(function(zn){zn.classList.toggle("over",zn===t)});
+  });
+  function end(e){
+    if(!cur)return;
+    var t=zoneAt(e.clientX,e.clientY);
+    if(t){st[cur.dataset.c]=+t.dataset.z;save();}
+    ghost.remove();ghost=null;cur=null;
+    zones.forEach(function(zn){zn.classList.remove("over")});
+    render();
+  }
+  document.addEventListener("pointerup",end);
+  document.addEventListener("pointercancel",end);
+  render();
 })();
 </script>
 <script src="anim.js?v=4" defer></script>
