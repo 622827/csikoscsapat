@@ -132,7 +132,7 @@
   .links a:hover { background: var(--card); }
 
   @media (max-width: 520px) {
-    body { padding: 16px; }
+    body { padding: 72px 16px 16px; }
     .closes li { grid-template-columns: minmax(0, 1fr) auto; }
     .closes .d { grid-column: 1; grid-row: 2; font-size: .92rem; }
     .closes .n { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
@@ -206,7 +206,16 @@
   body.home .topnav .in { max-width: 1240px; padding: 0 0; }
   body.home .topnav { padding: 0 24px; }
   .hero { margin-top: clamp(24px, 5vw, 56px); }
+  .side h2 .chev { display: none; }
   @media (max-width: 900px) {
+    .side h2 { cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin: 0; padding: 2px 0 8px; }
+    .side h2 .chev { display: inline-block; transition: transform .2s; font-size: 1.1rem; }
+    .side.shut h2 .chev { transform: rotate(-90deg); }
+    .side.shut #closes { display: none; }
+    .side.shut .side-in { padding-bottom: 12px; }
+    .side.shut h2 { padding-bottom: 4px; }
+    .cal-sum { margin: 0 0 4px; font-size: .88rem; color: var(--muted); }
+    .side:not(.shut) .cal-sum { display: none; }
     .layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
     .side { position: static; order: -1; }
     .side-in { max-height: none; }
@@ -346,7 +355,8 @@
 
     <aside class="side" aria-label="Struktúra naptár">
       <div class="side-in">
-        <h2>STRUKTÚRA NAPTÁR</h2>
+        <h2 id="cal-h" tabindex="0" role="button" aria-expanded="true" aria-controls="closes">STRUKTÚRA NAPTÁR<span class="chev" aria-hidden="true">▾</span></h2>
+        <p class="cal-sum" id="cal-sum" hidden></p>
         <ol class="closes" id="closes"></ol>
       </div>
     </aside>
@@ -640,6 +650,31 @@
     btn.addEventListener("click", function (ev) { ev.stopPropagation(); set(panel.hidden); });
     document.addEventListener("click", function (ev) { if (!wrap.contains(ev.target)) set(false); });
     document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") set(false); });
+  })();
+</script>
+<script>
+  (function () {
+    var side = document.querySelector(".side"), h = document.getElementById("cal-h"), sum = document.getElementById("cal-sum"), list = document.getElementById("closes");
+    if (!side || !h) return;
+    var mq = window.matchMedia("(max-width: 900px)");
+    function shut(on) { side.classList.toggle("shut", on); h.setAttribute("aria-expanded", on ? "false" : "true"); }
+    function summary() {
+      var next = null;
+      list.querySelectorAll("li").forEach(function (li) {
+        if (next) return; var n = (li.querySelector(".n") || {}).textContent || "";
+        if (!/lezárva|lezajlott/i.test(n)) next = li;
+      });
+      var cnt = list.querySelectorAll("li").length;
+      if (!cnt) { sum.hidden = true; return; }
+      var t = next ? "Következő: " + (next.querySelector(".m") || next).textContent.trim() + " · " + ((next.querySelector(".n") || {}).textContent || "").trim() : cnt + " esemény";
+      sum.textContent = t; sum.hidden = !mq.matches;
+    }
+    function init() { shut(mq.matches); summary(); }
+    h.addEventListener("click", function () { if (mq.matches) shut(!side.classList.contains("shut")); });
+    h.addEventListener("keydown", function (e) { if ((e.key === "Enter" || e.key === " ") && mq.matches) { e.preventDefault(); shut(!side.classList.contains("shut")); } });
+    (mq.addEventListener ? mq.addEventListener.bind(mq, "change") : mq.addListener.bind(mq))(init);
+    new MutationObserver(summary).observe(list, { childList: true, subtree: true, characterData: true });
+    init();
   })();
 </script>
 <script src="anim.js?v=18" defer></script>
