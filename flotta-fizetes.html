@@ -39,6 +39,13 @@
   .row b { font-size: 1.05rem; word-break: normal; overflow-wrap: anywhere; text-align: right; }
   .copy { padding: 6px 10px; font-size: .85rem; border-radius: 8px; flex: none; }
   .small { color: var(--muted); font-size: .88rem; margin-top: 16px; }
+  .item { margin-top: 14px; background: var(--card); border-radius: 14px; padding: 12px 16px 4px; }
+  .item .line:last-child { border-bottom: 0; }
+  .ihd { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-bottom: 4px; }
+  .ihd b { font-size: 1.05rem; overflow-wrap: anywhere; }
+  .pv { flex: none; font-size: .78rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: var(--accent); color: var(--on-accent); }
+  .line.sub span { color: var(--muted); } .line.sub b { color: var(--hot); }
+  .line.tot { margin-top: 10px; border-bottom: 0; font-size: 1.1rem; } .line.tot b { color: var(--hot); }
 </style>
 </head>
 <body>
@@ -75,7 +82,21 @@
     var due = d.total > 0;
     res.appendChild(el("div", "", due ? "Fizetendő összesen" : "Nincs tartozásod"));
     res.appendChild(el("div", "amount " + (due ? "due" : "ok"), due ? ft(d.total) : "0 Ft"));
-    if (due) {
+    var detailed = d.items.length && d.items.every(function (it) { return it.alap !== undefined; });
+    if (due && detailed) {
+      d.items.filter(function (it) { return it.egy > 0; }).forEach(function (it) {
+        var dev = it.kesz > 0 && !it.alap && !it.forg, card = el("div", "item");
+        var hd = el("div", "ihd"); hd.appendChild(el("b", "", dev ? "Készülék: " + (it.csomag || "készülékrészlet") : (it.csomag || "Előfizetés")));
+        hd.appendChild(el("span", "pv", it.prov)); card.appendChild(hd);
+        var L = dev ? [["Havi készülékrészlet", it.kesz], ["Elmaradás", it.tart]]
+                    : [["Alapdíj (havidíj + admin)", it.alap], ["Forgalmi díj (sms, vásárlás, parkolás, roaming…)", it.forg], ["Készülékrészlet", it.kesz], ["Elmaradás", it.tart]];
+        L.forEach(function (c) { if (!c[1]) return; var l = el("div", "line"); l.appendChild(el("span", "", c[0])); l.appendChild(el("b", "", ft(c[1]))); card.appendChild(l); });
+        if (it.bef) { var lb = el("div", "line"); lb.appendChild(el("span", "", "Már befizetett")); lb.appendChild(el("b", "", "−" + ft(it.bef))); card.appendChild(lb); }
+        var st = el("div", "line sub"); st.appendChild(el("span", "", "Részösszeg")); st.appendChild(el("b", "", ft(it.egy))); card.appendChild(st);
+        res.appendChild(card);
+      });
+      var tl = el("div", "line tot"); tl.appendChild(el("span", "", "Összesen fizetendő")); tl.appendChild(el("b", "", ft(d.total))); res.appendChild(tl);
+    } else if (due) {
       var P = d.parts || {}, sec = el("div", "parts");
       [["Alapdíj (havidíj + admin)", P.alap], ["Forgalmi díj (sms, vásárlás, parkolás, roaming…)", P.forg], ["Készülék díj", P.kesz], ["Elmaradás", P.tart]].forEach(function (c) {
         if (!c[1]) return; var l = el("div", "line"); l.appendChild(el("span", "", c[0])); l.appendChild(el("b", "", ft(c[1]))); sec.appendChild(l);
