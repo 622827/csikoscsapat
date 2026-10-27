@@ -69,7 +69,7 @@
     mb.innerHTML = svg('<path d="M4 7h16M4 12h16M4 17h16"/>'); host.insertBefore(mb, host.firstChild);
     var pt = 0;
     side.addEventListener("mouseenter", function () { clearTimeout(pt); side.classList.add("csk-peek"); });
-    side.addEventListener("mouseleave", function () { clearTimeout(pt); side.classList.remove("csk-peek"); });
+    side.addEventListener("mouseleave", function (e) { clearTimeout(pt); if (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".csk-sub")) return; side.classList.remove("csk-peek"); });
     root.classList.add("csk-side", "csk-rail");
     function closeM() { root.classList.remove("csk-mopen"); }
     mb.addEventListener("click", function () { root.classList.toggle("csk-mopen"); });
@@ -109,13 +109,16 @@
           var curKey = ""; try { curKey = key === "csapatkassza.html" ? (h === "#flotta" || h === "#iroda" ? h : "#kassza") : key === "verseny.html" ? (h === "#teli" ? "#teli" : "#erdely") : (h ? h : (sessionStorage.getItem("tj_view") === "as" ? "#asszisztens" : "#elemzesek")); } catch (e) {}
           if (onPage && it[1].slice(it[1].indexOf("#")) === curKey) l.className = "cur";
           box.appendChild(l); });
-        var r = a.getBoundingClientRect(), sd = !!a.closest(".csk-sidebar"); box.style.top = (sd ? r.top : r.bottom + 4) + "px"; box.style.left = sd ? (r.right + 8) + "px" : Math.max(8, Math.min(r.left, innerWidth - 230)) + "px";
+        var r = a.getBoundingClientRect(), sd = !!a.closest(".csk-sidebar"); box.style.top = (sd ? r.top : r.bottom + 4) + "px"; box.style.left = sd ? (a.closest(".csk-sidebar").getBoundingClientRect().right - 4) + "px" : Math.max(8, Math.min(r.left, innerWidth - 230)) + "px";
         box.classList.add("on");
       }
       a.addEventListener("mouseleave", function () { clearTimeout(op); later(); });
     });
     box.addEventListener("mouseenter", function () { clearTimeout(tm); });
-    box.addEventListener("mouseleave", later);
+    function inS(t) { return t && t.closest && t.closest(".csk-sidebar"); }
+    var sb = document.querySelector(".csk-sidebar");
+    if (sb) sb.addEventListener("mouseleave", function (e) { if (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".csk-sub")) return; if (cur && cur.closest(".csk-sidebar")) { clearTimeout(op); clearTimeout(tm); hide(); } });
+    box.addEventListener("mouseleave", function (e) { if (cur && cur.closest(".csk-sidebar") && !inS(e.relatedTarget)) { if (sb) sb.classList.remove("csk-peek"); clearTimeout(tm); hide(); return; } later(); });
     box.addEventListener("click", hide);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
