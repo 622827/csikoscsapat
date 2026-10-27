@@ -93,16 +93,17 @@
     st.textContent += ".csk-sub a.cur{background:var(--accent,#036);color:var(--on-accent,#fff)}html.csk-hastabs .vtabs,html.csk-hastabs .vtabs2,html.csk-hastabs #ktabs{display:none!important}";
     document.head.appendChild(st); document.documentElement.classList.add("csk-hastabs");
     var box = document.createElement("div"); box.className = "csk-sub"; document.body.appendChild(box);
-    var tm = 0, op = 0, cur = null;
+    var tm = 0, op = 0, cur = null, warm = false; // warm: már nyílt almenü, kattintásig a többi azonnal nyílik
+    document.addEventListener("click", function () { warm = false; }, true);
     function hide() { box.classList.remove("on"); cur = null; }
     function later() { clearTimeout(tm); tm = setTimeout(hide, 180); }
     document.querySelectorAll(".topnav li > a[href], .csk-sidebar li > a[href]").forEach(function (a) {
       var key = (a.getAttribute("href") || "").split("#")[0]; var items = SUB[key]; if (!items) return;
       a.addEventListener("mouseenter", function () {
-        clearTimeout(tm); if (cur === a) return; clearTimeout(op); op = setTimeout(function () { open(); }, 550);
+        clearTimeout(tm); if (cur === a) return; clearTimeout(op); if (warm) open(); else op = setTimeout(function () { open(); }, 550);
       });
       function open() {
-        cur = a; box.textContent = "";
+        cur = a; warm = true; box.textContent = "";
         items.forEach(function (it) { var l = document.createElement("a"); l.href = it[1]; l.textContent = it[0];
           var h = location.hash, onPage = location.pathname.split("/").pop() === key || (key === "verseny.html" && location.pathname.slice(-1) === "/" && false);
           var curKey = ""; try { curKey = key === "csapatkassza.html" ? (h === "#flotta" || h === "#iroda" ? h : "#kassza") : key === "verseny.html" ? (h === "#teli" ? "#teli" : "#erdely") : (h ? h : (sessionStorage.getItem("tj_view") === "as" ? "#asszisztens" : "#elemzesek")); } catch (e) {}
