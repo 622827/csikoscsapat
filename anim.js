@@ -2,7 +2,7 @@
 
 /* Almenü: a fejléc menüpontjai fölé víve megjelennek az aloldalak */
 (function () {
-  var SUB = { "verseny.html": [["Erdélyi Incentive", "verseny.html#erdely"], ["Téli Incentive", "verseny.html#teli"], ["2025 Lengyelország karácsony", "verseny.html#lengyel"]],
+  var SUB = { "verseny.html": [["Erdélyi Incentive", "verseny.html#erdely"], ["Téli Incentive", "verseny.html#teli"], ["2026 Lengyelország karácsony", "verseny.html#lengyel"]],
               "csapatkassza.html": [["Csapatkassza", "csapatkassza.html#kassza"], ["OVB flotta", "csapatkassza.html#flotta"], ["Iroda kassza", "csapatkassza.html#iroda"]],
               "teljesitmeny-uj.html": [["Elemzések utáni teendők", "teljesitmeny-uj.html#elemzesek"], ["Asszisztensi feladatok", "teljesitmeny-uj.html#asszisztens"], ["Start bónusz", "teljesitmeny-uj.html#startbonusz"]] };
   function init() {
