@@ -682,7 +682,7 @@
 (function(){
   var CARS=["Gulyás Anna autója","Csikós Máté autója","Farkas Niki autója","Eöry Péter autója","Sznyt Alex autója","Tóth Oszkár autója"];
   var DEF={"Gulyás Anna autója":1,"Csikós Máté autója":1,"Farkas Niki autója":2};
-  var API="",K="csk_lengyel_autok_v1",st={};  /* API: ide kerül az Apps Script /exec címe a közös mentéshez */
+  var API="https://script.google.com/macros/s/AKfycbw8Y42fZakxtGzr1CwUwahYviEhkfktzV6JhYfmKXQPjOpZQ6jb7X2-gBQqchDkAKgkeQ/exec",K="csk_lengyel_autok_v1",st={};  /* API: ide kerül az Apps Script /exec címe a közös mentéshez */
   try{st=JSON.parse(localStorage.getItem(K)||"{}")||{}}catch(e){}
   function z(c){return st[c]!=null?st[c]:(DEF[c]||0)}
   var zones=document.querySelectorAll("#vp-lengyel .zn");
