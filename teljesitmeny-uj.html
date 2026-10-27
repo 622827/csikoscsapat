@@ -349,8 +349,14 @@
   .pg .sb-tr label { display: flex; align-items: center; gap: 4px; font-size: .85rem; color: var(--muted); font-weight: 700; }
   .pg .sb-trv { margin-left: auto; font-weight: 800; font-size: .85rem; white-space: nowrap; color: var(--muted); } .pg .sb-tr.ok .sb-trv { color: #1f9d5c; }
   .pg .sb-tr .x { border: 0; background: transparent; color: var(--muted); font-size: 1.2rem; cursor: pointer; padding: 0 4px; }
-  .pg .sb-sum { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .88rem; color: var(--muted); }
-  .pg .sb-sum b.ok { color: #1f9d5c; } .pg .sb-sum b.wait { color: var(--ink); }
+  .pg .sb-sum { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 10px; }
+  @media (max-width: 640px) { .pg .sb-sum { grid-template-columns: 1fr; } }
+  .pg .sb-tile { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: 14px; background: var(--card, #f0f3f7); border: 2px solid transparent; min-width: 0; }
+  .pg .sb-tl { font-size: .74rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .pg .sb-tv { font-size: clamp(1.5rem, 3.4vw, 2.1rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pg .sb-ts { font-size: .82rem; color: var(--muted); font-weight: 600; }
+  .pg .sb-tile.bon .sb-tv { color: var(--muted); } .pg .sb-tile.bon.ok { border-color: #1f9d5c; } .pg .sb-tile.bon.ok .sb-tv, .pg .sb-tile.bon.ok .sb-ts { color: #1f9d5c; }
+  .pg .sb-tile.all { background: var(--accent); color: var(--on-accent, #fff); } .pg .sb-tile.all .sb-tl, .pg .sb-tile.all .sb-ts { color: inherit; opacity: .8; }
   .pg .sb-cg { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 16px; }
   .pg .vw { display: inline-flex; margin-left: auto; border: 2px solid var(--track, #e5e5e5); border-radius: 999px; overflow: hidden; }
   .pg .vw button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; padding: 6px 14px; cursor: pointer; transition: background .2s, color .2s; }
@@ -729,7 +735,7 @@
       if (p.start) { var d = Math.floor((Date.now() - new Date(p.start + "T12:00:00").getTime()) / 864e5); if (d >= 0) m.appendChild(el("span", "", d + ". nap")); }
       m.appendChild(document.createTextNode("Betanító:")); var so = el("select"); var ks = Object.keys(SB_OWN); if (p.mentor && ks.indexOf(p.mentor) < 0) ks.push(p.mentor); ks.forEach(function (k) { var o = el("option", "", SB_OWN[k] || k); o.value = k; so.appendChild(o); }); so.value = p.mentor || "gulyas.anna.ovb@gmail.com"; so.addEventListener("change", function () { sbUpd(p.id, { mentor: so.value }); }); m.appendChild(so);
       h.appendChild(m);
-      var tot = el("span", "sb-pct " + (R.ok ? "ok" : "wait"), sbFt(R.sum)); tot.title = "Ösztöndíj " + sbFt(R.mnb + R.kev) + " + start bónusz " + sbFt(R.tab) + (R.ok ? "" : " (a start bónuszhoz " + sbNum(c.es) + " ES kell)"); h.appendChild(tot);
+      var tot = el("span", "sb-pct " + (R.ok ? "ok" : "wait"), sbFt(R.mnb + R.kev + (R.ok ? R.tab : 0))); tot.title = "Ösztöndíj " + sbFt(R.mnb + R.kev) + " + start bónusz " + sbFt(R.tab) + (R.ok ? "" : " (a start bónuszhoz " + sbNum(c.es) + " ES kell)"); h.appendChild(tot);
       var del = el("button", "x sb-x", "×"); del.type = "button"; del.title = "Törlés";
       if (sbConfirm === p.id) { var w = el("span"), y = el("button", "sm", "Törlés"), n = el("button", "sm gh", "Mégse"); y.type = n.type = "button"; y.addEventListener("click", function () { sbConfirm = ""; FB.F.deleteDoc(FB.F.doc(FB.db, "perf", ID, "sb", p.id)).catch(function (e) { toast("Törlés sikertelen: " + e.message); }); }); n.addEventListener("click", function () { sbConfirm = ""; sbRender(); }); w.appendChild(y); w.appendChild(n); h.appendChild(w); }
       else { del.addEventListener("click", function () { sbConfirm = p.id; sbRender(); }); h.appendChild(del); }
@@ -765,8 +771,12 @@
       tk.appendChild(tl);
       var ad = el("button", "sm gh", "+ Mentorált TA"); ad.type = "button"; ad.addEventListener("click", function () { var a = (p.ta || []).slice(); a.push({ nev: "", es: 0, sz: 0 }); sbUpd(p.id, { ta: a }); }); tk.appendChild(ad);
       card.appendChild(tk);
-      var sm = el("div", "sb-sum"); sm.appendChild(el("span", "", "Ösztöndíj (vizsgák): " + sbFt(R.mnb + R.kev)));
-      sm.appendChild(el("b", R.ok ? "ok" : "wait", "Start bónusz (mentorált TA): " + sbFt(R.tab) + (R.ok ? " · kifizethető" : " · " + sbNum(Math.max(0, c.es - R.es)) + " ES hiányzik a jogosultsághoz"))); card.appendChild(sm);
+      var sm = el("div", "sb-sum");
+      function tile(cls, lab, val, sub) { var t = el("div", "sb-tile " + cls); t.appendChild(el("span", "sb-tl", lab)); t.appendChild(el("b", "sb-tv", val)); if (sub) t.appendChild(el("span", "sb-ts", sub)); sm.appendChild(t); }
+      tile("osz", "Ösztöndíj", sbFt(R.mnb + R.kev), [p.mnb ? "MNB ✓" : "MNB –", p.kev ? "kezdő elemző ✓" : "kezdő elemző –"].join(" · "));
+      tile("bon" + (R.ok ? " ok" : ""), "Start bónusz", sbFt(R.tab), R.ok ? "kifizethető · " + R.ta + " mentorált TA" : sbNum(Math.max(0, c.es - R.es)) + " ES hiányzik a jogosultsághoz");
+      tile("all", "Összesen", sbFt(R.mnb + R.kev + (R.ok ? R.tab : 0)), R.tab && !R.ok ? "+ " + sbFt(R.tab) + " a(z) " + sbNum(c.es) + " ES után" : (R.mnb + R.kev + R.tab ? "most kifizethető" : "még nincs teljesített tétel"));
+      card.appendChild(sm);
       return card;
   }
   function sbUpd(id, patch) { FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "sb", id), patch).catch(function (e) { toast("Mentés sikertelen: " + e.message); }); }
