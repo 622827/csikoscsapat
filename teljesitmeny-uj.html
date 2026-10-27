@@ -805,9 +805,9 @@
       var ad = el("button", "sm gh", "+ Kézzel"); ad.type = "button"; ad.addEventListener("click", function () { var a = (p.ta || []).slice(); a.push({ nev: "", es: 0, sz: 0 }); sbUpd(p.id, { ta: a }); }); tk.appendChild(ad);
       card.appendChild(tk);
       var sm = el("div", "sb-sum");
-      function tile(cls, lab, val, sub) { var t = el("div", "sb-tile " + cls); t.appendChild(el("span", "sb-tl", lab)); t.appendChild(el("b", "sb-tv", val)); if (sub) t.appendChild(el("span", "sb-ts", sub)); sm.appendChild(t); }
+      function tile(cls, lab, val, sub) { var t = el("div", "sb-tile " + cls); t.appendChild(el("span", "sb-tl", lab)); t.appendChild(el("b", "sb-tv", val)); [].concat(sub || []).forEach(function (x) { t.appendChild(el("span", "sb-ts", x)); }); sm.appendChild(t); }
       var miss = sbNum(Math.max(0, c.es - R.es)) + " ES hiányzik", gross = R.mnb + R.kev + R.tab;
-      tile("bon" + (R.ok ? " ok" : ""), "Ösztöndíj", sbFt(R.mnb + R.kev), [p.mnb ? "MNB ✓" : "MNB –", p.kev ? "kezdő elemző ✓" : "kezdő elemző –"].join(" · "));
+      tile("bon" + (R.ok ? " ok" : ""), "Ösztöndíj", sbFt(R.mnb + R.kev), [(p.mnb ? "✓ " : "– ") + "MNB vizsga" + (p.mnb ? " · " + sbFt(c.mnb) : ""), (p.kev ? "✓ " : "– ") + "Kezdő elemző vizsga" + (p.kev ? " · " + sbFt(c.kev) : "")]);
       tile("bon" + (R.ok ? " ok" : ""), "Start bónusz", sbFt(R.tab), R.ta + " érvényes mentorált TA");
       tile("all", "Összesen", sbFt(R.ok ? gross : 0), R.ok ? (gross ? "kifizethető" : "még nincs teljesített tétel") : (gross ? sbFt(gross) + " jár a(z) " + sbNum(c.es) + " ES után · " + miss : miss + " a jogosultsághoz"));
       card.appendChild(sm);
