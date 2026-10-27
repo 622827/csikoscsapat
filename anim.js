@@ -117,16 +117,17 @@
       ".topnav.csk-nolock ul li:has(a[aria-disabled=true]){display:none}" +
       ".topnav.csk-compact li a{padding:8px 10px;font-size:.92rem}" +
       ".topnav.csk-burger .csk-burger-btn{display:inline-flex}" +
-      ".topnav.csk-burger ul{display:none;position:fixed;top:56px;left:0;right:0;flex:none;flex-direction:column;gap:2px;padding:10px 16px 14px;background:var(--bg);border-bottom:1px solid var(--track);box-shadow:0 14px 30px rgba(0,0,0,.14);max-height:calc(100vh - 56px);overflow-y:auto;z-index:45}" +
+      ".topnav.csk-burger ul{display:none;position:fixed;top:62px;left:16px;right:auto;width:max-content;min-width:250px;max-width:calc(100vw - 16px);flex:none;flex-direction:column;gap:2px;padding:8px;background:var(--bg);border:1px solid var(--track);border-radius:18px;box-shadow:0 18px 44px rgba(0,0,0,.28);max-height:calc(100vh - 76px);overflow-y:auto;z-index:45}" +
+      "@media (max-width:640px){.topnav.csk-burger ul{left:8px!important;right:8px;width:auto}}" +
       ".topnav.csk-burger.csk-open ul{display:flex}" +
-      ".topnav.csk-burger li a{padding:12px 16px;border-radius:12px}" +
+      ".topnav.csk-burger li a{padding:10px 16px;border-radius:12px;font-size:1rem}" +
       ".topnav.csk-burger li:has(a[aria-disabled=true]){display:block}";
     document.head.appendChild(st);
     var btn = document.createElement("button"); btn.type = "button"; btn.className = "csk-burger-btn";
     btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-label", "Főmenü megnyitása");
     btn.innerHTML = "<span aria-hidden='true'>☰</span><span>Menü</span>";
     host.insertBefore(btn, ul);
-    function set(o) { nav.classList.toggle("csk-open", o); btn.setAttribute("aria-expanded", o ? "true" : "false"); }
+    function set(o) { if (o) ul.style.left = Math.max(8, btn.getBoundingClientRect().left) + "px"; nav.classList.toggle("csk-open", o); btn.setAttribute("aria-expanded", o ? "true" : "false"); }
     btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("csk-open")); });
     document.addEventListener("click", function (e) { if (nav.classList.contains("csk-open") && !ul.contains(e.target)) set(false); });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
