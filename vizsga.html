@@ -305,7 +305,7 @@
     <div class="row">
       <label>Vizsgatárgy<select id="f-s"></select></label>
       <label id="l-t">Témakör<select id="f-t"></select></label>
-      <label id="l-n" hidden>Próbavizsga<select disabled><option>60 kérdés</option></select></label>
+      <label id="l-n" hidden>Próbavizsga<select disabled><option>60 kérdés · 60 perc</option></select></label>
       <label id="l-w">Szűrés<select id="f-w"><option value="all">Minden kérdés</option><option value="wrong">Csak a korábban hibásak</option></select></label>
     </div>
     <p class="meta" id="vz-meta">Kérdésbank betöltése…</p>
@@ -381,13 +381,15 @@
   };
   function start(p){
     Q=p;pos=0;score=0;log=[];clearInterval(tm);
-    picks=[];orders=[];if(mode==="pv"){$("r-tm").hidden=false;left=-1;tick();tm=setInterval(tick,1000)}else $("r-tm").hidden=true;$("r-prev").hidden=mode!=="pv";
-    $("r-hint").textContent=mode==="pv"?"Próbavizsga: 60 kérdés, az eredmény csak a végén derül ki. A válaszod a végleges beküldésig módosíthatod. Billentyűk: 1–5 válasz, Enter következő.":"Billentyűk: 1–5 válasz, Enter következő.";
+    picks=[];orders=[];if(mode==="pv"){$("r-tm").hidden=false;left=3601;tick();tm=setInterval(tick,1000)}else $("r-tm").hidden=true;$("r-prev").hidden=mode!=="pv";
+    $("r-hint").textContent=mode==="pv"?"Próbavizsga: 60 kérdés, 60 perc, az eredmény csak a végén derül ki. A válaszod a végleges beküldésig módosíthatod. Billentyűk: 1–5 válasz, Enter következő.":"Billentyűk: 1–5 válasz, Enter következő.";
     show("vz-run");ask();
   }
   function tick(){
-    left++;var m=Math.floor(left/60),s=left%60;
-    $("r-tm").textContent="Eltelt idő: "+m+":"+("0"+s).slice(-2);
+    left--;var m=Math.floor(Math.max(left,0)/60),s=Math.max(left,0)%60;
+    $("r-tm").textContent="Hátralévő idő: "+m+":"+("0"+s).slice(-2);
+    $("r-tm").style.color=left<=300?"#d33":"";$("r-tm").style.fontWeight=left<=300?"700":"";
+    if(left<=0){clearInterval(tm);alert("Lejárt az idő, a próbavizsga automatikusan beküldésre kerül.");finish()}
   }
   function ask(){
     var qi=Q[pos],q=D.q[qi];answered=false;pick=-1;
