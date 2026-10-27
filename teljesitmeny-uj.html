@@ -320,6 +320,29 @@
   .pg .sb-l { display: flex; flex-direction: column; gap: 4px; font-weight: 600; margin: 10px 0; }
   .pg .sb-l textarea { font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
   .pg .sb-hint { color: var(--muted); font-size: .85rem; margin: 8px 0 0; }
+  .pg .sb-pct.ok { color: #1f9d5c; } .pg .sb-pct.wait { color: var(--muted); }
+  .pg .sb-k { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--card, #f0f3f7); }
+  .pg .sb-kh { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pg .sb-kh b, .pg .sb-ckt b { font-weight: 800; }
+  .pg .sb-v { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pg .sb-tag { font-size: .72rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--track, #e5e5e5); color: var(--muted); }
+  .pg .sb-tag.ok { background: #1f9d5c; color: #fff; }
+  .pg .sb-note { color: var(--muted); font-size: .82rem; margin-top: 4px; }
+  .pg .sb-in, .pg .sb-tr input, .pg .sb-cg input { font: inherit; font-size: .9rem; padding: 5px 9px; border-radius: 8px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  .pg .sb-in { margin-top: 6px; width: min(260px, 100%); }
+  .pg .sb-ck { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .pg .sb-ck input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+  .pg .sb-ck.done .sb-v { color: #1f9d5c; } .pg .sb-ck small { color: var(--muted); }
+  .pg .sb-ta { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+  .pg .sb-tr { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 8px; border-radius: 10px; background: var(--bg); border: 2px solid transparent; }
+  .pg .sb-tr.ok { border-color: #1f9d5c; }
+  .pg .sb-tr input[type=text] { flex: 1 1 160px; min-width: 0; } .pg .sb-tr input[type=number] { width: 70px; }
+  .pg .sb-tr label { display: flex; align-items: center; gap: 4px; font-size: .85rem; color: var(--muted); font-weight: 700; }
+  .pg .sb-trv { margin-left: auto; font-weight: 800; font-size: .85rem; white-space: nowrap; color: var(--muted); } .pg .sb-tr.ok .sb-trv { color: #1f9d5c; }
+  .pg .sb-tr .x { border: 0; background: transparent; color: var(--muted); font-size: 1.2rem; cursor: pointer; padding: 0 4px; }
+  .pg .sb-sum { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .88rem; color: var(--muted); }
+  .pg .sb-sum b.ok { color: #1f9d5c; } .pg .sb-sum b.wait { color: var(--ink); }
+  .pg .sb-cg { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 16px; }
   .pg .vw { display: inline-flex; margin-left: auto; border: 2px solid var(--track, #e5e5e5); border-radius: 999px; overflow: hidden; }
   .pg .vw button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; padding: 6px 14px; cursor: pointer; transition: background .2s, color .2s; }
   .pg .vw button.on { background: var(--accent); color: var(--on-accent, #fff); }
@@ -481,7 +504,7 @@
     <p class="none" id="as-none"></p>
   </div>
   <div id="v-sb" hidden>
-    <p class="lead">Start bónusz: az új munkatársak betanulásának követése. Minden újoncnak ugyanaz a lépéslista és ugyanazok a számszerű célok; a pipákból és a számokból áll össze a haladása.</p>
+    <p class="lead">Start bónusz: új munkatársanként négy mérőszám. A sikeres MNB és kezdő elemző vizsga ösztöndíjat ér, a mentorált tanácsadások (TA) a start bónuszt adják, amelynek feltétele az 500 ES technikai teljesítmény (a pipeline-ból számolva).</p>
     <form class="as-add" id="sb-form" autocomplete="off">
       <input id="sb-name" type="text" maxlength="60" placeholder="Új munkatárs neve" aria-label="Név" required>
       <label class="as-lb">Kezdés <input id="sb-start" type="text" aria-label="Kezdés dátuma"></label>
@@ -490,10 +513,15 @@
     </form>
     <div id="sb-list"></div>
     <p class="none" id="sb-none"></p>
-    <details class="sb-cfg" id="sb-cfg"><summary>Lépések és célok szerkesztése</summary>
-      <p class="sb-hint">Soronként egy lépés. A számszerű célokat „Név | cél" formában add meg (pl. Elemzés (db) | 10). A kezdő lista csak javaslat, nyugodtan írd át.</p>
-      <label class="sb-l">Lépések<textarea id="sb-steps" rows="9"></textarea></label>
-      <label class="sb-l">Számszerű célok<textarea id="sb-goals" rows="5"></textarea></label>
+    <details class="sb-cfg" id="sb-cfg"><summary>Bónusz összegek és feltételek</summary>
+      <div class="sb-cg">
+        <label class="sb-l">Technikai ES feltétel (ES)<input id="sbc-es" inputmode="numeric"></label>
+        <label class="sb-l">Ösztöndíj: sikeres MNB vizsga (Ft)<input id="sbc-mnb" inputmode="numeric"></label>
+        <label class="sb-l">Ösztöndíj: sikeres kezdő elemző vizsga (Ft)<input id="sbc-kev" inputmode="numeric"></label>
+        <label class="sb-l">Mentorált TA darabonként (Ft)<input id="sbc-ta" inputmode="numeric"></label>
+        <label class="sb-l">Érvényes TA: legalább ennyi ES<input id="sbc-taEs" inputmode="numeric"></label>
+        <label class="sb-l">… vagy legalább ennyi szerződés<input id="sbc-taSz" inputmode="numeric"></label>
+      </div>
       <button type="button" class="sm" id="sb-save">Mentés</button>
     </details>
   </div>
@@ -644,53 +672,94 @@
     fromHash(); window.addEventListener("hashchange", fromHash);
   }
   /* ---- Start bónusz ---- */
+  // Négy mérőszám újonconként: Technikai ES (jogosultsági feltétel, a pipeline-ból), Sikeres MNB vizsga, Sikeres kezdő elemző vizsga, Mentorált TA (mentorált tanácsadás).
   var SB_OWN = {"csikos.mate.ovb@gmail.com": "Csikós Máté", "farkas.nikolett.julianna.ovb@gmail.com": "Farkas Nikolett", "gulyas.anna.ovb@gmail.com": "Gulyás Anna"};
-  var SB_DEF = { steps: ["Szerződés aláírva", "Alapvizsga letéve", "Bevezető tréning elvégezve", "Elemzőfüzet átbeszélve", "Beszélgetésvezető szöveg elmondva", "Telefonálás gyakorlás kész", "Első saját elemzés megtartva", "Első tanácsadás megtartva", "Első szerződés leadva", "Ajánlási névlista felírva"],
-                 goals: [["Elemzés (db)", 10], ["Tanácsadás (db)", 5], ["Ajánlott nevek (fő)", 50], ["Egység (ES)", 100]] };
-  var SBC = null, SB = [], sbReady = false, sbConfirm = "";
-  function sbSlug(t) { return t.toLowerCase().replace(/[^a-z0-9áéíóöőúüű]+/g, "_").slice(0, 40) || "x"; }
-  function sbCfg() {
-    if (SBC) return SBC;
-    return { steps: SB_DEF.steps.map(function (t) { return { id: sbSlug(t), t: t }; }), goals: SB_DEF.goals.map(function (g) { return { id: sbSlug(g[0]), t: g[0], target: g[1] }; }) };
+  var SB_ES_URL = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec"; // ugyanaz a forrás, mint a negyedéves céloké
+  var SB_DEF = { es: 500, mnb: 20000, kev: 20000, ta: 10000, taEs: 25, taSz: 2 };
+  var SBC = null, SB = [], sbReady = false, sbConfirm = "", SBES = null, sbEsErr = "";
+  function sbCfg() { var c = {}, s = (SBC && SBC.bon) || {}; Object.keys(SB_DEF).forEach(function (k) { c[k] = s[k] !== undefined && s[k] !== "" ? +s[k] : SB_DEF[k]; }); return c; }
+  function sbPlain(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim(); }
+  function sbFt(n) { return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " Ft"; }
+  function sbNum(n) { return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+  // Technikai ES: a munkatárs azonos nevű pipeline-jából, a kezdés hónapjától (elszámolt + aktuális hónap 100% leadott)
+  function sbEs(p) {
+    if (!SBES) return null; var key = sbPlain(p.esName || p.name), x = SBES.people.filter(function (q) { return sbPlain(q.name) === key; })[0];
+    if (!x) return { found: false, v: 0 };
+    var sm = p.start ? +(p.start.slice(0, 4) + p.start.slice(5, 7)) : 0, v = 0, part = false;
+    (SBES.months || Object.keys(x.mt || {}).map(Number)).forEach(function (m) { if (m >= sm) v += +((x.mt || {})[m]) || 0; });
+    if (sm && SBES.months && SBES.months.length && sm < Math.min.apply(null, SBES.months)) part = true;
+    return { found: true, v: v, part: part };
   }
-  function sbPct(p) { var c = sbCfg(), n = c.steps.length + c.goals.length; if (!n) return 0; var a = 0; c.steps.forEach(function (st) { if ((p.steps || {})[st.id]) a++; }); c.goals.forEach(function (g) { var v = +((p.nums || {})[g.id]) || 0; a += g.target > 0 ? Math.min(1, v / g.target) : 0; }); return Math.round(a / n * 100); }
+  function sbTaOk(t, c) { return (+t.es || 0) >= c.taEs || (+t.sz || 0) >= c.taSz; }
+  function sbCalc(p) {
+    var c = sbCfg(), e = sbEs(p), ta = (p.ta || []).filter(function (t) { return sbTaOk(t, c); }).length;
+    var mnb = p.mnb ? c.mnb : 0, kev = p.kev ? c.kev : 0, tab = ta * c.ta, esv = e ? e.v : 0;
+    return { c: c, e: e, es: esv, ok: esv >= c.es, ta: ta, mnb: mnb, kev: kev, tab: tab, sum: mnb + kev + tab };
+  }
   function sbRender() {
     var box = $("sb-list"); if (!box) return;
-    var ae = document.activeElement; if (ae && box.contains(ae) && ae.tagName === "INPUT" && ae.type === "number") return;
-    var c = sbCfg(); box.textContent = "";
+    var ae = document.activeElement; if (ae && box.contains(ae) && ae.tagName === "INPUT" && (ae.type === "number" || ae.type === "text")) return;
+    box.textContent = "";
     var L = SB.slice().sort(function (a, b) { return (b.start || "").localeCompare(a.start || "") || (b.created || 0) - (a.created || 0); });
     $("sb-cnt").textContent = L.length ? "(" + L.length + ")" : ""; $("sb-none").textContent = L.length ? "" : "Még nincs felvett új munkatárs.";
     L.forEach(function (p) {
-      var card = el("div", "sb-c"), pc = sbPct(p), h = el("div", "sb-h");
+      var R = sbCalc(p), c = R.c, card = el("div", "sb-c"), h = el("div", "sb-h");
       h.appendChild(el("span", "sb-n", p.name));
       var m = el("span", "sb-m"); m.appendChild(document.createTextNode("Kezdés:")); var di = el("input"); dpAttach(di); di.value = p.start || ""; di.addEventListener("change", function () { sbUpd(p.id, { start: di.value }); }); m.appendChild(di);
       if (p.start) { var d = Math.floor((Date.now() - new Date(p.start + "T12:00:00").getTime()) / 864e5); if (d >= 0) m.appendChild(el("span", "", d + ". nap")); }
       m.appendChild(document.createTextNode("Betanító:")); var so = el("select"); var ks = Object.keys(SB_OWN); if (p.mentor && ks.indexOf(p.mentor) < 0) ks.push(p.mentor); ks.forEach(function (k) { var o = el("option", "", SB_OWN[k] || k); o.value = k; so.appendChild(o); }); so.value = p.mentor || "gulyas.anna.ovb@gmail.com"; so.addEventListener("change", function () { sbUpd(p.id, { mentor: so.value }); }); m.appendChild(so);
-      h.appendChild(m); h.appendChild(el("span", "sb-pct", pc + "%"));
-      var del = el("button", "x", "×"); del.type = "button"; del.title = "Törlés"; del.className = "x sb-x";
+      h.appendChild(m);
+      var tot = el("span", "sb-pct " + (R.ok ? "ok" : "wait"), sbFt(R.sum)); tot.title = "Ösztöndíj " + sbFt(R.mnb + R.kev) + " + start bónusz " + sbFt(R.tab) + (R.ok ? "" : " (a start bónuszhoz " + sbNum(c.es) + " ES kell)"); h.appendChild(tot);
+      var del = el("button", "x sb-x", "×"); del.type = "button"; del.title = "Törlés";
       if (sbConfirm === p.id) { var w = el("span"), y = el("button", "sm", "Törlés"), n = el("button", "sm gh", "Mégse"); y.type = n.type = "button"; y.addEventListener("click", function () { sbConfirm = ""; FB.F.deleteDoc(FB.F.doc(FB.db, "perf", ID, "sb", p.id)).catch(function (e) { toast("Törlés sikertelen: " + e.message); }); }); n.addEventListener("click", function () { sbConfirm = ""; sbRender(); }); w.appendChild(y); w.appendChild(n); h.appendChild(w); }
       else { del.addEventListener("click", function () { sbConfirm = p.id; sbRender(); }); h.appendChild(del); }
       card.appendChild(h);
-      var bar = el("div", "sb-bar"), bi = el("i"); bi.style.width = pc + "%"; bar.appendChild(bi); card.appendChild(bar);
-      if (c.steps.length) {
-        card.appendChild(el("div", "sb-t", "Lépések (" + c.steps.filter(function (st) { return (p.steps || {})[st.id]; }).length + "/" + c.steps.length + ")"));
-        var g = el("div", "sb-st");
-        c.steps.forEach(function (st) { var on = !!(p.steps || {})[st.id], lb = el("label", "sb-s" + (on ? " done" : "")), ck = el("input"); ck.type = "checkbox"; ck.checked = on; ck.addEventListener("change", function () { hold(); var o = {}; o["steps." + st.id] = ck.checked ? Date.now() : false; sbUpd(p.id, o); }); lb.appendChild(ck); lb.appendChild(el("span", "", st.t)); g.appendChild(lb); });
-        card.appendChild(g);
-      }
-      if (c.goals.length) {
-        card.appendChild(el("div", "sb-t", "Számszerű célok"));
-        var gs = el("div", "sb-gs");
-        c.goals.forEach(function (go) { var v = +((p.nums || {})[go.id]) || 0, b = el("div", "sb-g"); b.appendChild(el("span", "", go.t)); var r = el("div", "r"), ni = el("input"); ni.type = "number"; ni.min = "0"; ni.value = v || ""; ni.placeholder = "0"; ni.addEventListener("change", function () { var o = {}; o["nums." + go.id] = +ni.value || 0; sbUpd(p.id, o); }); r.appendChild(ni); r.appendChild(document.createTextNode("/ " + go.target)); b.appendChild(r); var mb = el("div", "sb-bar mini"), mi = el("i"); mi.style.width = (go.target > 0 ? Math.min(100, v / go.target * 100) : 0) + "%"; mb.appendChild(mi); b.appendChild(mb); gs.appendChild(b); });
-        card.appendChild(gs);
-      }
+      // 1. Technikai ES – jogosultság
+      var es = el("div", "sb-k"), eh = el("div", "sb-kh");
+      eh.appendChild(el("b", "", "Technikai ES")); eh.appendChild(el("span", "sb-tag " + (R.ok ? "ok" : "wait"), R.ok ? "jogosult" : "feltétel"));
+      eh.appendChild(el("span", "sb-v", (SBES ? sbNum(R.es) : "…") + " / " + sbNum(c.es) + " ES")); es.appendChild(eh);
+      var bar = el("div", "sb-bar"), bi = el("i"); bi.style.width = Math.min(100, c.es > 0 ? R.es / c.es * 100 : 0) + "%"; bar.appendChild(bi); es.appendChild(bar);
+      var note = !SBES ? (sbEsErr || "A pipeline betöltése…") : !R.e.found ? "Nincs „" + (p.esName || p.name) + "” nevű sor a pipeline-ban. Írd be a pipeline-ban szereplő nevet:" : "A(z) " + (p.esName || p.name) + " pipeline-ból, a kezdés hónapjától: korábbi hónapok elszámolt tételei + az aktuális hónap 100% leadott tételei." + (R.e.part ? " A kezdés az aktuális negyedév előtt volt, a korábbi hónapok itt nem látszanak." : "");
+      var nt = el("div", "sb-note", note); es.appendChild(nt);
+      if (SBES && !R.e.found || p.esName) { var ni = el("input"); ni.type = "text"; ni.placeholder = "Név a pipeline-ban"; ni.value = p.esName || ""; ni.className = "sb-in"; ni.addEventListener("change", function () { sbUpd(p.id, { esName: ni.value.trim() }); }); es.appendChild(ni); }
+      card.appendChild(es);
+      // 2–3. Vizsgák
+      [["mnb", "Sikeres MNB vizsga · ösztöndíj", c.mnb], ["kev", "Sikeres kezdő elemző vizsga · ösztöndíj", c.kev]].forEach(function (q) {
+        var on = !!p[q[0]], k = el("label", "sb-k sb-ck" + (on ? " done" : "")), ck = el("input"); ck.type = "checkbox"; ck.checked = on;
+        ck.addEventListener("change", function () { hold(); var o = {}; o[q[0]] = ck.checked ? todayIso() : false; sbUpd(p.id, o); });
+        k.appendChild(ck); var tx = el("span", "sb-ckt"); tx.appendChild(el("b", "", q[1])); if (on && typeof p[q[0]] === "string") tx.appendChild(el("small", "", " · " + p[q[0]].replace(/-/g, ". ") + ".")); k.appendChild(tx);
+        k.appendChild(el("span", "sb-v", q[2] ? (on ? sbFt(q[2]) : "0 / " + sbFt(q[2])) : "összeg nincs megadva")); card.appendChild(k);
+      });
+      // 4. Mentorált TA
+      var tk = el("div", "sb-k"), th = el("div", "sb-kh"); th.appendChild(el("b", "", "Mentorált TA")); th.appendChild(el("span", "sb-tag", R.ta + " érvényes")); th.appendChild(el("span", "sb-v", sbFt(R.tab))); tk.appendChild(th);
+      tk.appendChild(el("div", "sb-note", "Mentorált tanácsadás: tanácsadásra hozott ügyfél. Érvényes, ha legalább " + c.taEs + " ES vagy " + c.taSz + " szerződés született belőle; darabja " + sbFt(c.ta) + "."));
+      var tl = el("div", "sb-ta");
+      (p.ta || []).forEach(function (t, i) {
+        var r = el("div", "sb-tr" + (sbTaOk(t, c) ? " ok" : ""));
+        function inp(k, ph, ty) { var x = el("input"); x.type = ty; x.placeholder = ph; x.value = t[k] || ""; if (ty === "number") x.min = "0"; x.addEventListener("change", function () { var a = (p.ta || []).slice(); a[i] = Object.assign({}, a[i]); a[i][k] = ty === "number" ? (+x.value || 0) : x.value.trim(); sbUpd(p.id, { ta: a }); }); return x; }
+        r.appendChild(inp("nev", "Ügyfél neve", "text")); var e1 = el("label", "", "ES "); e1.appendChild(inp("es", "0", "number")); r.appendChild(e1); var e2 = el("label", "", "Szerz. "); e2.appendChild(inp("sz", "0", "number")); r.appendChild(e2);
+        r.appendChild(el("span", "sb-trv", sbTaOk(t, c) ? "✓ " + sbFt(c.ta) : "még nem"));
+        var x = el("button", "x", "×"); x.type = "button"; x.title = "Sor törlése"; x.addEventListener("click", function () { var a = (p.ta || []).slice(); a.splice(i, 1); sbUpd(p.id, { ta: a }); }); r.appendChild(x);
+        tl.appendChild(r);
+      });
+      tk.appendChild(tl);
+      var ad = el("button", "sm gh", "+ Mentorált TA"); ad.type = "button"; ad.addEventListener("click", function () { var a = (p.ta || []).slice(); a.push({ nev: "", es: 0, sz: 0 }); sbUpd(p.id, { ta: a }); }); tk.appendChild(ad);
+      card.appendChild(tk);
+      var sm = el("div", "sb-sum"); sm.appendChild(el("span", "", "Ösztöndíj (vizsgák): " + sbFt(R.mnb + R.kev)));
+      sm.appendChild(el("b", R.ok ? "ok" : "wait", "Start bónusz (mentorált TA): " + sbFt(R.tab) + (R.ok ? " · kifizethető" : " · " + sbNum(Math.max(0, c.es - R.es)) + " ES hiányzik a jogosultsághoz"))); card.appendChild(sm);
       box.appendChild(card);
     });
-    var cf = sbCfg(); if (!$("sb-cfg").open) { $("sb-steps").value = cf.steps.map(function (x) { return x.t; }).join("\n"); $("sb-goals").value = cf.goals.map(function (x) { return x.t + " | " + x.target; }).join("\n"); }
+    var cf = sbCfg(); if (!$("sb-cfg").open) Object.keys(SB_DEF).forEach(function (k) { var x = $("sbc-" + k); if (x) x.value = cf[k]; });
   }
   function sbUpd(id, patch) { FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "sb", id), patch).catch(function (e) { toast("Mentés sikertelen: " + e.message); }); }
+  function sbLoadEs() {
+    fetch(SB_ES_URL + "?_=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || d.error || !d.people) { sbEsErr = "A pipeline adatai nem érhetők el" + (d && d.error ? " (" + d.error + ")" : "") + "."; soon(sbRender); return; }
+      SBES = { people: d.people, months: d.months || [] }; soon(sbRender);
+    }).catch(function () { sbEsErr = "A pipeline adatai nem tölthetők be."; soon(sbRender); });
+  }
   function sbStart() {
-    if (sbReady) return; sbReady = true;
+    if (sbReady) return; sbReady = true; sbLoadEs();
     FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "sb"), function (snap) { SB = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); soon(sbRender); }, function (e) { toast("Start bónusz: " + e.message); });
     FB.F.onSnapshot(FB.F.doc(FB.db, "perf", ID, "sbcfg", "main"), function (d) { SBC = d.exists() ? d.data() : null; soon(sbRender); }, function () {});
   }
@@ -701,14 +770,13 @@
     $("sb-form").addEventListener("submit", function (ev) {
       ev.preventDefault(); if (!FB) { toast("Az adatbázis még nem töltött be."); return; }
       var nm = $("sb-name").value.trim(); if (!nm) return;
-      FB.F.setDoc(FB.F.doc(FB.F.collection(FB.db, "perf", ID, "sb")), { name: nm, start: $("sb-start").value || todayIso(), mentor: $("sb-mentor").value, steps: {}, nums: {}, created: Date.now() }).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
+      FB.F.setDoc(FB.F.doc(FB.F.collection(FB.db, "perf", ID, "sb")), { name: nm, start: $("sb-start").value || todayIso(), mentor: $("sb-mentor").value, mnb: false, kev: false, ta: [], created: Date.now() }).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
       $("sb-name").value = ""; $("sb-name").focus();
     });
     $("sb-save").addEventListener("click", function () {
-      if (!FB) return; var old = sbCfg(), used = {};
-      var steps = $("sb-steps").value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean).map(function (t) { var f = old.steps.filter(function (o) { return o.t === t; })[0], id = f ? f.id : sbSlug(t); while (used[id]) id += "_"; used[id] = 1; return { id: id, t: t }; });
-      var gu = {}, goals = $("sb-goals").value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean).map(function (x) { var p = x.split("|"), t = p[0].trim(), tg = parseFloat((p[1] || "").replace(",", ".")) || 0, f = old.goals.filter(function (o) { return o.t === t; })[0], id = f ? f.id : sbSlug(t); while (gu[id]) id += "_"; gu[id] = 1; return { id: id, t: t, target: tg }; });
-      FB.F.setDoc(FB.F.doc(FB.db, "perf", ID, "sbcfg", "main"), { steps: steps, goals: goals }).then(function () { toast("Mentve."); $("sb-cfg").open = false; }).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
+      if (!FB) return; var bon = {};
+      for (var k in SB_DEF) { var v = String($("sbc-" + k).value).replace(/\s/g, "").replace(",", "."); if (v === "" || !isFinite(+v) || +v < 0) { toast("Az értékek nem negatív számok legyenek."); return; } bon[k] = +v; }
+      FB.F.setDoc(FB.F.doc(FB.db, "perf", ID, "sbcfg", "main"), { bon: bon }, { merge: true }).then(function () { toast("Mentve."); $("sb-cfg").open = false; }).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
     });
   }
   function asTab(k) {
