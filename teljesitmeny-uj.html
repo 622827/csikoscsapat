@@ -522,7 +522,7 @@
     <p class="none" id="as-none"></p>
   </div>
   <div id="v-sb" hidden>
-    <p class="lead">Start bónusz: új munkatársanként négy mérőszám. A sikeres MNB és kezdő elemző vizsga ösztöndíjat ér, a mentorált tanácsadások (TA) a start bónuszt adják, amelynek feltétele az 500 ES technikai teljesítmény (a pipeline-ból számolva).</p>
+    <p class="lead">Start bónusz: új munkatársanként négy mérőszám. A sikeres MNB és kezdő elemző vizsga ösztöndíjat ér, a mentorált tanácsadások (TA) a start bónuszt adják. Mindkettő kifizetésének feltétele az 500 ES technikai teljesítmény (a pipeline-ból számolva).</p>
     <form class="as-add" id="sb-form" autocomplete="off">
       <input id="sb-name" type="text" maxlength="60" placeholder="Új munkatárs neve" aria-label="Név" required>
       <label class="as-lb">Kezdés <input id="sb-start" type="text" aria-label="Kezdés dátuma"></label>
@@ -806,9 +806,10 @@
       card.appendChild(tk);
       var sm = el("div", "sb-sum");
       function tile(cls, lab, val, sub) { var t = el("div", "sb-tile " + cls); t.appendChild(el("span", "sb-tl", lab)); t.appendChild(el("b", "sb-tv", val)); if (sub) t.appendChild(el("span", "sb-ts", sub)); sm.appendChild(t); }
-      tile("osz", "Ösztöndíj", sbFt(R.mnb + R.kev), [p.mnb ? "MNB ✓" : "MNB –", p.kev ? "kezdő elemző ✓" : "kezdő elemző –"].join(" · "));
-      tile("bon" + (R.ok ? " ok" : ""), "Start bónusz", sbFt(R.tab), R.ok ? "kifizethető · " + R.ta + " mentorált TA" : sbNum(Math.max(0, c.es - R.es)) + " ES hiányzik a jogosultsághoz");
-      tile("all", "Összesen", sbFt(R.mnb + R.kev + (R.ok ? R.tab : 0)), R.tab && !R.ok ? "+ " + sbFt(R.tab) + " a(z) " + sbNum(c.es) + " ES után" : (R.mnb + R.kev + R.tab ? "most kifizethető" : "még nincs teljesített tétel"));
+      var miss = sbNum(Math.max(0, c.es - R.es)) + " ES hiányzik", gross = R.mnb + R.kev + R.tab;
+      tile("bon" + (R.ok ? " ok" : ""), "Ösztöndíj", sbFt(R.mnb + R.kev), [p.mnb ? "MNB ✓" : "MNB –", p.kev ? "kezdő elemző ✓" : "kezdő elemző –"].join(" · "));
+      tile("bon" + (R.ok ? " ok" : ""), "Start bónusz", sbFt(R.tab), R.ta + " érvényes mentorált TA");
+      tile("all", "Összesen", sbFt(R.ok ? gross : 0), R.ok ? (gross ? "kifizethető" : "még nincs teljesített tétel") : (gross ? sbFt(gross) + " jár a(z) " + sbNum(c.es) + " ES után · " + miss : miss + " a jogosultsághoz"));
       card.appendChild(sm);
       return card;
   }
