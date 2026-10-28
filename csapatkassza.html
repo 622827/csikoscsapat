@@ -695,6 +695,11 @@
       f.admin = field("Admin. díj (Ft)", inp("text", x.admin || "", { inputmode: "numeric" }));
       f.forg = field("Forgalmi költség (Ft)", inp("text", x.forg || "", { inputmode: "numeric" }));
       f.kesz = field("Készülék díj (Ft)", inp("text", x.kesz || "", { inputmode: "numeric" }));
+      var rm0 = /még\s+(\d+)\s+részlet/i.exec(x.megj || ""), rw = el("div", ""), ri = inp("number", rm0 ? rm0[1] : "", { min: "0", step: "1", inputmode: "numeric", placeholder: "pl. 12" });
+      rw.style.cssText = "display:flex;gap:8px;align-items:center";
+      function rbtn(t, d, lab) { var b = el("button", "", t); b.type = "button"; b.setAttribute("aria-label", lab); b.style.cssText = "flex:none;width:44px;height:44px;font:inherit;font-size:1.3rem;font-weight:700;border:1px solid var(--track);background:var(--bg);color:var(--ink);border-radius:12px;cursor:pointer"; b.addEventListener("click", function () { ri.value = Math.max(0, (parseInt(ri.value, 10) || 0) + d); }); return b; }
+      ri.style.flex = "1"; rw.appendChild(rbtn("−", -1, "Eggyel kevesebb részlet")); rw.appendChild(ri); rw.appendChild(rbtn("+", 1, "Eggyel több részlet"));
+      field("Hátralévő készülékrészletek (db)", rw); f.rest = ri;
       f.tart = field("Tartozás – előző hónapról (Ft)", inp("text", x.tart || "", { inputmode: "numeric" }));
       f.szerz = field("Szerződéskötés", inp("date", x.szerz || "")); f.huseg = field("Hűség lejárta", inp("date", x.huseg || ""));
       f.bef = field("Befizetve összesen (Ft)", inp("text", x.bef || "", { inputmode: "numeric" })); f.datum = field("Befizetés dátuma", inp("date", x.datum || ""));
@@ -708,7 +713,8 @@
     }, function () {
       var nv = f.nev.value.trim(), tl = f.tel.value.trim();
       if (!nv && !tl) return Promise.reject(new Error("Add meg a nevet vagy a telefonszámot."));
-      var row = { id: x.id || "", chk: x.id ? fkey(x) : "", fl: f.fl.value, nev: nv, tel: tl, csomag: f.csomag.value.trim(), net: f.net.value.trim(), szerz: f.szerz.value, huseg: f.huseg.value, datum: f.datum.value, fiz: f.fiz.checked, megj: f.megj ? f.megj.value.trim() : "" };
+      var row = { id: x.id || "", chk: x.id ? fkey(x) : "", fl: f.fl.value, nev: nv, tel: tl, csomag: f.csomag.value.trim(), net: f.net.value.trim(), szerz: f.szerz.value, huseg: f.huseg.value, datum: f.datum.value, fiz: f.fiz.checked, megj: (f.megj ? f.megj.value : (x.megj || "")).replace(/\s*·?\s*még\s+\d+\s+részlet/ig, "").trim() };
+      var rn = parseInt(f.rest.value, 10); if (rn > 0) row.megj = (row.megj ? row.megj + " · " : "") + "még " + rn + " részlet";
       ["alap", "admin", "forg", "tart", "kesz", "bef"].forEach(function (k) { var v = f[k].value.trim(); row[k] = v === "" ? "" : num(v); });
       for (var k in { alap: 1, admin: 1, forg: 1, tart: 1, kesz: 1, bef: 1 }) if (row[k] !== "" && !isFinite(row[k])) return Promise.reject(new Error("Az összegek számok legyenek."));
       return fsend({ op: "save", id: x.id || "", chk: row.chk, row: row }).then(function () { toast("Mentve."); });
