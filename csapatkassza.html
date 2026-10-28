@@ -747,8 +747,23 @@
   var PKEY = "csk_flotta_csomagok_v1", PNAMES = { BB: "BB – Telekom SIM only", TFC: "TFC – Telekom sima", ONE: "One – Vodafone-os árlista" };
   var PDEF = {
     BB: [{ nev: "Korlátlan", csomag: "M", alap: 7151, admin: 1500 }, { nev: "30gb", csomag: "M", alap: 5282, admin: 1500 }, { nev: "10gb", csomag: "M", alap: 3098, admin: 1000 }, { nev: "3gb", csomag: "S", alap: 2115, admin: 0 }],
-    TFC: [{ nev: "Korlátlan", csomag: "M", alap: 5386, admin: 0 }],
-    ONE: []
+    TFC: [{ nev: "Korlátlan", csomag: "M", alap: 5386, admin: 0 }, { nev: "Üzleti Mobil M (2025) 8GB", csomag: "M", alap: 0, admin: 0 }],
+    ONE: [
+      { nev: "Üzleti Maxi+10gb", csomag: "", alap: 0, admin: 0 },
+      { nev: "Business RED Start+10gb", csomag: "", alap: 0, admin: 0 },
+      { nev: "Business RED Start+10gb+3gb", csomag: "", alap: 0, admin: 0 },
+      { nev: "Üzleti Midi+150p+5gb", csomag: "", alap: 0, admin: 0 },
+      { nev: "Midi 10gb + 150 perc", csomag: "", alap: 0, admin: 0 },
+      { nev: "Business L+700p", csomag: "", alap: 0, admin: 0 },
+      { nev: "Üzleti Plus+50gb", csomag: "", alap: 0, admin: 0 },
+      { nev: "10+10 red", csomag: "", alap: 0, admin: 0 },
+      { nev: "Vodafone Business XL", csomag: "", alap: 0, admin: 0 },
+      { nev: "Vodafone Business S", csomag: "", alap: 0, admin: 0 },
+      { nev: "Üzleti Mobil Medium", csomag: "", alap: 0, admin: 0 },
+      { nev: "Üzleti Pro", csomag: "", alap: 0, admin: 0 },
+      { nev: "Business MobileNet Infinity", csomag: "", alap: 0, admin: 0 },
+      { nev: "Business Office Net 1000", csomag: "", alap: 0, admin: 0 }
+    ]
   };
   function pkgs() { try { var v = JSON.parse(localStorage.getItem(PKEY) || "null"); if (v && v.BB && v.TFC && v.ONE) return v; } catch (e) {} return JSON.parse(JSON.stringify(PDEF)); }
   $("f-pkg").addEventListener("click", function () {
@@ -797,7 +812,7 @@
       function fillPk(keep) {
         var L = pkgs()[f.fl.value] || []; ps.textContent = ""; var o0 = el("option", "", "– válassz csomagot –"); o0.value = ""; ps.appendChild(o0);
         var hit = "";
-        L.forEach(function (q, ix) { var o = el("option", "", (q.csomag ? q.csomag + " · " : "") + q.nev + " – " + (q.alap + q.admin).toLocaleString("hu-HU") + " Ft/hó"); o.value = ix; ps.appendChild(o); if (keep && String(q.csomag) === String(f.csomag.value) && String(q.nev).trim() === String(f.net.value).trim() && q.alap === num(f.alap.value) && q.admin === num(f.admin.value || 0)) hit = String(ix); });
+        L.forEach(function (q, ix) { var o = el("option", "", (q.csomag ? q.csomag + " · " : "") + q.nev + " – " + (q.alap + q.admin ? (q.alap + q.admin).toLocaleString("hu-HU") + " Ft/hó" : "ár nincs megadva")); o.value = ix; ps.appendChild(o); if (keep && String(q.csomag) === String(f.csomag.value) && String(q.nev).trim() === String(f.net.value).trim() && q.alap === num(f.alap.value) && q.admin === num(f.admin.value || 0)) hit = String(ix); });
         ps.value = hit; if (!keep) { f.csomag.value = ""; f.net.value = ""; f.alap.value = ""; f.admin.value = ""; } pshow();
       }
       fillPk(true); f.fl.addEventListener("change", function () { fillPk(false); });
