@@ -159,6 +159,8 @@
   .seg button.on { background: var(--accent); color: var(--on-accent); }
   button.primary { font: inherit; font-weight: 700; border: 0; border-radius: 999px; padding: 10px 18px; cursor: pointer; background: var(--accent); color: var(--on-accent); }
   button.primary:hover { filter: brightness(1.08); }
+  button.tl { font: inherit; font-weight: 600; border: 1px solid var(--track); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 9px 16px; cursor: pointer; }
+  button.tl[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   .wsl { display: grid; gap: 12px; max-width: 760px; }
   .wtr { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--track, #ddd); }
@@ -351,15 +353,16 @@
   <div class="ktabs" id="ftabs" role="tablist" style="margin-top:6px"><button type="button" class="on" data-s="ALL">Mind</button><button type="button" data-s="BB">BB flotta</button><button type="button" data-s="TFC">TFC flotta</button><button type="button" data-s="ONE">One flotta</button></div>
   <h1 class="bal" id="f-tot">–</h1>
   <p class="balsub" id="f-sub">Betöltés…</p>
-  <div class="cards" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+  <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
     <div class="card"><span class="k">Tartozások összesen</span><span class="v out" id="f-debt">–</span><span class="sm" id="f-debt2"></span></div>
     <div class="card"><span class="k">Többletbefizetések</span><span class="v in" id="f-plus">–</span><span class="sm" id="f-plus2"></span></div>
     <div class="card"><span class="k">Havi díjak összesen</span><span class="v" id="f-month">–</span><span class="sm" id="f-month2"></span></div>
     <div class="card"><span class="k">Befizetve</span><span class="v in" id="f-paid">–</span><span class="sm" id="f-paid2"></span></div>
+    <div class="card"><span class="k">Hátralévő készülékrészletek</span><span class="v" id="f-rest">–</span><span class="sm" id="f-rest2"></span></div>
   </div>
   <section>
     <div class="sh"><h2 id="f-title">Telefonszámok</h2>
-      <div class="tools"><button class="primary" id="f-new" type="button">+ Új sor</button></div>
+      <div class="tools"><button class="tl" id="f-late" type="button" aria-pressed="false">Csak tartozók</button><button class="tl" id="f-recon" type="button">Számlaegyeztetés</button><button class="primary" id="f-new" type="button">+ Új sor</button></div>
     </div>
     <p class="fnote">Egy sor = egy telefonszám. A módosítás azonnal a Költségvetés táblázat megfelelő lapjára is visszaíródik. Egyenleg = összesen − befizetés: piros = tartozás, zöld = többletbefizetés.</p>
     <input class="srch" id="f-srch" type="search" placeholder="Keresés névre, számra…" aria-label="Keresés">
@@ -570,7 +573,7 @@
   $("srch").addEventListener("input", function () { q = this.value; limit = 40; if (S) renderT(); });
 
   // ===== OVB FLOTTA (BBflotta / TFCflotta lap a Költségvetés táblázatban) =====
-  var FOPEN = {}, FS = "ALL", FD = null, fq = "", fbusy = false;
+  var FOPEN = {}, FS = "ALL", FD = null, fq = "", fbusy = false, FLATE = false;
   var FPROV = { BB: "Telekom", TFC: "Telekom", ONE: "One" }; // BB = Telekom SIM-only, TFC = Telekom (készülékes), ONE = One flotta (később)
   function fcur() { return FD; }
   function ftel(t) {
@@ -605,6 +608,9 @@
     var d = fcur(); if (!d) return;
     var rows = d.rows.filter(function (x) { return FS === "ALL" || x.fl === FS; }), debt = 0, plus = 0, nd = 0, np2 = 0, month = 0, paid = 0;
     rows.forEach(function (x) { month += x.alap + x.admin + x.forg + (x.kesz || 0); paid += x.bef; if (x.egy > 0) { debt += x.egy; nd++; } else if (x.egy < 0) { plus += -x.egy; np2++; } });
+    var restN = 0, restSum = 0, restRows = 0;
+    rows.forEach(function (x) { var m = /még\s+(\d+)\s+részlet/i.exec(x.megj || ""); if (m && x.kesz) { var n = +m[1]; restN += n; restSum += n * x.kesz; restRows++; } });
+    $("f-rest").textContent = restRows ? ft(restSum) : "–"; $("f-rest2").textContent = restRows ? restN + " részlet · " + restRows + " készülék" : "nincs megadva (Szerkeszt → Hátralévő részletek)";
     var t = $("f-tot"); t.textContent = ft(debt); t.className = "bal" + (debt ? " neg" : "");
     $("f-sub").textContent = (debt ? "összes tartozás · " + nd + " soron" : "Nincs tartozás.") + " · frissítve: " + new Date(d.updated).toLocaleString("hu-HU", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
     $("f-debt").textContent = ft(debt); $("f-debt2").textContent = nd ? nd + " sor" : "nincs";
@@ -627,7 +633,10 @@
       if (p.tel !== q.tel) return p.tel < q.tel ? -1 : 1;
       return String(p.rows[0].nev).localeCompare(String(q.rows[0].nev), "hu");
     });
+    if (FLATE) order = order.filter(function (g) { var sm = 0; g.rows.forEach(function (x) { sm += x.egy; }); return sm > 0; });
+    $("f-late").setAttribute("aria-pressed", FLATE ? "true" : "false");
     if (!rows.length) { host.appendChild(el("p", "empty", "Még nincs sor ezen a lapon.")); return; }
+    if (!order.length) { host.appendChild(el("p", "empty", FLATE ? "Nincs tartozó. 🎉" : "Nincs találat.")); return; }
     var h = el("div", "fbal h hd");
     ["Név · telefonszám", "Csomag", "Havi díj", "Tartozás", "Összesen", "Befizetve", "Egyenleg", "Fizetve", ""].forEach(function (c, i) { h.appendChild(el("span", i >= 2 && i <= 6 ? "num" : "", c)); });
     host.appendChild(h);
@@ -668,6 +677,16 @@
       var ac = el("div", "act"), tg = el("button", "tg", open ? "Becsuk ▴" : "Részletek ▾"); tg.type = "button"; tg.setAttribute("aria-expanded", open ? "true" : "false");
       function toggle() { FOPEN[g.key] = !FOPEN[g.key]; renderF(); }
       tg.addEventListener("click", function (e) { e.stopPropagation(); toggle(); }); r.addEventListener("click", toggle); r.style.cursor = "pointer";
+      if (sum.egy > 0) {
+        var rb = el("button", "", "Emlékeztető"); rb.type = "button"; rb.title = "Emlékeztető üzenet másolása";
+        rb.addEventListener("click", function (e) {
+          e.stopPropagation();
+          var fn = (names[0] || "").split(" ").pop(), msg = "Szia" + (fn ? " " + fn : "") + "! Kedves emlékeztető: a(z) " + ftel(g.tel) + " telefonszám flotta-tartozása jelenleg " + ft(sum.egy) + ". Kérlek rendezd az átutalással. A pontos összeg és az utalási adatok itt érhetők el: " + new URL("flotta-fizetes.html", location.href).href + " Köszönöm!";
+          function ok() { toast("Emlékeztető másolva a vágólapra."); }
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(msg).then(ok, function () { prompt("Másold ki:", msg); }); else prompt("Másold ki:", msg);
+        });
+        ac.appendChild(rb);
+      }
       ac.appendChild(tg); r.appendChild(ac); wrap.appendChild(r);
       if (open) rs.forEach(function (x) { wrap.appendChild(subRow(x)); });
       host.appendChild(wrap);
@@ -721,6 +740,28 @@
     });
   }
   $("f-new").addEventListener("click", function () { if (fcur()) fform(); });
+  $("f-late").addEventListener("click", function () { FLATE = !FLATE; renderF(); });
+  $("f-recon").addEventListener("click", function () {
+    var d = fcur(); if (!d) return;
+    var exp = { Telekom: 0, One: 0 };
+    d.rows.forEach(function (x) { var h = x.alap + x.admin + x.forg + (x.kesz || 0), pv = FPROV[x.fl]; if (pv) exp[pv] += h; });
+    var KEYR = "csk_flotta_szamla_" + new Date().toISOString().slice(0, 7), sv = {}; try { sv = JSON.parse(localStorage.getItem(KEYR) || "{}") || {}; } catch (e) {}
+    var f = {}, out = el("div", ""); out.style.cssText = "font-size:.9rem;line-height:1.5;margin-top:6px";
+    function calc() {
+      out.textContent = "";
+      [["Telekom", f.tel], ["One", f.one]].forEach(function (c) {
+        var v = num(c[1].value), p = el("p", ""); p.style.margin = "4px 0";
+        if (c[1].value.trim() === "" || !isFinite(v)) { p.textContent = c[0] + ": a flottában összesen " + ft(exp[c[0]]) + " havi díj szerepel."; }
+        else { var df = v - exp[c[0]]; p.textContent = c[0] + ": számla " + ft(v) + " · flotta " + ft(exp[c[0]]) + " · " + (Math.abs(df) < 1 ? "egyezik ✓" : "eltérés " + (df > 0 ? "+" : "−") + ft(Math.abs(df)) + (df > 0 ? " (a számla több)" : " (a flotta több)")); p.style.color = Math.abs(df) < 1 ? "" : "var(--gold, #cc0066)"; p.style.fontWeight = "600"; }
+        out.appendChild(p);
+      });
+    }
+    open("Számlaegyeztetés · " + new Date().toLocaleDateString("hu-HU", { year: "numeric", month: "long" }), function () {
+      f.tel = field("Telekom havi számla összesen (Ft, bruttó)", inp("text", sv.tel || "", { inputmode: "numeric" }));
+      f.one = field("One havi számla összesen (Ft, bruttó)", inp("text", sv.one || "", { inputmode: "numeric" }));
+      fields.appendChild(out); f.tel.addEventListener("input", calc); f.one.addEventListener("input", calc); calc();
+    }, function () { try { localStorage.setItem(KEYR, JSON.stringify({ tel: f.tel.value.trim(), one: f.one.value.trim() })); } catch (e) {} toast("Mentve ezen az eszközön."); return Promise.resolve(); });
+  });
   $("f-srch").addEventListener("input", function () { fq = this.value; renderF(); });
   $("ftabs").addEventListener("click", function (ev) {
     var b = ev.target.closest("button"); if (!b) return;
