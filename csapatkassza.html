@@ -212,6 +212,15 @@
   .foot input { font: inherit; padding: 6px 10px; border-radius: 8px; border: 2px solid var(--track); background: var(--card); color: var(--ink); width: 150px; }
   .foot a { color: var(--accent); font-weight: 600; }
   dialog { border: 0; border-radius: 20px; padding: 22px; width: min(460px, calc(100vw - 24px)); background: var(--bg); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  dialog.wide { width: min(980px, calc(100vw - 24px)); max-height: calc(100vh - 40px); overflow: auto; padding: 30px 34px; }
+  dialog.wide .pk-h { display: flex; align-items: baseline; justify-content: space-between; margin: 28px 0 8px; padding-bottom: 8px; border-bottom: 1px solid var(--track); }
+  dialog.wide .pk-h h3 { margin: 0; font-size: 1.05rem; letter-spacing: .01em; }
+  dialog.wide .pk-h span { font-size: .8rem; opacity: .6; }
+  dialog.wide .pk-r { display: grid; grid-template-columns: minmax(0,2.2fr) minmax(0,.9fr) minmax(0,1fr) minmax(0,1fr) 36px; gap: 12px; align-items: center; margin-bottom: 8px; }
+  dialog.wide .pk-r.hd { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; opacity: .55; margin-bottom: 4px; }
+  dialog.wide .pk-r input { margin: 0; padding: 9px 12px; }
+  dialog.wide .pk-r input[inputmode] { text-align: right; }
+  dialog.wide .pk-add { margin-top: 6px; }
   dialog::backdrop { background: rgba(0,0,0,.45); }
   dialog h2 { margin: 0 0 14px; }
   dialog label { display: block; font-weight: 600; font-size: .9rem; margin: 10px 0 0; }
@@ -547,7 +556,7 @@
   function inp(type, val, attrs) { var i = el("input"); i.type = type; i.value = val === 0 ? "0" : (val || ""); Object.keys(attrs || {}).forEach(function (k) { i.setAttribute(k, attrs[k]); }); return i; }
   function sel(opts, val) { var s = el("select"); opts.forEach(function (o) { var op = el("option", "", o[1]); op.value = o[0]; s.appendChild(op); }); s.value = val; return s; }
   function open(title, build, fn) {
-    $("dlg-title").textContent = title; fields.textContent = ""; $("dlg-err").textContent = ""; build(); submitFn = fn;
+    $("dlg-title").textContent = title; dlg.classList.remove("wide"); fields.textContent = ""; $("dlg-err").textContent = ""; build(); submitFn = fn;
     if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
     var f = fields.querySelector("input,select"); if (f) setTimeout(function () { f.focus(); }, 30);
   }
@@ -897,13 +906,15 @@
   $("f-pkg").addEventListener("click", function () {
     var data = pkgs(), boxes = {};
     open("Csomagok árlistái", function () {
+      dlg.classList.add("wide");
       var note = el("p", "fnote", "Három külön árlista. Itt add meg a csomagdíjat és az admin díjat; egy sor szerkesztésekor a csomag kiválasztásával ezek kitöltődnek. A változtatás az új sor mentésekor érvényesül, a meglévő sorokat nem írja át."); fields.appendChild(note);
       ["BB", "TFC", "ONE"].forEach(function (k) {
-        var h = el("h3", "", PNAMES[k]); h.style.cssText = "margin:14px 0 4px;font-size:1rem"; fields.appendChild(h);
+        var hh = el("div", "pk-h"); hh.appendChild(el("h3", "", PNAMES[k])); hh.appendChild(el("span", "", "Ft / hó, nettó")); fields.appendChild(hh);
+        var hd = el("div", "pk-r hd"); ["Csomag neve", "Típus", "Csomagdíj", "Admin díj", ""].forEach(function (t) { hd.appendChild(el("span", "", t)); }); fields.appendChild(hd);
         var box = el("div"); fields.appendChild(box); boxes[k] = [];
         function addRow(r) {
-          var w = el("div"); w.style.cssText = "display:grid;grid-template-columns:1.3fr .7fr 1fr 1fr auto;gap:6px;margin-bottom:6px;align-items:center";
-          var i = { nev: inp("text", r.nev, { placeholder: "Internet" }), csomag: inp("text", r.csomag, { placeholder: "Típus" }), alap: inp("text", r.alap === "" ? "" : String(r.alap), { inputmode: "numeric", placeholder: "Csomagdíj" }), admin: inp("text", r.admin === "" ? "" : String(r.admin), { inputmode: "numeric", placeholder: "Admin" }) };
+          var w = el("div", "pk-r");
+          var i = { nev: inp("text", r.nev, { placeholder: "pl. Üzleti Maxi" }), csomag: inp("text", r.csomag, { placeholder: "Típus" }), alap: inp("text", r.alap === "" ? "" : String(r.alap), { inputmode: "numeric", placeholder: "Csomagdíj" }), admin: inp("text", r.admin === "" ? "" : String(r.admin), { inputmode: "numeric", placeholder: "Admin" }) };
           var x = el("button", "", "×"); x.type = "button"; x.setAttribute("aria-label", "Csomag törlése"); x.style.cssText = "font:inherit;border:1px solid var(--track);background:var(--bg);color:var(--frk);border-radius:8px;width:34px;height:34px;cursor:pointer";
           var ent = { i: i, w: w }; boxes[k].push(ent);
           x.addEventListener("click", function () { w.remove(); boxes[k].splice(boxes[k].indexOf(ent), 1); });
@@ -911,7 +922,7 @@
         }
         if (!data[k].length) { var e0 = el("p", "fnote", "Még nincs csomag ebben az árlistában."); box.appendChild(e0); }
         data[k].forEach(addRow);
-        var ad = el("button", "", "+ Csomag hozzáadása"); ad.type = "button"; ad.style.cssText = "font:inherit;font-weight:600;border:1px solid var(--track);background:var(--bg);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer";
+        var ad = el("button", "", "+ Csomag hozzáadása"); ad.type = "button"; ad.className = "pk-add"; ad.style.cssText = "font:inherit;font-weight:600;border:1px dashed var(--track);background:transparent;color:var(--ink);border-radius:999px;padding:7px 16px;cursor:pointer";
         ad.addEventListener("click", function () { var e = box.querySelector("p.fnote"); if (e) e.remove(); addRow({ nev: "", csomag: "", alap: "", admin: "" }); });
         fields.appendChild(ad);
       });
@@ -947,7 +958,7 @@
       f.tel = field("Telefonszám", inp("text", x.tel ? ftel(x.tel) : "", { placeholder: "pl. 30 123 4567" }));
       var pk = el("label", "", "Csomag (csak a Csomagok fülön felvitt közül)"), ps = el("select"), pinfo = el("p", "fnote", ""); pk.appendChild(ps); fields.appendChild(pk); fields.appendChild(pinfo);
       f.csomag = inp("text", x.csomag || ""); f.net = inp("text", x.net || ""); f.alap = inp("text", x.alap === 0 ? "0" : (x.alap || "")); f.admin = inp("text", x.admin === 0 ? "0" : (x.admin || ""));
-      function pshow() { pinfo.textContent = ps.value === "" ? "Válassz csomagot. Ha nincs a listában, előbb vidd fel a Csomagok gombbal." : (num(f.alap.value || 0) + num(f.admin.value || 0) === 0 ? "A csomag ára még nincs megadva a Csomagok fülön." : "Csomagdíj " + num(f.alap.value).toLocaleString("hu-HU") + " Ft + admin " + num(f.admin.value || 0).toLocaleString("hu-HU") + " Ft = " + (num(f.alap.value) + num(f.admin.value || 0)).toLocaleString("hu-HU") + " Ft/hó"); }
+      function pshow() { pinfo.textContent = ps.value === "" ? "Válassz csomagot (készüléknél nem kötelező). Ha nincs a listában, előbb vidd fel a Csomagok gombbal." : (num(f.alap.value || 0) + num(f.admin.value || 0) === 0 ? "A csomag ára még nincs megadva a Csomagok fülön." : "Csomagdíj " + num(f.alap.value).toLocaleString("hu-HU") + " Ft + admin " + num(f.admin.value || 0).toLocaleString("hu-HU") + " Ft = " + (num(f.alap.value) + num(f.admin.value || 0)).toLocaleString("hu-HU") + " Ft/hó"); }
       function fillPk(keep) {
         var L = pkgs()[f.fl.value] || []; ps.textContent = ""; var o0 = el("option", "", "– válassz csomagot –"); o0.value = ""; ps.appendChild(o0);
         var hit = "";
@@ -957,6 +968,8 @@
       fillPk(true); f.fl.addEventListener("change", function () { fillPk(false); });
       ps.addEventListener("change", function () { if (ps.value === "") { f.csomag.value = ""; f.net.value = ""; f.alap.value = ""; f.admin.value = ""; pshow(); return; } var q = (pkgs()[f.fl.value] || [])[+ps.value]; if (!q) return; f.csomag.value = q.csomag; f.net.value = q.nev; if (q.alap + q.admin > 0) { f.alap.value = q.alap; f.admin.value = q.admin; } else { f.alap.value = x.alap === 0 ? "0" : (x.alap || ""); f.admin.value = x.admin === 0 ? "0" : (x.admin || ""); } pshow(); });
       f.ps = ps;
+      var dvl = el("label", "", "Készülék / megnevezés (csak ha nincs csomag, pl. iPhone 16)"); f.dev = inp("text", ps.value === "" ? (x.csomag || "") : ""); dvl.appendChild(f.dev); fields.appendChild(dvl);
+      ps.addEventListener("change", function () { dvl.style.display = ps.value === "" ? "" : "none"; }); dvl.style.display = ps.value === "" ? "" : "none";
       f.forg = field("Forgalmi költség (Ft)", inp("text", x.forg || "", { inputmode: "numeric" }));
       f.kesz = field("Készülék díj (Ft)", inp("text", x.kesz || "", { inputmode: "numeric" }));
       var rm0 = /még\s+(\d+)\s+részlet/i.exec(x.megj || ""), rw = el("div", ""), ri = inp("number", rm0 ? rm0[1] : "", { min: "0", step: "1", inputmode: "numeric", placeholder: "pl. 12" });
@@ -977,7 +990,10 @@
     }, function () {
       var nv = f.nev.value.trim(), tl = f.tel.value.trim();
       if (!nv && !tl) return Promise.reject(new Error("Add meg a nevet vagy a telefonszámot."));
-      if (f.ps.value === "") return Promise.reject(new Error("Válassz csomagot a listából (a Csomagok gombbal vihetsz fel újat)."));
+      if (f.ps.value === "") {
+        if (!(num(f.kesz.value || 0) > 0)) return Promise.reject(new Error("Válassz csomagot a listából (a Csomagok gombbal vihetsz fel újat). Készüléknél a csomag nem kötelező: add meg a készülék díját."));
+        var dn = f.dev.value.trim(); f.net.value = (dn === String(x.csomag || "").trim()) ? (x.net || "") : ""; f.csomag.value = dn;
+      }
       var row = { id: x.id || "", chk: x.id ? fkey(x) : "", fl: f.fl.value, nev: nv, tel: tl, csomag: f.csomag.value.trim(), net: f.net.value.trim(), szerz: f.szerz.value, huseg: f.huseg.value, datum: f.datum.value, fiz: f.fiz.checked, megj: (f.megj ? f.megj.value : (x.megj || "")).replace(/\s*·?\s*még\s+\d+\s+részlet/ig, "").trim() };
       var rn = parseInt(f.rest.value, 10); if (rn > 0) row.megj = (row.megj ? row.megj + " · " : "") + "még " + rn + " részlet";
       ["alap", "admin", "forg", "tart", "kesz", "bef"].forEach(function (k) { var v = f[k].value.trim(); row[k] = v === "" ? "" : num(v); });
