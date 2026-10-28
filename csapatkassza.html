@@ -791,14 +791,18 @@
       f.fl = field("Flotta", sel([["BB", "BB flotta (Telekom, SIM-only)"], ["TFC", "TFC flotta (Telekom, készülékes)"], ["ONE", "One flotta (One)"]], x.fl || (FS === "TFC" || FS === "ONE" ? FS : "BB")));
       f.nev = field("Név", inp("text", x.nev || "", { placeholder: "pl. Kiss Anna" }));
       f.tel = field("Telefonszám", inp("text", x.tel ? ftel(x.tel) : "", { placeholder: "pl. 30 123 4567" }));
-      var pk = el("label", "", "Csomag az árlistából"), ps = el("select"); pk.appendChild(ps); fields.appendChild(pk);
-      function fillPk() { var L = pkgs()[f.fl.value] || []; ps.textContent = ""; var o0 = el("option", "", "– válassz, ha ki akarod tölteni –"); o0.value = ""; ps.appendChild(o0); L.forEach(function (q, ix) { var o = el("option", "", (q.csomag ? q.csomag + " · " : "") + q.nev + " – " + (q.alap + q.admin).toLocaleString("hu-HU") + " Ft/hó"); o.value = ix; ps.appendChild(o); }); }
-      fillPk(); f.fl.addEventListener("change", fillPk);
-      ps.addEventListener("change", function () { if (ps.value === "") return; var q = (pkgs()[f.fl.value] || [])[+ps.value]; if (!q) return; f.csomag.value = q.csomag; f.net.value = q.nev; f.alap.value = q.alap; f.admin.value = q.admin; });
-      f.csomag = field("Díjcsomag típusa", inp("text", x.csomag || "", { placeholder: "pl. M" }));
-      f.net = field("Internet", inp("text", x.net || "", { placeholder: "pl. Korlátlan / 30gb" }));
-      f.alap = field(tfc ? "Alapdíj (Ft)" : "Csomagdíj (Ft)", inp("text", x.alap || "", { inputmode: "numeric" }));
-      f.admin = field("Admin. díj (Ft)", inp("text", x.admin || "", { inputmode: "numeric" }));
+      var pk = el("label", "", "Csomag (csak a Csomagok fülön felvitt közül)"), ps = el("select"), pinfo = el("p", "fnote", ""); pk.appendChild(ps); fields.appendChild(pk); fields.appendChild(pinfo);
+      f.csomag = inp("text", x.csomag || ""); f.net = inp("text", x.net || ""); f.alap = inp("text", x.alap === 0 ? "0" : (x.alap || "")); f.admin = inp("text", x.admin === 0 ? "0" : (x.admin || ""));
+      function pshow() { pinfo.textContent = ps.value === "" ? "Válassz csomagot. Ha nincs a listában, előbb vidd fel a Csomagok gombbal." : "Csomagdíj " + num(f.alap.value).toLocaleString("hu-HU") + " Ft + admin " + num(f.admin.value || 0).toLocaleString("hu-HU") + " Ft = " + (num(f.alap.value) + num(f.admin.value || 0)).toLocaleString("hu-HU") + " Ft/hó"; }
+      function fillPk(keep) {
+        var L = pkgs()[f.fl.value] || []; ps.textContent = ""; var o0 = el("option", "", "– válassz csomagot –"); o0.value = ""; ps.appendChild(o0);
+        var hit = "";
+        L.forEach(function (q, ix) { var o = el("option", "", (q.csomag ? q.csomag + " · " : "") + q.nev + " – " + (q.alap + q.admin).toLocaleString("hu-HU") + " Ft/hó"); o.value = ix; ps.appendChild(o); if (keep && String(q.csomag) === String(f.csomag.value) && String(q.nev).trim() === String(f.net.value).trim() && q.alap === num(f.alap.value) && q.admin === num(f.admin.value || 0)) hit = String(ix); });
+        ps.value = hit; if (!keep) { f.csomag.value = ""; f.net.value = ""; f.alap.value = ""; f.admin.value = ""; } pshow();
+      }
+      fillPk(true); f.fl.addEventListener("change", function () { fillPk(false); });
+      ps.addEventListener("change", function () { if (ps.value === "") { f.csomag.value = ""; f.net.value = ""; f.alap.value = ""; f.admin.value = ""; pshow(); return; } var q = (pkgs()[f.fl.value] || [])[+ps.value]; if (!q) return; f.csomag.value = q.csomag; f.net.value = q.nev; f.alap.value = q.alap; f.admin.value = q.admin; pshow(); });
+      f.ps = ps;
       f.forg = field("Forgalmi költség (Ft)", inp("text", x.forg || "", { inputmode: "numeric" }));
       f.kesz = field("Készülék díj (Ft)", inp("text", x.kesz || "", { inputmode: "numeric" }));
       var rm0 = /még\s+(\d+)\s+részlet/i.exec(x.megj || ""), rw = el("div", ""), ri = inp("number", rm0 ? rm0[1] : "", { min: "0", step: "1", inputmode: "numeric", placeholder: "pl. 12" });
@@ -819,6 +823,7 @@
     }, function () {
       var nv = f.nev.value.trim(), tl = f.tel.value.trim();
       if (!nv && !tl) return Promise.reject(new Error("Add meg a nevet vagy a telefonszámot."));
+      if (f.ps.value === "") return Promise.reject(new Error("Válassz csomagot a listából (a Csomagok gombbal vihetsz fel újat)."));
       var row = { id: x.id || "", chk: x.id ? fkey(x) : "", fl: f.fl.value, nev: nv, tel: tl, csomag: f.csomag.value.trim(), net: f.net.value.trim(), szerz: f.szerz.value, huseg: f.huseg.value, datum: f.datum.value, fiz: f.fiz.checked, megj: (f.megj ? f.megj.value : (x.megj || "")).replace(/\s*·?\s*még\s+\d+\s+részlet/ig, "").trim() };
       var rn = parseInt(f.rest.value, 10); if (rn > 0) row.megj = (row.megj ? row.megj + " · " : "") + "még " + rn + " részlet";
       ["alap", "admin", "forg", "tart", "kesz", "bef"].forEach(function (k) { var v = f[k].value.trim(); row[k] = v === "" ? "" : num(v); });
