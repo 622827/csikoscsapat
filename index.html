@@ -545,7 +545,7 @@
   var list = $("closes");
   function drawSide() {
     list.innerHTML = "";
-    var items = all.slice(Math.max(0, nextIdx - 1), nextIdx + 4).map(function (c) { return { date: c.date, close: c }; });
+    var items = all.slice(Math.max(0, nextIdx), nextIdx + 4).map(function (c) { return { date: c.date, close: c }; });
     var seen = {};
     EVENTS.concat(calEvents).forEach(function (ev) {
       var k = ev.date.toDateString() + "|" + ev.title;
