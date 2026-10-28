@@ -380,7 +380,7 @@
     <div class="sh"><h2 id="f-title">Telefonszámok</h2>
       <div class="tools"><button class="tl" id="f-late" type="button" aria-pressed="false">Csak tartozók</button><button class="tl" id="f-pkg" type="button">Csomagok</button><button class="tl" id="f-recon" type="button">Számlaegyeztetés</button><button class="primary" id="f-new" type="button">+ Új sor</button></div>
     </div>
-    <p class="fnote">Egy sor = egy telefonszám. A módosítás azonnal a Költségvetés táblázat megfelelő lapjára is visszaíródik. Egyenleg = összesen − befizetés: piros = tartozás, zöld = többletbefizetés.</p>
+    <p class="fnote">Egy sor = egy telefonszám. Egyenleg = összesen − befizetés: piros = tartozás, zöld = többletbefizetés.</p>
     <input class="srch" id="f-srch" type="search" placeholder="Keresés névre, számra…" aria-label="Keresés">
     <div class="ftable"><div id="f-bal"></div></div>
     <p class="fnote" style="margin-top:14px">Külsősöknek (jelszó nélkül): <a href="flotta-fizetes.html" target="_blank" rel="noopener">befizetési oldal megnyitása ↗</a> · <button class="lnk" id="f-copy" type="button">link másolása</button></p>
@@ -598,28 +598,125 @@
     return d.length === 9 ? d.slice(0, 2) + " " + d.slice(2, 5) + " " + d.slice(5) : d;
   }
   function fhd(d) { return d ? d.replace(/-/g, ". ") + "." : ""; }
+  // ---- Új közös tár (Firestore): perf/<jelszóból képzett azonosító>/fl_rows | fl_meta ----
+  var FST = null, FUNSUB = [], FMODE = "", PK = null;
+  function fid() { try { return localStorage.getItem("kassza_fid") || ""; } catch (e) { return ""; } }
+  function fsha(s) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }); }
+  function fb() {
+    if (FST) return Promise.resolve(FST);
+    return fetch("firebase-config.json").then(function (r) { return r.json(); }).then(function (cfg) {
+      var V = "https://www.gstatic.com/firebasejs/10.14.1/";
+      return Promise.all([import(V + "firebase-app.js"), import(V + "firebase-firestore.js")]).then(function (m) {
+        var app = m[0].initializeApp(cfg, "flotta"), F = m[1], db;
+        try { db = F.initializeFirestore(app, { localCache: F.persistentLocalCache() }); } catch (e) { db = F.getFirestore(app); }
+        FST = { F: F, db: db }; return FST;
+      });
+    });
+  }
+  function fnum(v) { var n = Number(v); return isFinite(n) ? n : 0; }
+  function fnorm(r) {
+    ["alap", "admin", "forg", "kesz", "tart", "bef"].forEach(function (k) { r[k] = fnum(r[k]); });
+    r.ossz = r.alap + r.admin + r.forg + r.kesz + r.tart; r.egy = r.ossz - r.bef; r.fiz = !!r.fiz;
+    ["nev", "tel", "csomag", "net", "megj", "datum", "szerz", "huseg"].forEach(function (k) { r[k] = r[k] == null ? "" : String(r[k]); });
+    r.chk = r.id; return r;
+  }
+  function fclean(r) {
+    var o = {}; ["fl", "nev", "tel", "csomag", "net", "megj", "datum", "szerz", "huseg"].forEach(function (k) { o[k] = r[k] == null ? "" : String(r[k]); });
+    ["alap", "admin", "forg", "kesz", "tart", "bef"].forEach(function (k) { o[k] = fnum(r[k]); }); o.fiz = !!r.fiz; return o;
+  }
+  function fcol(name) { return FST.F.collection(FST.db, "perf", fid(), name); }
+  function funlock() {
+    return new Promise(function (res) {
+      var f = {};
+      open("Flotta feloldása", function () {
+        fields.appendChild(el("p", "fnote", "Add meg a kassza jelszavát. A flotta adatai az új közös tárban vannak, ez a jelszó nyitja meg."));
+        f.pw = field("Jelszó", inp("password", "", { autocomplete: "off" }));
+      }, function () {
+        var v = f.pw.value.trim(); if (!v) return Promise.reject(new Error("Add meg a jelszót."));
+        return fsha("csk-flotta|" + v).then(function (h) { try { localStorage.setItem("kassza_fid", h); } catch (e) {} res(); });
+      });
+      var c = $("dlg-cancel"); function onc() { c.removeEventListener("click", onc); res(); } c.addEventListener("click", onc);
+    });
+  }
+  function fstart() {
+    FUNSUB.forEach(function (u) { try { u(); } catch (e) {} }); FUNSUB = []; FD = null; FMODE = ""; PK = null;
+    var F = FST.F, db = FST.db, id = fid();
+    FUNSUB.push(F.onSnapshot(F.doc(db, "perf", id, "fl_meta", "info"), function (d) {
+      FMODE = d.exists() ? "live" : "new";
+      if (FMODE === "live") { if (FD) renderF(); } else fshowMigrate();
+    }, function (e) { $("f-sub").textContent = "Nem sikerült betölteni: " + e.message; }));
+    FUNSUB.push(F.onSnapshot(F.doc(db, "perf", id, "fl_meta", "pkgs"), function (d) { try { PK = d.exists() ? JSON.parse(d.data().json) : null; } catch (e) { PK = null; } }));
+    FUNSUB.push(F.onSnapshot(F.collection(db, "perf", id, "fl_rows"), function (snap) {
+      var rows = snap.docs.map(function (d) { return fnorm(Object.assign({}, d.data(), { id: d.id })); });
+      rows.sort(function (a, b) { return fnum(a.ord) - fnum(b.ord); });
+      FD = { rows: rows, updated: Date.now() }; if (FMODE === "live") renderF();
+    }, function (e) { $("f-sub").textContent = "Nem sikerült betölteni: " + e.message; }));
+  }
   function fload(force) {
     if (!kt()) { gate(""); return Promise.resolve(); }
-    if (FD && !force) { renderF(); return Promise.resolve(); }
-    $("f-sub").textContent = "Betöltés… (az első alkalommal pár másodpercig tarthat)";
-    return fetch(API + "?flotta=1&kt=" + encodeURIComponent(kt()) + "&_=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
-      if (d && d.error === "kauth") { gate("A belépés lejárt, add meg újra a jelszót."); return; }
-      if (d && d.error) { $("f-sub").textContent = d.error === "auth" ? "A belépés lejárt, frissítsd az oldalt." : d.error; return; }
-      FD = d; renderF();
-    }).catch(function () { $("f-sub").textContent = "Nem sikerült betölteni. Ha most frissítettük a szkriptet, telepíteni kell az új verziót."; });
+    if (FMODE === "live" && FD && !force) { renderF(); return Promise.resolve(); }
+    $("f-sub").textContent = "Betöltés…";
+    return fb().then(function () { if (!fid()) return funlock(); }).then(function () {
+      if (!fid()) { $("f-sub").textContent = "A flotta le van zárva. Nyisd meg újra a Flotta fület, és add meg a jelszót."; return; }
+      fstart();
+    }).catch(function (e) { $("f-sub").textContent = "Nem sikerült betölteni: " + (e && e.message || e); });
   }
   function fsend(body) {
-    body.flotta = 1; body.t = token(); body.kt = kt();
-    if (fbusy) return Promise.reject(new Error("Egy másik mentés még folyamatban van."));
-    fbusy = true; document.body.style.cursor = "progress";
-    return fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) }).then(function (r) { return r.json(); }).then(function (d) {
-      if (d && d.error === "kauth") { gate("A belépés lejárt, add meg újra a jelszót."); throw new Error("A kassza jelszava lejárt."); }
-      if (d && d.error) throw new Error(d.error === "auth" ? "A belépés lejárt, frissítsd az oldalt." : d.error);
-      FD = d; renderF(); return d;
-    }).then(function (d) { fbusy = false; document.body.style.cursor = ""; return d; }, function (e) { fbusy = false; document.body.style.cursor = ""; throw e; });
+    if (FMODE !== "live" || !FST) return Promise.reject(new Error("A flotta tár még nincs betöltve."));
+    var F = FST.F, col = fcol("fl_rows"), p;
+    if (body.op === "save") {
+      var data = fclean(body.row);
+      if (body.id) p = F.setDoc(F.doc(col, body.id), data, { merge: true }); else { data.ord = Date.now(); p = F.addDoc(col, data); }
+    } else if (body.op === "del") p = F.deleteDoc(F.doc(col, body.id));
+    else if (body.op === "fiz") p = F.updateDoc(F.doc(col, body.id), { fiz: !!body.fiz });
+    else if (body.op === "pay") {
+      var cur = FD && FD.rows.filter(function (x) { return x.id === body.id; })[0]; if (!cur) return Promise.reject(new Error("A sor nem található."));
+      var nb = cur.bef + body.amount;
+      p = F.updateDoc(F.doc(col, body.id), { bef: nb, datum: body.date || "", fiz: cur.ossz - nb <= 0 });
+    } else return Promise.reject(new Error("Ismeretlen művelet."));
+    return p.then(function () { return null; });
+  }
+  // Átállás a régi (táblázatos) tárról: egyszeri másolás, a régi adat érintetlen marad.
+  var FBILL = { "202995105": "Üzleti Maxi", "203133292": "Üzleti Maxi", "203781143": "Üzleti Maxi", "204720905": "Üzleti Maxi", "205472892": "Üzleti Maxi", "304166088": "Üzleti Maxi", "307117692": "Üzleti Maxi", "309949860": "Üzleti Maxi", "501210611": "Üzleti Maxi", "703135880": "Üzleti Maxi", "703588863": "Üzleti Maxi", "704258190": "Üzleti Maxi", "303867440": "Üzleti Midi", "305052775": "Üzleti Mobil Medium", "703454085": "Üzleti Pro", "703441062": "Business MobileNet Infinity", "706058560": "Business MobileNet Infinity" };
+  var FMOVED = { "202305959": 1, "202544187": 1, "202756979": 1, "203127059": 1, "303769588": 1, "305876642": 1, "704173642": 1, "705290004": 1, "709449242": 1, "205368166": 1, "208064009": 1 };
+  function fshowMigrate() {
+    var host = $("f-bal"); host.textContent = ""; $("f-sub").textContent = "Az új flotta tár még üres.";
+    var b = el("button", "primary", "Átállás az új tárra (egyszeri másolás)"); b.type = "button"; b.addEventListener("click", fmigrate);
+    var w = el("div"); w.style.cssText = "padding:16px 0"; w.appendChild(el("p", "fnote", "Az adatok a mostani flotta listából átmásolódnak az új közös tárba. A régi adat nem törlődik. Ha ezt már elvégezted, de mégis ezt látod, akkor valószínűleg elírtad a jelszót: zárd be az oldalt, és a Flotta fülön add meg újra.")); w.appendChild(b); host.appendChild(w);
+    var rs = el("button", "tl", "Másik jelszó megadása"); rs.type = "button"; rs.style.marginTop = "10px"; rs.addEventListener("click", function () { try { localStorage.removeItem("kassza_fid"); } catch (e) {} FMODE = ""; fload(true); }); w.appendChild(rs);
+  }
+  function fmigrate() {
+    var f = {};
+    open("Átállás az új flotta tárra", function () {
+      fields.appendChild(el("p", "fnote", "Írd be még egyszer a jelszót, hogy elírás ne okozzon üres tárat."));
+      f.pw = field("Jelszó", inp("password", "", { autocomplete: "off" }));
+    }, function () {
+      var v = f.pw.value.trim();
+      return fsha("csk-flotta|" + v).then(function (h) {
+        if (h !== fid()) throw new Error("Nem egyezik az előbb megadott jelszóval.");
+        return fetch(API + "?flotta=1&kt=" + encodeURIComponent(kt()) + "&_=" + Date.now()).then(function (r) { return r.json(); });
+      }).then(function (d) {
+        if (!d || d.error || !d.rows) throw new Error("A mostani flotta lista nem tölthető be (" + ((d && d.error) || "ismeretlen hiba") + ").");
+        var F = FST.F, db = FST.db, id = fid(), mism = 0, n = 0, batch = F.writeBatch(db);
+        d.rows.forEach(function (x, i) {
+          var r = Object.assign({}, x), l9 = String(r.tel || "").replace(/\D/g, "").slice(-9);
+          if (r.fl === "ONE" && !(fnum(r.kesz) > 0)) {
+            if (FBILL[l9]) { r.csomag = ""; r.net = FBILL[l9]; }
+            if (FMOVED[l9]) r.megj = (r.megj ? r.megj + " · " : "") + "Telekomhoz átvitt szám, a One számlán már nincs";
+          }
+          if (r.fl === "TFC" && (l9 === "205368166" || l9 === "208064009")) { r.csomag = "M"; r.net = "Üzleti Mobil M (2025) 8GB"; }
+          var o = fclean(r); o.ord = i;
+          var c = fnorm(Object.assign({}, o, { id: "x" })); if (x.ossz !== undefined && Math.round(c.ossz) !== Math.round(fnum(x.ossz))) mism++;
+          batch.set(F.doc(F.collection(db, "perf", id, "fl_rows")), o); n++;
+        });
+        batch.set(F.doc(db, "perf", id, "fl_meta", "pkgs"), { json: JSON.stringify(PK || pkgs()) });
+        batch.set(F.doc(db, "perf", id, "fl_meta", "info"), { created: new Date().toISOString(), v: 1, n: n });
+        return batch.commit().then(function () { toast(n + " sor átmásolva." + (mism ? " Figyelem: " + mism + " sor összege eltér a régitől, ellenőrizd." : ""), !!mism); });
+      });
+    });
   }
   function fact(body, okMsg) { return fsend(body).then(function () { if (okMsg) toast(okMsg); }).catch(function (e) { toast(e.message || "Nem sikerült menteni.", true); }); }
-  function fkey(x) { return x.chk; }
+  function fkey(x) { return x.id; }
   function renderF() {
     var d = fcur(); if (!d) return;
     var fsum = 0, ksum = 0, rows = d.rows.filter(function (x) { return FS === "ALL" || x.fl === FS; }), debt = 0, plus = 0, nd = 0, np2 = 0, month = 0, paid = 0;
@@ -767,7 +864,7 @@
       { nev: "Business Office Net 1000", csomag: "", alap: 0, admin: 0 }
     ]
   };
-  function pkgs() { try { var v = JSON.parse(localStorage.getItem(PKEY) || "null"); if (v && v.BB && v.TFC && v.ONE) return v; } catch (e) {} return JSON.parse(JSON.stringify(PDEF)); }
+  function pkgs() { if (typeof PK !== "undefined" && PK && PK.BB && PK.TFC && PK.ONE) return PK; try { var v = JSON.parse(localStorage.getItem(PKEY) || "null"); if (v && v.BB && v.TFC && v.ONE) return v; } catch (e) {} return JSON.parse(JSON.stringify(PDEF)); }
   $("f-pkg").addEventListener("click", function () {
     var data = pkgs(), boxes = {};
     open("Csomagok árlistái", function () {
@@ -797,8 +894,19 @@
         if (!nev || !isFinite(al) || !isFinite(ad)) return Promise.reject(new Error("Minden csomagnál add meg az internetet és számokat a díjakhoz."));
         out[k].push({ nev: nev, csomag: i.csomag.value.trim(), alap: al, admin: ad });
       }
-      try { localStorage.setItem(PKEY, JSON.stringify(out)); } catch (e) { return Promise.reject(new Error("Nem sikerült menteni.")); }
-      toast("Csomagok mentve ezen az eszközön."); return Promise.resolve();
+      if (FMODE !== "live" || !FST) { try { localStorage.setItem(PKEY, JSON.stringify(out)); } catch (e) {} toast("Csomagok mentve ezen az eszközön (a közös tár még nincs betöltve)."); return Promise.resolve(); }
+      var F = FST.F, chg = [];
+      (FD ? FD.rows : []).forEach(function (r) {
+        var L = out[r.fl] || [], q = L.filter(function (z) { return String(z.csomag || "").trim().toLowerCase() === r.csomag.trim().toLowerCase() && String(z.nev).trim().toLowerCase() === r.net.trim().toLowerCase(); })[0];
+        if (q && q.alap + q.admin > 0 && (q.alap !== r.alap || q.admin !== r.admin) && !(r.kesz > 0 && !r.alap && !r.admin)) chg.push({ r: r, q: q });
+      });
+      return F.setDoc(F.doc(FST.db, "perf", fid(), "fl_meta", "pkgs"), { json: JSON.stringify(out) }).then(function () {
+        PK = out; toast("Csomagok mentve.");
+        if (chg.length && confirm(chg.length + " sor díja eltér az új árlistától. Átírjam őket az árlista szerinti csomagdíjra és admin díjra?")) {
+          var bt = F.writeBatch(FST.db); chg.forEach(function (c) { bt.update(F.doc(fcol("fl_rows"), c.r.id), { alap: c.q.alap, admin: c.q.admin }); });
+          return bt.commit().then(function () { toast(chg.length + " sor díja frissítve."); });
+        }
+      });
     });
   });
 
@@ -810,15 +918,15 @@
       f.tel = field("Telefonszám", inp("text", x.tel ? ftel(x.tel) : "", { placeholder: "pl. 30 123 4567" }));
       var pk = el("label", "", "Csomag (csak a Csomagok fülön felvitt közül)"), ps = el("select"), pinfo = el("p", "fnote", ""); pk.appendChild(ps); fields.appendChild(pk); fields.appendChild(pinfo);
       f.csomag = inp("text", x.csomag || ""); f.net = inp("text", x.net || ""); f.alap = inp("text", x.alap === 0 ? "0" : (x.alap || "")); f.admin = inp("text", x.admin === 0 ? "0" : (x.admin || ""));
-      function pshow() { pinfo.textContent = ps.value === "" ? "Válassz csomagot. Ha nincs a listában, előbb vidd fel a Csomagok gombbal." : "Csomagdíj " + num(f.alap.value).toLocaleString("hu-HU") + " Ft + admin " + num(f.admin.value || 0).toLocaleString("hu-HU") + " Ft = " + (num(f.alap.value) + num(f.admin.value || 0)).toLocaleString("hu-HU") + " Ft/hó"; }
+      function pshow() { pinfo.textContent = ps.value === "" ? "Válassz csomagot. Ha nincs a listában, előbb vidd fel a Csomagok gombbal." : (num(f.alap.value || 0) + num(f.admin.value || 0) === 0 ? "A csomag ára még nincs megadva a Csomagok fülön." : "Csomagdíj " + num(f.alap.value).toLocaleString("hu-HU") + " Ft + admin " + num(f.admin.value || 0).toLocaleString("hu-HU") + " Ft = " + (num(f.alap.value) + num(f.admin.value || 0)).toLocaleString("hu-HU") + " Ft/hó"); }
       function fillPk(keep) {
         var L = pkgs()[f.fl.value] || []; ps.textContent = ""; var o0 = el("option", "", "– válassz csomagot –"); o0.value = ""; ps.appendChild(o0);
         var hit = "";
-        L.forEach(function (q, ix) { var o = el("option", "", (q.csomag ? q.csomag + " · " : "") + q.nev + " – " + (q.alap + q.admin ? (q.alap + q.admin).toLocaleString("hu-HU") + " Ft/hó" : "ár nincs megadva")); o.value = ix; ps.appendChild(o); if (keep && String(q.csomag) === String(f.csomag.value) && String(q.nev).trim() === String(f.net.value).trim() && q.alap === num(f.alap.value) && q.admin === num(f.admin.value || 0)) hit = String(ix); });
+        L.forEach(function (q, ix) { var o = el("option", "", (q.csomag ? q.csomag + " · " : "") + q.nev + " – " + (q.alap + q.admin ? (q.alap + q.admin).toLocaleString("hu-HU") + " Ft/hó" : "ár nincs megadva")); o.value = ix; ps.appendChild(o); if (keep && String(q.csomag || "").trim().toLowerCase() === String(f.csomag.value).trim().toLowerCase() && String(q.nev).trim().toLowerCase() === String(f.net.value).trim().toLowerCase()) hit = String(ix); });
         ps.value = hit; if (!keep) { f.csomag.value = ""; f.net.value = ""; f.alap.value = ""; f.admin.value = ""; } pshow();
       }
       fillPk(true); f.fl.addEventListener("change", function () { fillPk(false); });
-      ps.addEventListener("change", function () { if (ps.value === "") { f.csomag.value = ""; f.net.value = ""; f.alap.value = ""; f.admin.value = ""; pshow(); return; } var q = (pkgs()[f.fl.value] || [])[+ps.value]; if (!q) return; f.csomag.value = q.csomag; f.net.value = q.nev; f.alap.value = q.alap; f.admin.value = q.admin; pshow(); });
+      ps.addEventListener("change", function () { if (ps.value === "") { f.csomag.value = ""; f.net.value = ""; f.alap.value = ""; f.admin.value = ""; pshow(); return; } var q = (pkgs()[f.fl.value] || [])[+ps.value]; if (!q) return; f.csomag.value = q.csomag; f.net.value = q.nev; if (q.alap + q.admin > 0) { f.alap.value = q.alap; f.admin.value = q.admin; } else { f.alap.value = x.alap === 0 ? "0" : (x.alap || ""); f.admin.value = x.admin === 0 ? "0" : (x.admin || ""); } pshow(); });
       f.ps = ps;
       f.forg = field("Forgalmi költség (Ft)", inp("text", x.forg || "", { inputmode: "numeric" }));
       f.kesz = field("Készülék díj (Ft)", inp("text", x.kesz || "", { inputmode: "numeric" }));
