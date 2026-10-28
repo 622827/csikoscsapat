@@ -378,7 +378,7 @@
   </section>
   <section>
     <div class="sh"><h2 id="f-title">Telefonszámok</h2>
-      <div class="tools"><button class="tl" id="f-late" type="button" aria-pressed="false">Csak tartozók</button><button class="tl" id="f-recon" type="button">Számlaegyeztetés</button><button class="primary" id="f-new" type="button">+ Új sor</button></div>
+      <div class="tools"><button class="tl" id="f-late" type="button" aria-pressed="false">Csak tartozók</button><button class="tl" id="f-pkg" type="button">Csomagok</button><button class="tl" id="f-recon" type="button">Számlaegyeztetés</button><button class="primary" id="f-new" type="button">+ Új sor</button></div>
     </div>
     <p class="fnote">Egy sor = egy telefonszám. A módosítás azonnal a Költségvetés táblázat megfelelő lapjára is visszaíródik. Egyenleg = összesen − befizetés: piros = tartozás, zöld = többletbefizetés.</p>
     <input class="srch" id="f-srch" type="search" placeholder="Keresés névre, számra…" aria-label="Keresés">
@@ -544,7 +544,7 @@
   // ---- űrlap ----
   var dlg = $("dlg"), frm = $("frm"), fields = $("dlg-fields"), submitFn = null;
   function field(label, input) { var l = el("label", "", label); l.appendChild(input); fields.appendChild(l); return input; }
-  function inp(type, val, attrs) { var i = el("input"); i.type = type; i.value = val || ""; Object.keys(attrs || {}).forEach(function (k) { i.setAttribute(k, attrs[k]); }); return i; }
+  function inp(type, val, attrs) { var i = el("input"); i.type = type; i.value = val === 0 ? "0" : (val || ""); Object.keys(attrs || {}).forEach(function (k) { i.setAttribute(k, attrs[k]); }); return i; }
   function sel(opts, val) { var s = el("select"); opts.forEach(function (o) { var op = el("option", "", o[1]); op.value = o[0]; s.appendChild(op); }); s.value = val; return s; }
   function open(title, build, fn) {
     $("dlg-title").textContent = title; fields.textContent = ""; $("dlg-err").textContent = ""; build(); submitFn = fn;
@@ -743,12 +743,58 @@
       return fsend({ op: "pay", id: x.id, chk: fkey(x), amount: o, date: f.dat.value }).then(function () { toast("Befizetés rögzítve."); });
     });
   }
+  // ---- Csomagok (árlisták) ----
+  var PKEY = "csk_flotta_csomagok_v1", PNAMES = { BB: "BB – Telekom SIM only", TFC: "TFC – Telekom sima", ONE: "One – Vodafone-os árlista" };
+  var PDEF = {
+    BB: [{ nev: "Korlátlan", csomag: "M", alap: 7151, admin: 1500 }, { nev: "30gb", csomag: "M", alap: 5282, admin: 1500 }, { nev: "10gb", csomag: "M", alap: 3098, admin: 1000 }, { nev: "3gb", csomag: "S", alap: 2115, admin: 0 }],
+    TFC: [{ nev: "Korlátlan", csomag: "M", alap: 5386, admin: 0 }],
+    ONE: []
+  };
+  function pkgs() { try { var v = JSON.parse(localStorage.getItem(PKEY) || "null"); if (v && v.BB && v.TFC && v.ONE) return v; } catch (e) {} return JSON.parse(JSON.stringify(PDEF)); }
+  $("f-pkg").addEventListener("click", function () {
+    var data = pkgs(), boxes = {};
+    open("Csomagok árlistái", function () {
+      var note = el("p", "fnote", "Három külön árlista. Itt add meg a csomagdíjat és az admin díjat; egy sor szerkesztésekor a csomag kiválasztásával ezek kitöltődnek. A változtatás az új sor mentésekor érvényesül, a meglévő sorokat nem írja át."); fields.appendChild(note);
+      ["BB", "TFC", "ONE"].forEach(function (k) {
+        var h = el("h3", "", PNAMES[k]); h.style.cssText = "margin:14px 0 4px;font-size:1rem"; fields.appendChild(h);
+        var box = el("div"); fields.appendChild(box); boxes[k] = [];
+        function addRow(r) {
+          var w = el("div"); w.style.cssText = "display:grid;grid-template-columns:1.3fr .7fr 1fr 1fr auto;gap:6px;margin-bottom:6px;align-items:center";
+          var i = { nev: inp("text", r.nev, { placeholder: "Internet" }), csomag: inp("text", r.csomag, { placeholder: "Típus" }), alap: inp("text", r.alap === "" ? "" : String(r.alap), { inputmode: "numeric", placeholder: "Csomagdíj" }), admin: inp("text", r.admin === "" ? "" : String(r.admin), { inputmode: "numeric", placeholder: "Admin" }) };
+          var x = el("button", "", "×"); x.type = "button"; x.setAttribute("aria-label", "Csomag törlése"); x.style.cssText = "font:inherit;border:1px solid var(--track);background:var(--bg);color:var(--frk);border-radius:8px;width:34px;height:34px;cursor:pointer";
+          var ent = { i: i, w: w }; boxes[k].push(ent);
+          x.addEventListener("click", function () { w.remove(); boxes[k].splice(boxes[k].indexOf(ent), 1); });
+          ["nev", "csomag", "alap", "admin"].forEach(function (n) { i[n].style.minWidth = "0"; i[n].setAttribute("aria-label", n); w.appendChild(i[n]); }); w.appendChild(x); box.appendChild(w);
+        }
+        if (!data[k].length) { var e0 = el("p", "fnote", "Még nincs csomag ebben az árlistában."); box.appendChild(e0); }
+        data[k].forEach(addRow);
+        var ad = el("button", "", "+ Csomag hozzáadása"); ad.type = "button"; ad.style.cssText = "font:inherit;font-weight:600;border:1px solid var(--track);background:var(--bg);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer";
+        ad.addEventListener("click", function () { var e = box.querySelector("p.fnote"); if (e) e.remove(); addRow({ nev: "", csomag: "", alap: "", admin: "" }); });
+        fields.appendChild(ad);
+      });
+    }, function () {
+      var out = { BB: [], TFC: [], ONE: [] };
+      for (var k in boxes) for (var n = 0; n < boxes[k].length; n++) {
+        var i = boxes[k][n].i, nev = i.nev.value.trim(); if (!nev && !i.alap.value.trim()) continue;
+        var al = num(i.alap.value || 0), ad = num(i.admin.value || 0);
+        if (!nev || !isFinite(al) || !isFinite(ad)) return Promise.reject(new Error("Minden csomagnál add meg az internetet és számokat a díjakhoz."));
+        out[k].push({ nev: nev, csomag: i.csomag.value.trim(), alap: al, admin: ad });
+      }
+      try { localStorage.setItem(PKEY, JSON.stringify(out)); } catch (e) { return Promise.reject(new Error("Nem sikerült menteni.")); }
+      toast("Csomagok mentve ezen az eszközön."); return Promise.resolve();
+    });
+  });
+
   function fform(x) {
     x = x || {}; var f = {}, tfc = false;
     open(x.id ? "Sor szerkesztése" : "Új sor", function () {
       f.fl = field("Flotta", sel([["BB", "BB flotta (Telekom, SIM-only)"], ["TFC", "TFC flotta (Telekom, készülékes)"], ["ONE", "One flotta (One)"]], x.fl || (FS === "TFC" || FS === "ONE" ? FS : "BB")));
       f.nev = field("Név", inp("text", x.nev || "", { placeholder: "pl. Kiss Anna" }));
       f.tel = field("Telefonszám", inp("text", x.tel ? ftel(x.tel) : "", { placeholder: "pl. 30 123 4567" }));
+      var pk = el("label", "", "Csomag az árlistából"), ps = el("select"); pk.appendChild(ps); fields.appendChild(pk);
+      function fillPk() { var L = pkgs()[f.fl.value] || []; ps.textContent = ""; var o0 = el("option", "", "– válassz, ha ki akarod tölteni –"); o0.value = ""; ps.appendChild(o0); L.forEach(function (q, ix) { var o = el("option", "", (q.csomag ? q.csomag + " · " : "") + q.nev + " – " + (q.alap + q.admin).toLocaleString("hu-HU") + " Ft/hó"); o.value = ix; ps.appendChild(o); }); }
+      fillPk(); f.fl.addEventListener("change", fillPk);
+      ps.addEventListener("change", function () { if (ps.value === "") return; var q = (pkgs()[f.fl.value] || [])[+ps.value]; if (!q) return; f.csomag.value = q.csomag; f.net.value = q.nev; f.alap.value = q.alap; f.admin.value = q.admin; });
       f.csomag = field("Díjcsomag típusa", inp("text", x.csomag || "", { placeholder: "pl. M" }));
       f.net = field("Internet", inp("text", x.net || "", { placeholder: "pl. Korlátlan / 30gb" }));
       f.alap = field(tfc ? "Alapdíj (Ft)" : "Csomagdíj (Ft)", inp("text", x.alap || "", { inputmode: "numeric" }));
