@@ -159,9 +159,9 @@
   .seg button.on { background: var(--accent); color: var(--on-accent); }
   button.primary { font: inherit; font-weight: 700; border: 0; border-radius: 999px; padding: 10px 18px; cursor: pointer; background: var(--accent); color: var(--on-accent); }
   button.primary:hover { filter: brightness(1.08); }
-  .ovt { display: grid; grid-template-columns: minmax(110px,1.3fr) repeat(6, minmax(0,1fr)); font-size: .92rem; border: 1px solid var(--track); border-radius: 14px; overflow: hidden; background: var(--card, var(--bg)); }
+  .ovt { display: grid; grid-template-columns: minmax(110px,1.3fr) repeat(7, minmax(0,1fr)); font-size: .92rem; border: 1px solid var(--track); border-radius: 14px; overflow: hidden; background: var(--card, var(--bg)); }
   .ovt > span { padding: 11px 12px; border-bottom: 1px solid var(--track); text-align: right; font-variant-numeric: tabular-nums; }
-  .ovt > span:nth-child(7n+1) { text-align: left; font-weight: 700; }
+  .ovt > span:nth-child(8n+1) { text-align: left; font-weight: 700; }
   .ovt .hd { font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; background: var(--track); }
   .ovt .rw { cursor: pointer; }
   .ovt .rw:hover { background: var(--track); }
@@ -622,25 +622,25 @@
   function fkey(x) { return x.chk; }
   function renderF() {
     var d = fcur(); if (!d) return;
-    var rows = d.rows.filter(function (x) { return FS === "ALL" || x.fl === FS; }), debt = 0, plus = 0, nd = 0, np2 = 0, month = 0, paid = 0;
-    rows.forEach(function (x) { month += x.alap + x.admin + x.forg + (x.kesz || 0); paid += x.bef; if (x.egy > 0) { debt += x.egy; nd++; } else if (x.egy < 0) { plus += -x.egy; np2++; } });
+    var fsum = 0, ksum = 0, rows = d.rows.filter(function (x) { return FS === "ALL" || x.fl === FS; }), debt = 0, plus = 0, nd = 0, np2 = 0, month = 0, paid = 0;
+    rows.forEach(function (x) { month += x.alap + x.admin; fsum += x.forg || 0; ksum += x.kesz || 0; paid += x.bef; if (x.egy > 0) { debt += x.egy; nd++; } else if (x.egy < 0) { plus += -x.egy; np2++; } });
     var restN = 0, restSum = 0, restRows = 0;
     rows.forEach(function (x) { var m = /még\s+(\d+)\s+részlet/i.exec(x.megj || ""); if (m && x.kesz) { var n = +m[1]; restN += n; restSum += n * x.kesz; restRows++; } });
     $("f-rest").textContent = restRows ? ft(restSum) : "–"; $("f-rest2").textContent = restRows ? restN + " részlet · " + restRows + " készülék" : "nincs megadva (Szerkeszt → Hátralévő részletek)";
     (function () {
-      var G = [["BB", "BB flotta"], ["TFC", "TFC flotta"], ["ONE", "One flotta"]], host = $("f-ov"), T = { n: 0, hav: 0, kesz: 0, debt: 0, bef: 0, rest: 0 };
+      var G = [["BB", "BB flotta"], ["TFC", "TFC flotta"], ["ONE", "One flotta"]], host = $("f-ov"), T = { n: 0, hav: 0, forg: 0, kesz: 0, debt: 0, bef: 0, rest: 0 };
       host.textContent = "";
       function cell(t, c) { var e = el("span", c || "", t); host.appendChild(e); return e; }
-      [["Flotta", ""], ["Számok", ""], ["Havi díj", ""], ["Ebből készülék", "x"], ["Hátralévő készülék", "x"], ["Tartozás", ""], ["Befizetve", "x"]].forEach(function (h) { cell(h[0], "hd " + h[1]); });
+      [["Flotta", ""], ["Számok", ""], ["Havi díj (csomag + admin)", ""], ["Forgalmi", "x"], ["Készülék / hó", "x"], ["Hátralévő készülék", "x"], ["Tartozás", ""], ["Befizetve", "x"]].forEach(function (h) { cell(h[0], "hd " + h[1]); });
       function put(name, o, cls, key) {
-        var els = [cell(name, cls), cell(String(o.n), cls), cell(ft(o.hav), cls), cell(o.kesz ? ft(o.kesz) : "–", cls + " x" + (o.kesz ? " dv" : "")), cell(o.rest ? ft(o.rest) : "–", cls + " x"), cell(o.debt ? ft(o.debt) : "–", cls + (o.debt ? " bad" : "")), cell(o.bef ? ft(o.bef) : "–", cls + " x")];
+        var els = [cell(name, cls), cell(String(o.n), cls), cell(ft(o.hav), cls), cell(o.forg ? ft(o.forg) : "–", cls + " x" + (o.forg ? " bad" : "")), cell(o.kesz ? ft(o.kesz) : "–", cls + " x" + (o.kesz ? " dv" : "")), cell(o.rest ? ft(o.rest) : "–", cls + " x"), cell(o.debt ? ft(o.debt) : "–", cls + (o.debt ? " bad" : "")), cell(o.bef ? ft(o.bef) : "–", cls + " x")];
         if (key) els.forEach(function (e) { e.addEventListener("click", function () { var b = document.querySelector('#ftabs button[data-s="' + key + '"]'); if (b) b.click(); }); });
       }
       G.forEach(function (g) {
-        var o = { n: 0, hav: 0, kesz: 0, debt: 0, bef: 0, rest: 0 }, seenT = {};
+        var o = { n: 0, hav: 0, forg: 0, kesz: 0, debt: 0, bef: 0, rest: 0 }, seenT = {};
         d.rows.filter(function (x) { return x.fl === g[0]; }).forEach(function (x) {
           var dg = String(x.tel || "").replace(/\D/g, "") || x.id; if (!seenT[dg]) { seenT[dg] = 1; o.n++; }
-          o.hav += x.alap + x.admin + x.forg + (x.kesz || 0); o.kesz += x.kesz || 0; o.bef += x.bef; if (x.egy > 0) o.debt += x.egy;
+          o.hav += x.alap + x.admin; o.forg += x.forg || 0; o.kesz += x.kesz || 0; o.bef += x.bef; if (x.egy > 0) o.debt += x.egy;
           var m = /még\s+(\d+)\s+részlet/i.exec(x.megj || ""); if (m && x.kesz) o.rest += +m[1] * x.kesz;
         });
         Object.keys(T).forEach(function (k) { T[k] += o[k]; });
@@ -653,7 +653,7 @@
     $("f-sub").textContent = (debt ? "összes tartozás · " + nd + " soron" : "Nincs tartozás.") + " · frissítve: " + new Date(d.updated).toLocaleString("hu-HU", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
     $("f-debt").textContent = ft(debt); $("f-debt2").textContent = nd ? nd + " sor" : "nincs";
     $("f-plus").textContent = ft(plus); $("f-plus2").textContent = np2 ? np2 + " sor" : "nincs";
-    $("f-month").textContent = ft(month); $("f-month2").textContent = rows.length + " szám";
+    $("f-month").textContent = ft(month); $("f-month2").textContent = rows.length + " szám (csomagdíj + admin)" + (fsum ? " · forgalmi " + ft(fsum) : "") + (ksum ? " · készülék " + ft(ksum) : "");
     $("f-paid").textContent = ft(paid); $("f-paid2").textContent = rows.filter(function (x) { return x.fiz; }).length + " sor fizetve";
     $("f-title").textContent = (FS === "ALL" ? "Flotta" : FS === "BB" ? "BB flotta" : FS === "TFC" ? "TFC flotta" : "One flotta") + " – telefonszámok";
     var host = $("f-bal"); host.textContent = "";
@@ -686,7 +686,7 @@
       var df0 = devFlag(x); if (df0) nb.appendChild(df0);
       n.appendChild(nb); n.appendChild(el("small", "", [x.kesz ? "készülék " + ft(x.kesz) : "", x.megj].filter(Boolean).join(" · "))); r.appendChild(n);
       r.appendChild(el("span", "", [x.csomag, x.net].filter(Boolean).join(" · ") || "–"));
-      var hav = x.alap + x.admin + x.forg + (x.kesz || 0), hv = el("span", "num", hav ? ft(hav) : "–"); hv.title = [x.alap ? "díj " + ft(x.alap) : "", x.admin ? "admin " + ft(x.admin) : "", x.forg ? "forgalmi " + ft(x.forg) : "", x.kesz ? "készülék " + ft(x.kesz) : ""].filter(Boolean).join(" · ");
+      var hav = x.alap + x.admin, hv = el("span", "num", hav ? ft(hav) : "–"); if (x.forg > 0) { var fs0 = el("small", "", "+ forgalmi " + ft(x.forg)); fs0.style.color = "var(--frk)"; hv.appendChild(fs0); } if (x.kesz > 0) { var ks0 = el("small", "", "+ készülék " + ft(x.kesz)); ks0.style.color = "#1f9d55"; hv.appendChild(ks0); } hv.title = [x.alap ? "díj " + ft(x.alap) : "", x.admin ? "admin " + ft(x.admin) : "", x.forg ? "forgalmi " + ft(x.forg) : "", x.kesz ? "készülék " + ft(x.kesz) : ""].filter(Boolean).join(" · ");
       r.appendChild(hv);
       r.appendChild(el("span", "num", x.tart ? ft(x.tart) : "–")); r.appendChild(el("span", "num", ft(x.ossz)));
       var bf = el("span", "num", x.bef ? ft(x.bef) : "–"); if (x.datum) bf.appendChild(el("small", "", fhd(x.datum))); r.appendChild(bf);
@@ -701,8 +701,8 @@
       r.appendChild(ac); return r;
     }
     order.forEach(function (g) {
-      var rs = g.rows, open = !!FOPEN[g.key] || (!!qq && rs.length > 0 && false), sum = { hav: 0, tart: 0, ossz: 0, bef: 0, egy: 0, kesz: 0 }, allPaid = true;
-      rs.forEach(function (x) { sum.hav += x.alap + x.admin + x.forg + (x.kesz || 0); sum.tart += x.tart; sum.ossz += x.ossz; sum.bef += x.bef; sum.egy += x.egy; sum.kesz += x.kesz || 0; if (!x.fiz) allPaid = false; });
+      var rs = g.rows, open = !!FOPEN[g.key] || (!!qq && rs.length > 0 && false), sum = { hav: 0, tart: 0, ossz: 0, bef: 0, egy: 0, kesz: 0, forg: 0 }, allPaid = true;
+      rs.forEach(function (x) { sum.hav += x.alap + x.admin; sum.forg += x.forg || 0; sum.tart += x.tart; sum.ossz += x.ossz; sum.bef += x.bef; sum.egy += x.egy; sum.kesz += x.kesz || 0; if (!x.fiz) allPaid = false; });
       var wrap = el("div", "fgrp" + (open ? " open" : ""));
       var r = el("div", "fbal sum" + (allPaid ? " rowpaid" : "")), n = el("div", "nm"), nb = el("b", "", "");
       var names = []; rs.forEach(function (x) { if (x.nev && names.indexOf(x.nev) < 0) names.push(x.nev); });
@@ -712,7 +712,7 @@
       r.appendChild(n);
       var cs = []; rs.forEach(function (x) { var c = [x.csomag, x.net].filter(Boolean).join(" · "); if (c && cs.indexOf(c) < 0) cs.push(c); });
       r.appendChild(el("span", "", rs.length > 1 ? rs.length + " tétel" : (cs[0] || "–")));
-      r.appendChild(el("span", "num", sum.hav ? ft(sum.hav) : "–")); r.appendChild(el("span", "num", sum.tart ? ft(sum.tart) : "–")); r.appendChild(el("span", "num", ft(sum.ossz)));
+      var hs = el("span", "num", sum.hav ? ft(sum.hav) : "–"); if (sum.forg > 0) { var fs1 = el("small", "", "+ forgalmi " + ft(sum.forg)); fs1.style.color = "var(--frk)"; hs.appendChild(fs1); } if (sum.kesz > 0) { var ks1 = el("small", "", "+ készülék " + ft(sum.kesz)); ks1.style.color = "#1f9d55"; hs.appendChild(ks1); } r.appendChild(hs); r.appendChild(el("span", "num", sum.tart ? ft(sum.tart) : "–")); r.appendChild(el("span", "num", ft(sum.ossz)));
       r.appendChild(el("span", "num", sum.bef ? ft(sum.bef) : "–")); r.appendChild(egCell(sum.egy));
       var fz = el("span", "fz"); if (allPaid) fz.textContent = "✓"; r.appendChild(fz);
       var ac = el("div", "act"), tg = el("button", "tg", open ? "Becsuk ▴" : "Részletek ▾"); tg.type = "button"; tg.setAttribute("aria-expanded", open ? "true" : "false");
