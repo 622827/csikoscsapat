@@ -252,6 +252,7 @@
   .pv { display: inline-block; font-size: .78rem; font-weight: 700; border-radius: 999px; padding: 2px 10px; vertical-align: 2px; color: #fff; background: var(--track); }
   .pv.one { background: #d4001a; color: #fff; }
   .pv.tel { background: #ff8fc0; color: #5a0030; }
+  .pv.dev { background: #1f9d55; color: #fff; margin-left: 6px; }
   :root[data-theme="dark"] .pv.tel { background: #ff8fc0; color: #4a0026; }
 
   .ftable { overflow-x: auto; }
@@ -641,9 +642,11 @@
     ["Név · telefonszám", "Csomag", "Havi díj", "Tartozás", "Összesen", "Befizetve", "Egyenleg", "Fizetve", ""].forEach(function (c, i) { h.appendChild(el("span", i >= 2 && i <= 6 ? "num" : "", c)); });
     host.appendChild(h);
     function pill(x) { var pv = FPROV[x.fl]; if (!pv) return null; var pe = el("span", "pv " + (pv === "One" ? "one" : "tel"), x.fl === "ONE" ? "One" : x.fl); pe.title = pv; pe.style.marginLeft = "6px"; return pe; }
+    function devFlag(x) { if (!(x.kesz > 0)) return null; var d = el("span", "pv dev", "Készülék"); d.title = "Készülékrészlet: " + ft(x.kesz) + "/hó"; return d; }
     function egCell(egy) { var e = el("span", "eg " + (egy > 0 ? "debt" : egy < 0 ? "plus" : ""), egy === 0 ? "rendben" : ft(Math.abs(egy))); if (egy) e.appendChild(el("small", "", egy > 0 ? "tartozás" : "többlet")); return e; }
     function subRow(x) {
       var r = el("div", "fbal sub" + (x.fiz ? " rowpaid" : "")), n = el("div", "nm"), nb = el("b", "", x.nev || "–"), pe = pill(x); if (pe) nb.appendChild(pe);
+      var df0 = devFlag(x); if (df0) nb.appendChild(df0);
       n.appendChild(nb); n.appendChild(el("small", "", [x.kesz ? "készülék " + ft(x.kesz) : "", x.megj].filter(Boolean).join(" · "))); r.appendChild(n);
       r.appendChild(el("span", "", [x.csomag, x.net].filter(Boolean).join(" · ") || "–"));
       var hav = x.alap + x.admin + x.forg + (x.kesz || 0), hv = el("span", "num", hav ? ft(hav) : "–"); hv.title = [x.alap ? "díj " + ft(x.alap) : "", x.admin ? "admin " + ft(x.admin) : "", x.forg ? "forgalmi " + ft(x.forg) : "", x.kesz ? "készülék " + ft(x.kesz) : ""].filter(Boolean).join(" · ");
@@ -667,6 +670,7 @@
       var r = el("div", "fbal sum" + (allPaid ? " rowpaid" : "")), n = el("div", "nm"), nb = el("b", "", "");
       var names = []; rs.forEach(function (x) { if (x.nev && names.indexOf(x.nev) < 0) names.push(x.nev); });
       nb.appendChild(document.createTextNode(names[0] || "–")); rs.forEach(function (x) { var pe = pill(x); if (pe) nb.appendChild(pe); });
+      for (var di = 0; di < rs.length; di++) if (rs[di].kesz > 0) { nb.appendChild(devFlag(rs[di])); break; }
       n.appendChild(nb); n.appendChild(el("small", "", [ftel(g.tel), names.length > 1 ? names.slice(1).join(" / ") : ""].filter(Boolean).join(" · ")));
       r.appendChild(n);
       var cs = []; rs.forEach(function (x) { var c = [x.csomag, x.net].filter(Boolean).join(" · "); if (c && cs.indexOf(c) < 0) cs.push(c); });
