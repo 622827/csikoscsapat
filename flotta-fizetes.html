@@ -63,9 +63,21 @@
 <script>
 (function () {
   "use strict";
-  var API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
   // Hová utaljanak (ha változik, itt kell átírni)
   var PAY = { account: "11600006-00000002-06029601", name: "Csikós Máté", revolut: "@mtt10x", revolutPhone: "20 313 3292" };
+  // A lekérdezés csak akkor ad találatot, ha a név ÉS a telefonszám is egyezik: a dokumentum azonosítója a kettő lenyomata.
+  function normName(n) { return String(n || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean).sort().join(" "); }
+  function sha(t) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }); }
+  var FBP = null;
+  function lookup(digits, nm) {
+    return sha("csk-pub|" + digits + "|" + normName(nm)).then(function (h) {
+      if (!FBP) FBP = fetch("firebase-config.json").then(function (r) { return r.json(); }).then(function (cfg) {
+        var V = "https://www.gstatic.com/firebasejs/10.14.1/";
+        return Promise.all([import(V + "firebase-app.js"), import(V + "firebase-firestore.js")]).then(function (m) { return { F: m[1], db: m[1].getFirestore(m[0].initializeApp(cfg)) }; });
+      });
+      return FBP.then(function (x) { return x.F.getDoc(x.F.doc(x.db, "perf", location.hostname === "localhost" ? "pub-flotta-test" : "pub-flotta-v1", "fl_pub", h)); }).then(function (d) { return d.exists() ? d.data() : null; });
+    });
+  }
   function $(i) { return document.getElementById(i); }
   function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " Ft"; }
   function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; }
@@ -78,7 +90,7 @@
   }
   function show(d, nm) {
     var res = $("res"); res.textContent = ""; res.hidden = false;
-    if (!d.found) { res.appendChild(el("p", "", "Ezzel a számmal nem találtunk tételt. Ellenőrizd a számot, vagy kérdezd meg a csapatvezetőt.")); return; }
+    if (!d.found) { res.appendChild(el("p", "", "Ezzel a névvel és telefonszámmal nem találtunk tételt. Ellenőrizd mindkettőt (a nevet úgy írd, ahogy nálunk szerepel), vagy kérdezd meg a csapatvezetőt.")); return; }
     var due = d.total > 0;
     res.appendChild(el("div", "", due ? "Fizetendő összesen" : "Nincs tartozásod"));
     res.appendChild(el("div", "amount " + (due ? "due" : "ok"), due ? ft(d.total) : "0 Ft"));
@@ -131,9 +143,8 @@
     if (digits.length !== 9) { err.textContent = "A számnak 9 számjegyűnek kell lennie, pl. 20 313 3292."; return; }
     v = digits.slice(0, 2) + " " + digits.slice(2, 5) + " " + digits.slice(5);
     btn.disabled = true; btn.textContent = "Keresem…";
-    fetch(API + "?fizet=" + encodeURIComponent(digits)).then(function (r) { return r.json(); }).then(function (d) {
-      if (!d.ok) { err.textContent = d.error || "Nem sikerült."; return; }
-      show(d, nm);
+    lookup(digits, nm).then(function (d) {
+      show(d || { found: false }, nm);
     }).catch(function () { err.textContent = "Nem sikerült lekérdezni, próbáld újra."; })
       .then(function () { btn.disabled = false; btn.textContent = "Mutasd"; });
   });

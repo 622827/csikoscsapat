@@ -649,7 +649,7 @@
     FUNSUB.push(F.onSnapshot(F.collection(db, "perf", id, "fl_rows"), function (snap) {
       var rows = snap.docs.map(function (d) { return fnorm(Object.assign({}, d.data(), { id: d.id })); });
       rows.sort(function (a, b) { return fnum(a.ord) - fnum(b.ord); });
-      FD = { rows: rows, updated: Date.now() }; if (FMODE === "live") renderF();
+      FD = { rows: rows, updated: Date.now() }; if (FMODE === "live") { renderF(); if (FPUBDIRTY) fpubSync(); }
     }, function (e) { $("f-sub").textContent = "Nem sikerült betölteni: " + e.message; }));
   }
   function fload(force) {
@@ -674,7 +674,33 @@
       var nb = cur.bef + body.amount;
       p = F.updateDoc(F.doc(col, body.id), { bef: nb, datum: body.date || "", fiz: cur.ossz - nb <= 0 });
     } else return Promise.reject(new Error("Ismeretlen művelet."));
-    return p.then(function () { return null; });
+    return p.then(function () { FPUBDIRTY = true; setTimeout(fpubSync, 100); return null; });
+  }
+  // Az ügyfél-lekérdezés (flotta-fizetes.html) nyilvános adata: csak összegek, a kulcs a név + telefonszám lenyomata.
+  var FPUB = location.hostname === "localhost" ? "pub-flotta-test" : "pub-flotta-v1", FPUBDIRTY = false, FPUBBUSY = false;
+  function fpName(n) { return String(n || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean).sort().join(" "); }
+  function fpubSync() {
+    if (FPUBBUSY || !FST || FMODE !== "live" || !FD) return; FPUBBUSY = true; FPUBDIRTY = false;
+    var F = FST.F, db = FST.db, groups = {};
+    FD.rows.forEach(function (x) { var l9 = String(x.tel || "").replace(/\D/g, "").slice(-9); if (l9.length === 9) (groups[l9] = groups[l9] || []).push(x); });
+    var want = {}, jobs = [];
+    Object.keys(groups).forEach(function (l9) {
+      var rs = groups[l9], total = 0, items = rs.map(function (x) { total += x.egy; return { prov: FPROV[x.fl] || "", csomag: [x.csomag, x.net].filter(Boolean).join(" · "), alap: x.alap + x.admin, forg: x.forg, kesz: x.kesz, tart: x.tart, bef: x.bef, egy: x.egy }; });
+      var doc = { found: true, total: Math.round(total), items: items, upd: new Date().toISOString() }, seen = {};
+      rs.forEach(function (x) { var nk = fpName(x.nev); if (!nk || seen[nk]) return; seen[nk] = 1; jobs.push(fsha("csk-pub|" + l9 + "|" + nk).then(function (h) { want[h] = doc; })); });
+    });
+    return Promise.all(jobs).then(function () {
+      return F.getDocs(F.collection(db, "perf", FPUB, "fl_pub"));
+    }).then(function (snap) {
+      var old = {}; snap.docs.forEach(function (d) { old[d.id] = d.data(); });
+      var bt = F.writeBatch(db), n = 0;
+      Object.keys(want).forEach(function (h) {
+        var o = old[h], same = o && o.total === want[h].total && JSON.stringify(o.items) === JSON.stringify(want[h].items);
+        if (!same) { bt.set(F.doc(db, "perf", FPUB, "fl_pub", h), want[h]); n++; }
+      });
+      Object.keys(old).forEach(function (h) { if (!want[h]) { bt.delete(F.doc(db, "perf", FPUB, "fl_pub", h)); n++; } });
+      return n ? bt.commit() : null;
+    }).catch(function (e) { toast("Az ügyfél-lekérdezés frissítése nem sikerült: " + (e && e.message || e), true); }).then(function () { FPUBBUSY = false; if (FPUBDIRTY) setTimeout(fpubSync, 300); });
   }
   // Átállás a régi (táblázatos) tárról: egyszeri másolás, a régi adat érintetlen marad.
   var FBILL = { "202995105": "Üzleti Maxi", "203133292": "Üzleti Maxi", "203781143": "Üzleti Maxi", "204720905": "Üzleti Maxi", "205472892": "Üzleti Maxi", "304166088": "Üzleti Maxi", "307117692": "Üzleti Maxi", "309949860": "Üzleti Maxi", "501210611": "Üzleti Maxi", "703135880": "Üzleti Maxi", "703588863": "Üzleti Maxi", "704258190": "Üzleti Maxi", "303867440": "Üzleti Midi", "305052775": "Üzleti Mobil Medium", "703454085": "Üzleti Pro", "703441062": "Business MobileNet Infinity", "706058560": "Business MobileNet Infinity" };
@@ -711,7 +737,7 @@
         });
         batch.set(F.doc(db, "perf", id, "fl_meta", "pkgs"), { json: JSON.stringify(PK || pkgs()) });
         batch.set(F.doc(db, "perf", id, "fl_meta", "info"), { created: new Date().toISOString(), v: 1, n: n });
-        return batch.commit().then(function () { toast(n + " sor átmásolva." + (mism ? " Figyelem: " + mism + " sor összege eltér a régitől, ellenőrizd." : ""), !!mism); });
+        FPUBDIRTY = true; return batch.commit().then(function () { setTimeout(fpubSync, 1200); toast(n + " sor átmásolva." + (mism ? " Figyelem: " + mism + " sor összege eltér a régitől, ellenőrizd." : ""), !!mism); });
       });
     });
   }
@@ -904,7 +930,7 @@
         PK = out; toast("Csomagok mentve.");
         if (chg.length && confirm(chg.length + " sor díja eltér az új árlistától. Átírjam őket az árlista szerinti csomagdíjra és admin díjra?")) {
           var bt = F.writeBatch(FST.db); chg.forEach(function (c) { bt.update(F.doc(fcol("fl_rows"), c.r.id), { alap: c.q.alap, admin: c.q.admin }); });
-          return bt.commit().then(function () { toast(chg.length + " sor díja frissítve."); });
+          FPUBDIRTY = true; return bt.commit().then(function () { setTimeout(fpubSync, 400); toast(chg.length + " sor díja frissítve."); });
         }
       });
     });
