@@ -704,6 +704,7 @@
   }
   // Átállás a régi (táblázatos) tárról: egyszeri másolás, a régi adat érintetlen marad.
   var FBILL = { "202995105": "Üzleti Maxi", "203133292": "Üzleti Maxi", "203781143": "Üzleti Maxi", "204720905": "Üzleti Maxi", "205472892": "Üzleti Maxi", "304166088": "Üzleti Maxi", "307117692": "Üzleti Maxi", "309949860": "Üzleti Maxi", "501210611": "Üzleti Maxi", "703135880": "Üzleti Maxi", "703588863": "Üzleti Maxi", "704258190": "Üzleti Maxi", "303867440": "Üzleti Midi", "305052775": "Üzleti Mobil Medium", "703454085": "Üzleti Pro", "703441062": "Business MobileNet Infinity", "706058560": "Business MobileNet Infinity" };
+  var FSKIP = { "702442962": 1 }; // Rozbora Csilla: megszűnt szám, nem kerül át
   var FMOVED = { "202305959": 1, "202544187": 1, "202756979": 1, "203127059": 1, "303769588": 1, "305876642": 1, "704173642": 1, "705290004": 1, "709449242": 1, "205368166": 1, "208064009": 1 };
   function fshowMigrate() {
     var host = $("f-bal"); host.textContent = ""; $("f-sub").textContent = "Az új flotta tár még üres.";
@@ -726,6 +727,7 @@
         var F = FST.F, db = FST.db, id = fid(), mism = 0, n = 0, batch = F.writeBatch(db);
         d.rows.forEach(function (x, i) {
           var r = Object.assign({}, x), l9 = String(r.tel || "").replace(/\D/g, "").slice(-9);
+          if (FSKIP[l9]) return;
           if (r.fl === "ONE" && !(fnum(r.kesz) > 0)) {
             if (FBILL[l9]) { r.csomag = ""; r.net = FBILL[l9]; }
             if (FMOVED[l9]) r.megj = (r.megj ? r.megj + " · " : "") + "Telekomhoz átvitt szám, a One számlán már nincs";
