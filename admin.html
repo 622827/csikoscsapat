@@ -413,7 +413,7 @@
         sub = "keret " + ft(SZK_KERET) + " · felhasznált " + ft(used) + " · szabad " + ft(SZK_KERET - used);
         extra = '<div class="meter"><i style="width:' + pct.toFixed(1) + '%"></i></div>';
       }
-      if (n === "UniCredit" && b.last) sub = "régi számla, január–május · utolsó kivonat: " + b.last;
+      if (n === "UniCredit" && b.last) sub = "megszűnt 2026.07.17. · január–július";
       return '<button type="button" data-a="' + esc(n) + '" aria-pressed="' + (n === acc) + '"><p class="l">' + esc(n === "UniCredit" ? "UniCredit (megszűnt)" : n) + '</p><p class="v' + (b.bal < 0 ? " neg" : "") + '">' + (b.bal === null ? "–" : (b.bal ? ft(b.bal) : "0 Ft")) + '</p><p class="s">' + esc(sub) + "</p>" + extra + "</button>";
     }).join("");
     var rows = accRows(acc), ho = {};
