@@ -146,6 +146,21 @@
   .bar .btn { padding: 9px 14px; font-size: .92rem; }
   .meta { color: var(--muted); font-size: .85rem; margin: 0; min-height: 1.2em; }
 
+  .acc { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 12px 0 14px; }
+  .acc button { font: inherit; text-align: left; cursor: pointer; background: var(--card); color: var(--ink); border: 2px solid transparent; border-radius: 16px; padding: 16px 18px; }
+  .acc button[aria-pressed="true"] { border-color: var(--accent); }
+  .acc .l { margin: 0; font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .acc .v { margin: 6px 0 0; font-size: clamp(1.3rem, 3vw, 1.7rem); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .acc .s { margin: 4px 0 0; font-size: .85rem; color: var(--muted); }
+  .acc .meter { height: 6px; border-radius: 3px; background: var(--track); margin-top: 10px; overflow: hidden; }
+  .acc .meter i { display: block; height: 100%; background: var(--accent); }
+  .hpf { display: grid; grid-template-columns: 150px 130px 150px minmax(0, 1fr) 170px auto; gap: 8px; align-items: end; margin: 0 0 14px; padding: 14px; border-radius: 14px; background: var(--card); }
+  .hpf label { display: grid; gap: 4px; font-size: .78rem; font-weight: 700; color: var(--muted); }
+  .hpf input, .hpf select { font: inherit; padding: 9px 10px; border-radius: 10px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); min-width: 0; }
+  .hpf .btn { padding: 10px 16px; }
+  .hpf .msg { grid-column: 1 / -1; margin: 0; font-size: .85rem; color: var(--muted); min-height: 1.1em; }
+  .pos { color: var(--ok); }
+  @media (max-width: 900px) { .hpf { grid-template-columns: 1fr 1fr; } .hpf .wide { grid-column: 1 / -1; } }
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 18px 0 4px; }
   .kpi { background: var(--card); border-radius: 16px; padding: 16px 18px; }
   .kpi .l { margin: 0; font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
@@ -239,6 +254,25 @@
       <button class="btn" type="button" id="k-out">Kilépés</button>
     </div>
 
+
+    <h2 style="margin-top:22px">Pénzszámlák</h2>
+    <div class="acc" id="p-cards" role="group" aria-label="Pénzszámla"></div>
+    <div class="tw"><table id="p-month"></table></div>
+    <h2 id="p-title" style="font-size:1.1rem">Mozgások</h2>
+    <form class="hpf" id="p-hp" hidden autocomplete="off">
+      <label>Dátum<input type="date" id="hp-d" required></label>
+      <label>Irány<select id="hp-i"><option>Kiadás</option><option>Bevétel</option></select></label>
+      <label>Összeg (Ft)<input type="number" id="hp-o" min="1" step="1" required inputmode="numeric"></label>
+      <label class="wide">Partner / leírás<input type="text" id="hp-l" maxlength="200" placeholder="pl. irodaszer, postaköltség"></label>
+      <label class="wide">Kapcsolódó számla<input type="text" id="hp-s" maxlength="80" placeholder="számlaszám (ha van)"></label>
+      <button class="btn pri" type="submit" id="hp-go">Rögzítés</button>
+      <p class="msg" id="hp-msg"></p>
+    </form>
+    <div class="flt"><input type="search" id="p-q" placeholder="Keresés partnerre, közleményre" aria-label="Keresés a mozgásokban"></div>
+    <div class="tw"><table class="inv" id="p-list"></table></div>
+    <p class="meta" id="p-meta" style="margin-top:8px"></p>
+
+    <h2>Számlák összesítője</h2>
     <div class="kpis" id="k-kpis"></div>
 
     <h2>Havi összesítő</h2>
@@ -347,7 +381,82 @@
       ["Még nem továbbszámlázott irodai költség", num(c.notRebilled), "ft"]
     ].map(function (k) { return '<div class="chk' + (k[1] ? " warn" : "") + '"><span>' + k[0] + "</span><b>" + (k[2] === "ft" ? ft(k[1]) : k[1] + k[2]) + "</b></div>"; }).join("");
     renderInv();
+    try { renderAcc(); } catch (e) { $("p-meta").textContent = "Hiba a pénzszámlák megjelenítésekor: " + e.message; }
   }
+
+
+  /* ---------- Pénzszámlák: Erste főszámla, Erste Széchenyi, Házipénztár ---------- */
+  var ACC = ["Erste főszámla", "Erste Széchenyi", "Házipénztár"], acc = ACC[0], SZK_KERET = 5000000;
+  function accRows(name) {
+    if (name === "Házipénztár") {
+      var hp = (D && D.hp) || { nyito: 0, rows: [] }, bal = num(hp.nyito);
+      return hp.rows.slice().sort(function (a, b) { return String(a[0]).localeCompare(String(b[0])); }).map(function (r) {
+        var v = r[1] === "Bevétel" ? num(r[2]) : -num(r[2]); bal += v;
+        return { d: r[0], t: r[1] + (r[4] ? " · " + r[4] : ""), p: r[3], k: r[5], v: v, bal: bal, inv: "", url: "" };
+      });
+    }
+    return ((D && D.pm) || []).filter(function (r) { return r[0] === name; }).map(function (r) {
+      return { d: r[2], t: r[4], p: r[7], k: r[8], v: num(r[5]), bal: num(r[6]), inv: r[10], url: r[11] };
+    });
+  }
+  function accBal(name) {
+    var rows = accRows(name);
+    if (name === "Házipénztár") return { bal: rows.length ? rows[rows.length - 1].bal : num(((D && D.hp) || {}).nyito), last: rows.length ? rows[rows.length - 1].d : "" };
+    return rows.length ? { bal: rows[rows.length - 1].bal, last: rows[rows.length - 1].d } : { bal: null, last: "" };
+  }
+  function renderAcc() {
+    $("p-cards").innerHTML = ACC.map(function (n) {
+      var b = accBal(n), sub = b.last ? "utolsó tétel: " + b.last : (n === "Házipénztár" ? "még nincs rögzített tétel" : "nincs kivonat"), extra = "";
+      if (n === "Erste Széchenyi" && b.bal !== null) {
+        var used = Math.max(0, -b.bal), pct = Math.min(100, used / SZK_KERET * 100);
+        sub = "keret " + ft(SZK_KERET) + " · felhasznált " + ft(used) + " · szabad " + ft(SZK_KERET - used);
+        extra = '<div class="meter"><i style="width:' + pct.toFixed(1) + '%"></i></div>';
+      }
+      return '<button type="button" data-a="' + esc(n) + '" aria-pressed="' + (n === acc) + '"><p class="l">' + esc(n) + '</p><p class="v' + (b.bal < 0 ? " neg" : "") + '">' + (b.bal === null ? "–" : (b.bal ? ft(b.bal) : "0 Ft")) + '</p><p class="s">' + esc(sub) + "</p>" + extra + "</button>";
+    }).join("");
+    var rows = accRows(acc), ho = {};
+    rows.forEach(function (r) { var m = +String(r.d).slice(5, 7); if (!m) return; var h = ho[m] || (ho[m] = { be: 0, ki: 0, z: null }); if (r.v > 0) h.be += r.v; else h.ki += -r.v; h.z = r.bal; });
+    var now = new Date(), cm = now.getFullYear() === 2026 ? now.getMonth() + 1 : 12, z = null;
+    var body = HO.map(function (nev, i) {
+      var h = ho[i + 1]; if (h) z = h.z;
+      var fut = i + 1 > cm;
+      return '<tr class="' + (fut && !h ? "fut" : "") + (i + 1 === cm ? " cur" : "") + '"><td>' + nev + "</td><td class=\"" + (h && h.be ? "pos" : "z") + "\">" + ft(h ? h.be : 0) + "</td><td class=\"" + (h && h.ki ? "" : "z") + "\">" + ft(h ? -h.ki : 0) + "</td><td>" + ft(h ? h.be - h.ki : 0) + "</td><td>" + (z === null || fut && !h ? "–" : ft(z) || "0 Ft") + "</td></tr>";
+    }).join("");
+    var be = rows.reduce(function (a, r) { return a + (r.v > 0 ? r.v : 0); }, 0), ki = rows.reduce(function (a, r) { return a + (r.v < 0 ? -r.v : 0); }, 0);
+    $("p-month").innerHTML = "<thead><tr><th>Hónap</th><th>Jóváírás</th><th>Terhelés</th><th>Nettó</th><th>Záró egyenleg</th></tr></thead><tbody>" + body + "</tbody><tfoot><tr><td>Összesen</td><td>" + ft(be) + "</td><td>" + ft(-ki) + "</td><td>" + ft(be - ki) + "</td><td></td></tr></tfoot>";
+    $("p-title").textContent = acc + " – mozgások";
+    $("p-hp").hidden = acc !== "Házipénztár";
+    renderAccList();
+  }
+  function renderAccList() {
+    var q = $("p-q").value.trim().toLowerCase(), all = accRows(acc);
+    var rows = all.filter(function (r) { return !q || [r.p, r.k, r.t, r.inv].join(" ").toLowerCase().indexOf(q) > -1; }).reverse();
+    var th = "<thead><tr><th>Dátum</th><th>Partner</th><th>Tranzakció</th><th>Közlemény</th><th style='text-align:right'>Összeg</th><th style='text-align:right'>Egyenleg</th><th>Számla</th></tr></thead>";
+    var body = rows.map(function (r) {
+      var szla = r.url && /^https:\/\//.test(r.url) ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.inv) + "</a>" : esc(r.inv || "");
+      return "<tr><td data-k=\"date\">" + esc(r.d) + "</td><td data-k=\"partner\">" + esc(r.p || "–") + "</td><td data-k=\"cat\">" + esc(r.t) + "</td><td data-k=\"no\">" + esc(r.k) + "</td><td data-k=\"brutto\" class=\"n" + (r.v > 0 ? " pos" : "") + "\">" + ft(r.v) + "</td><td data-k=\"netto\" class=\"n\">" + ft(r.bal) + "</td><td data-k=\"paid\">" + szla + "</td></tr>";
+    }).join("");
+    if (!rows.length) body = '<tr><td class="empty" colspan="7">' + (all.length ? "Nincs találat." : (acc === "Házipénztár" ? "Még nincs rögzített pénztártétel. A fenti űrlappal tudod felvinni." : "Ehhez a számlához még nincs beolvasott kivonat.")) + "</td></tr>";
+    $("p-list").innerHTML = th + "<tbody>" + body + "</tbody>";
+    $("p-meta").textContent = all.length ? rows.length + " / " + all.length + " tétel" : "";
+  }
+  $("p-cards").addEventListener("click", function (e) { var b = e.target.closest("button[data-a]"); if (!b) return; acc = b.getAttribute("data-a"); renderAcc(); });
+  $("p-q").addEventListener("input", function () { if (D) renderAccList(); });
+  (function () { var d = new Date(); $("hp-d").value = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); })();
+  $("p-hp").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var t = { datum: $("hp-d").value, irany: $("hp-i").value, osszeg: Number($("hp-o").value), leiras: $("hp-l").value.trim(), szamla: $("hp-s").value.trim() };
+    if (!t.datum || !(t.osszeg > 0)) { $("hp-msg").textContent = "Add meg a dátumot és az összeget."; return; }
+    $("hp-go").disabled = true; $("hp-msg").textContent = "Rögzítés…";
+    call({ action: "penztar", token: tok(), tetel: t }).then(function (d) {
+      $("hp-go").disabled = false;
+      if (d && d.error === "auth") { setTok(""); showLock("A munkamenet lejárt, lépj be újra."); return; }
+      if (!d || !d.ok) { $("hp-msg").textContent = "Nem sikerült rögzíteni (" + ((d && (d.msg || d.error)) || "ismeretlen hiba") + ")."; return; }
+      D.hp = d.hp; $("hp-o").value = ""; $("hp-l").value = ""; $("hp-s").value = "";
+      var last = d.hp.rows[d.hp.rows.length - 1]; $("hp-msg").textContent = "Rögzítve" + (last && last[4] ? ": " + last[4] : "") + ".";
+      renderAcc();
+    }).catch(function () { $("hp-go").disabled = false; $("hp-msg").textContent = "Nem sikerült csatlakozni, próbáld újra."; });
+  });
 
   function renderMonths(cm) {
     var cols = VIEWS[view], h = D.head;
