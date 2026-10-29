@@ -161,6 +161,12 @@
   .hpf .btn { padding: 10px 16px; }
   .hpf .msg { grid-column: 1 / -1; margin: 0; font-size: .85rem; color: var(--muted); min-height: 1.1em; }
   .pos { color: var(--ok); }
+  .mv { margin: 0 0 6px; }
+  .mv > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 12px; background: var(--card); font-weight: 700; font-size: .95rem; user-select: none; }
+  .mv > summary::-webkit-details-marker { display: none; }
+  .mv > summary::before { content: "▸"; display: inline-block; transition: transform .15s; }
+  .mv[open] > summary::before { transform: rotate(90deg); }
+  .mv[open] > summary { margin-bottom: 12px; }
   @media (max-width: 900px) { .hpf { grid-template-columns: 1fr 1fr; } .hpf .wide { grid-column: 1 / -1; } }
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 18px 0 4px; }
   .kpi { background: var(--card); border-radius: 16px; padding: 16px 18px; }
@@ -269,9 +275,11 @@
       <button class="btn pri" type="submit" id="hp-go">Rögzítés</button>
       <p class="msg" id="hp-msg"></p>
     </form>
+    <details class="mv" id="p-det"><summary id="p-sum">Tételek megjelenítése</summary>
     <div class="flt"><input type="search" id="p-q" placeholder="Keresés partnerre, közleményre" aria-label="Keresés a mozgásokban"></div>
     <div class="tw"><table class="inv" id="p-list"></table></div>
     <p class="meta" id="p-meta" style="margin-top:8px"></p>
+    </details>
 
     <h2>Számlák összesítője</h2>
     <div class="kpis" id="k-kpis"></div>
@@ -442,9 +450,11 @@
     if (!rows.length) body = '<tr><td class="empty" colspan="7">' + (all.length ? "Nincs találat." : (acc === "Házipénztár" ? "Még nincs rögzített pénztártétel. A fenti űrlappal tudod felvinni." : "Ehhez a számlához még nincs beolvasott kivonat.")) + "</td></tr>";
     $("p-list").innerHTML = th + "<tbody>" + body + "</tbody>";
     $("p-meta").textContent = all.length ? rows.length + " / " + all.length + " tétel" : "";
+    $("p-sum").textContent = ($("p-det").open ? "Tételek elrejtése" : "Tételek megjelenítése") + " (" + all.length + ")";
   }
   $("p-cards").addEventListener("click", function (e) { var b = e.target.closest("button[data-a]"); if (!b) return; acc = b.getAttribute("data-a"); renderAcc(); });
   $("p-q").addEventListener("input", function () { if (D) renderAccList(); });
+  $("p-det").addEventListener("toggle", function () { if (D) renderAccList(); });
   (function () { var d = new Date(); $("hp-d").value = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); })();
   $("p-hp").addEventListener("submit", function (e) {
     e.preventDefault();
