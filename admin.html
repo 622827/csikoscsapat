@@ -272,6 +272,7 @@
   /* Az ADMIN háttér: a TFC Könyvelés 2026 táblázathoz kötött Apps Script webalkalmazás URL-je.
      A jelszót a script ellenőrzi (Szkripttulajdonságok: ADMIN_PASSWORD), az oldalon nincs tárolva. */
   var KAPI = "https://script.google.com/macros/s/AKfycbxmv7vYoK5dEbxdeDh53MZEcYG_KKAB_6FzWbetacIrK6Due1t-alLccqqbpEq1-9Rk/exec";
+  window.addEventListener("error", function (ev) { try { var m = document.querySelector("main"), q = document.getElementById("ad-jserr") || m.appendChild(Object.assign(document.createElement("p"), { id: "ad-jserr", style: "color:#e57;margin-top:18px;font-size:.9rem" })); q.textContent = "Oldalhiba: " + (ev.message || "ismeretlen") + (ev.lineno ? " (sor " + ev.lineno + ")" : ""); } catch (e) {} });
   var AK = "csk_admin", $ = function (id) { return document.getElementById(id); };
   var HO = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
   var D = null, view = "sum", fdir = "";
@@ -407,6 +408,7 @@
     showLock("");
   });
   load();
+  setTimeout(function () { if ($("ad-lock").hidden && $("ad-hub").hidden && $("konyveles").hidden) { if (tok()) showMain(); else showLock(""); } }, 2500);
 })();
 </script>
 <script src="anim.js?v=20" defer></script>
