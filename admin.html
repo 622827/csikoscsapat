@@ -129,16 +129,16 @@
   .tile svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .tile b { font-size: 1.15rem; }
   .tile span { color: var(--muted); font-size: .9rem; }
-  .ad-lock { max-width: 380px; margin-top: 28px; background: var(--card); border-radius: 16px; padding: 22px; }
-  .ad-lock h2 { margin: 0 0 6px; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
-  .ad-lock h2 svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .ad-lock p { margin: 0 0 16px; color: var(--muted); font-size: .95rem; }
-  .ad-lock input { width: 100%; font: inherit; font-size: 1.05rem; padding: 13px 15px; border-radius: 12px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); }
-  .ad-lock input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .kp-lock { max-width: 380px; margin-top: 28px; background: var(--card); border-radius: 16px; padding: 22px; }
+  .kp-lock h2 { margin: 0 0 6px; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+  .kp-lock h2 svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .kp-lock p { margin: 0 0 16px; color: var(--muted); font-size: .95rem; }
+  .kp-lock input { width: 100%; font: inherit; font-size: 1.05rem; padding: 13px 15px; border-radius: 12px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); }
+  .kp-lock input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
   .btn { font: inherit; font-weight: 700; border: 0; border-radius: 12px; padding: 12px 18px; cursor: pointer; background: var(--track); color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
   .btn.pri { background: var(--accent); color: var(--on-accent); }
   .btn[disabled] { opacity: .6; cursor: wait; }
-  .ad-lock .btn { width: 100%; justify-content: center; margin-top: 12px; padding: 14px; }
+  .kp-lock .btn { width: 100%; justify-content: center; margin-top: 12px; padding: 14px; }
   .err { color: var(--gold); min-height: 1.3em; margin: 10px 0 0 !important; font-size: .92rem; }
 
   .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 22px 0 6px; }
@@ -210,20 +210,20 @@
 <nav class="topnav" aria-label="Főmenü"><div class="in"><a class="brand" href="index.html">Csikós BL csapat</a><ul><li><a href="index.html">Kezdőlap</a></li><li><a href="negyedev.html">Negyedéves cél</a></li><li><a href="verseny.html">Versenyek és utazások</a></li><li><a href="csapatkassza.html">Csapatkassza</a></li><li><a href="elemzo.html">Elemző füzet</a></li><li><a href="teljesitmeny-uj.html">Teljesítmény</a></li><li><a href="vizsga.html">Vizsga gyakorló</a></li><li><a aria-disabled="true" tabindex="-1" title="Hamarosan" style="pointer-events:none;cursor:default;opacity:.55">Tanácsadó PPT generátor 🔒</a></li><li><a aria-disabled="true" tabindex="-1" title="Hamarosan" style="pointer-events:none;cursor:default;opacity:.55">Vezetőjelölti 🔒</a></li></ul></div></nav>
 <main>
   <p class="eyebrow">ADMIN</p>
-  <h1 id="ad-h1">ADMIN</h1>
-  <p class="lead" id="ad-lead"></p>
+  <h1 id="kp-h1">ADMIN</h1>
+  <p class="lead" id="kp-lead"></p>
 
-  <section class="ad-lock" id="ad-lock" hidden>
-    <form id="ad-form" autocomplete="off">
+  <section class="kp-lock" id="kp-lock" hidden>
+    <form id="kp-form" autocomplete="off">
       <h2><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Védett terület</h2>
       <p>Az ADMIN oldalakhoz külön jelszó kell.</p>
-      <input type="password" id="ad-pw" placeholder="Admin jelszó" autocomplete="off">
-      <button class="btn pri" type="submit" id="ad-go">Belépés</button>
-      <p class="err" id="ad-err" role="alert"></p>
+      <input type="password" id="kp-pw" placeholder="Admin jelszó" autocomplete="off">
+      <button class="btn pri" type="submit" id="kp-go">Belépés</button>
+      <p class="err" id="kp-err" role="alert"></p>
     </form>
   </section>
 
-  <section id="ad-hub" hidden>
+  <section id="kp-hub" hidden>
     <div class="tiles">
       <a class="tile" href="#konyveles" data-sec="konyveles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 11h8M8 15h8"/></svg><b>Könyvelés</b><span>The Financial Company Kft. · 2026</span></a>
     </div>
@@ -272,7 +272,7 @@
   /* Az ADMIN háttér: a TFC Könyvelés 2026 táblázathoz kötött Apps Script webalkalmazás URL-je.
      A jelszót a script ellenőrzi (Szkripttulajdonságok: ADMIN_PASSWORD), az oldalon nincs tárolva. */
   var KAPI = "https://script.google.com/macros/s/AKfycbxmv7vYoK5dEbxdeDh53MZEcYG_KKAB_6FzWbetacIrK6Due1t-alLccqqbpEq1-9Rk/exec";
-  window.addEventListener("error", function (ev) { try { var m = document.querySelector("main"), q = document.getElementById("ad-jserr") || m.appendChild(Object.assign(document.createElement("p"), { id: "ad-jserr", style: "color:#e57;margin-top:18px;font-size:.9rem" })); q.textContent = "Oldalhiba: " + (ev.message || "ismeretlen") + (ev.lineno ? " (sor " + ev.lineno + ")" : ""); } catch (e) {} });
+  window.addEventListener("error", function (ev) { try { var m = document.querySelector("main"), q = document.getElementById("kp-jserr") || m.appendChild(Object.assign(document.createElement("p"), { id: "kp-jserr", style: "color:#e57;margin-top:18px;font-size:.9rem" })); q.textContent = "Oldalhiba: " + (ev.message || "ismeretlen") + (ev.lineno ? " (sor " + ev.lineno + ")" : ""); } catch (e) {} });
   var AK = "csk_admin", $ = function (id) { return document.getElementById(id); };
   var HO = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
   var D = null, view = "sum", fdir = "";
@@ -291,28 +291,28 @@
   function loading(on) { document.body.classList.toggle("loading", !!on); }
 
   function showLock(msg) {
-    $("konyveles").hidden = true; $("ad-hub").hidden = true; $("ad-lock").hidden = false; head("");
-    $("ad-err").textContent = msg || ""; setTimeout(function () { $("ad-pw").focus(); }, 50);
+    $("konyveles").hidden = true; $("kp-hub").hidden = true; $("kp-lock").hidden = false; head("");
+    $("kp-err").textContent = msg || ""; setTimeout(function () { $("kp-pw").focus(); }, 50);
   }
   var SECS = { konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"] };
-  function head(sec) { $("ad-h1").textContent = sec ? SECS[sec][0] : "ADMIN"; $("ad-lead").textContent = sec ? SECS[sec][1] : ""; }
+  function head(sec) { $("kp-h1").textContent = sec ? SECS[sec][0] : "ADMIN"; $("kp-lead").textContent = sec ? SECS[sec][1] : ""; }
   function showMain() {
-    $("ad-lock").hidden = true;
+    $("kp-lock").hidden = true;
     var sec = location.hash.replace("#", ""); if (!SECS[sec]) sec = "";
-    $("ad-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; head(sec);
+    $("kp-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; head(sec);
   }
   window.addEventListener("hashchange", function () { if (tok()) showMain(); });
 
-  $("ad-form").addEventListener("submit", function (e) {
-    e.preventDefault(); var pw = $("ad-pw").value; if (!pw) return;
-    if (!KAPI) { $("ad-err").textContent = "Az admin háttér még nincs bekötve."; return; }
-    $("ad-go").disabled = true; $("ad-err").textContent = "";
+  $("kp-form").addEventListener("submit", function (e) {
+    e.preventDefault(); var pw = $("kp-pw").value; if (!pw) return;
+    if (!KAPI) { $("kp-err").textContent = "Az admin háttér még nincs bekötve."; return; }
+    $("kp-go").disabled = true; $("kp-err").textContent = "";
     call({ action: "login", pw: pw }).then(function (d) {
-      $("ad-go").disabled = false;
-      if (d && d.ok && d.token) { setTok(d.token); $("ad-pw").value = ""; load(); return; }
-      $("ad-err").textContent = d && d.error === "locked" ? "Túl sok hibás próbálkozás, várj 15 percet." : "Hibás jelszó.";
-      $("ad-pw").select();
-    }).catch(function () { $("ad-go").disabled = false; $("ad-err").textContent = "Nem sikerült csatlakozni, próbáld újra."; });
+      $("kp-go").disabled = false;
+      if (d && d.ok && d.token) { setTok(d.token); $("kp-pw").value = ""; load(); return; }
+      $("kp-err").textContent = d && d.error === "locked" ? "Túl sok hibás próbálkozás, várj 15 percet." : "Hibás jelszó.";
+      $("kp-pw").select();
+    }).catch(function () { $("kp-go").disabled = false; $("kp-err").textContent = "Nem sikerült csatlakozni, próbáld újra."; });
   });
 
   function load() {
@@ -408,7 +408,7 @@
     showLock("");
   });
   load();
-  setTimeout(function () { if ($("ad-lock").hidden && $("ad-hub").hidden && $("konyveles").hidden) { if (tok()) showMain(); else showLock(""); } }, 2500);
+  setTimeout(function () { if ($("kp-lock").hidden && $("kp-hub").hidden && $("konyveles").hidden) { if (tok()) showMain(); else showLock(""); } }, 2500);
 })();
 </script>
 <script src="anim.js?v=20" defer></script>
