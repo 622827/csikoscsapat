@@ -1163,10 +1163,9 @@
       var k = checked()[0], o = (window.WSO || []).filter(function (x) { return x.k === k; })[0];
       /* a pipálás nem tölti ki a címkét: a címzett mindig Eszter (alapérték), a telefonját megjegyzi a böngésző */
     }
-    var FXD = { nev: "Kollmann Eszter", mail: "kollmann.eszter.ovb@gmail.com" };
-    function fxDef() { var t = ""; try { t = localStorage.getItem("csk_fx_tel") || ""; } catch (e) {} $("fx-nev").value = FXD.nev; $("fx-mail").value = FXD.mail; $("fx-tel").value = t; }
+    var FXD = { nev: "Kollmann Eszter", mail: "kollmann.eszter.ovb@gmail.com", tel: "+36203910612" };
+    function fxDef() { var t = FXD.tel; $("fx-nev").value = FXD.nev; $("fx-mail").value = FXD.mail; $("fx-tel").value = t; }
     fxDef();
-    $("fx-tel").addEventListener("change", function () { try { localStorage.setItem("csk_fx_tel", $("fx-tel").value.trim()); } catch (e) {} });
     $("fx-go").addEventListener("click", function () {
       if (busy) return; $("fx-cand").innerHTML = "";
       var nev = $("fx-nev").value.trim(), tel = phone($("fx-tel").value), mail = $("fx-mail").value.trim(), aut = apmSel;
