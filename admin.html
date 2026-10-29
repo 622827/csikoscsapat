@@ -155,6 +155,7 @@
   .acc .meter { height: 6px; border-radius: 3px; background: var(--track); margin-top: 10px; overflow: hidden; }
   .acc .meter i { display: block; height: 100%; background: var(--accent); }
   .hpf { display: grid; grid-template-columns: 150px 130px 150px minmax(0, 1fr) 170px auto; gap: 8px; align-items: end; margin: 0 0 14px; padding: 14px; border-radius: 14px; background: var(--card); }
+  .hpf[hidden] { display: none; }
   .hpf label { display: grid; gap: 4px; font-size: .78rem; font-weight: 700; color: var(--muted); }
   .hpf input, .hpf select { font: inherit; padding: 9px 10px; border-radius: 10px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); min-width: 0; }
   .hpf .btn { padding: 10px 16px; }
@@ -385,8 +386,8 @@
   }
 
 
-  /* ---------- Pénzszámlák: Erste főszámla, Erste Széchenyi, Házipénztár ---------- */
-  var ACC = ["Erste főszámla", "Erste Széchenyi", "Házipénztár"], acc = ACC[0], SZK_KERET = 5000000;
+  /* ---------- Pénzszámlák: Erste főszámla, Erste Széchenyi, Házipénztár, UniCredit (megszűnt) ---------- */
+  var ACC = ["Erste főszámla", "Erste Széchenyi", "Házipénztár", "UniCredit"], acc = ACC[0], SZK_KERET = 5000000;
   function accRows(name) {
     if (name === "Házipénztár") {
       var hp = (D && D.hp) || { nyito: 0, rows: [] }, bal = num(hp.nyito);
@@ -412,11 +413,13 @@
         sub = "keret " + ft(SZK_KERET) + " · felhasznált " + ft(used) + " · szabad " + ft(SZK_KERET - used);
         extra = '<div class="meter"><i style="width:' + pct.toFixed(1) + '%"></i></div>';
       }
-      return '<button type="button" data-a="' + esc(n) + '" aria-pressed="' + (n === acc) + '"><p class="l">' + esc(n) + '</p><p class="v' + (b.bal < 0 ? " neg" : "") + '">' + (b.bal === null ? "–" : (b.bal ? ft(b.bal) : "0 Ft")) + '</p><p class="s">' + esc(sub) + "</p>" + extra + "</button>";
+      if (n === "UniCredit" && b.last) sub = "régi számla, január–május · utolsó kivonat: " + b.last;
+      return '<button type="button" data-a="' + esc(n) + '" aria-pressed="' + (n === acc) + '"><p class="l">' + esc(n === "UniCredit" ? "UniCredit (megszűnt)" : n) + '</p><p class="v' + (b.bal < 0 ? " neg" : "") + '">' + (b.bal === null ? "–" : (b.bal ? ft(b.bal) : "0 Ft")) + '</p><p class="s">' + esc(sub) + "</p>" + extra + "</button>";
     }).join("");
     var rows = accRows(acc), ho = {};
     rows.forEach(function (r) { var m = +String(r.d).slice(5, 7); if (!m) return; var h = ho[m] || (ho[m] = { be: 0, ki: 0, z: null }); if (r.v > 0) h.be += r.v; else h.ki += -r.v; h.z = r.bal; });
     var now = new Date(), cm = now.getFullYear() === 2026 ? now.getMonth() + 1 : 12, z = null;
+    if (acc === "UniCredit") cm = Math.max.apply(null, Object.keys(ho).map(Number).concat([1]));   // megszűnt: az utolsó kivonat után nincs egyenleg
     var body = HO.map(function (nev, i) {
       var h = ho[i + 1]; if (h) z = h.z;
       var fut = i + 1 > cm;
@@ -424,7 +427,7 @@
     }).join("");
     var be = rows.reduce(function (a, r) { return a + (r.v > 0 ? r.v : 0); }, 0), ki = rows.reduce(function (a, r) { return a + (r.v < 0 ? -r.v : 0); }, 0);
     $("p-month").innerHTML = "<thead><tr><th>Hónap</th><th>Jóváírás</th><th>Terhelés</th><th>Nettó</th><th>Záró egyenleg</th></tr></thead><tbody>" + body + "</tbody><tfoot><tr><td>Összesen</td><td>" + ft(be) + "</td><td>" + ft(-ki) + "</td><td>" + ft(be - ki) + "</td><td></td></tr></tfoot>";
-    $("p-title").textContent = acc + " – mozgások";
+    $("p-title").textContent = (acc === "UniCredit" ? "UniCredit (megszűnt)" : acc) + " – mozgások";
     $("p-hp").hidden = acc !== "Házipénztár";
     renderAccList();
   }
