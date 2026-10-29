@@ -316,7 +316,7 @@
 
   function load() {
     var t = tok(); if (!t || !KAPI) { showLock(KAPI ? "" : "Az admin háttér még nincs bekötve."); return; }
-    loading(true);
+    showMain(); loading(true);
     call({ action: "data", token: t }).then(function (d) {
       loading(false);
       if (!d || d.error === "auth") { setTok(""); showLock("A munkamenet lejárt, lépj be újra."); return; }
