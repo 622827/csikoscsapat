@@ -123,6 +123,12 @@
   body.loading #meta { animation: ldpulse 1.2s ease-in-out infinite; }
   .eyebrow { margin: 0; font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
   .lead { color: var(--muted); font-size: clamp(1rem, 2vw, 1.15rem); margin: 0; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 22px; }
+  .tile { display: flex; flex-direction: column; gap: 8px; padding: 22px; border-radius: 18px; background: var(--card); color: var(--ink); text-decoration: none; border: 2px solid var(--track); transition: transform .15s ease, border-color .2s ease; }
+  .tile:hover, .tile:focus-visible { transform: translateY(-2px); border-color: var(--accent); }
+  .tile svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .tile b { font-size: 1.15rem; }
+  .tile span { color: var(--muted); font-size: .9rem; }
   .ad-lock { max-width: 380px; margin-top: 28px; background: var(--card); border-radius: 16px; padding: 22px; }
   .ad-lock h2 { margin: 0 0 6px; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
   .ad-lock h2 svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -204,8 +210,8 @@
 <nav class="topnav" aria-label="Főmenü"><div class="in"><a class="brand" href="index.html">Csikós BL csapat</a><ul><li><a href="index.html">Kezdőlap</a></li><li><a href="negyedev.html">Negyedéves cél</a></li><li><a href="verseny.html">Versenyek és utazások</a></li><li><a href="csapatkassza.html">Csapatkassza</a></li><li><a href="elemzo.html">Elemző füzet</a></li><li><a href="teljesitmeny-uj.html">Teljesítmény</a></li><li><a href="vizsga.html">Vizsga gyakorló</a></li><li><a aria-disabled="true" tabindex="-1" title="Hamarosan" style="pointer-events:none;cursor:default;opacity:.55">Tanácsadó PPT generátor 🔒</a></li><li><a aria-disabled="true" tabindex="-1" title="Hamarosan" style="pointer-events:none;cursor:default;opacity:.55">Vezetőjelölti 🔒</a></li></ul></div></nav>
 <main>
   <p class="eyebrow">ADMIN</p>
-  <h1>Könyvelés</h1>
-  <p class="lead">The Financial Company Kft. · 2026</p>
+  <h1 id="ad-h1">ADMIN</h1>
+  <p class="lead" id="ad-lead"></p>
 
   <section class="ad-lock" id="ad-lock" hidden>
     <form id="ad-form" autocomplete="off">
@@ -217,12 +223,19 @@
     </form>
   </section>
 
+  <section id="ad-hub" hidden>
+    <div class="tiles">
+      <a class="tile" href="#konyveles" data-sec="konyveles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 11h8M8 15h8"/></svg><b>Könyvelés</b><span>The Financial Company Kft. · 2026</span></a>
+    </div>
+  </section>
+
   <section id="konyveles" hidden>
     <div class="bar">
       <p class="meta" id="k-meta"></p>
       <span class="sp"></span>
       <button class="btn" type="button" id="k-refresh">Frissítés</button>
       <a class="btn" id="k-sheet" target="_blank" rel="noopener" hidden>Táblázat megnyitása</a>
+      <a class="btn" href="#" id="k-back">Menük</a>
       <button class="btn" type="button" id="k-out">Kilépés</button>
     </div>
 
@@ -277,10 +290,17 @@
   function loading(on) { document.body.classList.toggle("loading", !!on); }
 
   function showLock(msg) {
-    $("konyveles").hidden = true; $("ad-lock").hidden = false;
+    $("konyveles").hidden = true; $("ad-hub").hidden = true; $("ad-lock").hidden = false; head("");
     $("ad-err").textContent = msg || ""; setTimeout(function () { $("ad-pw").focus(); }, 50);
   }
-  function showMain() { $("ad-lock").hidden = true; $("konyveles").hidden = false; }
+  var SECS = { konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"] };
+  function head(sec) { $("ad-h1").textContent = sec ? SECS[sec][0] : "ADMIN"; $("ad-lead").textContent = sec ? SECS[sec][1] : ""; }
+  function showMain() {
+    $("ad-lock").hidden = true;
+    var sec = location.hash.replace("#", ""); if (!SECS[sec]) sec = "";
+    $("ad-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; head(sec);
+  }
+  window.addEventListener("hashchange", function () { if (tok()) showMain(); });
 
   $("ad-form").addEventListener("submit", function (e) {
     e.preventDefault(); var pw = $("ad-pw").value; if (!pw) return;
@@ -381,14 +401,14 @@
   $("f-q").addEventListener("input", function () { if (D) renderInv(); });
   $("f-open").addEventListener("change", function () { if (D) renderInv(); });
   $("k-refresh").addEventListener("click", load);
+  $("k-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); showMain(); });
   $("k-out").addEventListener("click", function () {
     var t = tok(); setTok(""); D = null; if (t && KAPI) call({ action: "logout", token: t }).catch(function () {});
     showLock("");
   });
-  if (!location.hash) history.replaceState(null, "", "#konyveles");
   load();
 })();
 </script>
-<script src="anim.js?v=19" defer></script>
+<script src="anim.js?v=20" defer></script>
 </body>
 </html>
