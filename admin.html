@@ -397,7 +397,7 @@
       });
     }
     return ((D && D.pm) || []).filter(function (r) { return r[0] === name; }).map(function (r) {
-      return { d: r[2], t: r[4], p: r[7], k: r[8], v: num(r[5]), bal: num(r[6]), inv: r[10], url: r[11] };
+      return { d: r[2], t: r[4], p: r[7], k: r[8], v: num(r[5]), bal: num(r[6]) + (name === "Erste Széchenyi" ? SZK_KERET : 0), inv: r[10], url: r[11] };   // Széchenyi: az 5 M keretről indul
     });
   }
   function accBal(name) {
@@ -409,8 +409,8 @@
     $("p-cards").innerHTML = ACC.map(function (n) {
       var b = accBal(n), sub = b.last ? "utolsó tétel: " + b.last : (n === "Házipénztár" ? "még nincs rögzített tétel" : "nincs kivonat"), extra = "";
       if (n === "Erste Széchenyi" && b.bal !== null) {
-        var used = Math.max(0, -b.bal), pct = Math.min(100, used / SZK_KERET * 100);
-        sub = "keret " + ft(SZK_KERET) + " · felhasznált " + ft(used) + " · szabad " + ft(SZK_KERET - used);
+        var used = Math.max(0, SZK_KERET - b.bal), pct = Math.min(100, used / SZK_KERET * 100);
+        sub = "keret " + ft(SZK_KERET) + " · felhasznált " + ft(used);
         extra = '<div class="meter"><i style="width:' + pct.toFixed(1) + '%"></i></div>';
       }
       if (n === "UniCredit" && b.last) sub = "megszűnt 2026.07.17. · január–július";
