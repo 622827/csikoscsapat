@@ -11,6 +11,7 @@
     teljesitmeny: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',
     vizsga: '<path d="M2 9l10-5 10 5-10 5zM6 11v5c0 1 3 3 6 3s6-2 6-3v-5"/>',
     ppt: '<path d="M3 4h18v12H3zM8 20h8M12 16v4"/>',
+    admin: '<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
     star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>'
   };
   function icon(href, txt) {
@@ -63,7 +64,16 @@
       n.innerHTML = svg(icon(href, txt)) + '<span class="lb">' + txt.replace(/</g, "&lt;") + (lock ? " 🔒" : "") + "</span>";
       li.appendChild(n); lis.appendChild(li);
     });
-    side.appendChild(lis); document.body.appendChild(side);
+    side.appendChild(lis);
+    /* ADMIN: mindig a menü legalján, a többi ponttól elválasztva */
+    var adm = document.createElement("ul"); adm.className = "csk-adm";
+    adm.style.cssText = "list-style:none;margin:auto 0 0;padding:8px 0 0;border-top:1px solid var(--track);display:flex;flex-direction:column;gap:3px";
+    var ali = document.createElement("li"), aa = document.createElement("a");
+    aa.href = "admin.html"; aa.title = "ADMIN";
+    if (/(^|\/)admin\.html$/.test(location.pathname)) aa.setAttribute("aria-current", "page");
+    aa.innerHTML = svg(IC.admin) + '<span class="lb">ADMIN</span>';
+    ali.appendChild(aa); adm.appendChild(ali); side.appendChild(adm);
+    document.body.appendChild(side);
     var bd = document.createElement("div"); bd.className = "csk-bd"; document.body.appendChild(bd);
     var mb = document.createElement("button"); mb.type = "button"; mb.className = "csk-mbtn"; mb.setAttribute("aria-label", "Menü");
     mb.innerHTML = svg('<path d="M4 7h16M4 12h16M4 17h16"/>'); host.insertBefore(mb, host.firstChild);
@@ -84,7 +94,8 @@
 (function () {
   var SUB = { "verseny.html": [["Erdélyi Incentive", "verseny.html#erdely"], ["Téli Incentive", "verseny.html#teli"], ["2026 Lengyelország karácsony", "verseny.html#lengyel"]],
               "csapatkassza.html": [["Csapatkassza", "csapatkassza.html#kassza"], ["OVB flotta", "csapatkassza.html#flotta"], ["Iroda kassza", "csapatkassza.html#iroda"]],
-              "teljesitmeny-uj.html": [["Elemzések utáni teendők", "teljesitmeny-uj.html#elemzesek"], ["Asszisztensi feladatok", "teljesitmeny-uj.html#asszisztens"], ["Start bónusz", "teljesitmeny-uj.html#startbonusz"]] };
+              "teljesitmeny-uj.html": [["Elemzések utáni teendők", "teljesitmeny-uj.html#elemzesek"], ["Asszisztensi feladatok", "teljesitmeny-uj.html#asszisztens"], ["Start bónusz", "teljesitmeny-uj.html#startbonusz"]],
+              "admin.html": [["Könyvelés", "admin.html#konyveles"]] };
   function init() {
     var nav = document.querySelector(".topnav"); if (!nav) return;
     var st = document.createElement("style");
@@ -118,7 +129,7 @@
         cur = a; a.classList.add("csk-open"); box.textContent = "";
         items.forEach(function (it) { var l = document.createElement("a"); l.href = it[1]; l.textContent = it[0];
           var h = location.hash, onPage = location.pathname.split("/").pop() === key;
-          var curKey = ""; try { curKey = key === "csapatkassza.html" ? (h === "#flotta" || h === "#iroda" ? h : "#kassza") : key === "verseny.html" ? (h === "#teli" || h === "#lengyel" ? h : "#erdely") : (h ? h : (sessionStorage.getItem("tj_view") === "as" ? "#asszisztens" : "#elemzesek")); } catch (e) {}
+          var curKey = ""; try { curKey = key === "csapatkassza.html" ? (h === "#flotta" || h === "#iroda" ? h : "#kassza") : key === "verseny.html" ? (h === "#teli" || h === "#lengyel" ? h : "#erdely") : key === "admin.html" ? (h || "#konyveles") : (h ? h : (sessionStorage.getItem("tj_view") === "as" ? "#asszisztens" : "#elemzesek")); } catch (e) {}
           if (onPage && it[1].slice(it[1].indexOf("#")) === curKey) l.className = "cur";
           box.appendChild(l); });
         var r = a.getBoundingClientRect(), sd = !!a.closest(".csk-sidebar");
