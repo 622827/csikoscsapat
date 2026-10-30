@@ -754,23 +754,25 @@
     if (!SZ || !szKey()) { msg.textContent = "A tár még nincs betöltve."; return; }
     var big = szPick.filter(function (f) { return f.size > SZMAX; }); if (big.length) { msg.textContent = "Túl nagy fájl (legfeljebb 15 MB): " + big.map(function (f) { return f.name; }).join(", "); return; }
     var F = SZ.F, szolg = $("sz-szolg").value, list = szPick.slice(), done = 0, go = $("sz-go"), ho = "";
-    var dup = list.filter(function (f) { return SZFILES.some(function (x) { return x.name === f.name && x.size === f.size; }); });
-    if (dup.length && !confirm("Ez már fel van töltve: " + dup.map(function (f) { return f.name; }).join(", ") + "\nMégis feltöltsem újra?")) return;
+    var vissza = [];
     go.disabled = true;
     (function next() {
-      if (!list.length) { go.disabled = false; msg.textContent = done + " fájl feltöltve."; szPick = []; $("sz-file").value = ""; szShowPick(); return; }
+      if (!list.length) { go.disabled = false; msg.textContent = done + " fájl feltöltve." + (vissza.length ? " Visszadobva, mert már szerepel a könyvelésben: " + vissza.join("; ") : ""); szPick = []; $("sz-file").value = ""; szShowPick(); return; }
       var f = list.shift(); msg.textContent = "Dátum felismerése: " + f.name + " (" + (done + 1) + "/" + (done + list.length + 1) + ")…";
-      szHonap(f).then(function (h) {
-        ho = h || ""; msg.textContent = "Feltöltés: " + f.name + (ho ? " → " + ho : " → Beérkező (a hónapot Claude állapítja meg)") + "…";
+      if (SZFILES.some(function (x) { return x.name === f.name && x.size === f.size; })) { vissza.push(f.name + " (ezt a fájlt már feltöltötték)"); next(); return; }
+      szSzoveg(f).then(function (tx) {
+        var mm = szMarMegvan(tx); if (mm) { vissza.push(f.name + " → " + mm.no + ", " + (mm.p || "") + (mm.d ? ", " + mm.d : "") + (mm.g ? ", " + ft(mm.g) : "")); return "skip"; }
+        ho = szDatum(tx) || ""; msg.textContent = "Feltöltés: " + f.name + (ho ? " → " + ho : " → Beérkező (a hónapot Claude állapítja meg)") + "…";
         return szDrive(f, szolg, ho);
       }).then(function (dv) {
+        if (dv === "skip") return "skip";
         if (dv) return F.setDoc(F.doc(szCol("sz_files")), { name: f.name, size: f.size, type: f.type || "", szolg: szolg, ho: ho, n: 0, drive: dv.url, folder: dv.folder || "", up: new Date().toISOString(), st: "uj" });
         return f.arrayBuffer().then(function (buf) {
         var u8 = new Uint8Array(buf), ref = F.doc(szCol("sz_files")), n = Math.ceil(u8.length / SZCH) || 1, jobs = [];
         for (var i = 0; i < n; i++) jobs.push(F.setDoc(F.doc(szCol("sz_chunks"), ref.id + "_" + i), { f: ref.id, i: i, d: F.Bytes.fromUint8Array(u8.subarray(i * SZCH, (i + 1) * SZCH)) }));
         return Promise.all(jobs).then(function () { return F.setDoc(ref, { name: f.name, size: f.size, type: f.type || "", szolg: szolg, ho: ho, n: n, up: new Date().toISOString(), st: "uj" }); });
         });
-      }).then(function () { done++; next(); }).catch(function (er) { go.disabled = false; msg.textContent = "Hiba a feltöltésnél (" + f.name + "): " + er.message; });
+      }).then(function (r) { if (r !== "skip") done++; next(); }).catch(function (er) { go.disabled = false; msg.textContent = "Hiba a feltöltésnél (" + f.name + "): " + er.message; });
     })();
   });
   // Hónap felismerése: PDF szövegéből a teljesítés dátuma, ha nincs, a kiállítás/kelt dátuma. Fotónál vagy szkennelt PDF-nél "" → Beérkező.
@@ -792,7 +794,7 @@
     for (i = 0; i < keys.length; i++) { k = keys[i]; k.lastIndex = 0; while ((m = k.exec(t))) { r = first(m.index); if (r) return r; } }
     return first(0);
   }
-  function szHonap(f) {
+  function szSzoveg(f) {
     if (!/pdf$/i.test(f.type) && !/\.pdf$/i.test(f.name)) return Promise.resolve("");
     return Promise.all([szPdfjs(), f.arrayBuffer()]).then(function (a) {
       return a[0].getDocument({ data: new Uint8Array(a[1]) }).promise;
@@ -800,7 +802,18 @@
       var pages = [], n = Math.min(doc.numPages, 2);
       for (var i = 1; i <= n; i++) pages.push(doc.getPage(i).then(function (p) { return p.getTextContent(); }).then(function (c) { return c.items.map(function (x) { return x.str; }).join(" "); }));
       return Promise.all(pages);
-    }).then(function (tx) { return szDatum(tx.join(" ")); }).catch(function () { return ""; });
+    }).then(function (tx) { return tx.join(" "); }).catch(function () { return ""; });
+  }
+  // Már bekönyvelt számla? A PDF szövegében keresi a könyvelés számlaszámait (szóhatárra illesztve, szóközök nélkül is).
+  function szMarMegvan(t) {
+    if (!t || !D || !D.rows) return null;
+    var c = { no: col("Számlaszám"), p: col("Partner"), d: col("Teljesítés dátuma"), g: col("Bruttó (Ft)") }, low = t.toLowerCase(), tight = low.replace(/\s+/g, ""), hit = null;
+    D.rows.some(function (r) {
+      var no = String(r[c.no] || "").trim().toLowerCase(); if (no.length < 5 || /^\d{1,4}$/.test(no)) return false;
+      [low, tight].some(function (x) { var i = x.indexOf(no); while (i > -1) { if (!/[a-z0-9]/.test(x.charAt(i - 1)) && !/[0-9]/.test(x.charAt(i + no.length))) { hit = r; return true; } i = x.indexOf(no, i + 1); } return false; });
+      return !!hit;
+    });
+    return hit ? { no: hit[c.no], p: hit[c.p], d: hd(hit[c.d]), g: num(hit[c.g]) } : null;
   }
   // Drive-ba mentés az admin háttéren át: Könyvelés 2026 / "ÉÉÉÉ-HH Hónap" mappa. Ha a háttér ezt még nem tudja, null → közös tár.
   function szDrive(f, szolg, ho) {
