@@ -305,7 +305,6 @@
     <div class="bar">
       <p class="meta" id="sz-meta"></p>
       <span class="sp"></span>
-      <button class="btn" type="button" id="sz-key">Kulcs Claude-nak</button>
       <a class="btn" href="#" id="sz-back">Menük</a>
     </div>
     <form class="szup" id="sz-unlock" autocomplete="off" hidden style="grid-template-columns:minmax(0,1fr) auto;margin-bottom:12px">
@@ -861,11 +860,6 @@
       call({ action: "logout", token: d.token }).catch(function () {});
       return szHash("csk-szamla|" + pw).then(function (h) { try { localStorage.setItem(SZK, h); } catch (er) {} $("sz-pw").value = ""; szOpen(); });
     }).catch(function () { $("sz-meta").textContent = "Nem sikerült csatlakozni, próbáld újra."; });
-  });
-  $("sz-key").addEventListener("click", function () {
-    var k = szKey(); if (!k) return; var v = "Számla-tár kulcs: " + k;
-    function ok() { $("sz-msg").textContent = "A kulcs a vágólapon: másold be a Claude-os beszélgetésbe."; }
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(ok, function () { prompt("Másold ki:", v); }); else prompt("Másold ki:", v);
   });
   $("sz-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); showMain(); });
   load();
