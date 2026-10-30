@@ -607,8 +607,9 @@
     $("q-lbl").textContent = now.getFullYear() + " " + (Math.floor(now.getMonth() / 3) + 1) + ". negyedév";
     $("q-goal").innerHTML = "<span>vállalás</span> " + nf.format(Q_COMMIT) + " " + Q_LABEL + ", <span>cél</span> " + nf.format(Q_GOAL) + " " + Q_LABEL;
     var numEl = $("q-num"), token = 0;
+    var shown = 0;
     function animateTo(to) {
-      var from = 0, t0 = null, my = ++token;
+      var from = shown, t0 = null, my = ++token; shown = to;
       numEl.classList.remove("busy");
       if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) { numEl.textContent = nf.format(to); return; }
       requestAnimationFrame(function step(t) {
@@ -619,9 +620,8 @@
         if (k < 1) requestAnimationFrame(step);
       });
     }
-    fetch(CAL_API + "?_=" + Date.now())
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
+    // Ugyanaz az adat, mint a Negyedéves cél oldalon: a tárolt (utoljára látott) szám azonnal megjelenik, a friss betöltés után frissül.
+    function apply(d) {
         var t = d && d.teams;
         if (!t || !t.csikos || !t.farkas) throw new Error("nincs csapat-adat");
         var tc = t.csikos.done, tf = t.farkas.done, tot = tc + tf;
@@ -634,8 +634,16 @@
           $("q-og").style.width = pct + "%"; $("q-oc").style.width = (oc * osc) + "%"; $("q-of").style.width = (of * osc) + "%";
           $("q-bar").setAttribute("aria-valuenow", Math.round(pct));
         }, 50);   // a dicsőségfal két csapatának összege
+    }
+    var had = false;
+    try { var cc = JSON.parse(localStorage.getItem("nev_cache_v1") || "null"); if (cc && cc.d && Date.now() - cc.t < 7 * 86400000) { apply(cc.d); had = true; } } catch (e) {}
+    fetch(CAL_API + "?_=" + Date.now())
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        apply(d);
+        if (d.counter) try { localStorage.setItem("nev_cache_v1", JSON.stringify({ t: Date.now(), d: d })); } catch (e) {}
       })
-      .catch(function () { numEl.classList.remove("busy"); numEl.textContent = "–"; });
+      .catch(function () { if (had) return; numEl.classList.remove("busy"); numEl.textContent = "–"; });
   })();
 </script>
 <script>
