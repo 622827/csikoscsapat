@@ -266,6 +266,14 @@
   .fbal .eg.debt { color: var(--frk); } .fbal .eg.plus { color: var(--csk); }
   .fbal .eg small { display: block; font-weight: 600; font-size: .78rem; }
   .fnote { color: var(--muted); font-size: .92rem; margin: 6px 0 18px; }
+  .pv-r { display: grid; grid-template-columns: minmax(0,2.2fr) repeat(6, minmax(0,1fr)); gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--track); font-size: .88rem; align-items: baseline; }
+  .pv-r > span:not(:first-child) { text-align: right; white-space: nowrap; }
+  .pv-r.hd { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; opacity: .55; border-bottom: 0; }
+  .pv-r.tt { font-weight: 700; border-bottom: 0; }
+  .pv-r small { display: block; color: var(--muted); font-size: .76rem; font-weight: 400; }
+  .pv-w { background: color-mix(in srgb, var(--frk) 10%, transparent); border-radius: 10px; padding: 10px 14px; font-size: .88rem; margin: 0 0 14px; }
+  .pv-b { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+  @media (max-width: 700px) { .pv-r { grid-template-columns: minmax(0,1.6fr) minmax(0,1fr); } .pv-r > span.x { display: none; } }
   dialog textarea { width: 100%; font: inherit; padding: 8px 10px; border-radius: 8px; border: 2px solid var(--track); background: var(--card); color: var(--ink); min-height: 140px; box-sizing: border-box; }
   @media (max-width: 640px) { .fbal { grid-template-columns: minmax(0,1fr) auto; } .fbal .num { display: none; } .fbal.h { display: none; } }
   .pv { display: inline-block; font-size: .78rem; font-weight: 700; border-radius: 999px; padding: 2px 10px; vertical-align: 2px; color: #fff; background: var(--track); }
@@ -387,7 +395,7 @@
   </section>
   <section>
     <div class="sh"><h2 id="f-title">Telefonszámok</h2>
-      <div class="tools"><button class="tl" id="f-late" type="button" aria-pressed="false">Csak tartozók</button><button class="tl" id="f-pkg" type="button">Csomagok</button><button class="tl" id="f-recon" type="button">Számlaegyeztetés</button><button class="primary" id="f-new" type="button">+ Új sor</button></div>
+      <div class="tools"><button class="tl" id="f-late" type="button" aria-pressed="false">Csak tartozók</button><button class="tl" id="f-pkg" type="button">Csomagok</button><button class="tl" id="f-recon" type="button">Számlaegyeztetés</button><button class="tl" id="f-prev" type="button">Díjbekérő előnézet</button><button class="primary" id="f-new" type="button">+ Új sor</button></div>
     </div>
     <p class="fnote">Egy sor = egy telefonszám. Egyenleg = összesen − befizetés: piros = tartozás, zöld = többletbefizetés.</p>
     <input class="srch" id="f-srch" type="search" placeholder="Keresés névre, számra…" aria-label="Keresés">
@@ -556,7 +564,7 @@
   function inp(type, val, attrs) { var i = el("input"); i.type = type; i.value = val === 0 ? "0" : (val || ""); Object.keys(attrs || {}).forEach(function (k) { i.setAttribute(k, attrs[k]); }); return i; }
   function sel(opts, val) { var s = el("select"); opts.forEach(function (o) { var op = el("option", "", o[1]); op.value = o[0]; s.appendChild(op); }); s.value = val; return s; }
   function open(title, build, fn) {
-    $("dlg-title").textContent = title; dlg.classList.remove("wide"); fields.textContent = ""; $("dlg-err").textContent = ""; build(); submitFn = fn;
+    $("dlg-title").textContent = title; $("dlg-ok").textContent = "Mentés"; dlg.classList.remove("wide"); fields.textContent = ""; $("dlg-err").textContent = ""; build(); submitFn = fn;
     if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
     var f = fields.querySelector("input,select"); if (f) setTimeout(function () { f.focus(); }, 30);
   }
@@ -1003,6 +1011,67 @@
   }
   $("f-new").addEventListener("click", function () { if (fcur()) fform(); });
   $("f-late").addEventListener("click", function () { FLATE = !FLATE; renderF(); });
+  // ---- Díjbekérő előnézet a havi (10-i) záráshoz: ki mennyit fizet, milyen bontásban ----
+  function fclose() { var d = new Date(), y = d.getFullYear(), m = d.getMonth(); if (d.getDate() > 10) m++; return new Date(y, m, 10); }
+  $("f-prev").addEventListener("click", function () {
+    var d = fcur(); if (!d) { toast("A flotta még nincs betöltve.", true); return; }
+    var zd = fclose(), zs = zd.toLocaleDateString("hu-HU", { year: "numeric", month: "long", day: "numeric" }), txt = [];
+    open("Díjbekérő előnézet · zárás " + zs, function () {
+      dlg.classList.add("wide"); $("dlg-ok").textContent = "Bezár";
+      fields.appendChild(el("p", "fnote", "Telefonszámonként: csomagdíj + admin díj, forgalmi (eseti) költség, készülékrészlet, korábbi tartozás, levonva a befizetést. Csak a fizetendő számok kerülnek díjbekérőre. Ügyfélnek ebből semmi nem megy ki."));
+      var warn = [], T = { n: 0, hav: 0, forg: 0, kesz: 0, tart: 0, bef: 0, egy: 0 }, skip = 0;
+      txt.push("Díjbekérő előnézet – zárás: " + zs, "");
+      [["BB", "BB flotta (BB Irodák Holding Kft.)"], ["TFC", "TFC flotta (The Financial Company Kft.)"], ["ONE", "One flotta (The Financial Company Kft.)"]].forEach(function (g) {
+        var groups = {}, order = [];
+        d.rows.filter(function (x) { return x.fl === g[0]; }).forEach(function (x) {
+          var dg = String(x.tel || "").replace(/\D/g, ""), k = dg || ("id" + x.id);
+          if (!groups[k]) { groups[k] = { tel: dg, rows: [] }; order.push(groups[k]); } groups[k].rows.push(x);
+          if (x.fl === "ONE" && !(x.alap + x.admin) && !(x.kesz > 0)) warn.push((x.nev || ftel(x.tel)) + ": One csomagdíj 0 Ft (a Csomagok fülön kell megadni)");
+          if (!dg) warn.push((x.nev || "névtelen sor") + " (" + g[0] + "): nincs telefonszám");
+        });
+        if (!order.length) return;
+        var S = { n: 0, hav: 0, forg: 0, kesz: 0, tart: 0, bef: 0, egy: 0 }, list = [];
+        order.forEach(function (o) {
+          var s = { hav: 0, forg: 0, kesz: 0, tart: 0, bef: 0, egy: 0 }, names = [], cs = [], rest = [];
+          o.rows.forEach(function (x) {
+            s.hav += x.alap + x.admin; s.forg += x.forg; s.kesz += x.kesz; s.tart += x.tart; s.bef += x.bef; s.egy += x.egy;
+            if (x.nev && names.indexOf(x.nev) < 0) names.push(x.nev);
+            var c = [x.csomag, x.net].filter(Boolean).join(" · "); if (c && cs.indexOf(c) < 0) cs.push(c);
+            var m = /még\s+(\d+)\s+részlet/i.exec(x.megj || ""); if (m && x.kesz) rest.push("még " + m[1] + " részlet");
+          });
+          if (s.egy <= 0) { skip++; return; }
+          list.push({ o: o, s: s, names: names, cs: cs, rest: rest });
+        });
+        if (!list.length) return;
+        var hh = el("div", "pk-h"); hh.appendChild(el("h3", "", g[1])); hh.appendChild(el("span", "", list.length + " díjbekérő")); fields.appendChild(hh);
+        var hd = el("div", "pv-r hd"); [["Név · szám", ""], ["Csomag + admin", "x"], ["Forgalmi", "x"], ["Készülék", "x"], ["Tartozás", "x"], ["Befizetve", "x"], ["Fizetendő", ""]].forEach(function (c) { hd.appendChild(el("span", c[1], c[0])); }); fields.appendChild(hd);
+        txt.push("== " + g[1] + " ==");
+        list.sort(function (p, q) { return String(p.names[0] || "").localeCompare(String(q.names[0] || ""), "hu"); }).forEach(function (it) {
+          var s = it.s, r = el("div", "pv-r"), n = el("span", "", it.names.join(" / ") || "–");
+          n.appendChild(el("small", "", [ftel(it.o.tel), it.cs.join(", ")].filter(Boolean).join(" · ")));
+          r.appendChild(n);
+          var kk = el("span", "x", s.kesz ? ft(s.kesz) : "–"); if (it.rest.length) kk.appendChild(el("small", "", it.rest.join(", ")));
+          [[s.hav, "x"], [s.forg, "x"], null, [s.tart, "x"], [s.bef, "x"]].forEach(function (c) { if (!c) { r.appendChild(kk); return; } r.appendChild(el("span", c[1], c[0] ? ft(c[0]) : "–")); });
+          var fz = el("span", "", ft(s.egy)); fz.style.fontWeight = "700"; r.appendChild(fz); fields.appendChild(r);
+          txt.push((it.names.join(" / ") || "–") + " (" + ftel(it.o.tel) + "): " + ft(s.egy) + " = " + [
+            "csomag+admin " + ft(s.hav), s.forg ? "forgalmi " + ft(s.forg) : "", s.kesz ? "készülék " + ft(s.kesz) + (it.rest.length ? " (" + it.rest.join(", ") + ")" : "") : "",
+            s.tart ? "tartozás " + ft(s.tart) : "", s.bef ? "− befizetve " + ft(s.bef) : ""].filter(Boolean).join(", "));
+          S.n++; Object.keys(s).forEach(function (k) { S[k] += s[k]; });
+        });
+        var t = el("div", "pv-r tt"); t.appendChild(el("span", "", "Összesen")); [S.hav, S.forg, S.kesz, S.tart, S.bef].forEach(function (v) { t.appendChild(el("span", "x", v ? ft(v) : "–")); }); t.appendChild(el("span", "", ft(S.egy))); fields.appendChild(t);
+        txt.push("Összesen: " + ft(S.egy) + " (" + S.n + " díjbekérő)", "");
+        Object.keys(S).forEach(function (k) { T[k] += S[k]; });
+      });
+      if (!T.n) fields.appendChild(el("p", "empty", "Nincs fizetendő szám."));
+      var sm = el("p", "", "Mindösszesen " + T.n + " díjbekérő, " + ft(T.egy) + "." + (skip ? " Rendben, nincs teendő: " + skip + " szám." : "")); sm.style.cssText = "font-weight:700;margin:20px 0 6px"; fields.appendChild(sm);
+      txt.push("Mindösszesen: " + T.n + " díjbekérő, " + ft(T.egy) + (skip ? "; rendben: " + skip + " szám" : ""));
+      if (warn.length) { var w = el("div", "pv-w"); w.appendChild(el("b", "", "Ellenőrizd zárás előtt (" + warn.length + ")")); warn.forEach(function (m) { w.appendChild(el("div", "", m)); }); fields.insertBefore(w, fields.children[1]); txt.push("", "Ellenőrizendő:"); warn.forEach(function (m) { txt.push("- " + m); }); }
+      var bb = el("div", "pv-b"), cp = el("button", "tl", "Szöveg másolása"), ml = el("button", "tl", "Küldés e-mailben magamnak"); cp.type = ml.type = "button";
+      cp.addEventListener("click", function () { var v = txt.join("\n"); function ok() { toast("Előnézet másolva."); } if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(ok, function () { prompt("Másold ki:", v); }); else prompt("Másold ki:", v); });
+      ml.addEventListener("click", function () { location.href = "mailto:csikos.mate.ovb@gmail.com?subject=" + encodeURIComponent("Flotta díjbekérő előnézet – " + zs) + "&body=" + encodeURIComponent(txt.join("\n")); });
+      bb.appendChild(cp); bb.appendChild(ml); fields.appendChild(bb);
+    }, function () { return Promise.resolve(); });
+  });
   $("f-recon").addEventListener("click", function () {
     var d = fcur(); if (!d) return;
     var exp = { Telekom: 0, One: 0 };
