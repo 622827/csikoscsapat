@@ -219,15 +219,21 @@
   .pill.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
   .pill.open { background: var(--gold-bg); color: var(--gold); }
   .inv a { color: var(--accent); font-weight: 600; }
-  /* számlalista: minden oszlop kiférjen vízszintes görgetés nélkül; a hosszú partnernév és számlaszám tördelődik */
+  /* számla- és mozgáslista: minden oszlop kiférjen vízszintes görgetés nélkül; a hosszú szövegek tördelődnek */
   @media (min-width: 641px) {
     .inv { table-layout: fixed; }
     .inv th, .inv td { padding: 10px 10px; }
-    .inv td { white-space: normal; overflow-wrap: anywhere; }
-    .inv td.n, .inv td[data-k=date], .inv td[data-k=paid], .inv td[data-k=pdf] { white-space: nowrap; overflow-wrap: normal; }
     .inv th { text-align: left; }
-    .inv th:nth-child(1) { width: 92px; } .inv th:nth-child(3) { width: 118px; } .inv th:nth-child(4) { width: 172px; }
-    .inv th:nth-child(5), .inv th:nth-child(6) { width: 108px; } .inv th:nth-child(7) { width: 88px; } .inv th:nth-child(8) { width: 92px; }
+    .inv td { white-space: normal; overflow-wrap: break-word; }
+    .inv td.n, .inv td[data-k=date] { white-space: nowrap; }
+    #k-inv td[data-k=no] { overflow-wrap: anywhere; }
+    #k-inv td[data-k=paid], #k-inv td[data-k=pdf] { white-space: nowrap; }
+    #k-inv th:nth-child(1) { width: 92px; } #k-inv th:nth-child(3) { width: 118px; } #k-inv th:nth-child(4) { width: 172px; }
+    #k-inv th:nth-child(5), #k-inv th:nth-child(6) { width: 108px; } #k-inv th:nth-child(7) { width: 88px; } #k-inv th:nth-child(8) { width: 92px; }
+    #p-list th:nth-child(1) { width: 92px; } #p-list th:nth-child(3) { width: 150px; }
+    #p-list th:nth-child(5), #p-list th:nth-child(6) { width: 112px; } #p-list th:nth-child(7) { width: 150px; }
+    #p-list td[data-k=cat] { font-size: .85rem; }
+    #p-list td[data-k=paid] { overflow-wrap: anywhere; font-size: .85rem; }
   }
   .empty { color: var(--muted); padding: 22px 16px; text-align: center !important; white-space: normal; }
   .note { color: var(--muted); font-size: .85rem; margin: 10px 0 0; max-width: 75ch; }
