@@ -42,7 +42,7 @@
       "html.csk-rail .csk-sidebar .csk-tg svg{transform:rotate(180deg)}" +
       ".csk-sidebar .lb{overflow:hidden;text-overflow:ellipsis;transition:opacity .15s}" +
       "html.csk-rail .csk-sidebar .lb{opacity:0;width:0}html.csk-rail .csk-sidebar a,html.csk-rail .csk-sidebar button.csk-tg{padding:0;justify-content:center;gap:0}" +
-      "@media (hover:hover) and (min-width:800px){html.csk-rail .csk-sidebar.csk-peek{width:264px;box-shadow:8px 0 30px rgba(0,0,0,.16)}" +
+      "@media (min-width:800px){html.csk-rail .csk-sidebar.csk-peek{width:264px;box-shadow:8px 0 30px rgba(0,0,0,.16)}" +
       "html.csk-rail .csk-sidebar.csk-peek .lb{opacity:1;width:auto}html.csk-rail .csk-sidebar.csk-peek a,html.csk-rail .csk-sidebar.csk-peek button.csk-tg{padding:0 13px;justify-content:flex-start;gap:14px}}" +
       ".csk-mbtn{display:none;align-items:center;justify-content:center;width:40px;height:40px;margin-right:6px;border:0;border-radius:12px;background:var(--track);color:var(--ink);cursor:pointer;flex:none}" +
       ".csk-mbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}" +
