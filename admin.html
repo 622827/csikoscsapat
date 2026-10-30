@@ -466,8 +466,7 @@
     var c = D.checks || {};
     $("k-checks").innerHTML = [
       ["Kifizetetlen kimenő számla", num(c.openOut), " db"],
-      ["Kifizetetlen bejövő számla", num(c.openIn), " db"],
-      ["Még nem továbbszámlázott irodai költség", num(c.notRebilled), "ft"]
+      ["Kifizetetlen bejövő számla", num(c.openIn), " db"]
     ].map(function (k) { return '<div class="chk' + (k[1] ? " warn" : "") + '"><span>' + k[0] + "</span><b>" + (k[2] === "ft" ? ft(k[1]) : k[1] + k[2]) + "</b></div>"; }).join("");
     renderInv();
     try { renderFlag(); } catch (e) { $("fl-meta").textContent = "Hiba az ellenőrzéskor: " + e.message; }
