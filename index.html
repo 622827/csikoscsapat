@@ -415,13 +415,15 @@
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
 
   // A termelési hónap zárása a következő hónap első keddje.
+  // Eltérő zárónap: "év-hónap" (a zárás hónapja, 1–12) → nap. 2026. november: szerda, 4-e (kedd helyett).
+  var ZNAP = { "2026-11": 4 };
   function firstTuesday(year, month) {
-    var d = new Date(year, month, 1);
-    return new Date(year, month, 1 + ((2 - d.getDay() + 7) % 7), 23, 59, 59);
+    var d = new Date(year, month, 1), k = year + "-" + ("0" + (month + 1)).slice(-2);
+    return new Date(year, month, ZNAP[k] || 1 + ((2 - d.getDay() + 7) % 7), 23, 59, 59);
   }
   var monthAdj = ["januári", "februári", "márciusi", "áprilisi", "májusi", "júniusi",
                   "júliusi", "augusztusi", "szeptemberi", "októberi", "novemberi", "decemberi"];
-  function fmt(d) { return d.toLocaleDateString("hu-HU", { year: "numeric", month: "long", day: "numeric" }) + ", kedd"; }
+  function fmt(d) { return d.toLocaleDateString("hu-HU", { year: "numeric", month: "long", day: "numeric" }) + ", " + d.toLocaleDateString("hu-HU", { weekday: "long" }); }
   function daysTo(d) { return Math.max(0, Math.ceil((d - now) / 86400000)); }
   function sameDay(a, b) { return a.toDateString() === b.toDateString(); }
   function dayWord(n) { return n === 0 ? "ma" : n === 1 ? "holnap" : n + " nap"; }
