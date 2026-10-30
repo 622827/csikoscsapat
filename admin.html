@@ -651,8 +651,9 @@
     }
     ((D && D.pm) || []).forEach(function (r) {
       var txt = [r[4], r[7], r[8]].join(" ");
-      if (String(r[10] || "").trim() || FL_OK.test(txt) || !num(r[5]) || matched(num(r[5]), hd(r[2]), txt)) return;
-      mv.push({ d: hd(r[2]), a: r[0], p: r[7] || "", t: r[4] || "", k: r[8] || "", v: num(r[5]) });
+      var kk = String(r[10] || "").trim(), nincs = /^nincs sz[áa]mla/i.test(kk);
+      if (!nincs && (kk || FL_OK.test(txt) || !num(r[5]) || matched(num(r[5]), hd(r[2]), txt))) return;
+      mv.push({ d: hd(r[2]), a: r[0], p: r[7] || "", t: r[4] || "", k: r[8] || "", v: num(r[5]), n: nincs ? kk.replace(/^nincs sz[áa]mla\s*[–-]?\s*/i, "") : "" });
     });
     (((D && D.hp) || {}).rows || []).forEach(function (r) {
       var txt = [r[1], r[3], r[4]].join(" ");
@@ -677,7 +678,7 @@
     $("fl-det").classList.toggle("ok", !(mv.length + inv.length));
     $("fl-mv").innerHTML = "<thead><tr><th>Dátum</th><th>Partner</th><th>Tranzakció</th><th>Közlemény</th><th style='text-align:right'>Összeg</th><th>Számla</th></tr></thead><tbody>" +
       (mv.length ? mv.map(function (x) {
-        return '<tr><td data-k="date">' + esc(x.d) + '</td><td data-k="partner">' + esc(x.p || "–") + '</td><td data-k="cat">' + esc(x.t) + '</td><td data-k="no">' + esc(x.k) + '</td><td data-k="brutto" class="n' + (x.v > 0 ? " pos" : "") + '">' + ft(x.v) + '</td><td data-k="paid">' + esc(x.a) + "</td></tr>";
+        return '<tr><td data-k="date">' + esc(x.d) + '</td><td data-k="partner">' + esc(x.p || "–") + (x.n ? '<br><small style="color:var(--muted)">' + esc(x.n) + "</small>" : "") + '</td><td data-k="cat">' + esc(x.t) + '</td><td data-k="no">' + esc(x.k) + '</td><td data-k="brutto" class="n' + (x.v > 0 ? " pos" : "") + '">' + ft(x.v) + '</td><td data-k="paid">' + esc(x.a) + "</td></tr>";
       }).join("") + '<tr><td colspan="4"><b>Összesen</b></td><td class="n"><b>' + ft(sm) + "</b></td><td></td></tr>" : '<tr><td class="empty" colspan="6">Minden pénzmozgáshoz van számla.</td></tr>') + "</tbody>";
     $("fl-inv").innerHTML = "<thead><tr><th>Dátum</th><th>Partner</th><th>Irány</th><th>Számlaszám</th><th style='text-align:right'>Bruttó</th><th>Határidő</th><th>PDF</th></tr></thead><tbody>" +
       (inv.length ? inv.map(function (x) {
