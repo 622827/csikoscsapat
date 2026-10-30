@@ -1012,7 +1012,9 @@
   $("f-new").addEventListener("click", function () { if (fcur()) fform(); });
   $("f-late").addEventListener("click", function () { FLATE = !FLATE; renderF(); });
   // ---- Díjbekérő előnézet a havi (10-i) záráshoz: ki mennyit fizet, milyen bontásban ----
-  function fclose() { var d = new Date(), y = d.getFullYear(), m = d.getMonth(); if (d.getDate() > 10) m++; return new Date(y, m, 10); }
+  var FZNAP = { "2026-11": 4 }; // eltérő zárónap (alapból a hó 10-e); 2026. november: szerda, 4-e
+  function fznap(y, m) { var k = new Date(y, m, 1); return FZNAP[k.getFullYear() + "-" + ("0" + (k.getMonth() + 1)).slice(-2)] || 10; }
+  function fclose() { var d = new Date(), y = d.getFullYear(), m = d.getMonth(); if (d.getDate() > fznap(y, m)) m++; return new Date(y, m, fznap(y, m)); }
   $("f-prev").addEventListener("click", function () {
     var d = fcur(); if (!d) { toast("A flotta még nincs betöltve.", true); return; }
     var zd = fclose(), zs = zd.toLocaleDateString("hu-HU", { year: "numeric", month: "long", day: "numeric" }), txt = [];
