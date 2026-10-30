@@ -723,7 +723,7 @@
     $("sz-meta").textContent = n ? n + " fájl · " + (nw ? nw + " feldolgozásra vár" : "mind feldolgozva") : "Még nincs feltöltött számla.";
     if (!n) { t.innerHTML = ""; return; }
     t.innerHTML = "<thead><tr><th>Hónap</th><th>Hova</th><th>Fájl</th><th>Méret</th><th>Feltöltve</th><th>Állapot</th><th></th></tr></thead><tbody>" + SZFILES.map(function (f) {
-      return "<tr><td>" + esc(f.ho) + "</td><td>" + esc(f.szolg) + "</td><td>" + esc(f.name) + (f.megj ? '<br><small style="color:var(--muted)">' + esc(f.megj) + "</small>" : "") + "</td><td>" + szSize(f.size || 0) + "</td><td>" +
+      return "<tr><td>" + esc(f.ho) + "</td><td>" + esc(f.szolg) + "</td><td>" + esc(f.name) + ([f.drive ? "Drive: " + (f.folder || "Könyvelés 2026") : "közös tár", f.megj].filter(Boolean).length ? '<br><small style="color:var(--muted)">' + esc([f.drive ? "Drive · " + (f.folder || "Könyvelés 2026") : "közös tár", f.megj].filter(Boolean).join(" · ")) + "</small>" : "") + "</td><td>" + szSize(f.size || 0) + "</td><td>" +
         esc(f.up ? new Date(f.up).toLocaleString("hu-HU", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "") + '</td><td><span class="szst' + (f.st === "kesz" ? " ok" : "") + '">' + (f.st === "kesz" ? "feldolgozva" : "feldolgozásra vár") + "</span></td>" +
         '<td style="white-space:nowrap"><button class="btn" type="button" data-op="open" data-id="' + esc(f.id) + '">Megnyitás</button> <button class="btn" type="button" data-op="del" data-id="' + esc(f.id) + '">Törlés</button></td></tr>';
     }).join("") + "</tbody>";
@@ -732,6 +732,7 @@
   $("sz-list").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-op]"); if (!b) return;
     var f = SZFILES.filter(function (x) { return x.id === b.getAttribute("data-id"); })[0]; if (!f) return;
+    if (b.getAttribute("data-op") === "open" && f.drive) { window.open(f.drive, "_blank", "noopener"); return; }
     if (b.getAttribute("data-op") === "open") {
       var w = window.open("", "_blank"); b.disabled = true;
       szChunks(f).then(function (snap) {
@@ -739,7 +740,7 @@
         var url = URL.createObjectURL(new Blob(parts, { type: f.type || "application/pdf" }));
         if (w) w.location.href = url; else location.href = url;
       }).catch(function (er) { if (w) w.close(); alert("Nem sikerült megnyitni: " + er.message); }).then(function () { b.disabled = false; });
-    } else if (confirm("Biztosan törlöd? " + f.name + " (" + f.ho + ")\nEz nem vonható vissza.")) {
+    } else if (confirm("Biztosan törlöd a listából? " + f.name + " (" + f.ho + ")" + (f.drive ? "\nA Drive-ban lévő fájl megmarad, azt ott tudod törölni." : "\nEz nem vonható vissza."))) {
       var F = SZ.F; b.disabled = true;
       szChunks(f).then(function (snap) { var bt = F.writeBatch(SZ.db); snap.docs.forEach(function (d) { bt.delete(d.ref); }); bt.delete(F.doc(szCol("sz_files"), f.id)); return bt.commit(); })
         .catch(function (er) { b.disabled = false; alert("Nem sikerült törölni: " + er.message); });
@@ -763,13 +764,29 @@
     (function next() {
       if (!list.length) { go.disabled = false; msg.textContent = done + " fájl feltöltve."; szPick = []; $("sz-file").value = ""; szShowPick(); return; }
       var f = list.shift(); msg.textContent = "Feltöltés: " + f.name + " (" + (done + 1) + "/" + (done + list.length + 1) + ")…";
-      f.arrayBuffer().then(function (buf) {
+      szDrive(f, szolg, ho).then(function (dv) {
+        if (dv) return F.setDoc(F.doc(szCol("sz_files")), { name: f.name, size: f.size, type: f.type || "", szolg: szolg, ho: ho, n: 0, drive: dv.url, folder: dv.folder || "", up: new Date().toISOString(), st: "uj" });
+        return f.arrayBuffer().then(function (buf) {
         var u8 = new Uint8Array(buf), ref = F.doc(szCol("sz_files")), n = Math.ceil(u8.length / SZCH) || 1, jobs = [];
         for (var i = 0; i < n; i++) jobs.push(F.setDoc(F.doc(szCol("sz_chunks"), ref.id + "_" + i), { f: ref.id, i: i, d: F.Bytes.fromUint8Array(u8.subarray(i * SZCH, (i + 1) * SZCH)) }));
         return Promise.all(jobs).then(function () { return F.setDoc(ref, { name: f.name, size: f.size, type: f.type || "", szolg: szolg, ho: ho, n: n, up: new Date().toISOString(), st: "uj" }); });
+        });
       }).then(function () { done++; next(); }).catch(function (er) { go.disabled = false; msg.textContent = "Hiba a feltöltésnél (" + f.name + "): " + er.message; });
     })();
   });
+  // Drive-ba mentés az admin háttéren át: Könyvelés 2026 / "ÉÉÉÉ-HH Hónap" mappa. Ha a háttér ezt még nem tudja, null → közös tár.
+  function szDrive(f, szolg, ho) {
+    return new Promise(function (res) {
+      var rd = new FileReader();
+      rd.onload = function () {
+        var b64 = String(rd.result || "").replace(/^data:[^,]*,/, "");
+        call({ action: "upload", token: tok(), name: f.name, mime: f.type || "application/octet-stream", ho: ho, szolg: szolg, data: b64 })
+          .then(function (d) { res(d && d.ok && d.url ? d : null); }, function () { res(null); });
+      };
+      rd.onerror = function () { res(null); };
+      rd.readAsDataURL(f);
+    });
+  }
   $("sz-unlock").addEventListener("submit", function (e) {
     e.preventDefault(); var pw = $("sz-pw").value; if (!pw) return;
     // ellenőrzés a háttérnél, hogy elírt jelszó ne nyisson üres tárat
