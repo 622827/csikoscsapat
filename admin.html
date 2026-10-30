@@ -710,7 +710,7 @@
       szUnsub = F.onSnapshot(szCol("sz_files"), function (snap) {
         SZFILES = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
         SZFILES.sort(function (a, b) { return a.ho === b.ho ? String(b.up).localeCompare(String(a.up)) : String(b.ho).localeCompare(String(a.ho)); });
-        szRender();
+        szRender(); szAtkoltoztet();
       }, function (e) { $("sz-meta").textContent = "Nem sikerült betölteni: " + e.message; });
     }).catch(function (e) { $("sz-meta").textContent = "Nem sikerült csatlakozni: " + (e && e.message || e); });
   }
@@ -723,6 +723,22 @@
         esc(f.up ? new Date(f.up).toLocaleString("hu-HU", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "") + '</td><td><span class="szst' + (f.st === "kesz" ? " ok" : "") + '">' + (f.st === "kesz" ? "feldolgozva" : "feldolgozásra vár") + "</span></td>" +
         '<td style="white-space:nowrap"><button class="btn" type="button" data-op="open" data-id="' + esc(f.id) + '">Megnyitás</button> <button class="btn" type="button" data-op="del" data-id="' + esc(f.id) + '">Törlés</button></td></tr>';
     }).join("") + "</tbody>";
+  }
+  // A közös tárba (tartalékként) mentett fájlokat átteszi a Drive havi mappájába, amint a háttér tud Drive-ba menteni.
+  var SZMIG = false, SZMIGSTOP = false;
+  function szAtkoltoztet() {
+    if (SZMIG || SZMIGSTOP || !tok()) return;
+    var f = SZFILES.filter(function (x) { return !x.drive && x.n > 0; })[0]; if (!f) return;
+    SZMIG = true; var F = SZ.F;
+    szChunks(f).then(function (snap) {
+      var docs = snap.docs, parts = docs.map(function (d) { return d.data(); }).sort(function (a, c) { return a.i - c.i; }).map(function (c) { return c.d.toUint8Array(); });
+      var file = new File(parts, f.name, { type: f.type || "application/pdf" });
+      return szDrive(file, f.szolg, f.ho || "").then(function (dv) {
+        if (!dv) { SZMIGSTOP = true; return; }
+        var bt = F.writeBatch(SZ.db); docs.forEach(function (d) { bt.delete(d.ref); });
+        bt.update(F.doc(szCol("sz_files"), f.id), { drive: dv.url, folder: dv.folder || "", n: 0 }); return bt.commit();
+      });
+    }).catch(function () { SZMIGSTOP = true; }).then(function () { SZMIG = false; });
   }
   function szChunks(f) { var F = SZ.F; return F.getDocs(F.query(szCol("sz_chunks"), F.where("f", "==", f.id))); }
   $("sz-list").addEventListener("click", function (e) {
@@ -806,7 +822,7 @@
   }
   // Már bekönyvelt számla? A PDF szövegében keresi a könyvelés számlaszámait (szóhatárra illesztve, szóközök nélkül is).
   function szMarMegvan(t) {
-    if (!t || !D || !D.rows) return null;
+    if (!t || !D || !D.rows || !D.cols) return null;
     var c = { no: col("Számlaszám"), p: col("Partner"), d: col("Teljesítés dátuma"), g: col("Bruttó (Ft)") }, low = t.toLowerCase(), tight = low.replace(/\s+/g, ""), hit = null;
     D.rows.some(function (r) {
       var no = String(r[c.no] || "").trim().toLowerCase(); if (no.length < 5 || /^\d{1,4}$/.test(no)) return false;
