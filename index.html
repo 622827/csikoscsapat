@@ -106,7 +106,7 @@
   .hero { margin: clamp(36px, 8vw, 88px) 0 clamp(28px, 6vw, 56px); }
   .hero .lbl { color: var(--muted); font-size: clamp(1.05rem, 2.4vw, 1.5rem); margin: 0 0 6px; }
   .hero .when { font-size: clamp(3rem, 12.5vw, 9.5rem); font-weight: 700; line-height: .92; letter-spacing: -.045em;
-                color: var(--accent); margin: 0; overflow-wrap: anywhere; }
+                color: var(--accent); margin: 0; white-space: nowrap; }
   .hero .left { font-size: clamp(1.15rem, 3vw, 2rem); font-weight: 600; margin: 14px 0 0; }
   .hero .left span { color: var(--muted); font-weight: 400; }
 
@@ -446,6 +446,15 @@
 
   $("h-lbl").textContent = "Következő zárás: " + monthAdj[next.month] + (next.quarter ? " és negyedéves" : "");
   $("h-when").textContent = next.date.toLocaleDateString("hu-HU", { month: "long", day: "numeric" });
+  // A dátum egy sorban maradjon: ha nem fér ki (keskeny ablak, nagyítás), kisebb betűvel.
+  function fitWhen() {
+    var w = $("h-when"); w.style.fontSize = "";
+    var fs = parseFloat(getComputedStyle(w).fontSize);
+    for (var i = 0; i < 6 && w.scrollWidth > w.clientWidth && w.clientWidth > 0 && fs > 24; i++) { fs = Math.max(24, Math.floor(fs * w.clientWidth / w.scrollWidth) - 1); w.style.fontSize = fs + "px"; }
+  }
+  var fitW = 0;
+  fitWhen(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitWhen);
+  if (window.ResizeObserver) new ResizeObserver(function () { var cw = $("h-when").clientWidth; if (cw !== fitW) { fitW = cw; fitWhen(); } }).observe($("h-when")); else window.addEventListener("resize", fitWhen);
   var n0 = daysTo(next.date);
   $("h-left").textContent = "";
   $("h-left").appendChild(document.createTextNode(sameDay(next.date, now) ? "Ma van a zárás" : dayWord(n0)));
