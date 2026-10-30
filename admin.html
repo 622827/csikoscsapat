@@ -242,6 +242,11 @@
   .inv tr.mh .mh-t { margin-right: 14px; }
   .inv tr.mh .mh-s { color: var(--muted); font-weight: 600; font-size: .88rem; }
   .inv tr.mh:hover td { filter: brightness(1.08); }
+  details.flg { margin: 22px 0 0; padding: 14px 18px; border-radius: 14px; background: var(--card); border: 1px solid var(--track); border-left: 5px solid var(--gold); }
+  details.flg.ok { border-left-color: var(--ok); }
+  details.flg > summary { cursor: pointer; font-weight: 700; font-size: 1.05rem; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+  details.flg > summary .meta { font-weight: 600; }
+  details.flg h3 { font-size: 1rem; margin: 18px 0 8px; }
   .empty { color: var(--muted); padding: 22px 16px; text-align: center !important; white-space: normal; }
   .note { color: var(--muted); font-size: .85rem; margin: 10px 0 0; max-width: 75ch; }
 
@@ -286,22 +291,7 @@
     <div class="tiles">
       <a class="tile" href="#konyveles" data-sec="konyveles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 11h8M8 15h8"/></svg><b>Könyvelés</b><span>The Financial Company Kft. · 2026</span></a>
       <a class="tile" href="#szamlak" data-sec="szamlak"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg><b>Számlák</b><span>Számla, blokk, bizonylat feltöltése (PDF vagy fotó)</span></a>
-      <a class="tile" href="#flag" data-sec="flag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg><b>Flaggelt tételek</b><span id="fl-tile">Számla nélküli mozgások és pénzmozgás nélküli számlák</span></a>
     </div>
-  </section>
-
-  <section id="flag" hidden>
-    <div class="bar">
-      <p class="meta" id="fl-meta"></p>
-      <span class="sp"></span>
-      <button class="btn" type="button" id="fl-refresh">Frissítés</button>
-      <a class="btn" href="#" id="fl-back">Menük</a>
-    </div>
-    <p class="note" style="margin-top:4px">Automatikus ellenőrzés a könyvelési táblázatból. Nem kerül ide a banki díj, a kamat, a jutalék, a NAV-befizetés, a tagi kölcsön, a saját számlák közötti átvezetés és a készpénzfelvétel, ezekhez nem kell számla.</p>
-    <h2 id="fl-h1">Pénzmozgás számla nélkül</h2>
-    <div class="tw"><table class="inv" id="fl-mv"></table></div>
-    <h2 id="fl-h2">Számla pénzmozgás nélkül</h2>
-    <div class="tw"><table class="inv" id="fl-inv"></table></div>
   </section>
 
   <section id="szamlak" hidden>
@@ -336,6 +326,15 @@
       <button class="btn" type="button" id="k-out">Kilépés</button>
     </div>
 
+
+    <details class="flg" id="fl-det">
+      <summary><span id="fl-sum">Flaggelt tételek</span><span class="meta" id="fl-meta"></span></summary>
+      <p class="note" style="margin-top:4px">Automatikus ellenőrzés a könyvelési táblázatból. Nem kerül ide a banki díj, a kamat, a jutalék, a NAV-befizetés, a tagi kölcsön, a saját számlák közötti átvezetés és a készpénzfelvétel, ezekhez nem kell számla.</p>
+      <h3 id="fl-h1">Pénzmozgás számla nélkül</h3>
+      <div class="tw"><table class="inv" id="fl-mv"></table></div>
+      <h3 id="fl-h2">Számla pénzmozgás nélkül</h3>
+      <div class="tw"><table class="inv" id="fl-inv"></table></div>
+    </details>
 
     <h2 style="margin-top:22px">Pénzszámlák</h2>
     <div class="acc" id="p-cards" role="group" aria-label="Pénzszámla"></div>
@@ -409,15 +408,15 @@
   function loading(on) { document.body.classList.toggle("loading", !!on); }
 
   function showLock(msg) {
-    $("konyveles").hidden = true; $("szamlak").hidden = true; $("flag").hidden = true; $("kp-hub").hidden = true; $("kp-lock").hidden = false; head("");
+    $("konyveles").hidden = true; $("szamlak").hidden = true; $("kp-hub").hidden = true; $("kp-lock").hidden = false; head("");
     $("kp-err").textContent = msg || ""; setTimeout(function () { $("kp-pw").focus(); }, 50);
   }
-  var SECS = { konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"], flag: ["Flaggelt tételek", "Ami még tisztázásra vár: számla nélküli pénzmozgás, pénzmozgás nélküli számla"] };
+  var SECS = { konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"] };
   function head(sec) { $("kp-h1").textContent = sec ? SECS[sec][0] : "ADMIN"; $("kp-lead").textContent = sec ? SECS[sec][1] : ""; }
   function showMain() {
     $("kp-lock").hidden = true;
     var sec = location.hash.replace("#", ""); if (!SECS[sec]) sec = "";
-    $("kp-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; $("szamlak").hidden = sec !== "szamlak"; $("flag").hidden = sec !== "flag"; head(sec);
+    $("kp-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; $("szamlak").hidden = sec !== "szamlak"; head(sec);
     if (sec === "szamlak") szOpen();
   }
   window.addEventListener("hashchange", function () { if (tok()) showMain(); });
@@ -669,8 +668,9 @@
     var sm = mv.reduce(function (s, x) { return s + Math.abs(x.v); }, 0), si = inv.reduce(function (s, x) { return s + x.g; }, 0);
     $("fl-h1").textContent = "Pénzmozgás számla nélkül (" + mv.length + ")";
     $("fl-h2").textContent = "Számla pénzmozgás nélkül (" + inv.length + ")";
-    $("fl-meta").textContent = (mv.length + inv.length) ? (mv.length + inv.length) + " flaggelt tétel" : "Nincs flaggelt tétel.";
-    $("fl-tile").textContent = (mv.length + inv.length) ? mv.length + " mozgás számla nélkül · " + inv.length + " számla pénzmozgás nélkül" : "Minden rendben";
+    $("fl-sum").textContent = "Flaggelt tételek (" + (mv.length + inv.length) + ")";
+    $("fl-meta").textContent = (mv.length + inv.length) ? mv.length + " mozgás számla nélkül · " + inv.length + " számla pénzmozgás nélkül" : "minden rendben";
+    $("fl-det").classList.toggle("ok", !(mv.length + inv.length));
     $("fl-mv").innerHTML = "<thead><tr><th>Dátum</th><th>Partner</th><th>Tranzakció</th><th>Közlemény</th><th style='text-align:right'>Összeg</th><th>Számla</th></tr></thead><tbody>" +
       (mv.length ? mv.map(function (x) {
         return '<tr><td data-k="date">' + esc(x.d) + '</td><td data-k="partner">' + esc(x.p || "–") + '</td><td data-k="cat">' + esc(x.t) + '</td><td data-k="no">' + esc(x.k) + '</td><td data-k="brutto" class="n' + (x.v > 0 ? " pos" : "") + '">' + ft(x.v) + '</td><td data-k="paid">' + esc(x.a) + "</td></tr>";
@@ -680,8 +680,6 @@
         return '<tr><td data-k="date">' + esc(x.d) + '</td><td data-k="partner"><span class="dir' + (x.dir === "Kiadás" ? " ki" : "") + '"></span>' + esc(x.p || "–") + (x.note ? '<br><small style="color:var(--muted)">' + esc(x.note) + "</small>" : "") + '</td><td data-k="cat">' + esc(x.dir) + '</td><td data-k="no">' + esc(x.no) + '</td><td data-k="brutto" class="n">' + ft(x.g) + '</td><td data-k="paid">' + (x.due ? (x.late ? '<span class="pill open">' + esc(x.due) + "</span>" : esc(x.due)) : "–") + '</td><td data-k="pdf">' + (/^https:\/\//.test(x.pdf) ? '<a href="' + esc(x.pdf) + '" target="_blank" rel="noopener">PDF ↗</a>' : "") + "</td></tr>";
       }).join("") + '<tr><td colspan="4"><b>Összesen</b></td><td class="n"><b>' + ft(si) + '</b></td><td colspan="2"></td></tr>' : '<tr><td class="empty" colspan="7">Minden számlához van pénzmozgás.</td></tr>') + "</tbody>";
   }
-  $("fl-refresh").addEventListener("click", load);
-  $("fl-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); showMain(); });
 
   // ===== SZÁMLÁK: PDF-feltöltés a közös tárba (Firestore: perf/<kulcs>/sz_files + sz_chunks) =====
   // A kulcs az admin jelszóból képzett lenyomat; a fájl ~700 KB-os darabokban kerül a tárba (egy bejegyzés legfeljebb 1 MB lehet).
@@ -803,7 +801,7 @@
   });
   $("sz-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); showMain(); });
   load();
-  setTimeout(function () { if ($("kp-lock").hidden && $("kp-hub").hidden && $("konyveles").hidden && $("szamlak").hidden && $("flag").hidden) { if (tok()) showMain(); else showLock(""); } }, 2500);
+  setTimeout(function () { if ($("kp-lock").hidden && $("kp-hub").hidden && $("konyveles").hidden && $("szamlak").hidden) { if (tok()) showMain(); else showLock(""); } }, 2500);
 })();
 </script>
 <script src="anim.js?v=21" defer></script>
