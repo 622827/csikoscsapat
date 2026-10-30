@@ -228,13 +228,17 @@
     .inv td.n, .inv td[data-k=date] { white-space: nowrap; }
     #k-inv td[data-k=no] { overflow-wrap: anywhere; }
     #k-inv td[data-k=paid], #k-inv td[data-k=pdf] { white-space: nowrap; }
-    #k-inv th:nth-child(1) { width: 92px; } #k-inv th:nth-child(3) { width: 118px; } #k-inv th:nth-child(4) { width: 172px; }
-    #k-inv th:nth-child(5), #k-inv th:nth-child(6) { width: 108px; } #k-inv th:nth-child(7) { width: 88px; } #k-inv th:nth-child(8) { width: 92px; }
+    #k-inv th:nth-child(1) { width: 92px; } #k-inv th:nth-child(3) { width: 118px; } #k-inv th:nth-child(4) { width: 196px; }
+    #k-inv th:nth-child(5), #k-inv th:nth-child(6) { width: 104px; } #k-inv th:nth-child(7) { width: 88px; } #k-inv th:nth-child(8) { width: 92px; }
     #p-list th:nth-child(1) { width: 92px; } #p-list th:nth-child(3) { width: 150px; }
     #p-list th:nth-child(5), #p-list th:nth-child(6) { width: 112px; } #p-list th:nth-child(7) { width: 150px; }
     #p-list td[data-k=cat] { font-size: .85rem; }
     #p-list td[data-k=paid] { overflow-wrap: anywhere; font-size: .85rem; }
   }
+  .inv tr.mh td { background: var(--card); cursor: pointer; padding: 12px 14px; font-weight: 700; white-space: normal; }
+  .inv tr.mh .mh-t { margin-right: 14px; }
+  .inv tr.mh .mh-s { color: var(--muted); font-weight: 600; font-size: .88rem; }
+  .inv tr.mh:hover td { filter: brightness(1.08); }
   .empty { color: var(--muted); padding: 22px 16px; text-align: center !important; white-space: normal; }
   .note { color: var(--muted); font-size: .85rem; margin: 10px 0 0; max-width: 75ch; }
 
@@ -251,6 +255,8 @@
     .inv td[data-k=netto], .inv td[data-k=pdf] { display: none; }
     .inv td[data-k=brutto] { grid-column: 2; grid-row: 1; font-weight: 700; text-align: right; }
     .inv td[data-k=paid] { grid-column: 2; grid-row: 2; text-align: right; }
+    .inv tr.mh { display: block; padding: 0; }
+    .inv tr.mh td { display: block; padding: 12px 14px; }
   }
 </style>
 </head>
@@ -535,7 +541,13 @@
     $("k-month").innerHTML = th + "<tbody>" + body + "</tbody>" + tf;
   }
 
+  var INVSHUT = {};
   function col(name) { return D.cols.indexOf(name); }
+  // Dátum egységesen "ÉÉÉÉ.HH.NN" alakban; a táblázat belső dátumszámát (pl. 46326) is átírja.
+  function hd(v) {
+    if (typeof v === "number" || /^\d{5}(\.\d+)?$/.test(String(v || ""))) { var t = new Date(Date.UTC(1899, 11, 30) + Math.floor(Number(v)) * 86400000); return t.getUTCFullYear() + "." + ("0" + (t.getUTCMonth() + 1)).slice(-2) + "." + ("0" + t.getUTCDate()).slice(-2); }
+    return String(v || "").replace(/-/g, ".").replace(/\.$/, "");
+  }
   function renderInv() {
     var c = { dir: col("Irány"), cat: col("Kategória"), no: col("Számlaszám"), iss: col("Kiállítás dátuma"), perf: col("Teljesítés dátuma"),
               partner: col("Partner"), net: col("Nettó (Ft)"), gross: col("Bruttó (Ft)"), paid: col("Fizetve"), pdf: col("PDF link") };
@@ -545,11 +557,24 @@
       if (only && r[c.paid] === true) return false;
       if (q && [r[c.partner], r[c.no], r[c.cat]].join(" ").toLowerCase().indexOf(q) < 0) return false;
       return true;
-    }).sort(function (a, b) { return String(b[c.perf] || b[c.iss]).localeCompare(String(a[c.perf] || a[c.iss])); });
+    }).sort(function (a, b) { return hd(b[c.perf] || b[c.iss]).localeCompare(hd(a[c.perf] || a[c.iss])); });
     var th = "<thead><tr><th>Dátum</th><th>Partner</th><th>Kategória</th><th>Számlaszám</th><th style='text-align:right'>Nettó</th><th style='text-align:right'>Bruttó</th><th>Fizetve</th><th>PDF</th></tr></thead>";
+    // hónapokra bontva: hónapfejléc (darab, bevétel, kiadás, nettó), kattintásra becsukható
+    var grp = {};
+    rows.forEach(function (r) {
+      var m = hd(r[c.perf] || r[c.iss]).slice(0, 7) || "–", g = grp[m] || (grp[m] = { n: 0, be: 0, ki: 0 });
+      g.n++; if (r[c.dir] === "Kiadás") g.ki += num(r[c.net]); else g.be += num(r[c.net]);
+    });
+    var lastM = null;
     var body = rows.map(function (r) {
-      var d = String(r[c.perf] || r[c.iss] || "").replace(/-/g, "."), ki = r[c.dir] === "Kiadás", pdf = String(r[c.pdf] || "");
-      return "<tr>" +
+      var d = hd(r[c.perf] || r[c.iss]), ki = r[c.dir] === "Kiadás", pdf = String(r[c.pdf] || ""), m = d.slice(0, 7) || "–", hdr = "";
+      if (m !== lastM) {
+        lastM = m; var g = grp[m], mm = /^(\d{4})\.(\d{2})$/.exec(m), shut = !!INVSHUT[m];
+        hdr = '<tr class="mh' + (shut ? " shut" : "") + '" data-m="' + esc(m) + '"><td colspan="8"><span class="mh-t">' + (shut ? "▸ " : "▾ ") + (mm ? mm[1] + ". " + HO[+mm[2] - 1].toLowerCase() : "Dátum nélkül") + "</span>" +
+          '<span class="mh-s">' + g.n + " számla" + (g.be ? " · bevétel " + ft(g.be) : "") + (g.ki ? " · kiadás " + ft(g.ki) : "") + " · nettó " + (ft(g.be - g.ki) === "–" ? "0 Ft" : ft(g.be - g.ki)) + "</span></td></tr>";
+      }
+      if (INVSHUT[m]) return hdr;
+      return hdr + "<tr>" +
         '<td data-k="date">' + esc(d) + "</td>" +
         '<td data-k="partner"><span class="dir' + (ki ? " ki" : "") + '" title="' + esc(r[c.dir]) + '"></span>' + esc(r[c.partner] || "–") + "</td>" +
         '<td data-k="cat">' + esc(r[c.cat]) + "</td>" +
@@ -561,6 +586,7 @@
     }).join("");
     if (!rows.length) body = '<tr><td class="empty" colspan="8">' + (D.rows.length ? "Nincs a szűrésnek megfelelő számla." : "Még nincs rögzített számla. A táblázat Számlák fülén tudod felvinni őket.") + "</td></tr>";
     $("k-inv").innerHTML = th + "<tbody>" + body + "</tbody>";
+    $("k-inv").onclick = function (e) { var h = e.target.closest("tr.mh"); if (!h) return; var m = h.getAttribute("data-m"); INVSHUT[m] = !INVSHUT[m]; renderInv(); };
     $("k-invmeta").textContent = D.rows.length ? rows.length + " / " + D.rows.length + " számla" : "";
   }
 
