@@ -129,6 +129,18 @@
   .tile svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .tile b { font-size: 1.15rem; }
   .tile span { color: var(--muted); font-size: .9rem; }
+  .szup { display: grid; grid-template-columns: 200px 160px minmax(0, 1fr) auto; gap: 10px; align-items: end; padding: 16px; border-radius: 14px; background: var(--card); }
+  .szup[hidden] { display: none; }
+  .szlist th, .szlist td { text-align: left; }
+  .szup label { display: grid; gap: 4px; font-size: .78rem; font-weight: 700; color: var(--muted); }
+  .szup select, .szup input[type=month] { font: inherit; padding: 9px 10px; border-radius: 10px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); min-width: 0; }
+  .szdrop { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 44px; padding: 8px 14px; border: 2px dashed var(--track); border-radius: 12px; cursor: pointer; color: var(--muted); font-weight: 600; font-size: .9rem; }
+  .szdrop.on { border-color: var(--accent); color: var(--ink); }
+  .szup .msg { grid-column: 1 / -1; margin: 0; font-size: .88rem; color: var(--muted); min-height: 1.1em; }
+  .szlist td .btn { padding: 6px 10px; font-size: .82rem; }
+  .szst { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .78rem; font-weight: 700; background: var(--track); }
+  .szst.ok { background: color-mix(in srgb, #1f9d55 22%, transparent); }
+  @media (max-width: 760px) { .szup { grid-template-columns: 1fr 1fr; } .szup .szdrop, .szup .btn { grid-column: 1 / -1; } }
   .kp-lock { max-width: 380px; margin-top: 28px; background: var(--card); border-radius: 16px; padding: 22px; }
   .kp-lock h2 { margin: 0 0 6px; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
   .kp-lock h2 svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -248,7 +260,30 @@
   <section id="kp-hub" hidden>
     <div class="tiles">
       <a class="tile" href="#konyveles" data-sec="konyveles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 11h8M8 15h8"/></svg><b>Könyvelés</b><span>The Financial Company Kft. · 2026</span></a>
+      <a class="tile" href="#szamlak" data-sec="szamlak"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg><b>Számlák</b><span>Flotta- és egyéb számlák feltöltése</span></a>
     </div>
+  </section>
+
+  <section id="szamlak" hidden>
+    <div class="bar">
+      <p class="meta" id="sz-meta"></p>
+      <span class="sp"></span>
+      <button class="btn" type="button" id="sz-key">Kulcs Claude-nak</button>
+      <a class="btn" href="#" id="sz-back">Menük</a>
+    </div>
+    <form class="szup" id="sz-unlock" autocomplete="off" hidden style="grid-template-columns:minmax(0,1fr) auto;margin-bottom:12px">
+      <label>A számlák tárához add meg még egyszer az admin jelszót (ezen az eszközön egyszer kell)<input type="password" id="sz-pw" autocomplete="off" style="font:inherit;padding:9px 10px;border-radius:10px;border:2px solid var(--track);background:var(--bg);color:var(--ink)"></label>
+      <button class="btn pri" type="submit">Megnyitás</button>
+    </form>
+    <form class="szup" id="sz-form" autocomplete="off">
+      <label>Számla<select id="sz-szolg"><option>Telekom – BB</option><option>Telekom – TFC</option><option>One</option><option>Egyéb</option></select></label>
+      <label>Hónap<input type="month" id="sz-ho" required></label>
+      <label class="szdrop" id="sz-drop" tabindex="0">PDF-ek kiválasztása vagy ide húzása<input type="file" id="sz-file" accept="application/pdf,.pdf" multiple hidden></label>
+      <button class="btn pri" type="submit" id="sz-go">Feltöltés</button>
+      <p class="msg" id="sz-msg" role="status"></p>
+    </form>
+    <h2>Feltöltött számlák</h2>
+    <div class="tw"><table class="szlist" id="sz-list"></table></div>
   </section>
 
   <section id="konyveles" hidden>
@@ -334,15 +369,16 @@
   function loading(on) { document.body.classList.toggle("loading", !!on); }
 
   function showLock(msg) {
-    $("konyveles").hidden = true; $("kp-hub").hidden = true; $("kp-lock").hidden = false; head("");
+    $("konyveles").hidden = true; $("szamlak").hidden = true; $("kp-hub").hidden = true; $("kp-lock").hidden = false; head("");
     $("kp-err").textContent = msg || ""; setTimeout(function () { $("kp-pw").focus(); }, 50);
   }
-  var SECS = { konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"] };
+  var SECS = { konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Feltöltés a közös tárba: a feldolgozást Claude végzi"] };
   function head(sec) { $("kp-h1").textContent = sec ? SECS[sec][0] : "ADMIN"; $("kp-lead").textContent = sec ? SECS[sec][1] : ""; }
   function showMain() {
     $("kp-lock").hidden = true;
     var sec = location.hash.replace("#", ""); if (!SECS[sec]) sec = "";
-    $("kp-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; head(sec);
+    $("kp-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; $("szamlak").hidden = sec !== "szamlak"; head(sec);
+    if (sec === "szamlak") szOpen();
   }
   window.addEventListener("hashchange", function () { if (tok()) showMain(); });
 
@@ -352,7 +388,7 @@
     $("kp-go").disabled = true; $("kp-err").textContent = "";
     call({ action: "login", pw: pw }).then(function (d) {
       $("kp-go").disabled = false;
-      if (d && d.ok && d.token) { setTok(d.token); $("kp-pw").value = ""; load(); return; }
+      if (d && d.ok && d.token) { setTok(d.token); szSetKey(pw); $("kp-pw").value = ""; load(); return; }
       $("kp-err").textContent = d && d.error === "locked" ? "Túl sok hibás próbálkozás, várj 15 percet." : "Hibás jelszó.";
       $("kp-pw").select();
     }).catch(function () { $("kp-go").disabled = false; $("kp-err").textContent = "Nem sikerült csatlakozni, próbáld újra."; });
@@ -526,11 +562,114 @@
   $("k-refresh").addEventListener("click", load);
   $("k-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); showMain(); });
   $("k-out").addEventListener("click", function () {
-    var t = tok(); setTok(""); D = null; if (t && KAPI) call({ action: "logout", token: t }).catch(function () {});
+    var t = tok(); setTok(""); D = null; szSetKey(""); if (t && KAPI) call({ action: "logout", token: t }).catch(function () {});
     showLock("");
   });
+
+  // ===== SZÁMLÁK: PDF-feltöltés a közös tárba (Firestore: perf/<kulcs>/sz_files + sz_chunks) =====
+  // A kulcs az admin jelszóból képzett lenyomat; a fájl ~700 KB-os darabokban kerül a tárba (egy bejegyzés legfeljebb 1 MB lehet).
+  var SZK = "csk_szkey", SZCH = 700 * 1024, SZMAX = 15 * 1024 * 1024, SZ = null, SZFILES = [], szUnsub = null, szPick = [];
+  function szKey() { try { return localStorage.getItem(SZK) || ""; } catch (e) { return ""; } }
+  function szHash(s) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }); }
+  function szSetKey(pw) {
+    if (!pw) { try { localStorage.removeItem(SZK); } catch (e) {} if (szUnsub) { szUnsub(); szUnsub = null; } return; }
+    szHash("csk-szamla|" + pw).then(function (h) { try { localStorage.setItem(SZK, h); } catch (e) {} });
+  }
+  function szDb() {
+    if (SZ) return Promise.resolve(SZ);
+    return fetch("firebase-config.json").then(function (r) { return r.json(); }).then(function (cfg) {
+      var V = "https://www.gstatic.com/firebasejs/10.14.1/";
+      return Promise.all([import(V + "firebase-app.js"), import(V + "firebase-firestore.js")]).then(function (m) {
+        var app = m[0].initializeApp(cfg, "szamla"); SZ = { F: m[1], db: m[1].getFirestore(app) }; return SZ;
+      });
+    });
+  }
+  function szCol(n) { return SZ.F.collection(SZ.db, "perf", szKey(), n); }
+  function szSize(b) { return b < 1048576 ? Math.max(1, Math.round(b / 1024)) + " KB" : (b / 1048576).toFixed(1).replace(".", ",") + " MB"; }
+  function szOpen() {
+    if (!$("sz-ho").value) { var n = new Date(); $("sz-ho").value = n.getFullYear() + "-" + ("0" + (n.getMonth() + 1)).slice(-2); }
+    $("sz-unlock").hidden = !!szKey(); $("sz-form").hidden = !szKey();
+    if (!szKey()) { $("sz-meta").textContent = "A tár zárva."; setTimeout(function () { $("sz-pw").focus(); }, 50); return; }
+    if (szUnsub) return;
+    $("sz-meta").textContent = "Betöltés…";
+    szDb().then(function () {
+      var F = SZ.F;
+      szUnsub = F.onSnapshot(szCol("sz_files"), function (snap) {
+        SZFILES = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        SZFILES.sort(function (a, b) { return a.ho === b.ho ? String(b.up).localeCompare(String(a.up)) : String(b.ho).localeCompare(String(a.ho)); });
+        szRender();
+      }, function (e) { $("sz-meta").textContent = "Nem sikerült betölteni: " + e.message; });
+    }).catch(function (e) { $("sz-meta").textContent = "Nem sikerült csatlakozni: " + (e && e.message || e); });
+  }
+  function szRender() {
+    var t = $("sz-list"), n = SZFILES.length, nw = SZFILES.filter(function (f) { return f.st !== "kesz"; }).length;
+    $("sz-meta").textContent = n ? n + " fájl · " + (nw ? nw + " feldolgozásra vár" : "mind feldolgozva") : "Még nincs feltöltött számla.";
+    if (!n) { t.innerHTML = ""; return; }
+    t.innerHTML = "<thead><tr><th>Hónap</th><th>Számla</th><th>Fájl</th><th>Méret</th><th>Feltöltve</th><th>Állapot</th><th></th></tr></thead><tbody>" + SZFILES.map(function (f) {
+      return "<tr><td>" + esc(f.ho) + "</td><td>" + esc(f.szolg) + "</td><td>" + esc(f.name) + (f.megj ? '<br><small style="color:var(--muted)">' + esc(f.megj) + "</small>" : "") + "</td><td>" + szSize(f.size || 0) + "</td><td>" +
+        esc(f.up ? new Date(f.up).toLocaleString("hu-HU", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "") + '</td><td><span class="szst' + (f.st === "kesz" ? " ok" : "") + '">' + (f.st === "kesz" ? "feldolgozva" : "feldolgozásra vár") + "</span></td>" +
+        '<td style="white-space:nowrap"><button class="btn" type="button" data-op="open" data-id="' + esc(f.id) + '">Megnyitás</button> <button class="btn" type="button" data-op="del" data-id="' + esc(f.id) + '">Törlés</button></td></tr>';
+    }).join("") + "</tbody>";
+  }
+  function szChunks(f) { var F = SZ.F; return F.getDocs(F.query(szCol("sz_chunks"), F.where("f", "==", f.id))); }
+  $("sz-list").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-op]"); if (!b) return;
+    var f = SZFILES.filter(function (x) { return x.id === b.getAttribute("data-id"); })[0]; if (!f) return;
+    if (b.getAttribute("data-op") === "open") {
+      var w = window.open("", "_blank"); b.disabled = true;
+      szChunks(f).then(function (snap) {
+        var parts = snap.docs.map(function (d) { return d.data(); }).sort(function (a, c) { return a.i - c.i; }).map(function (c) { return c.d.toUint8Array(); });
+        var url = URL.createObjectURL(new Blob(parts, { type: "application/pdf" }));
+        if (w) w.location.href = url; else location.href = url;
+      }).catch(function (er) { if (w) w.close(); alert("Nem sikerült megnyitni: " + er.message); }).then(function () { b.disabled = false; });
+    } else if (confirm("Biztosan törlöd? " + f.name + " (" + f.ho + ")\nEz nem vonható vissza.")) {
+      var F = SZ.F; b.disabled = true;
+      szChunks(f).then(function (snap) { var bt = F.writeBatch(SZ.db); snap.docs.forEach(function (d) { bt.delete(d.ref); }); bt.delete(F.doc(szCol("sz_files"), f.id)); return bt.commit(); })
+        .catch(function (er) { b.disabled = false; alert("Nem sikerült törölni: " + er.message); });
+    }
+  });
+  function szShowPick() { $("sz-drop").firstChild.textContent = szPick.length ? szPick.length + " fájl kiválasztva: " + szPick.map(function (f) { return f.name; }).join(", ") : "PDF-ek kiválasztása vagy ide húzása"; $("sz-drop").classList.toggle("on", !!szPick.length); }
+  $("sz-file").addEventListener("change", function () { szPick = Array.prototype.slice.call(this.files); szShowPick(); });
+  $("sz-drop").addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("sz-file").click(); } });
+  ["dragenter", "dragover"].forEach(function (t) { $("sz-drop").addEventListener(t, function (e) { e.preventDefault(); $("sz-drop").classList.add("on"); }); });
+  $("sz-drop").addEventListener("dragleave", function () { if (!szPick.length) $("sz-drop").classList.remove("on"); });
+  $("sz-drop").addEventListener("drop", function (e) { e.preventDefault(); szPick = Array.prototype.slice.call(e.dataTransfer.files || []).filter(function (f) { return /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name); }); szShowPick(); });
+  $("sz-form").addEventListener("submit", function (e) {
+    e.preventDefault(); var msg = $("sz-msg");
+    if (!szPick.length) { msg.textContent = "Válassz ki legalább egy PDF-et."; return; }
+    if (!SZ || !szKey()) { msg.textContent = "A tár még nincs betöltve."; return; }
+    var big = szPick.filter(function (f) { return f.size > SZMAX; }); if (big.length) { msg.textContent = "Túl nagy fájl (legfeljebb 15 MB): " + big.map(function (f) { return f.name; }).join(", "); return; }
+    var F = SZ.F, szolg = $("sz-szolg").value, ho = $("sz-ho").value, list = szPick.slice(), done = 0, go = $("sz-go");
+    var dup = list.filter(function (f) { return SZFILES.some(function (x) { return x.name === f.name && x.ho === ho && x.size === f.size; }); });
+    if (dup.length && !confirm("Ez már fel van töltve ugyanerre a hónapra: " + dup.map(function (f) { return f.name; }).join(", ") + "\nMégis feltöltsem újra?")) return;
+    go.disabled = true;
+    (function next() {
+      if (!list.length) { go.disabled = false; msg.textContent = done + " fájl feltöltve."; szPick = []; $("sz-file").value = ""; szShowPick(); return; }
+      var f = list.shift(); msg.textContent = "Feltöltés: " + f.name + " (" + (done + 1) + "/" + (done + list.length + 1) + ")…";
+      f.arrayBuffer().then(function (buf) {
+        var u8 = new Uint8Array(buf), ref = F.doc(szCol("sz_files")), n = Math.ceil(u8.length / SZCH) || 1, jobs = [];
+        for (var i = 0; i < n; i++) jobs.push(F.setDoc(F.doc(szCol("sz_chunks"), ref.id + "_" + i), { f: ref.id, i: i, d: F.Bytes.fromUint8Array(u8.subarray(i * SZCH, (i + 1) * SZCH)) }));
+        return Promise.all(jobs).then(function () { return F.setDoc(ref, { name: f.name, size: f.size, szolg: szolg, ho: ho, n: n, up: new Date().toISOString(), st: "uj" }); });
+      }).then(function () { done++; next(); }).catch(function (er) { go.disabled = false; msg.textContent = "Hiba a feltöltésnél (" + f.name + "): " + er.message; });
+    })();
+  });
+  $("sz-unlock").addEventListener("submit", function (e) {
+    e.preventDefault(); var pw = $("sz-pw").value; if (!pw) return;
+    // ellenőrzés a háttérnél, hogy elírt jelszó ne nyisson üres tárat
+    call({ action: "login", pw: pw }).then(function (d) {
+      if (!(d && d.ok && d.token)) { $("sz-meta").textContent = d && d.error === "locked" ? "Túl sok hibás próbálkozás, várj 15 percet." : "Hibás jelszó."; return; }
+      call({ action: "logout", token: d.token }).catch(function () {});
+      return szHash("csk-szamla|" + pw).then(function (h) { try { localStorage.setItem(SZK, h); } catch (er) {} $("sz-pw").value = ""; szOpen(); });
+    }).catch(function () { $("sz-meta").textContent = "Nem sikerült csatlakozni, próbáld újra."; });
+  });
+  $("sz-key").addEventListener("click", function () {
+    var k = szKey(); if (!k) return; var v = "Számla-tár kulcs: " + k;
+    function ok() { $("sz-msg").textContent = "A kulcs a vágólapon: másold be a Claude-os beszélgetésbe."; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(ok, function () { prompt("Másold ki:", v); }); else prompt("Másold ki:", v);
+  });
+  $("sz-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); showMain(); });
   load();
-  setTimeout(function () { if ($("kp-lock").hidden && $("kp-hub").hidden && $("konyveles").hidden) { if (tok()) showMain(); else showLock(""); } }, 2500);
+  setTimeout(function () { if ($("kp-lock").hidden && $("kp-hub").hidden && $("konyveles").hidden && $("szamlak").hidden) { if (tok()) showMain(); else showLock(""); } }, 2500);
 })();
 </script>
 <script src="anim.js?v=21" defer></script>
