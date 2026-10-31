@@ -718,7 +718,7 @@
   function fizMod(p) { return { CASH: "készpénz", CARD: "bankkártya", TRANSFER: "átutalás", VOUCHER: "utalvány", OTHER: "egyéb" }[p] || p || "–"; }
   function diagMv(x) {
     var be = x.v > 0, t = [x.t, x.k, x.p, x.n].join(" ").toLowerCase(), o = {};
-    var what = x.d + " · " + ft(Math.abs(x.v)) + (be ? " érkezett" : " ment ki") + (x.a === "Házipénztár" ? " a házipénztárból" : " (" + x.a + ")") + (be ? " · küldő: " : " · címzett: ") + (x.p || "ismeretlen (nézd meg a bankkivonaton)") + (x.k ? " · közlemény: " + x.k : "") + ". ";
+    var what = x.d + " · " + ft(Math.abs(x.v)) + (be ? " érkezett" : " ment ki") + (x.a === "Házipénztár" ? " a házipénztárból" : " (" + x.a + ")") + (be ? " · küldő: " : " · címzett: ") + (x.p || "nincs megadva") + (x.k ? " · közlemény: " + x.k : "") + ". ";
     if (x.n) {
       o.cat = "Ismert: nincs számla"; o.desc = what + "A táblázatban jelölve, hogy nincs hozzá számla: " + x.n + ".";
       o.fix = /booking|airbnb|szállás|szallas|hotel|apartman/.test(t)
