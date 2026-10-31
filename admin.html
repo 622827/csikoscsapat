@@ -521,7 +521,7 @@
       });
     }
     return ((D && D.pm) || []).filter(function (r) { return r[0] === name; }).map(function (r) {
-      return { d: r[2], t: r[4], p: r[7], k: r[8], v: num(r[5]), bal: num(r[6]) + (name === "Erste Széchenyi" ? SZK_KERET : 0), inv: r[10], url: r[11] };   // Széchenyi: az 5 M keretről indul
+      return { d: r[2], t: r[4], p: pmPartner(r), k: r[8], v: num(r[5]), bal: num(r[6]) + (name === "Erste Széchenyi" ? SZK_KERET : 0), inv: r[10], url: r[11] };   // Széchenyi: az 5 M keretről indul
     });
   }
   function accBal(name) {
@@ -686,6 +686,17 @@
   // ===== FLAGGELT TÉTELEK: számla nélküli pénzmozgás + pénzmozgás nélküli (kifizetetlen) számla =====
   // Számla nem kell: banki díj, kamat, jutalék, NAV, tagi kölcsön, saját számlák közötti átvezetés, készpénzfelvétel.
   var FL_OK = /kamat|jutalék|jutalek|díj|dij\b|bankköltség|tételdíj|kedvezmény|kedv\.|\bnav\b|tagi\s*k[öo]lcs[öo]n|saját száml|sajat szaml|átvezetés|atvezetes|készpénzfelvétel|keszpenzfelvetel|hitelképesség|pénzforgalmi bankszámla|számlazárás|zárás miatt|the financial company/i;
+  // A tranzakció másik fele (kinek ment / kitől jött): a Partner oszlop, ha üres, a közleményből (kártyás elfogadó, csoportos beszedés azonosítója).
+  function pmPartner(r) {
+    var p = String(r[7] || "").trim(); if (p) return p;
+    var k = String(r[8] || "").trim(), t = String(r[4] || ""), az = /azonos[íi]t[óo]:\s*(\S+)/i.exec(k);
+    if (az) {
+      var hit = ((D && D.pm) || []).filter(function (x) { return String(x[7] || "").trim() && String(x[8] || "").indexOf(az[1]) > -1; })[0];
+      return hit ? String(hit[7]).trim() + " (csoportos beszedés)" : "Csoportos beszedés – " + az[1];
+    }
+    if (/k[áa]rtya|v[áa]s[áa]rl[áa]s/i.test(t) && k) return k.replace(/^(apple|google)\s+pay\s+/i, "").replace(/^SIMPLEP\*/i, "SimplePay – ").replace(/^BKG\*/i, "Booking.com – ").replace(/\s*\(\d{3}\)\d{3}-?$/, "").trim();
+    return "";
+  }
   // ---- Lenyíló diagnózis a flaggelt tételekhez: kategória + a probléma leírása + javasolt megoldás ----
   var FLMV = [];   // a számla nélküli mozgások (a számla- és NAV-diagnózis is használja)
   function fxBox(o) {
@@ -707,7 +718,7 @@
   function fizMod(p) { return { CASH: "készpénz", CARD: "bankkártya", TRANSFER: "átutalás", VOUCHER: "utalvány", OTHER: "egyéb" }[p] || p || "–"; }
   function diagMv(x) {
     var be = x.v > 0, t = [x.t, x.k, x.p, x.n].join(" ").toLowerCase(), o = {};
-    var what = x.d + " · " + ft(Math.abs(x.v)) + (be ? " érkezett" : " ment ki") + (x.a === "Házipénztár" ? " a házipénztárból" : " (" + x.a + ")") + (x.p ? " · partner: " + x.p : "") + (x.k ? " · közlemény: " + x.k : "") + ". ";
+    var what = x.d + " · " + ft(Math.abs(x.v)) + (be ? " érkezett" : " ment ki") + (x.a === "Házipénztár" ? " a házipénztárból" : " (" + x.a + ")") + (be ? " · küldő: " : " · címzett: ") + (x.p || "ismeretlen (nézd meg a bankkivonaton)") + (x.k ? " · közlemény: " + x.k : "") + ". ";
     if (x.n) {
       o.cat = "Ismert: nincs számla"; o.desc = what + "A táblázatban jelölve, hogy nincs hozzá számla: " + x.n + ".";
       o.fix = /booking|airbnb|szállás|szallas|hotel|apartman/.test(t)
@@ -854,7 +865,7 @@
       var txt = [r[4], r[7], r[8]].join(" ");
       var kk = String(r[10] || "").trim(), nincs = /^nincs sz[áa]mla/i.test(kk);
       if (!nincs && (kk || FL_OK.test(txt) || !num(r[5]) || matched(num(r[5]), hd(r[2]), txt))) return;
-      mv.push({ d: hd(r[2]), a: r[0], p: r[7] || "", t: r[4] || "", k: r[8] || "", v: num(r[5]), n: nincs ? kk.replace(/^nincs sz[áa]mla\s*[–-]?\s*/i, "") : "" });
+      mv.push({ d: hd(r[2]), a: r[0], p: pmPartner(r), t: r[4] || "", k: r[8] || "", v: num(r[5]), n: nincs ? kk.replace(/^nincs sz[áa]mla\s*[–-]?\s*/i, "") : "" });
     });
     (((D && D.hp) || {}).rows || []).forEach(function (r) {
       var txt = [r[1], r[3], r[4]].join(" ");
@@ -880,7 +891,7 @@
     $("fl-det").classList.toggle("ok", !(mv.length + inv.length));
     $("fl-mv").innerHTML = "<thead><tr><th>Dátum</th><th>Partner</th><th>Tranzakció</th><th>Közlemény</th><th style='text-align:right'>Összeg</th><th>Számla</th></tr></thead><tbody>" +
       (mv.length ? mv.map(function (x) {
-        return fxRow('<tr><td data-k="date">' + esc(x.d) + '</td><td data-k="partner">' + esc(x.p || "–") + (x.n ? '<br><small style="color:var(--muted)">' + esc(x.n) + "</small>" : "") + '</td><td data-k="cat">' + esc(x.t) + '</td><td data-k="no">' + esc(x.k) + '</td><td data-k="brutto" class="n' + (x.v > 0 ? " pos" : "") + '">' + ft(x.v) + '</td><td data-k="paid">' + esc(x.a) + "</td></tr>", diagMv(x), 6);
+        return fxRow('<tr><td data-k="date">' + esc(x.d) + '</td><td data-k="partner">' + (x.p ? esc(x.p) : '<span style="color:var(--muted)">ismeretlen ' + (x.v > 0 ? "küldő" : "címzett") + "</span>") + (x.n ? '<br><small style="color:var(--muted)">' + esc(x.n) + "</small>" : "") + '</td><td data-k="cat">' + esc(x.t) + '</td><td data-k="no">' + esc(x.k) + '</td><td data-k="brutto" class="n' + (x.v > 0 ? " pos" : "") + '">' + ft(x.v) + '</td><td data-k="paid">' + esc(x.a) + "</td></tr>", diagMv(x), 6);
       }).join("") + '<tr><td colspan="4"><b>Összesen</b></td><td class="n"><b>' + ft(sm) + "</b></td><td></td></tr>" : '<tr><td class="empty" colspan="6">Minden pénzmozgáshoz van számla.</td></tr>') + "</tbody>";
     var nix = navIndex();
     $("fl-inv").innerHTML = "<thead><tr><th>Dátum</th><th>Partner</th><th>Irány</th><th>Számlaszám</th><th style='text-align:right'>Bruttó</th><th>Határidő</th><th>PDF</th></tr></thead><tbody>" +
