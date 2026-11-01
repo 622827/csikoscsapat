@@ -260,6 +260,7 @@
   .fxb .elfw { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
   .fxb .elfw .btn { padding: 6px 12px; font-size: .85rem; }
   .fxb .elfw .btn[disabled] { opacity: .4; cursor: not-allowed; }
+  .fxb .elfw .btn.sos { margin-left: auto; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   @keyframes fldone { 0% { opacity: 1; background: color-mix(in srgb, var(--ok) 35%, transparent); } 100% { opacity: .25; } }
   .inv tr.fl-done td { animation: fldone .45s ease-out forwards; }
   .fxb ol.fxl { margin: 8px 0 0; padding-left: 22px; }
@@ -913,8 +914,34 @@
     var t = '<table class="cmp"><thead><tr><th></th><th>Számla (táblázat)</th><th>NAV</th><th>Bankkivonat</th></tr></thead><tbody>' + rows.map(function (x) { return "<tr><th>" + x[0] + "</th>" + cell(x[1], null) + cell(x[2], x[1]) + cell(x[3], x[1]) + "</tr>"; }).join("") + "</tbody></table>";
     var rn = esc(r[r.length - 1]), vals = { nav: n ? { netto: Math.round(num(n[10])), afa: Math.round(num(n[11])), brutto: ng || 0, telj: nd } : null, bank: b ? { brutto: b.sum, fizdat: b.date } : null };
     var btn = function (src, lbl, ok) { return '<button type="button" class="btn elf" data-row="' + rn + '" data-src="' + src + '"' + (ok ? "" : " disabled") + " data-vals='" + esc(JSON.stringify(vals[src] || {})) + "'>" + lbl + "</button>"; };
-    return t + '<p class="elfw"><b>Melyik a helyes?</b> ' + btn("szamla", "Számla szerint", true) + btn("nav", "NAV szerint", !!n) + btn("bank", "Bank szerint", !!b) + "</p>";
+    return t + '<p class="elfw"><b>Melyik a helyes?</b> ' + btn("szamla", "Számla szerint", true) + btn("nav", "NAV szerint", !!n) + btn("bank", "Bank szerint", !!b) +
+      '<button type="button" class="btn sos" data-row="' + rn + '" title="E-mail a könyvelőnek erről a tételről">✉ Segítség</button></p>';
   }
+  // "Segítség": kész e-mail a könyvelőnek (Gmailben nyílik meg, te küldöd el)
+  var KONYVELO = "tomsits.ildi@gmail.com";
+  document.addEventListener("click", function (e) {
+    var bt = e.target.closest && e.target.closest("button.sos"); if (!bt) return;
+    var rn = +bt.getAttribute("data-row"), c = CC(), r = D.rows.filter(function (x) { return x[x.length - 1] === rn; })[0]; if (!r) return;
+    var v = chk(r, navIndex()) || {}, o = diagDiff(r, c, v), b = bankFor(r[c.no]), n = v.nav;
+    var g = Math.round(num(r[c.gross]) || num(r[c.net])), pdf = String(r[col("PDF link")] || "");
+    var L = [];
+    L.push("Szia Ildikó!", "", "A TFC könyvelésében egy tételnél eltérést látok a feltöltött számla, a NAV Online Számla és a bankkivonat között, és nem vagyok biztos benne, melyik a helyes. Tudnál segíteni?", "");
+    L.push("Tétel: " + (r[c.partner] || "–") + " · számlaszám: " + r[c.no] + " · " + (r[c.dir] || ""));
+    if (/^https:/.test(pdf)) L.push("A számla PDF-je: " + pdf);
+    L.push("", "Összehasonlítás:");
+    L.push("- Bruttó összeg: számla " + ft(g) + " | NAV " + (n && num(n[12]) ? ft(n[12]) : "–") + " | bank " + (b ? ft(b.sum) + (b.n > 1 ? " (" + b.n + " utalásból)" : "") : "–"));
+    L.push("- Nettó / áfa: számla " + ft(r[c.net]) + " / " + ft(r[c.vat]) + " | NAV " + (n ? ft(n[10]) + " / " + ft(n[11]) : "–"));
+    L.push("- Teljesítés dátuma: számla " + (hd(r[c.perf] || r[c.iss]) || "–") + " | NAV " + (n ? hd(n[6] || n[5]) : "–"));
+    L.push("- Fizetés dátuma: számla " + (hd(r[c.pd]) || "–") + " | bank " + (b ? b.date : "–"));
+    if (o.items && o.items.length) {
+      L.push("", "Az eltérések, és szerintem mi lehet az oka:");
+      o.items.forEach(function (it, i) { L.push((i + 1) + ". " + it.t, "   Lehetséges ok: " + it.ok); });
+    }
+    L.push("", "A kérdésem: a három közül melyik adatot vegyük helyesnek (a számlát, a NAV-ot vagy a bankkivonatot), és kell-e bármit javítani (pl. módosító számlát kérni)?", "", "Köszönöm!", "Máté");
+    var su = "Segítség: eltérés – " + (r[c.partner] || "") + " " + r[c.no];
+    var url = "https://mail.google.com/mail/?authuser=csikos.mate.ovb@gmail.com&view=cm&fs=1&to=" + encodeURIComponent(KONYVELO) + "&su=" + encodeURIComponent(su) + "&body=" + encodeURIComponent(L.join("\n"));
+    window.open(url, "_blank", "noopener");
+  });
   document.addEventListener("click", function (e) {
     var bt = e.target.closest && e.target.closest("button.elf"); if (!bt || bt.disabled) return;
     var rn = +bt.getAttribute("data-row"), src = bt.getAttribute("data-src"), vals = JSON.parse(bt.getAttribute("data-vals") || "{}"), c = CC();
