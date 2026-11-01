@@ -421,7 +421,7 @@
   var API_URL = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";       // a versenyállás Google Apps Script webalkalmazás címe
   // ====================================
 
-  var POINTS = [28, 21, 15, 10, 6];
+  var POINTS = [28, 21, 15, 10, 6, 5, 4, 3, 2, 1];   // 1–10. hely
   var QUALIFY = 1000, RECRUIT_CREDIT = 250, MIN_OWN = 300, WINNERS = 3;
   var EXCLUDE = ["Csikós Máté", "Farkas Nikolett"];   // nem versenyzők
   var MONTHS = [202610, 202611, 202612];
@@ -564,7 +564,7 @@
 
     var rules = $("rules"); rules.textContent = "";
     [
-      "Havi pontok: 1. hely 28, 2. hely 21, 3. hely 15, 4. hely 10, 5. hely 6 pont. A három hónap pontjai összeadódnak. Holtversenynél az érintettek ugyanannyi pontot kapnak.",
+      "Havi pontok: 1. hely 28, 2. hely 21, 3. hely 15, 4. hely 10, 5. hely 6, 6. hely 5, 7. hely 4, 8. hely 3, 9. hely 2, 10. hely 1 pont. A három hónap pontjai összeadódnak. Holtversenynél az érintettek ugyanannyi pontot kapnak.",
       "A havi sorrendet a hónap kampánytermékeinek 100%-ban leadott egysége adja. Az igények és a még nem leadott tételek nem számítanak, a kilátás csak tájékoztató.",
       "Kvalifikáció: Q4 alatt minimum " + QUALIFY + " egyéni leadott ES kell bármilyen termékből. Minden regisztrált munkatárs " + RECRUIT_CREDIT + " ES-sel csökkenti ezt, de legalább " + MIN_OWN + " egyéni ES mindenképp szükséges.",
       "A top " + WINNERS + " kvalifikált helyezett nyer. A pontverseny csak a sorrendet adja."
