@@ -915,9 +915,9 @@
     if (!P || !P.ONE) return false;
     var ONE26 = { "üzleti maxi": 6231, "üzleti midi": 3263, "üzleti mobil medium": 6803, "üzleti pro": 12896, "business mobilenet infinity": 7119, "business office net 1000": 9670 };
     // beszéd / SMS a One-számla forgalma alapján (hivatalos díjtáblázat nélkül)
-    var ONEBS = { "üzleti maxi": ["korlátlan belföldi", "nincs benne (~20 Ft/db)", "nagy keret / korlátlan (~30 GB-ot is 0 Ft-ért)"], "üzleti midi": ["150 perc + One-on belül korlátlan", "nincs benne", "kisebb keret (~2–2,5 GB használat)"], "üzleti mobil medium": ["korlátlan belföldi", "nincs benne (~24 Ft/db)", "korlátos (+7 500 Ft-os korlátlan kiegészítő)"], "üzleti pro": ["korlátlan + EU roaming", "valószínűleg benne", "korlátlan / nagy keret"], "business mobilenet infinity": ["nincs (csak net)", "nincs", "korlátlan mobilnet"], "business office net 1000": ["nincs (vezetékes net)", "nincs", "vezetékes, 1000 Mbps (Fillér u.)"] };
+    var ONEBS = { "üzleti maxi": ["korlátlan belföldi (minden hálózat)", "nincs benne: ~20 Ft + áfa/db", "10 GB (belföld + EU)"], "üzleti midi": ["One-on belül korlátlan + 150 perc más hálózatba", "nincs benne: ~20 Ft + áfa/db", "5 GB (belföld + EU)"], "üzleti mobil medium": ["korlátlan belföldön és az EU-ban", "nincs benne: 30 Ft/db (bruttó)", "20 GB (belföld + EU)"], "üzleti pro": ["korlátlan belföldön és az EU-ban", "korlátlan", "korlátlan belföldön, 82 GB az EU-ban"], "business mobilenet infinity": ["nincs (csak net)", "nincs", "korlátlan mobilnet"], "business office net 1000": ["nincs (vezetékes net)", "nincs", "vezetékes, 1000 Mbps (Fillér u.)"] };
     var REGI = ["üzleti maxi+10gb", "business red start+10gb", "business red start+10gb+3gb", "üzleti midi+150p+5gb", "midi 10gb + 150 perc", "business l+700p", "üzleti plus+50gb", "10+10 red", "vodafone business xl", "vodafone business s"], ch = false;
-    P.ONE.forEach(function (x) { var k = String(x.nev).trim().toLowerCase(), v = ONE26[k], t = ONEBS[k]; if (v && !num(x.alap)) { x.alap = v; ch = true; } if (t && !x.beszed && !x.sms) { x.beszed = t[0]; x.sms = t[1]; ch = true; } if (t && !x.netk) { x.netk = t[2]; ch = true; } });
+    P.ONE.forEach(function (x) { var k = String(x.nev).trim().toLowerCase(), v = ONE26[k], t = ONEBS[k]; if (v && !num(x.alap)) { x.alap = v; ch = true; } if (t && (x.bv || 0) < 2) { x.beszed = t[0]; x.sms = t[1]; x.netk = t[2]; x.bv = 2; ch = true; } });
     var n0 = P.ONE.length; P.ONE = P.ONE.filter(function (x) { return !(!num(x.alap) && REGI.indexOf(String(x.nev).trim().toLowerCase()) > -1); }); if (P.ONE.length !== n0) ch = true;
     return ch;
   }
@@ -971,7 +971,7 @@
         var i = boxes[k][n].i, nev = i.nev.value.trim(); if (!nev && !i.alap.value.trim()) continue;
         var al = num(i.alap.value || 0), ad = num(i.admin.value || 0);
         if (!nev || !isFinite(al) || !isFinite(ad)) return Promise.reject(new Error("Minden csomagnál add meg az internetet és számokat a díjakhoz."));
-        out[k].push({ nev: nev, csomag: boxes[k][n].cs || "", netk: i.csomag.value.trim(), beszed: i.beszed.value.trim(), sms: i.sms.value.trim(), alap: al, admin: ad });
+        out[k].push({ nev: nev, csomag: boxes[k][n].cs || "", netk: i.csomag.value.trim(), beszed: i.beszed.value.trim(), sms: i.sms.value.trim(), bv: 2, alap: al, admin: ad });
       }
       if (FMODE !== "live" || !FST) { try { localStorage.setItem(PKEY, JSON.stringify(out)); } catch (e) {} toast("Csomagok mentve ezen az eszközön (a közös tár még nincs betöltve)."); return Promise.resolve(); }
       var F = FST.F, chg = [];
