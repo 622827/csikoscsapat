@@ -923,14 +923,16 @@
   }
   // Telekom csomagtartalom a 2026.10.01-i BB és a 2026.09-i TFC Telekom-számla alapján. Igaz, ha módosított.
   function fixTk(P) {
-    var M = { korl: "korlátlan belföldi (hívást nem számláztak)", sms: "benne (belföld + EU)" }, S = ["kisebb keret (pontos perc nem látszik)", "valószínűleg nincs"];
+    // S/M: a Telekom Üzleti ÁSZF 2. melléklet (2026.10.01.) „Speciális Üzleti Mobil 2022” táblája szerint – a 2026-os SIM Only egyedi ajánlat, külön nem publikus
+    var M = { korl: "korlátlan belföldi + EU", sms: "100 SMS (belföld + EU), felette 18 Ft/db" }, S = ["100 perc, felette 28 Ft/perc", "nincs benne: 28 Ft/db (+áfa)"];
+    var REGI = ["korlátlan belföldi (hívást nem számláztak)", "benne (belföld + EU)", "kisebb keret (pontos perc nem látszik)", "valószínűleg nincs"];
     var D = { BB: { "m": M, "s": { korl: S[0], sms: S[1] } }, TFC: { "m": { korl: "180 perc (felette 19 Ft/perc)", sms: "100 SMS" } } }, ch = false;
     ["BB", "TFC"].forEach(function (k) {
       (P[k] || []).forEach(function (x) {
         var n = String(x.nev).trim().toLowerCase(), d = D[k][String(x.csomag || "").trim().toLowerCase()];
         var net = /korlátlan/.test(n) ? "korlátlan" : (k === "TFC" && /8gb/.test(n)) ? "8 GB + 8 GB díjmentes belföldi" : (n.match(/(\d+)\s*gb/) ? n.match(/(\d+)\s*gb/)[1] + " GB" : "");
         if (!x.netk && net) { x.netk = net; ch = true; }
-        if (d && !x.beszed && !x.sms) { x.beszed = d.korl; x.sms = d.sms; ch = true; }
+        if (d && ((!x.beszed && !x.sms) || (k === "BB" && REGI.indexOf(x.beszed) > -1 && REGI.indexOf(x.sms) > -1))) { x.beszed = d.korl; x.sms = d.sms; ch = true; }
       });
     });
     return ch;
