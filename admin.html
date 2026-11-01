@@ -336,7 +336,7 @@
       <button class="btn pri" type="submit">Megnyitás</button>
     </form>
     <form class="szup" id="sz-form" autocomplete="off">
-      <label>Hova tartozik<select id="sz-szolg"><option>TFC könyvelés</option><option>Flotta – Telekom BB</option><option>Flotta – Telekom TFC</option><option>Flotta – One</option><option>Egyéb</option></select></label>
+      <label>Hova tartozik<select id="sz-szolg"><option>TFC könyvelés</option><option>Flotta – Telekom BB</option><option>Flotta – Telekom TFC</option><option>Flotta – One</option><option>Bankszámlakivonat</option><option>Egyéb</option></select></label>
       <label class="szdrop" id="sz-drop" tabindex="0">PDF vagy fotó kiválasztása, vagy ide húzása<input type="file" id="sz-file" accept="application/pdf,.pdf,image/*,.heic,.heif" multiple hidden></label>
       <button class="btn pri" type="submit" id="sz-go">Feltöltés</button>
       <p class="msg" id="sz-msg" role="status"></p>
@@ -991,7 +991,7 @@
     if (!szPick.length) { msg.textContent = "Válassz ki legalább egy fájlt."; return; }
     if (!SZ || !szKey()) { msg.textContent = "A tár még nincs betöltve."; return; }
     var big = szPick.filter(function (f) { return f.size > SZMAX; }); if (big.length) { msg.textContent = "Túl nagy fájl (legfeljebb 15 MB): " + big.map(function (f) { return f.name; }).join(", "); return; }
-    var F = SZ.F, szolg = $("sz-szolg").value, list = szPick.slice(), done = 0, go = $("sz-go"), ho = "";
+    var F = SZ.F, szolg = $("sz-szolg").value, list = szPick.slice(), done = 0, go = $("sz-go"), ho = "", kiv = /kivonat/i.test(szolg), bank = "";
     var vissza = [];
     go.disabled = true;
     (function next() {
@@ -999,12 +999,17 @@
       var f = list.shift(); msg.textContent = "Dátum felismerése: " + f.name + " (" + (done + 1) + "/" + (done + list.length + 1) + ")…";
       if (SZFILES.some(function (x) { return x.name === f.name && x.size === f.size; })) { vissza.push(f.name + " (ezt a fájlt már feltöltötték)"); next(); return; }
       szSzoveg(f).then(function (tx) {
+        if (kiv) {
+          bank = /11600006|erste/i.test(tx) ? "Erste" : /10918001|unicredit/i.test(tx) ? "Unicredit" : /11773|otp\s*bank/i.test(tx) ? "OTP" : /12010|raiffeisen/i.test(tx) ? "Raiffeisen" : /10402|k&h|k\s*&\s*h/i.test(tx) ? "K&H" : /11600006/.test(f.name) ? "Erste" : "Egyéb bank";
+          ho = szDatum(tx) || ""; msg.textContent = "Feltöltés: " + f.name + " → Bankszámlakivonatok / " + bank + "…";
+          return szDrive(f, szolg, ho, bank).then(function (dv) { if (dv && dv.dup) { vissza.push(f.name + " (ez a kivonat már fent van: " + dv.folder + ")"); return "skip"; } if (!dv) throw new Error("a kivonatot nem sikerült a Drive-ba menteni" + (SZERR ? " (" + SZERR + ")" : "")); return dv; });
+        }
         var mm = szMarMegvan(tx); if (mm) { vissza.push(f.name + " → " + mm.no + ", " + (mm.p || "") + (mm.d ? ", " + mm.d : "") + (mm.g ? ", " + ft(mm.g) : "")); return "skip"; }
         ho = szDatum(tx) || ""; msg.textContent = "Feltöltés: " + f.name + (ho ? " → " + ho : " → Beérkező (a hónapot Claude állapítja meg)") + "…";
         return szDrive(f, szolg, ho);
       }).then(function (dv) {
         if (dv === "skip") return "skip";
-        if (dv) return F.setDoc(F.doc(szCol("sz_files")), { name: f.name, size: f.size, type: f.type || "", szolg: szolg, ho: ho, n: 0, drive: dv.url, folder: dv.folder || "", up: new Date().toISOString(), st: "uj" });
+        if (dv) return F.setDoc(F.doc(szCol("sz_files")), { name: f.name, size: f.size, type: f.type || "", szolg: kiv ? szolg + " – " + bank : szolg, ho: ho, n: 0, drive: dv.url, folder: dv.folder || "", up: new Date().toISOString(), st: "uj" });
         return f.arrayBuffer().then(function (buf) {
         var u8 = new Uint8Array(buf), ref = F.doc(szCol("sz_files")), n = Math.ceil(u8.length / SZCH) || 1, jobs = [];
         for (var i = 0; i < n; i++) jobs.push(F.setDoc(F.doc(szCol("sz_chunks"), ref.id + "_" + i), { f: ref.id, i: i, d: F.Bytes.fromUint8Array(u8.subarray(i * SZCH, (i + 1) * SZCH)) }));
@@ -1054,13 +1059,13 @@
     return hit ? { no: hit[c.no], p: hit[c.p], d: hd(hit[c.d]), g: num(hit[c.g]) } : null;
   }
   // Drive-ba mentés az admin háttéren át: Könyvelés 2026 / "ÉÉÉÉ-HH Hónap" mappa. Ha a háttér ezt még nem tudja, null → közös tár.
-  function szDrive(f, szolg, ho) {
+  function szDrive(f, szolg, ho, bank) {
     return new Promise(function (res) {
       var rd = new FileReader();
       rd.onload = function () {
         var b64 = String(rd.result || "").replace(/^data:[^,]*,/, "");
-        call({ action: "upload", token: tok(), name: f.name, mime: f.type || "application/octet-stream", ho: ho, szolg: szolg, data: b64 })
-          .then(function (d) { SZERR = d && d.ok && d.url ? "" : (d && (d.msg || d.error)) || "ismeretlen válasz"; res(SZERR ? null : d); }, function (e) { SZERR = "kapcsolódási hiba: " + (e && e.message || e); res(null); });
+        call({ action: "upload", token: tok(), name: f.name, mime: f.type || "application/octet-stream", ho: ho, szolg: szolg, bank: bank || "", data: b64 })
+          .then(function (d) { SZERR = d && d.ok && (d.url || d.dup) ? "" : (d && (d.msg || d.error)) || "ismeretlen válasz"; res(SZERR ? null : d); }, function (e) { SZERR = "kapcsolódási hiba: " + (e && e.message || e); res(null); });
       };
       rd.onerror = function () { res(null); };
       rd.readAsDataURL(f);
