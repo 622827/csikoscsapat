@@ -529,6 +529,12 @@
     var w = num(r[col("Reprezentációs rész (Ft)")]); if (w > 0) return w;
     return String(r[col("Kategória")]).toLowerCase() === "reprezentáció" ? (num(r[col("Bruttó (Ft)")]) || num(r[col("Nettó (Ft)")])) : 0;
   }
+  // a 🍽 gomb csak ott jelenik meg, ahol lehet étel-ital: már jelölt, vagy a partner/megjegyzés vendéglátásra, rendezvényre utal
+  var REPR_RE = /étterem|etterem|kávé|kave|kávéz|bisztró|bistro|cukrász|vendéglát|fogyaszt|szervizdíj|étel|ital|reggeli|ebéd|vacsor|menü|pizz|burger|sushi|bár\b|pub\b|restaurant|cafe|café|szeminárium|rendezvény|konferencia|hotel|szálló|resort|catering|büfé/i;
+  function reprRel(r) {
+    if (reprOf(r)) return true;
+    return REPR_RE.test([r[col("Partner")], r[col("Megjegyzés")], r[col("Kategória")]].join(" "));
+  }
   function reprBtn(r) {
     var a = reprOf(r);
     return '<button type="button" class="rpb' + (a ? " on" : "") + '" data-row="' + esc(r[r.length - 1]) + '" title="Reprezentációként elszámolandó rész (az 1%-os keretbe számít)">🍽 ' + (a ? ft(a) : "repr.") + "</button>";
@@ -881,7 +887,7 @@
       return hdr + "<tr" + (nv ? ' class="' + nv.cls + ' fx" title="Kattints a részletekért"' : "") + ">" +
         '<td data-k="date">' + esc(d) + "</td>" +
         '<td data-k="partner"><span class="dir' + (ki ? " ki" : "") + '" title="' + esc(r[c.dir]) + '"></span>' + esc(r[c.partner] || "–") + (nv ? '<span class="navtag ' + nv.tag + '">' + (nv.tag === "diff" ? nv.lbl || "NAV-eltérés" : "nincs a NAV-ban") + "</span>" : "") + "</td>" +
-        '<td data-k="cat">' + katSel(r, c) + (ki ? reprBtn(r) : "") + "</td>" +
+        '<td data-k="cat">' + katSel(r, c) + (ki && reprRel(r) ? reprBtn(r) : "") + "</td>" +
         '<td data-k="no">' + esc(r[c.no]) + "</td>" +
         '<td data-k="netto" class="n">' + ft(r[c.net]) + "</td>" +
         '<td data-k="brutto" class="n">' + ft(r[c.gross]) + "</td>" +
