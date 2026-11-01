@@ -665,18 +665,7 @@
     }, function (e) { $("f-sub").textContent = "Nem sikerült betölteni: " + e.message; }));
     FUNSUB.push(F.onSnapshot(F.doc(db, "perf", id, "fl_meta", "pkgs"), function (d) {
       try { PK = d.exists() ? JSON.parse(d.data().json) : null; } catch (e) { PK = null; }
-      // egyszeri feltöltés: a One-árlista a 2026.09.30-i One-számla (30125482351) szerinti nettó havidíjakkal (kedvezmények után, 09.26-tól)
-      if (PK && PK.ONE && PK.ONE.length && PK.ONE.every(function (x) { return !num(x.alap); })) {
-        var ONE26 = { "üzleti maxi": 6231, "üzleti midi": 3263, "üzleti mobil medium": 6803, "üzleti pro": 12896, "business mobilenet infinity": 7119, "business office net 1000": 9670 }, hit = 0;
-        PK.ONE.forEach(function (x) { var v = ONE26[String(x.nev).trim().toLowerCase()]; if (v) { x.alap = v; hit++; } });
-        if (hit) F.setDoc(F.doc(db, "perf", id, "fl_meta", "pkgs"), { json: JSON.stringify(PK) }).catch(function () {});
-      }
-      // a One-számlán már nem szereplő, ár nélküli régi csomagnevek törlése (egyszeri)
-      var REGI = ["üzleti maxi+10gb", "business red start+10gb", "business red start+10gb+3gb", "üzleti midi+150p+5gb", "midi 10gb + 150 perc", "business l+700p", "üzleti plus+50gb", "10+10 red", "vodafone business xl", "vodafone business s"];
-      if (PK && PK.ONE && PK.ONE.some(function (x) { return !num(x.alap) && REGI.indexOf(String(x.nev).trim().toLowerCase()) > -1; })) {
-        PK.ONE = PK.ONE.filter(function (x) { return !(!num(x.alap) && REGI.indexOf(String(x.nev).trim().toLowerCase()) > -1); });
-        F.setDoc(F.doc(db, "perf", id, "fl_meta", "pkgs"), { json: JSON.stringify(PK) }).catch(function () {});
-      }
+      if (PK && fixOne(PK)) F.setDoc(F.doc(db, "perf", id, "fl_meta", "pkgs"), { json: JSON.stringify(PK) }).catch(function () {});
     }));
     FUNSUB.push(F.onSnapshot(F.collection(db, "perf", id, "fl_rows"), function (snap) {
       var rows = snap.docs.map(function (d) { return fnorm(Object.assign({}, d.data(), { id: d.id })); });
@@ -915,7 +904,21 @@
       { nev: "Business Office Net 1000", csomag: "", alap: 9670, admin: 0 }
     ]
   };
-  function pkgs() { if (typeof PK !== "undefined" && PK && PK.BB && PK.TFC && PK.ONE) return PK; try { var v = JSON.parse(localStorage.getItem(PKEY) || "null"); if (v && v.BB && v.TFC && v.ONE) return v; } catch (e) {} return JSON.parse(JSON.stringify(PDEF)); }
+  // One-árlista a 2026.09.30-i One-számla (30125482351) szerinti nettó havidíjakkal (kedvezmények után, 09.26-tól);
+  // a számlán már nem szereplő, ár nélküli régi csomagnevek kikerülnek. Igaz, ha módosított.
+  function fixOne(P) {
+    if (!P || !P.ONE) return false;
+    var ONE26 = { "üzleti maxi": 6231, "üzleti midi": 3263, "üzleti mobil medium": 6803, "üzleti pro": 12896, "business mobilenet infinity": 7119, "business office net 1000": 9670 };
+    var REGI = ["üzleti maxi+10gb", "business red start+10gb", "business red start+10gb+3gb", "üzleti midi+150p+5gb", "midi 10gb + 150 perc", "business l+700p", "üzleti plus+50gb", "10+10 red", "vodafone business xl", "vodafone business s"], ch = false;
+    P.ONE.forEach(function (x) { var v = ONE26[String(x.nev).trim().toLowerCase()]; if (v && !num(x.alap)) { x.alap = v; ch = true; } });
+    var n0 = P.ONE.length; P.ONE = P.ONE.filter(function (x) { return !(!num(x.alap) && REGI.indexOf(String(x.nev).trim().toLowerCase()) > -1); }); if (P.ONE.length !== n0) ch = true;
+    return ch;
+  }
+  function pkgs() {
+    if (typeof PK !== "undefined" && PK && PK.BB && PK.TFC && PK.ONE) { if (fixOne(PK) && FST && FMODE === "live") FST.F.setDoc(FST.F.doc(FST.db, "perf", fid(), "fl_meta", "pkgs"), { json: JSON.stringify(PK) }).catch(function () {}); return PK; }
+    try { var v = JSON.parse(localStorage.getItem(PKEY) || "null"); if (v && v.BB && v.TFC && v.ONE) { if (fixOne(v)) localStorage.setItem(PKEY, JSON.stringify(v)); return v; } } catch (e) {}
+    return JSON.parse(JSON.stringify(PDEF));
+  }
   $("f-pkg").addEventListener("click", function () {
     var data = pkgs(), boxes = {};
     open("Csomagok árlistái", function () {
