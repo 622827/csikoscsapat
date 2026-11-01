@@ -837,8 +837,12 @@
     var sum = hits.reduce(function (a, m) { return a + Math.abs(num(m[5])); }, 0), last = hits.map(function (m) { return hd(m[2]); }).sort().pop();
     return { sum: Math.round(sum), date: last, n: hits.length, acc: hits[0][0] };
   }
+  // Külföldi beszerzés: nem kerül a NAV-ba, a kifizetés is gyakran magánkártyáról/külföldön megy – nem flaggeljük, csak lekönyveljük
+  var KULF_RE = /s\.?r\.?l\b|limited|ltd\b|ireland|uab\b|gmbh|\binc\b|llc|b\.?v\.|\bs\.?a\.?\b|sp\.? z o\.?o|booking|stefan frenzl|sebastian engel|brikkmenn|pokebrixx|autotava|anthropic/i;
+  function kulfoldi(r) { return KULF_RE.test(String(r[col("Partner")] || "")) || /fordított adózás|külföldi/i.test(String(r[col("Megjegyzés")] || "")); }
   function chk(r, ix) {
     var c = CC(); if (c.egy > -1 && String(r[c.egy] || "").trim()) return null;   // már egyeztetve (elfogadva)
+    if (kulfoldi(r)) return null;
     var nv = navCheck(r, c, ix), items = nv && nv.items ? nv.items.slice() : [], bank = bankFor(r[c.no]);
     if (!bank) { var cb = comboMap().inv[String(r[c.no]).toLowerCase().replace(/\s+/g, "")]; if (cb) bank = { sum: cb.share, date: cb.date, n: 1, acc: cb.acc, combo: cb }; }
     var g = Math.round(num(r[c.gross]) || num(r[c.net])), td = hd(r[c.pd]), bankItems = 0;
@@ -1281,7 +1285,7 @@
     var today = hd(new Date().toISOString().slice(0, 10)), inv = [];
     ((D && D.rows) || []).forEach(function (r) {
       var g = num(r[c.gross]) || num(r[c.net]);
-      if (r[c.paid] === true || g <= 0 || !String(r[c.no] || r[c.partner] || "").trim()) return;
+      if (r[c.paid] === true || g <= 0 || !String(r[c.no] || r[c.partner] || "").trim() || kulfoldi(r)) return;
       var due = hd(r[c.due]);
       inv.push({ d: hd(r[c.perf] || r[c.iss]), due: due, late: due && due < today, dir: r[c.dir], p: r[c.partner] || "", no: r[c.no] || "", g: g, pdf: String(r[c.pdf] || ""), note: String(r[c.note] || "") });
     });
