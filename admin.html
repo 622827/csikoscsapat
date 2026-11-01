@@ -131,6 +131,18 @@
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 18px 0 4px; }
   .kpi { background: var(--card); border-radius: 16px; padding: 16px 18px; }
   /* reprezentációs keret: az éves bevétel 1%-a adómentes (étterem, cukrászda) */
+  .szk { background: var(--card); border-radius: 16px; padding: 14px 18px 16px; margin: 12px 0 0; }
+  .szk .rt { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; align-items: baseline; font-weight: 700; }
+  .szk .rt small { font-weight: 600; color: var(--muted); }
+  .szk .bar { position: relative; height: 14px; border-radius: 999px; background: var(--track); margin: 10px 0 6px; overflow: hidden; }
+  .szk .bar i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; }
+  .szk .bar i.g { background: #2e9e6b; } .szk .bar i.y { background: #e0a800; } .szk .bar i.r { background: #d93a3a; }
+  .szk .rl { display: flex; justify-content: space-between; font-size: .85rem; color: var(--muted); }
+  .szk table.szkt { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: .88rem; }
+  .szk table.szkt td { padding: 5px 8px 5px 0; border-top: 1px solid var(--track); background: none; }
+  .szk table.szkt td.n { text-align: right; white-space: nowrap; font-weight: 600; width: 120px; }
+  .szk table.szkt td:last-child { color: var(--muted); font-size: .8rem; }
+  .szk table.szkt tr.tot td { font-weight: 700; color: var(--ink); }
   .repr { background: var(--card); border-radius: 16px; padding: 14px 18px 16px; margin: 0 0 14px; }
   .repr .rt { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; align-items: baseline; font-weight: 700; }
   .repr .rt small { font-weight: 600; color: var(--muted); }
@@ -138,7 +150,8 @@
   .repr .bar i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; transition: width .6s ease; }
   .repr .bar i.g { background: #2e9e6b; } .repr .bar i.y { background: #e0a800; } .repr .bar i.r { background: #d93a3a; }
   .repr .bar b { position: absolute; top: 0; bottom: 0; width: 2px; background: color-mix(in srgb, var(--ink) 35%, transparent); }
-  .repr .rl { display: flex; justify-content: space-between; font-size: .82rem; color: var(--muted); }
+  .repr .rl { display: flex; justify-content: space-between; gap: 12px; font-size: .82rem; color: var(--muted); }
+  .repr .tj { margin-top: 10px; } .repr .tj .bar { margin: 4px 0 2px; height: 12px; }
   .kpi .l { margin: 0; font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
   .kpi .v { margin: 6px 0 0; font-size: clamp(1.35rem, 3vw, 1.75rem); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
   .kpi .s { margin: 4px 0 0; font-size: .85rem; color: var(--muted); }
@@ -348,6 +361,8 @@
     </div>
 
 
+    <div class="repr" id="k-repr"></div>
+    <div class="repr" id="k-telj"></div>
     <details class="flg" id="fl-det">
       <summary><span id="fl-sum" title="Red flag tételek" aria-label="Red flag tételek">🚩</span><span class="meta" id="fl-meta"></span></summary>
       <p class="note" style="margin-top:4px">Automatikus ellenőrzés a könyvelési táblázatból. Nem kerül ide a banki díj, a kamat, a jutalék, a NAV-befizetés, a tagi kölcsön, a saját számlák közötti átvezetés és a készpénzfelvétel, ezekhez nem kell számla. <b>Kattints egy tételre</b>: lenyílik, mi a probléma, és mit javaslunk.</p>
@@ -371,6 +386,7 @@
 
     <h2 style="margin-top:22px">Pénzszámlák</h2>
     <div class="acc" id="p-cards" role="group" aria-label="Pénzszámla"></div>
+    <div class="szk" id="szk-panel" hidden></div>
     <div class="tw"><table id="p-month"></table></div>
     <h2 id="p-title" style="font-size:1.1rem">Mozgások</h2>
     <form class="hpf" id="p-hp" hidden autocomplete="off">
@@ -389,7 +405,6 @@
     </details>
 
     <h2>Számlák összesítője</h2>
-    <div class="repr" id="k-repr"></div>
     <div class="kpis" id="k-kpis"></div>
 
     <h2>Havi összesítő</h2>
@@ -493,6 +508,21 @@
     }).catch(function () { loading(false); showMain(); $("k-meta").textContent = c ? $("k-meta").textContent.replace(" · frissítés…", " · a frissítés nem sikerült") : "Nem sikerült betölteni az adatokat."; });
   }
 
+  // Bizonylat-teljesség: a számlák hány %-ához van PDF, a pénzmozgások hány %-ához van számla/bizonylat
+  function renderTelj(need, missing) {
+    var pi = col("PDF link"), all = (D.rows || []).filter(function (r) { return String(r[col("Számlaszám")] || r[col("Partner")] || "").trim(); });
+    var withPdf = all.filter(function (r) { return /^https:\/\//.test(String(r[pi] || "")); }).length;
+    function bar(label, ok, tot, hint) {
+      var p = tot ? ok / tot : 1, cls = p >= 0.95 ? "g" : p >= 0.8 ? "y" : "r";
+      return '<div class="tj"><div class="rl"><span>' + label + "</span><span><b>" + Math.round(p * 100) + "%</b> · " + ok + " / " + tot + "</span></div>" +
+        '<div class="bar"><i class="' + cls + '" style="width:' + (p * 100).toFixed(1) + '%"></i></div>' + (hint && ok < tot ? '<div class="rl"><span>' + hint + "</span></div>" : "") + "</div>";
+    }
+    var okMv = Math.max(0, need - missing);
+    var p1 = all.length ? withPdf / all.length : 1, p2 = need ? okMv / need : 1, tot = Math.round((p1 + p2) / 2 * 100);
+    $("k-telj").innerHTML = '<div class="rt"><span>Bizonylat-teljesség</span><small>összesen ' + tot + "%</small></div>" +
+      bar("Számlák, amelyekhez van PDF", withPdf, all.length, (all.length - withPdf) + " számlához nincs feltöltött PDF – a Számlák menüben pótolható.") +
+      bar("Pénzmozgások, amelyekhez van számla vagy bizonylat", okMv, need, missing + " mozgáshoz hiányzik a számla – lásd lent a 🚩 tételeket.");
+  }
   // Reprezentációs keret: max = az éves (eddigi) bevétel 1%-a; állás = a "Reprezentáció" kategóriás kiadások bruttója
   // a számlából reprezentációnak számító rész: a "Reprezentációs rész (Ft)" oszlop, vagy Reprezentáció kategóriánál a teljes bruttó
   function reprOf(r) {
@@ -558,6 +588,39 @@
     if (name === "Házipénztár") return { bal: rows.length ? rows[rows.length - 1].bal : num(((D && D.hp) || {}).nyito), last: rows.length ? rows[rows.length - 1].d : "" };
     return rows.length ? { bal: rows[rows.length - 1].bal, last: rows[rows.length - 1].d } : { bal: null, last: "" };
   }
+  // Széchenyi hitelkeret-számláló: kihasználtság, kamat, díjak (a Széchenyi-számla mozgásaiból)
+  function renderSzk() {
+    var rows = ((D && D.pm) || []).filter(function (r) { return r[0] === "Erste Széchenyi"; });
+    if (!rows.length) { $("szk-panel").hidden = true; return; }
+    var b = accBal("Erste Széchenyi"), bal = b.bal === null ? SZK_KERET : b.bal, used = Math.max(0, SZK_KERET - bal), free = SZK_KERET - used, p = used / SZK_KERET;
+    var g = { kamat: 0, rtj: 0, gar: 0, szv: 0, egy: 0, kedv: 0 }, honap = {};
+    rows.forEach(function (r) {
+      var t = String(r[4] || ""), v = num(r[5]), m = hd(r[2]).slice(0, 7);
+      if (/jóváírás|saját számlá/i.test(t) && v > 0 && !/kedv/i.test(t)) return;   // a saját számláról érkező pénz nem költség
+      if (/kedv/i.test(t)) { g.kedv += v; honap[m] = (honap[m] || 0) - v; return; }
+      if (!(v < 0)) return;
+      var a = -v;
+      if (/kamat/i.test(t)) g.kamat += a; else if (/rend\.?\s*tart|rendelkezésre/i.test(t)) g.rtj += a; else if (/gar/i.test(t)) g.gar += a;
+      else if (/számlavezet/i.test(t)) g.szv += a; else if (/díj|vizsgálat|kibocsát|jutalék/i.test(t)) g.egy += a; else return;
+      honap[m] = (honap[m] || 0) + a;
+    });
+    var ossz = g.kamat + g.rtj + g.gar + g.szv + g.egy - g.kedv, hk = Object.keys(honap).sort(), last = hk.length ? honap[hk[hk.length - 1]] : 0;
+    var cls = p >= 0.8 ? "r" : p >= 0.5 ? "y" : "g";
+    function sor(l, v, s2) { return "<tr><td>" + l + '</td><td class="n">' + (v ? ft(v) : "0 Ft") + "</td><td>" + (s2 || "") + "</td></tr>"; }
+    $("szk-panel").hidden = false;
+    $("szk-panel").innerHTML = '<div class="rt"><span>Széchenyi hitelkeret</span><small>' + ft(used) + " felhasználva a " + ft(SZK_KERET) + "-ból · " + Math.round(p * 100) + "%</small></div>" +
+      '<div class="bar"><i class="' + cls + '" style="width:' + Math.min(100, p * 100).toFixed(1) + '%"></i></div>' +
+      '<div class="rl"><span>Felhasznált: <b>' + (used ? ft(used) : "0 Ft") + "</b></span><span>Kihasználatlan: <b>" + ft(free) + "</b></span></div>" +
+      '<table class="szkt"><tbody>' +
+      sor("Kamat (a felhasznált összeg után)", g.kamat, "csak a lehívott rész után jár") +
+      sor("Rendelkezésre tartási jutalék", g.rtj, "a kihasználatlan keret után – akkor is fizeted, ha nem használod") +
+      sor("Garanciadíj (Garantiqa)", g.gar, "") +
+      sor("Számlavezetési díj", g.szv, "") +
+      sor("Egyszeri díjak", g.egy, "pl. hitelképesség-vizsgálat, kártya") +
+      (g.kedv ? sor("Kedvezmények (jóváírva)", -g.kedv, "") : "") +
+      '<tr class="tot"><td>Összes költség eddig</td><td class="n">' + ft(ossz) + "</td><td>" + (last ? "legutóbbi hónap: " + ft(last) : "") + (used >= 100000 ? " · ez a felhasznált összeg " + (ossz / used * 100).toLocaleString("hu-HU", { maximumFractionDigits: 1 }) + "%-a" : " · a keretet még alig használod: a költség a keret fenntartásáért megy") + "</td></tr>" +
+      "</tbody></table>";
+  }
   function renderAcc() {
     $("p-cards").innerHTML = ACC.map(function (n) {
       var b = accBal(n), sub = b.last ? "utolsó tétel: " + b.last : (n === "Házipénztár" ? "még nincs rögzített tétel" : "nincs kivonat"), extra = "";
@@ -580,6 +643,7 @@
     }).join("");
     var be = rows.reduce(function (a, r) { return a + (r.v > 0 ? r.v : 0); }, 0), ki = rows.reduce(function (a, r) { return a + (r.v < 0 ? -r.v : 0); }, 0);
     $("p-month").innerHTML = "<thead><tr><th>Hónap</th><th>Jóváírás</th><th>Terhelés</th><th>Nettó</th><th>Záró egyenleg</th></tr></thead><tbody>" + body + "</tbody><tfoot><tr><td>Összesen</td><td>" + ft(be) + "</td><td>" + ft(-ki) + "</td><td>" + ft(be - ki) + "</td><td></td></tr></tfoot>";
+    renderSzk();
     $("p-title").textContent = (acc === "UniCredit" ? "UniCredit (megszűnt)" : acc) + " – mozgások";
     $("p-hp").hidden = acc !== "Házipénztár";
     renderAccList();
@@ -1151,16 +1215,18 @@
       pool.forEach(function (p) { if (!p.used && Math.abs(p.g - a) < 1 && (day === null || p.d === null || Math.abs(p.d - day) <= 20) && !best) best = p; });
       if (best) { best.used = true; return true; } return false;
     }
-    var CMB = comboMap();
+    var CMB = comboMap(), needMv = 0;
     ((D && D.pm) || []).forEach(function (r, ri) {
       var txt = [r[4], r[7], r[8]].join(" ");
       var kk = String(r[10] || "").trim(), nincs = /^nincs sz[áa]mla/i.test(kk);
       if (CMB.mv[ri] && CMB.mv[ri].parts.every(function (x) { return x.src === "táblázat"; })) return;   // több számla együtt, mind a táblázatban
+      if (!FL_OK.test(txt) && num(r[5])) needMv++;
       if (!nincs && (kk || FL_OK.test(txt) || !num(r[5]) || matched(num(r[5]), hd(r[2]), txt))) return;
       mv.push({ d: hd(r[2]), a: r[0], p: pmPartner(r), t: r[4] || "", k: r[8] || "", v: num(r[5]), n: nincs ? kk.replace(/^nincs sz[áa]mla\s*[–-]?\s*/i, "") : "", combo: CMB.mv[ri] || null });
     });
     (((D && D.hp) || {}).rows || []).forEach(function (r) {
       var txt = [r[1], r[3], r[4]].join(" ");
+      if (!(FL_OK.test(txt) || r[1] === "Bevétel" && /tagi|készpénz/i.test(txt))) needMv++;
       if (String(r[5] || "").trim() || FL_OK.test(txt) || r[1] === "Bevétel" && /tagi|készpénz/i.test(txt)) return;
       mv.push({ d: hd(r[0]), a: "Házipénztár", p: r[3] || "", t: r[1] + (r[4] ? " · " + r[4] : ""), k: "", v: r[1] === "Bevétel" ? num(r[2]) : -num(r[2]) });
     });
@@ -1181,6 +1247,7 @@
     $("fl-sum").textContent = "🚩 " + (mv.length + inv.length);
     $("fl-meta").textContent = (mv.length + inv.length) ? mv.length + " mozgás számla nélkül · " + inv.length + " számla pénzmozgás nélkül" : "minden rendben";
     $("fl-det").classList.toggle("ok", !(mv.length + inv.length));
+    renderTelj(needMv, mv.filter(function (x) { return !x.n; }).length);
     $("fl-mv").innerHTML = "<thead><tr><th>Dátum</th><th>Partner</th><th>Tranzakció</th><th>Közlemény</th><th style='text-align:right'>Összeg</th><th>Számla</th></tr></thead><tbody>" +
       (mv.length ? mv.map(function (x) {
         return fxRow('<tr><td data-k="date">' + esc(x.d) + '</td><td data-k="partner">' + (x.p ? esc(x.p) : '<span style="color:var(--muted)">ismeretlen ' + (x.v > 0 ? "küldő" : "címzett") + "</span>") + (x.n ? '<br><small style="color:var(--muted)">' + esc(x.n) + "</small>" : "") + '</td><td data-k="cat">' + esc(x.t) + '</td><td data-k="no">' + esc(x.k) + '</td><td data-k="brutto" class="n' + (x.v > 0 ? " pos" : "") + '">' + ft(x.v) + '</td><td data-k="paid">' + esc(x.a) + "</td></tr>", diagMv(x), 6);
