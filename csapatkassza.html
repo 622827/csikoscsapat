@@ -670,7 +670,7 @@
     }, function (e) { $("f-sub").textContent = "Nem sikerült betölteni: " + e.message; }));
     FUNSUB.push(F.onSnapshot(F.doc(db, "perf", id, "fl_meta", "pkgs"), function (d) {
       try { PK = d.exists() ? JSON.parse(d.data().json) : null; } catch (e) { PK = null; }
-      if (PK && fixOne(PK)) F.setDoc(F.doc(db, "perf", id, "fl_meta", "pkgs"), { json: JSON.stringify(PK) }).catch(function () {});
+      if (PK && (fixOne(PK) | fixTk(PK))) F.setDoc(F.doc(db, "perf", id, "fl_meta", "pkgs"), { json: JSON.stringify(PK) }).catch(function () {});
     }));
     FUNSUB.push(F.onSnapshot(F.collection(db, "perf", id, "fl_rows"), function (snap) {
       var rows = snap.docs.map(function (d) { return fnorm(Object.assign({}, d.data(), { id: d.id })); });
@@ -915,16 +915,30 @@
     if (!P || !P.ONE) return false;
     var ONE26 = { "üzleti maxi": 6231, "üzleti midi": 3263, "üzleti mobil medium": 6803, "üzleti pro": 12896, "business mobilenet infinity": 7119, "business office net 1000": 9670 };
     // beszéd / SMS a One-számla forgalma alapján (hivatalos díjtáblázat nélkül)
-    var ONEBS = { "üzleti maxi": ["korlátlan belföldi", "nincs benne (~20 Ft/db)"], "üzleti midi": ["150 perc + One-on belül korlátlan", "nincs benne"], "üzleti mobil medium": ["korlátlan belföldi", "nincs benne (~24 Ft/db)"], "üzleti pro": ["korlátlan + EU roaming", "valószínűleg benne"], "business mobilenet infinity": ["nincs (csak net)", "nincs"], "business office net 1000": ["nincs (vezetékes net)", "nincs"] };
+    var ONEBS = { "üzleti maxi": ["korlátlan belföldi", "nincs benne (~20 Ft/db)", "nagy keret / korlátlan (~30 GB-ot is 0 Ft-ért)"], "üzleti midi": ["150 perc + One-on belül korlátlan", "nincs benne", "kisebb keret (~2–2,5 GB használat)"], "üzleti mobil medium": ["korlátlan belföldi", "nincs benne (~24 Ft/db)", "korlátos (+7 500 Ft-os korlátlan kiegészítő)"], "üzleti pro": ["korlátlan + EU roaming", "valószínűleg benne", "korlátlan / nagy keret"], "business mobilenet infinity": ["nincs (csak net)", "nincs", "korlátlan mobilnet"], "business office net 1000": ["nincs (vezetékes net)", "nincs", "vezetékes, 1000 Mbps (Fillér u.)"] };
     var REGI = ["üzleti maxi+10gb", "business red start+10gb", "business red start+10gb+3gb", "üzleti midi+150p+5gb", "midi 10gb + 150 perc", "business l+700p", "üzleti plus+50gb", "10+10 red", "vodafone business xl", "vodafone business s"], ch = false;
-    P.ONE.forEach(function (x) { var k = String(x.nev).trim().toLowerCase(), v = ONE26[k], t = ONEBS[k]; if (v && !num(x.alap)) { x.alap = v; ch = true; } if (t && x.beszed === undefined && x.sms === undefined) { x.beszed = t[0]; x.sms = t[1]; ch = true; } });
+    P.ONE.forEach(function (x) { var k = String(x.nev).trim().toLowerCase(), v = ONE26[k], t = ONEBS[k]; if (v && !num(x.alap)) { x.alap = v; ch = true; } if (t && !x.beszed && !x.sms) { x.beszed = t[0]; x.sms = t[1]; ch = true; } if (t && !x.netk) { x.netk = t[2]; ch = true; } });
     var n0 = P.ONE.length; P.ONE = P.ONE.filter(function (x) { return !(!num(x.alap) && REGI.indexOf(String(x.nev).trim().toLowerCase()) > -1); }); if (P.ONE.length !== n0) ch = true;
     return ch;
   }
+  // Telekom csomagtartalom a 2026.10.01-i BB és a 2026.09-i TFC Telekom-számla alapján. Igaz, ha módosított.
+  function fixTk(P) {
+    var M = { korl: "korlátlan belföldi (hívást nem számláztak)", sms: "benne (belföld + EU)" }, S = ["kisebb keret (pontos perc nem látszik)", "valószínűleg nincs"];
+    var D = { BB: { "m": M, "s": { korl: S[0], sms: S[1] } }, TFC: { "m": { korl: "180 perc (felette 19 Ft/perc)", sms: "100 SMS" } } }, ch = false;
+    ["BB", "TFC"].forEach(function (k) {
+      (P[k] || []).forEach(function (x) {
+        var n = String(x.nev).trim().toLowerCase(), d = D[k][String(x.csomag || "").trim().toLowerCase()];
+        var net = /korlátlan/.test(n) ? "korlátlan" : (k === "TFC" && /8gb/.test(n)) ? "8 GB + 8 GB díjmentes belföldi" : (n.match(/(\d+)\s*gb/) ? n.match(/(\d+)\s*gb/)[1] + " GB" : "");
+        if (!x.netk && net) { x.netk = net; ch = true; }
+        if (d && !x.beszed && !x.sms) { x.beszed = d.korl; x.sms = d.sms; ch = true; }
+      });
+    });
+    return ch;
+  }
   function pkgs() {
-    if (typeof PK !== "undefined" && PK && PK.BB && PK.TFC && PK.ONE) { if (fixOne(PK) && FST && FMODE === "live") FST.F.setDoc(FST.F.doc(FST.db, "perf", fid(), "fl_meta", "pkgs"), { json: JSON.stringify(PK) }).catch(function () {}); return PK; }
-    try { var v = JSON.parse(localStorage.getItem(PKEY) || "null"); if (v && v.BB && v.TFC && v.ONE) { if (fixOne(v)) localStorage.setItem(PKEY, JSON.stringify(v)); return v; } } catch (e) {}
-    var d = JSON.parse(JSON.stringify(PDEF)); fixOne(d); return d;
+    if (typeof PK !== "undefined" && PK && PK.BB && PK.TFC && PK.ONE) { if ((fixOne(PK) | fixTk(PK)) && FST && FMODE === "live") FST.F.setDoc(FST.F.doc(FST.db, "perf", fid(), "fl_meta", "pkgs"), { json: JSON.stringify(PK) }).catch(function () {}); return PK; }
+    try { var v = JSON.parse(localStorage.getItem(PKEY) || "null"); if (v && v.BB && v.TFC && v.ONE) { if (fixOne(v) | fixTk(v)) localStorage.setItem(PKEY, JSON.stringify(v)); return v; } } catch (e) {}
+    var d = JSON.parse(JSON.stringify(PDEF)); fixOne(d); fixTk(d); return d;
   }
   $("f-pkg").addEventListener("click", function () {
     var data = pkgs(), boxes = {};
@@ -937,9 +951,9 @@
         var box = el("div"); fields.appendChild(box); boxes[k] = [];
         function addRow(r) {
           var w = el("div", "pk-r");
-          var i = { nev: inp("text", r.nev, { placeholder: "pl. Üzleti Maxi" }), csomag: inp("text", r.csomag, { placeholder: "Net" }), beszed: inp("text", r.beszed || "", { placeholder: "Beszéd" }), sms: inp("text", r.sms || "", { placeholder: "SMS" }), alap: inp("text", r.alap === "" ? "" : String(r.alap), { inputmode: "numeric", placeholder: "Csomagdíj" }), admin: inp("text", r.admin === "" ? "" : String(r.admin), { inputmode: "numeric", placeholder: "Admin" }) };
+          var i = { nev: inp("text", r.nev, { placeholder: "pl. Üzleti Maxi" }), csomag: inp("text", r.netk || "", { placeholder: "Net" }), beszed: inp("text", r.beszed || "", { placeholder: "Beszéd" }), sms: inp("text", r.sms || "", { placeholder: "SMS" }), alap: inp("text", r.alap === "" ? "" : String(r.alap), { inputmode: "numeric", placeholder: "Csomagdíj" }), admin: inp("text", r.admin === "" ? "" : String(r.admin), { inputmode: "numeric", placeholder: "Admin" }) };
           var x = el("button", "", "×"); x.type = "button"; x.setAttribute("aria-label", "Csomag törlése"); x.style.cssText = "font:inherit;border:1px solid var(--track);background:var(--bg);color:var(--frk);border-radius:8px;width:34px;height:34px;cursor:pointer";
-          var ent = { i: i, w: w }; boxes[k].push(ent);
+          var ent = { i: i, w: w, cs: r.csomag || "" }; boxes[k].push(ent);
           x.addEventListener("click", function () { w.remove(); boxes[k].splice(boxes[k].indexOf(ent), 1); });
           ["nev", "csomag", "beszed", "sms", "alap", "admin"].forEach(function (n) { i[n].style.minWidth = "0"; i[n].setAttribute("aria-label", n); w.appendChild(i[n]); }); w.appendChild(x); box.appendChild(w);
         }
@@ -955,7 +969,7 @@
         var i = boxes[k][n].i, nev = i.nev.value.trim(); if (!nev && !i.alap.value.trim()) continue;
         var al = num(i.alap.value || 0), ad = num(i.admin.value || 0);
         if (!nev || !isFinite(al) || !isFinite(ad)) return Promise.reject(new Error("Minden csomagnál add meg az internetet és számokat a díjakhoz."));
-        out[k].push({ nev: nev, csomag: i.csomag.value.trim(), beszed: i.beszed.value.trim(), sms: i.sms.value.trim(), alap: al, admin: ad });
+        out[k].push({ nev: nev, csomag: boxes[k][n].cs || "", netk: i.csomag.value.trim(), beszed: i.beszed.value.trim(), sms: i.sms.value.trim(), alap: al, admin: ad });
       }
       if (FMODE !== "live" || !FST) { try { localStorage.setItem(PKEY, JSON.stringify(out)); } catch (e) {} toast("Csomagok mentve ezen az eszközön (a közös tár még nincs betöltve)."); return Promise.resolve(); }
       var F = FST.F, chg = [];
