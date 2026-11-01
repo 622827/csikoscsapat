@@ -177,7 +177,8 @@
     #k-inv td[data-k=no] { overflow-wrap: anywhere; }
     #k-inv td[data-k=paid], #k-inv td[data-k=pdf] { white-space: nowrap; }
     #k-inv th:nth-child(1) { width: 92px; } #k-inv th:nth-child(3) { width: 118px; } #k-inv th:nth-child(4) { width: 196px; }
-    #k-inv th:nth-child(5), #k-inv th:nth-child(6) { width: 104px; } #k-inv th:nth-child(7) { width: 88px; } #k-inv th:nth-child(8) { width: 92px; }
+    #k-inv th:nth-child(5), #k-inv th:nth-child(6) { width: 104px; } #k-inv th:nth-child(7) { width: 88px; } #k-inv th:nth-child(8) { width: 92px; } #k-inv th:nth-child(9) { width: 118px; }
+    #k-inv td[data-k=levon] { white-space: nowrap; }
     #fl-mv th:nth-child(1), #fl-inv th:nth-child(1) { width: 92px; } #fl-mv th:nth-child(3) { width: 170px; } #fl-mv th:nth-child(5) { width: 112px; } #fl-mv th:nth-child(6) { width: 120px; }
     #fl-inv th:nth-child(3) { width: 80px; } #fl-inv th:nth-child(4) { width: 196px; } #fl-inv th:nth-child(5) { width: 108px; } #fl-inv th:nth-child(6) { width: 108px; } #fl-inv th:nth-child(7) { width: 72px; }
     #fl-mv td[data-k=cat] { font-size: .85rem; }
@@ -221,6 +222,8 @@
     .inv td[data-k=netto], .inv td[data-k=pdf] { display: none; }
     .inv td[data-k=brutto] { grid-column: 2; grid-row: 1; font-weight: 700; text-align: right; }
     .inv td[data-k=paid] { grid-column: 2; grid-row: 2; text-align: right; }
+    .inv td[data-k=levon] { grid-column: 2; grid-row: 3; text-align: right; }
+    .inv td[data-k=levon]:empty { display: none; }
     .szlist thead { display: none; }
     .szlist, .szlist tbody, .szlist tr, .szlist td { display: block; width: 100%; }
     .szlist tr { padding: 12px 14px; border-bottom: 1px solid var(--track); }
@@ -234,6 +237,8 @@
     .inv tr.fxd > td { padding: 0 !important; }
   }
   /* flaggelt tételek: kattintásra lenyíló diagnózis (kategória, probléma, javaslat) */
+  .inv label.lev { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: .88rem; }
+  .inv label.lev input { width: 18px; height: 18px; accent-color: var(--ok); cursor: pointer; }
   .inv tr.fx { cursor: pointer; }
   .inv tr.fx:hover td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
   .inv tr.fx td:first-child::before { content: "▸"; display: inline-block; width: 14px; color: var(--muted); transition: transform .15s; }
@@ -503,16 +508,28 @@
     $("p-hp").hidden = acc !== "Házipénztár";
     renderAccList();
   }
+  var PMOPEN = {};
   function renderAccList() {
     var q = $("p-q").value.trim().toLowerCase(), all = accRows(acc);
     var rows = all.filter(function (r) { return !q || [r.p, r.k, r.t, r.inv].join(" ").toLowerCase().indexOf(q) > -1; }).reverse();
     var th = "<thead><tr><th>Dátum</th><th>Partner</th><th>Tranzakció</th><th>Közlemény</th><th style='text-align:right'>Összeg</th><th style='text-align:right'>Egyenleg</th><th>Számla</th></tr></thead>";
+    // hónapokra bontva: először csak a hónapsorok látszanak, kattintásra nyílnak (keresésnél minden nyitva)
+    var grp = {}, lastM = null;
+    rows.forEach(function (r) { var m = hd(r.d).slice(0, 7) || "–", g = grp[m] || (grp[m] = { n: 0, be: 0, ki: 0 }); g.n++; if (r.v > 0) g.be += r.v; else g.ki += -r.v; });
     var body = rows.map(function (r) {
+      var m = hd(r.d).slice(0, 7) || "–", hdr = "", open = !!q || !!PMOPEN[acc + "|" + m];
+      if (m !== lastM) {
+        lastM = m; var g = grp[m], mm = /^(\d{4})\.(\d{2})$/.exec(m);
+        hdr = '<tr class="mh' + (open ? "" : " shut") + '" data-m="' + esc(m) + '"><td colspan="7"><span class="mh-t">' + (open ? "▾ " : "▸ ") + (mm ? mm[1] + ". " + HO[+mm[2] - 1].toLowerCase() : "Dátum nélkül") + "</span>" +
+          '<span class="mh-s">' + g.n + " tétel" + (g.be ? " · jóváírás " + ft(g.be) : "") + (g.ki ? " · terhelés " + ft(-g.ki) : "") + "</span></td></tr>";
+      }
+      if (!open) return hdr;
       var szla = r.url && /^https:\/\//.test(r.url) ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.inv) + "</a>" : esc(r.inv || "");
-      return "<tr><td data-k=\"date\">" + esc(r.d) + "</td><td data-k=\"partner\">" + esc(r.p || "–") + "</td><td data-k=\"cat\">" + esc(r.t) + "</td><td data-k=\"no\">" + esc(r.k) + "</td><td data-k=\"brutto\" class=\"n" + (r.v > 0 ? " pos" : "") + "\">" + ft(r.v) + "</td><td data-k=\"netto\" class=\"n\">" + ft(r.bal) + "</td><td data-k=\"paid\">" + szla + "</td></tr>";
+      return hdr + "<tr><td data-k=\"date\">" + esc(r.d) + "</td><td data-k=\"partner\">" + esc(r.p || "–") + "</td><td data-k=\"cat\">" + esc(r.t) + "</td><td data-k=\"no\">" + esc(r.k) + "</td><td data-k=\"brutto\" class=\"n" + (r.v > 0 ? " pos" : "") + "\">" + ft(r.v) + "</td><td data-k=\"netto\" class=\"n\">" + ft(r.bal) + "</td><td data-k=\"paid\">" + szla + "</td></tr>";
     }).join("");
     if (!rows.length) body = '<tr><td class="empty" colspan="7">' + (all.length ? "Nincs találat." : (acc === "Házipénztár" ? "Még nincs rögzített pénztártétel. A fenti űrlappal tudod felvinni." : "Ehhez a számlához még nincs beolvasott kivonat.")) + "</td></tr>";
     $("p-list").innerHTML = th + "<tbody>" + body + "</tbody>";
+    $("p-list").onclick = function (e) { var h = e.target.closest("tr.mh"); if (!h || q) return; var k = acc + "|" + h.getAttribute("data-m"); PMOPEN[k] = !PMOPEN[k]; renderAccList(); };
     $("p-meta").textContent = all.length ? rows.length + " / " + all.length + " tétel" : "";
     $("p-sum").textContent = ($("p-det").open ? "Tételek elrejtése" : "Tételek megjelenítése") + " (" + all.length + ")";
   }
@@ -569,9 +586,10 @@
     if (typeof v === "number" || /^\d{5}(\.\d+)?$/.test(String(v || ""))) { var t = new Date(Date.UTC(1899, 11, 30) + Math.floor(Number(v)) * 86400000); return t.getUTCFullYear() + "." + ("0" + (t.getUTCMonth() + 1)).slice(-2) + "." + ("0" + t.getUTCDate()).slice(-2); }
     return String(v || "").replace(/-/g, ".").replace(/\.$/, "");
   }
+  var LEVT = null;
   function renderInv() {
     var c = { dir: col("Irány"), cat: col("Kategória"), no: col("Számlaszám"), iss: col("Kiállítás dátuma"), perf: col("Teljesítés dátuma"),
-              partner: col("Partner"), net: col("Nettó (Ft)"), gross: col("Bruttó (Ft)"), paid: col("Fizetve"), pdf: col("PDF link") };
+              partner: col("Partner"), net: col("Nettó (Ft)"), gross: col("Bruttó (Ft)"), paid: col("Fizetve"), pdf: col("PDF link"), vat: col("Áfa (Ft)"), lev: col("Levonható") };
     var q = $("f-q").value.trim().toLowerCase(), only = $("f-open").checked;
     var rows = D.rows.filter(function (r) {
       if (fdir && r[c.dir] !== fdir) return false;
@@ -579,20 +597,21 @@
       if (q && [r[c.partner], r[c.no], r[c.cat]].join(" ").toLowerCase().indexOf(q) < 0) return false;
       return true;
     }).sort(function (a, b) { return hd(b[c.perf] || b[c.iss]).localeCompare(hd(a[c.perf] || a[c.iss])); });
-    var th = "<thead><tr><th>Dátum</th><th>Partner</th><th>Kategória</th><th>Számlaszám</th><th style='text-align:right'>Nettó</th><th style='text-align:right'>Bruttó</th><th>Fizetve</th><th>PDF</th></tr></thead>";
+    var th = "<thead><tr><th>Dátum</th><th>Partner</th><th>Kategória</th><th>Számlaszám</th><th style='text-align:right'>Nettó</th><th style='text-align:right'>Bruttó</th><th>Fizetve</th><th>PDF</th><th title='Pipáld be, amelyik számla áfáját le akarod vonni'>Áfa levonás</th></tr></thead>";
     // hónapokra bontva: hónapfejléc (darab, bevétel, kiadás, nettó), kattintásra becsukható
     var grp = {}, NIX = navIndex();
     rows.forEach(function (r) {
-      var m = hd(r[c.perf] || r[c.iss]).slice(0, 7) || "–", g = grp[m] || (grp[m] = { n: 0, be: 0, ki: 0 });
+      var m = hd(r[c.perf] || r[c.iss]).slice(0, 7) || "–", g = grp[m] || (grp[m] = { n: 0, be: 0, ki: 0, lv: 0 });
       g.n++; if (r[c.dir] === "Kiadás") g.ki += num(r[c.net]); else g.be += num(r[c.net]);
+      if (r[c.dir] === "Kiadás" && c.lev > -1 && r[c.lev] === true) g.lv += num(r[c.vat]);
     });
     var lastM = null;
     var body = rows.map(function (r) {
       var d = hd(r[c.perf] || r[c.iss]), ki = r[c.dir] === "Kiadás", pdf = String(r[c.pdf] || ""), m = d.slice(0, 7) || "–", hdr = "";
       if (m !== lastM) {
         lastM = m; var g = grp[m], mm = /^(\d{4})\.(\d{2})$/.exec(m), shut = !!INVSHUT[m];
-        hdr = '<tr class="mh' + (shut ? " shut" : "") + '" data-m="' + esc(m) + '"><td colspan="8"><span class="mh-t">' + (shut ? "▸ " : "▾ ") + (mm ? mm[1] + ". " + HO[+mm[2] - 1].toLowerCase() : "Dátum nélkül") + "</span>" +
-          '<span class="mh-s">' + g.n + " számla" + (g.be ? " · bevétel " + ft(g.be) : "") + (g.ki ? " · kiadás " + ft(g.ki) : "") + " · nettó " + (ft(g.be - g.ki) === "–" ? "0 Ft" : ft(g.be - g.ki)) + "</span></td></tr>";
+        hdr = '<tr class="mh' + (shut ? " shut" : "") + '" data-m="' + esc(m) + '"><td colspan="9"><span class="mh-t">' + (shut ? "▸ " : "▾ ") + (mm ? mm[1] + ". " + HO[+mm[2] - 1].toLowerCase() : "Dátum nélkül") + "</span>" +
+          '<span class="mh-s">' + g.n + " számla" + (g.be ? " · bevétel " + ft(g.be) : "") + (g.ki ? " · kiadás " + ft(g.ki) : "") + " · nettó " + (ft(g.be - g.ki) === "–" ? "0 Ft" : ft(g.be - g.ki)) + (g.lv ? " · levonható áfa " + ft(g.lv) : "") + "</span></td></tr>";
       }
       if (INVSHUT[m]) return hdr;
       var nv = navCheck(r, c, NIX);
@@ -604,10 +623,21 @@
         '<td data-k="netto" class="n">' + ft(r[c.net]) + "</td>" +
         '<td data-k="brutto" class="n">' + ft(r[c.gross]) + "</td>" +
         '<td data-k="paid">' + (r[c.paid] === true ? '<span class="pill ok">Fizetve</span>' : '<span class="pill open">Nyitott</span>') + "</td>" +
-        '<td data-k="pdf">' + (/^https:\/\//.test(pdf) ? '<a href="' + esc(pdf) + '" target="_blank" rel="noopener">Megnyitás</a>' : "") + "</td></tr>";
+        '<td data-k="pdf">' + (/^https:\/\//.test(pdf) ? '<a href="' + esc(pdf) + '" target="_blank" rel="noopener">Megnyitás</a>' : "") + "</td>" +
+        '<td data-k="levon">' + (ki && num(r[c.vat]) && c.lev > -1 ? '<label class="lev"><input type="checkbox" data-row="' + esc(r[r.length - 1]) + '"' + (r[c.lev] === true ? " checked" : "") + "> " + ft(r[c.vat]) + "</label>" : "") + "</td></tr>";
     }).join("");
-    if (!rows.length) body = '<tr><td class="empty" colspan="8">' + (D.rows.length ? "Nincs a szűrésnek megfelelő számla." : "Még nincs rögzített számla. A táblázat Számlák fülén tudod felvinni őket.") + "</td></tr>";
+    if (!rows.length) body = '<tr><td class="empty" colspan="9">' + (D.rows.length ? "Nincs a szűrésnek megfelelő számla." : "Még nincs rögzített számla. A táblázat Számlák fülén tudod felvinni őket.") + "</td></tr>";
     $("k-inv").innerHTML = th + "<tbody>" + body + "</tbody>";
+    $("k-inv").onchange = function (e) {
+      var cb = e.target; if (!cb.matches || !cb.matches("input[data-row]")) return;
+      var rn = +cb.getAttribute("data-row"), r = D.rows.filter(function (x) { return x[x.length - 1] === rn; })[0]; if (!r) return;
+      var val = cb.checked; cb.disabled = true;
+      call({ action: "levon", token: tok(), row: rn, no: r[c.no], val: val }).then(function (d) {
+        cb.disabled = false;
+        if (d && d.ok) { r[c.lev] = val; renderInv(); clearTimeout(LEVT); LEVT = setTimeout(load, 2500); return; }
+        cb.checked = !val; alert(d && d.error === "moved" ? "A táblázatban időközben elcsúsztak a sorok, frissítsd az oldalt." : "Nem sikerült menteni a pipát.");
+      }, function () { cb.disabled = false; cb.checked = !val; alert("Nem sikerült csatlakozni."); });
+    };
     $("k-inv").onclick = function (e) { var h = e.target.closest("tr.mh"); if (!h) return; var m = h.getAttribute("data-m"); INVSHUT[m] = !INVSHUT[m]; renderInv(); };
     $("k-invmeta").textContent = D.rows.length ? rows.length + " / " + D.rows.length + " számla" : "";
   }
