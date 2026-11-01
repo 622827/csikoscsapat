@@ -220,11 +220,12 @@
   dialog.wide .pk-h { display: flex; align-items: baseline; justify-content: space-between; margin: 28px 0 8px; padding-bottom: 8px; border-bottom: 1px solid var(--track); }
   dialog.wide .pk-h h3 { margin: 0; font-size: 1.05rem; letter-spacing: .01em; }
   dialog.wide .pk-h span { font-size: .8rem; opacity: .6; }
-  dialog.wide .pk-r { display: grid; grid-template-columns: minmax(0,2.2fr) minmax(0,.9fr) minmax(0,1fr) minmax(0,1fr) 36px; gap: 12px; align-items: center; margin-bottom: 8px; }
+  dialog.wide .pk-r { display: grid; grid-template-columns: minmax(0,1.9fr) minmax(0,1fr) minmax(0,1.1fr) minmax(0,.9fr) minmax(0,.9fr) minmax(0,.8fr) 36px; gap: 10px; align-items: center; margin-bottom: 8px; }
   dialog.wide .pk-r.hd { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; opacity: .55; margin-bottom: 4px; }
   dialog.wide .pk-r input { margin: 0; padding: 9px 12px; }
   dialog.wide .pk-r input[inputmode] { text-align: right; }
   dialog.wide .pk-add { margin-top: 6px; }
+  @media (max-width: 700px) { dialog.wide .pk-r { grid-template-columns: 1fr 1fr; } dialog.wide .pk-r.hd { display: none; } dialog.wide .pk-r input:first-child { grid-column: 1 / 3; } dialog.wide .pk-r button { justify-self: end; } dialog.wide .pk-r { padding-bottom: 10px; border-bottom: 1px solid var(--track); } }
   dialog::backdrop { background: rgba(0,0,0,.45); }
   dialog h2 { margin: 0 0 14px; }
   dialog label { display: block; font-weight: 600; font-size: .9rem; margin: 10px 0 0; }
@@ -913,15 +914,17 @@
   function fixOne(P) {
     if (!P || !P.ONE) return false;
     var ONE26 = { "üzleti maxi": 6231, "üzleti midi": 3263, "üzleti mobil medium": 6803, "üzleti pro": 12896, "business mobilenet infinity": 7119, "business office net 1000": 9670 };
+    // beszéd / SMS a One-számla forgalma alapján (hivatalos díjtáblázat nélkül)
+    var ONEBS = { "üzleti maxi": ["korlátlan belföldi", "nincs benne (~20 Ft/db)"], "üzleti midi": ["150 perc + One-on belül korlátlan", "nincs benne"], "üzleti mobil medium": ["korlátlan belföldi", "nincs benne (~24 Ft/db)"], "üzleti pro": ["korlátlan + EU roaming", "valószínűleg benne"], "business mobilenet infinity": ["nincs (csak net)", "nincs"], "business office net 1000": ["nincs (vezetékes net)", "nincs"] };
     var REGI = ["üzleti maxi+10gb", "business red start+10gb", "business red start+10gb+3gb", "üzleti midi+150p+5gb", "midi 10gb + 150 perc", "business l+700p", "üzleti plus+50gb", "10+10 red", "vodafone business xl", "vodafone business s"], ch = false;
-    P.ONE.forEach(function (x) { var v = ONE26[String(x.nev).trim().toLowerCase()]; if (v && !num(x.alap)) { x.alap = v; ch = true; } });
+    P.ONE.forEach(function (x) { var k = String(x.nev).trim().toLowerCase(), v = ONE26[k], t = ONEBS[k]; if (v && !num(x.alap)) { x.alap = v; ch = true; } if (t && x.beszed === undefined && x.sms === undefined) { x.beszed = t[0]; x.sms = t[1]; ch = true; } });
     var n0 = P.ONE.length; P.ONE = P.ONE.filter(function (x) { return !(!num(x.alap) && REGI.indexOf(String(x.nev).trim().toLowerCase()) > -1); }); if (P.ONE.length !== n0) ch = true;
     return ch;
   }
   function pkgs() {
     if (typeof PK !== "undefined" && PK && PK.BB && PK.TFC && PK.ONE) { if (fixOne(PK) && FST && FMODE === "live") FST.F.setDoc(FST.F.doc(FST.db, "perf", fid(), "fl_meta", "pkgs"), { json: JSON.stringify(PK) }).catch(function () {}); return PK; }
     try { var v = JSON.parse(localStorage.getItem(PKEY) || "null"); if (v && v.BB && v.TFC && v.ONE) { if (fixOne(v)) localStorage.setItem(PKEY, JSON.stringify(v)); return v; } } catch (e) {}
-    return JSON.parse(JSON.stringify(PDEF));
+    var d = JSON.parse(JSON.stringify(PDEF)); fixOne(d); return d;
   }
   $("f-pkg").addEventListener("click", function () {
     var data = pkgs(), boxes = {};
@@ -930,20 +933,20 @@
       var note = el("p", "fnote", "Három külön árlista. Itt add meg a csomagdíjat és az admin díjat; egy sor szerkesztésekor a csomag kiválasztásával ezek kitöltődnek. A változtatás az új sor mentésekor érvényesül, a meglévő sorokat nem írja át."); fields.appendChild(note);
       ["BB", "TFC", "ONE"].forEach(function (k) {
         var hh = el("div", "pk-h"); hh.appendChild(el("h3", "", PNAMES[k])); hh.appendChild(el("span", "", "Ft / hó, nettó")); fields.appendChild(hh);
-        var hd = el("div", "pk-r hd"); ["Csomag neve", "Típus", "Csomagdíj", "Admin díj", ""].forEach(function (t) { hd.appendChild(el("span", "", t)); }); fields.appendChild(hd);
+        var hd = el("div", "pk-r hd"); ["Csomag neve", "Net", "Beszéd", "SMS", "Csomagdíj", "Admin díj", ""].forEach(function (t) { hd.appendChild(el("span", "", t)); }); fields.appendChild(hd);
         var box = el("div"); fields.appendChild(box); boxes[k] = [];
         function addRow(r) {
           var w = el("div", "pk-r");
-          var i = { nev: inp("text", r.nev, { placeholder: "pl. Üzleti Maxi" }), csomag: inp("text", r.csomag, { placeholder: "Típus" }), alap: inp("text", r.alap === "" ? "" : String(r.alap), { inputmode: "numeric", placeholder: "Csomagdíj" }), admin: inp("text", r.admin === "" ? "" : String(r.admin), { inputmode: "numeric", placeholder: "Admin" }) };
+          var i = { nev: inp("text", r.nev, { placeholder: "pl. Üzleti Maxi" }), csomag: inp("text", r.csomag, { placeholder: "Net" }), beszed: inp("text", r.beszed || "", { placeholder: "Beszéd" }), sms: inp("text", r.sms || "", { placeholder: "SMS" }), alap: inp("text", r.alap === "" ? "" : String(r.alap), { inputmode: "numeric", placeholder: "Csomagdíj" }), admin: inp("text", r.admin === "" ? "" : String(r.admin), { inputmode: "numeric", placeholder: "Admin" }) };
           var x = el("button", "", "×"); x.type = "button"; x.setAttribute("aria-label", "Csomag törlése"); x.style.cssText = "font:inherit;border:1px solid var(--track);background:var(--bg);color:var(--frk);border-radius:8px;width:34px;height:34px;cursor:pointer";
           var ent = { i: i, w: w }; boxes[k].push(ent);
           x.addEventListener("click", function () { w.remove(); boxes[k].splice(boxes[k].indexOf(ent), 1); });
-          ["nev", "csomag", "alap", "admin"].forEach(function (n) { i[n].style.minWidth = "0"; i[n].setAttribute("aria-label", n); w.appendChild(i[n]); }); w.appendChild(x); box.appendChild(w);
+          ["nev", "csomag", "beszed", "sms", "alap", "admin"].forEach(function (n) { i[n].style.minWidth = "0"; i[n].setAttribute("aria-label", n); w.appendChild(i[n]); }); w.appendChild(x); box.appendChild(w);
         }
         if (!data[k].length) { var e0 = el("p", "fnote", "Még nincs csomag ebben az árlistában."); box.appendChild(e0); }
         data[k].forEach(addRow);
         var ad = el("button", "", "+ Csomag hozzáadása"); ad.type = "button"; ad.className = "pk-add"; ad.style.cssText = "font:inherit;font-weight:600;border:1px dashed var(--track);background:transparent;color:var(--ink);border-radius:999px;padding:7px 16px;cursor:pointer";
-        ad.addEventListener("click", function () { var e = box.querySelector("p.fnote"); if (e) e.remove(); addRow({ nev: "", csomag: "", alap: "", admin: "" }); });
+        ad.addEventListener("click", function () { var e = box.querySelector("p.fnote"); if (e) e.remove(); addRow({ nev: "", csomag: "", beszed: "", sms: "", alap: "", admin: "" }); });
         fields.appendChild(ad);
       });
     }, function () {
@@ -952,7 +955,7 @@
         var i = boxes[k][n].i, nev = i.nev.value.trim(); if (!nev && !i.alap.value.trim()) continue;
         var al = num(i.alap.value || 0), ad = num(i.admin.value || 0);
         if (!nev || !isFinite(al) || !isFinite(ad)) return Promise.reject(new Error("Minden csomagnál add meg az internetet és számokat a díjakhoz."));
-        out[k].push({ nev: nev, csomag: i.csomag.value.trim(), alap: al, admin: ad });
+        out[k].push({ nev: nev, csomag: i.csomag.value.trim(), beszed: i.beszed.value.trim(), sms: i.sms.value.trim(), alap: al, admin: ad });
       }
       if (FMODE !== "live" || !FST) { try { localStorage.setItem(PKEY, JSON.stringify(out)); } catch (e) {} toast("Csomagok mentve ezen az eszközön (a közös tár még nincs betöltve)."); return Promise.resolve(); }
       var F = FST.F, chg = [];
