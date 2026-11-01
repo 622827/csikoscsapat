@@ -390,7 +390,11 @@
   var TITLES = { 5: "Bevétel", 10: "Kiadás", 11: "Eredmény", 16: "Áfa egyenleg" };
 
   function tok() { try { return sessionStorage.getItem(AK) || ""; } catch (e) { return ""; } }
-  function setTok(v) { try { v ? sessionStorage.setItem(AK, v) : sessionStorage.removeItem(AK); } catch (e) {} }
+  function setTok(v) { try { v ? sessionStorage.setItem(AK, v) : (sessionStorage.removeItem(AK), sessionStorage.removeItem(DK)); } catch (e) {} }
+  // Az utoljára letöltött adat a böngészőfülben (csak a munkamenet idejére): azonnal megjelenik, a friss adat a háttérben jön meg.
+  var DK = "csk_admin_data";
+  function cacheGet() { try { var v = JSON.parse(sessionStorage.getItem(DK) || "null"); return v && v.ok ? v : null; } catch (e) { return null; } }
+  function cachePut(d) { try { sessionStorage.setItem(DK, JSON.stringify(d)); } catch (e) {} }
   function call(body) {
     return fetch(KAPI, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) })
       .then(function (r) { return r.json(); });
@@ -428,13 +432,15 @@
 
   function load() {
     var t = tok(); if (!t || !KAPI) { showLock(KAPI ? "" : "Az admin háttér még nincs bekötve."); return; }
-    showMain(); loading(true);
+    var c = D || cacheGet();
+    if (c) { showMain(); if (!D) { D = c; render(); } if (!/frissítés…/.test($("k-meta").textContent)) $("k-meta").textContent += " · frissítés…"; }
+    else { showMain(); loading(true); }
     call({ action: "data", token: t }).then(function (d) {
       loading(false);
-      if (!d || d.error === "auth") { setTok(""); showLock("A munkamenet lejárt, lépj be újra."); return; }
-      if (!d.ok) { showLock("Hiba a betöltéskor: " + (d.msg || d.error || "ismeretlen")); return; }
-      D = d; showMain(); render();
-    }).catch(function () { loading(false); showMain(); $("k-meta").textContent = "Nem sikerült betölteni az adatokat."; });
+      if (!d || d.error === "auth") { setTok(""); D = null; showLock("A munkamenet lejárt, lépj be újra."); return; }
+      if (!d.ok) { if (c) { $("k-meta").textContent = $("k-meta").textContent.replace(" · frissítés…", " · a frissítés nem sikerült"); return; } showLock("Hiba a betöltéskor: " + (d.msg || d.error || "ismeretlen")); return; }
+      D = d; cachePut(d); showMain(); render();
+    }).catch(function () { loading(false); showMain(); $("k-meta").textContent = c ? $("k-meta").textContent.replace(" · frissítés…", " · a frissítés nem sikerült") : "Nem sikerült betölteni az adatokat."; });
   }
 
   function render() {
