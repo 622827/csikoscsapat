@@ -130,6 +130,15 @@
   @media (max-width: 900px) { .hpf { grid-template-columns: 1fr 1fr; } .hpf .wide { grid-column: 1 / -1; } }
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 18px 0 4px; }
   .kpi { background: var(--card); border-radius: 16px; padding: 16px 18px; }
+  /* reprezentációs keret: az éves bevétel 1%-a adómentes (étterem, cukrászda) */
+  .repr { background: var(--card); border-radius: 16px; padding: 14px 18px 16px; margin: 0 0 14px; }
+  .repr .rt { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; align-items: baseline; font-weight: 700; }
+  .repr .rt small { font-weight: 600; color: var(--muted); }
+  .repr .bar { position: relative; height: 16px; border-radius: 999px; background: var(--track); margin: 10px 0 6px; overflow: hidden; }
+  .repr .bar i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; transition: width .6s ease; }
+  .repr .bar i.g { background: #2e9e6b; } .repr .bar i.y { background: #e0a800; } .repr .bar i.r { background: #d93a3a; }
+  .repr .bar b { position: absolute; top: 0; bottom: 0; width: 2px; background: color-mix(in srgb, var(--ink) 35%, transparent); }
+  .repr .rl { display: flex; justify-content: space-between; font-size: .82rem; color: var(--muted); }
   .kpi .l { margin: 0; font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
   .kpi .v { margin: 6px 0 0; font-size: clamp(1.35rem, 3vw, 1.75rem); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
   .kpi .s { margin: 4px 0 0; font-size: .85rem; color: var(--muted); }
@@ -378,6 +387,7 @@
     </details>
 
     <h2>Számlák összesítője</h2>
+    <div class="repr" id="k-repr"></div>
     <div class="kpis" id="k-kpis"></div>
 
     <h2>Havi összesítő</h2>
@@ -481,6 +491,15 @@
     }).catch(function () { loading(false); showMain(); $("k-meta").textContent = c ? $("k-meta").textContent.replace(" · frissítés…", " · a frissítés nem sikerült") : "Nem sikerült betölteni az adatokat."; });
   }
 
+  // Reprezentációs keret: max = az éves (eddigi) bevétel 1%-a; állás = a "Reprezentáció" kategóriás kiadások bruttója
+  function renderRepr() {
+    var c = CC(), bev = num(D.total && D.total[hx("Bevétel összesen")]), max = Math.min(Math.round(bev * 0.01), 100000000), cur = 0, n = 0;
+    (D.rows || []).forEach(function (r) { if (r[c.dir] === "Kiadás" && String(r[col("Kategória")]).toLowerCase() === "reprezentáció") { cur += num(r[c.gross]) || num(r[c.net]); n++; } });
+    var p = max ? cur / max : 0, cls = p >= 0.8 ? "r" : p >= 0.5 ? "y" : "g";
+    $("k-repr").innerHTML = '<div class="rt"><span>Reprezentáció (étterem, cukrászda) – adómentes keret</span><small>' + ft(cur) + " / " + ft(max) + " · " + Math.round(p * 100) + "% · " + n + " számla</small></div>" +
+      '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="' + max + '" aria-valuenow="' + cur + '"><i class="' + cls + '" style="width:' + Math.min(100, p * 100).toFixed(1) + '%"></i><b style="left:50%"></b><b style="left:80%"></b></div>' +
+      '<div class="rl"><span>Jelenlegi állás: <b>' + (ft(cur) === "–" ? "0 Ft" : ft(cur)) + "</b>" + (cur > max ? " – túllépve " + ft(cur - max) + "-tal, a többlet után kb. 33% adó jár" : " – még " + ft(max - cur) + " fér bele") + "</span><span>Maximum: <b>" + ft(max) + "</b> (az idei bevétel " + ft(bev) + " 1%-a)</span></div>";
+  }
   function render() {
     D._combo = null;
     var t = D.total, now = new Date(), cm = now.getFullYear() === 2026 ? now.getMonth() + 1 : 12;
@@ -493,7 +512,7 @@
       ["Eredmény", '<span class="' + (res < 0 ? "neg" : "") + '">' + ft(res) + "</span>", "bevétel − kiadás, nettó"],
       ["Áfa egyenleg", ft(vat), vat >= 0 ? "fizetendő − levonható" : "visszaigényelhető"]
     ].map(function (k) { return '<div class="kpi"><p class="l">' + k[0] + '</p><p class="v">' + k[1] + '</p><p class="s">' + k[2] + "</p></div>"; }).join("");
-    renderMonths(cm);
+    renderMonths(cm); renderRepr();
     var r = num(D.ratio);
     var rb = ratioBase();
     $("k-ratio").textContent = "Levonható áfa: „Teljes” pipa = a számla teljes áfája; „Arányos” pipa = az áfa " + pct(r) + "-a. Az arány: áfás (adóköteles) bevétel " + ft(rb.ado) + " ÷ összes bevétel " + ft(rb.ossz) + " (óvadék nélkül), az év eddigi számláiból.";
@@ -749,7 +768,7 @@
       .replace(/\b(kft|zrt|nyrt|bt|ev|rt|kkt|e v|korlátolt|felelősségű|társaság|zártkörűen|működő|részvénytársaság|kereskedelmi|magyarország|hungary|limited|ltd)\b/g, " ")
       .replace(/\s+/g, " ").trim();
   }
-  var KAT = ["Flotta", "Utazás", "Iroda", "Készlet", "Alvállalkozó", "OVB Jutalék", "Fővállalkozó", "Óvadék"];
+  var KAT = ["Flotta", "Utazás", "Iroda", "Készlet", "Alvállalkozó", "OVB Jutalék", "Fővállalkozó", "Reprezentáció", "Óvadék"];
   function katSel(r, c) {
     var cur = String(r[c.cat] || ""), opts = KAT.slice(), hit = KAT.filter(function (k) { return k.toLowerCase() === cur.toLowerCase(); })[0];
     if (cur && !hit) opts.push(cur);
