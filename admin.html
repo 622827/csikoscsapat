@@ -293,6 +293,11 @@
   .inv td[data-k=levon] .fiz { font-size: .82rem; color: var(--muted); }
   .inv label.lev { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: .88rem; }
   .inv label.lev input { width: 18px; height: 18px; accent-color: var(--ok); cursor: pointer; }
+  @keyframes rowin { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  @keyframes rowout { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-6px); } }
+  .inv tr.rin { animation: rowin .26s cubic-bezier(.2,.7,.2,1) both; }
+  .inv tr.rout { animation: rowout .17s ease-in both; }
+  .inv tr.mh .mh-t { transition: color .2s; }
   .inv tr.fx { cursor: pointer; }
   .inv tr.fx:hover td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
   .inv tr.fx td:first-child::before { content: "▸"; display: inline-block; width: 14px; color: var(--muted); transition: transform .15s; }
@@ -709,6 +714,39 @@
     renderAccList();
   }
   var PMOPEN = {};
+  // ===== Animációk: hónapsorok, lenyíló részletek, <details> blokkok =====
+  var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function rowsAfter(h) { var o = [], n = h.nextElementSibling; while (n && !n.classList.contains("mh")) { o.push(n); n = n.nextElementSibling; } return o; }
+  function toggleMonth(h, opening, done, sel) {
+    var m = h.getAttribute("data-m");
+    if (opening) { done(); if (RM) return; var nh = document.querySelector(sel + ' tr.mh[data-m="' + m + '"]'); if (nh) rowsAfter(nh).forEach(function (r, i) { if (!r.hidden) { r.style.animationDelay = Math.min(i, 14) * 16 + "ms"; r.classList.add("rin"); } }); return; }
+    var rs = rowsAfter(h); if (RM || !rs.length) { done(); return; }
+    rs.forEach(function (r) { r.classList.add("rout"); }); setTimeout(done, 170);
+  }
+  function toggleFx(tr, nx) {
+    if (nx.hidden) { nx.hidden = false; tr.classList.add("open"); if (!RM) { nx.classList.remove("rout"); nx.classList.add("rin"); } return; }
+    tr.classList.remove("open"); if (RM) { nx.hidden = true; return; }
+    nx.classList.remove("rin"); nx.classList.add("rout"); setTimeout(function () { nx.hidden = true; nx.classList.remove("rout"); }, 170);
+  }
+  // <details>: magasság-animáció nyitáskor és csukáskor
+  document.addEventListener("click", function (e) {
+    var sm = e.target.closest && e.target.closest("summary"); if (!sm || RM || !sm.parentElement || sm.parentElement.tagName !== "DETAILS") return;
+    if (e.target.closest("input,select,button:not(summary),a")) return;
+    var d = sm.parentElement; if (d.dataset.anim) { e.preventDefault(); return; }
+    e.preventDefault(); d.dataset.anim = "1";
+    var start = d.offsetHeight;
+    if (!d.open) {
+      d.open = true; var end = d.offsetHeight; d.style.overflow = "hidden";
+      var a = d.animate([{ height: start + "px" }, { height: end + "px" }], { duration: 260, easing: "cubic-bezier(.2,.7,.2,1)" });
+      a.onfinish = a.oncancel = function () { d.style.overflow = ""; delete d.dataset.anim; };
+    } else {
+      var endC = sm.offsetHeight + (parseFloat(getComputedStyle(d).paddingTop) || 0) + (parseFloat(getComputedStyle(d).paddingBottom) || 0) + (parseFloat(getComputedStyle(d).borderTopWidth) || 0) + (parseFloat(getComputedStyle(d).borderBottomWidth) || 0);
+      d.style.overflow = "hidden";
+      var b = d.animate([{ height: start + "px" }, { height: endC + "px" }], { duration: 220, easing: "cubic-bezier(.4,0,.6,1)" });
+      b.onfinish = function () { d.open = false; d.style.overflow = ""; delete d.dataset.anim; };
+      b.oncancel = function () { d.style.overflow = ""; delete d.dataset.anim; };
+    }
+  }, true);
   function renderAccList() {
     var q = $("p-q").value.trim().toLowerCase(), all = accRows(acc);
     var rows = all.filter(function (r) { return !q || [r.p, r.k, r.t, r.inv].join(" ").toLowerCase().indexOf(q) > -1; }).reverse();
@@ -729,7 +767,8 @@
     }).join("");
     if (!rows.length) body = '<tr><td class="empty" colspan="7">' + (all.length ? "Nincs találat." : (acc === "Házipénztár" ? "Még nincs rögzített pénztártétel. A fenti űrlappal tudod felvinni." : "Ehhez a számlához még nincs beolvasott kivonat.")) + "</td></tr>";
     $("p-list").innerHTML = th + "<tbody>" + body + "</tbody>";
-    $("p-list").onclick = function (e) { var h = e.target.closest("tr.mh"); if (!h || q) return; var k = acc + "|" + h.getAttribute("data-m"); PMOPEN[k] = !PMOPEN[k]; renderAccList(); };
+    $("p-list").onclick = function (e) { var h = e.target.closest("tr.mh"); if (!h || q) return; var k = acc + "|" + h.getAttribute("data-m");
+      toggleMonth(h, !PMOPEN[k], function () { PMOPEN[k] = !PMOPEN[k]; renderAccList(); }, "#p-list"); };
     $("p-meta").textContent = all.length ? rows.length + " / " + all.length + " tétel" : "";
     $("p-sum").textContent = ($("p-det").open ? "Tételek elrejtése" : "Tételek megjelenítése") + " (" + all.length + ")";
   }
@@ -993,8 +1032,9 @@
     $("k-inv").onclick = function (e) {
       if (e.target.closest("a,input,select,label")) return;
       var fx = e.target.closest("tr.fx"), nx = fx && fx.nextElementSibling;
-      if (nx && nx.classList.contains("fxd")) { nx.hidden = !nx.hidden; fx.classList.toggle("open", !nx.hidden); return; }
-      var h = e.target.closest("tr.mh"); if (!h) return; if (q) return; var m = h.getAttribute("data-m"); INVOPEN[m] = !INVOPEN[m]; renderInv(); };
+      if (nx && nx.classList.contains("fxd")) { toggleFx(fx, nx); return; }
+      var h = e.target.closest("tr.mh"); if (!h) return; if (q) return; var m = h.getAttribute("data-m");
+      toggleMonth(h, !INVOPEN[m], function () { INVOPEN[m] = !INVOPEN[m]; renderInv(); }, "#k-inv"); };
     $("k-invmeta").textContent = D.rows.length ? rows.length + " / " + D.rows.length + " számla" : "";
   }
 
@@ -1225,7 +1265,7 @@
   $("fl-det").addEventListener("click", function (e) {
     if (e.target.closest("a,button,input,form,summary")) return;
     var tr = e.target.closest("tr.fx"), nx = tr && tr.nextElementSibling; if (!nx || !nx.classList.contains("fxd")) return;
-    nx.hidden = !nx.hidden; tr.classList.toggle("open", !nx.hidden);
+    toggleFx(tr, nx);
   });
   function renderNav() {
     var st = (D && D.navState) || {}, nav = (D && D.nav) || [];
