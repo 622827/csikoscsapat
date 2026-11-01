@@ -357,7 +357,7 @@
 
 
     <details class="flg" id="fl-det">
-      <summary><span id="fl-sum">Flaggelt tételek</span><span class="meta" id="fl-meta"></span></summary>
+      <summary><span id="fl-sum" title="Red flag tételek" aria-label="Red flag tételek">🚩</span><span class="meta" id="fl-meta"></span></summary>
       <p class="note" style="margin-top:4px">Automatikus ellenőrzés a könyvelési táblázatból. Nem kerül ide a banki díj, a kamat, a jutalék, a NAV-befizetés, a tagi kölcsön, a saját számlák közötti átvezetés és a készpénzfelvétel, ezekhez nem kell számla. <b>Kattints egy tételre</b>: lenyílik, mi a probléma, és mit javaslunk.</p>
       <h3 id="fl-h1">Pénzmozgás számla nélkül</h3>
       <div class="tw"><table class="inv" id="fl-mv"></table></div>
@@ -886,7 +886,7 @@
     var sm = mv.reduce(function (s, x) { return s + Math.abs(x.v); }, 0), si = inv.reduce(function (s, x) { return s + x.g; }, 0);
     $("fl-h1").textContent = "Pénzmozgás számla nélkül (" + mv.length + ")";
     $("fl-h2").textContent = "Számla pénzmozgás nélkül (" + inv.length + ")";
-    $("fl-sum").textContent = "Flaggelt tételek (" + (mv.length + inv.length) + ")";
+    $("fl-sum").textContent = "🚩 " + (mv.length + inv.length);
     $("fl-meta").textContent = (mv.length + inv.length) ? mv.length + " mozgás számla nélkül · " + inv.length + " számla pénzmozgás nélkül" : "minden rendben";
     $("fl-det").classList.toggle("ok", !(mv.length + inv.length));
     $("fl-mv").innerHTML = "<thead><tr><th>Dátum</th><th>Partner</th><th>Tranzakció</th><th>Közlemény</th><th style='text-align:right'>Összeg</th><th>Számla</th></tr></thead><tbody>" +
