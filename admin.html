@@ -564,7 +564,7 @@
     $("k-month").innerHTML = th + "<tbody>" + body + "</tbody>" + tf;
   }
 
-  var INVSHUT = {};
+  var INVOPEN = {};   // a hónapok alapból csukva, kattintásra nyílnak
   // NAV-ellenőrzés: számlaszám szerint összeveti a Számlák fület a NAV Online Számla adataival (csak jelzés, nem ír semmit).
   function navNo(s) { return String(s || "").toLowerCase().replace(/\s+/g, ""); }
   function navNem(no) { return /^szbs_/i.test(String(no).trim()); }   // az OVB számviteli bizonylata nem kerül az Online Számlába
@@ -609,11 +609,11 @@
     var body = rows.map(function (r) {
       var d = hd(r[c.perf] || r[c.iss]), ki = r[c.dir] === "Kiadás", pdf = String(r[c.pdf] || ""), m = d.slice(0, 7) || "–", hdr = "";
       if (m !== lastM) {
-        lastM = m; var g = grp[m], mm = /^(\d{4})\.(\d{2})$/.exec(m), shut = !!INVSHUT[m];
+        lastM = m; var g = grp[m], mm = /^(\d{4})\.(\d{2})$/.exec(m), shut = !q && !INVOPEN[m];
         hdr = '<tr class="mh' + (shut ? " shut" : "") + '" data-m="' + esc(m) + '"><td colspan="9"><span class="mh-t">' + (shut ? "▸ " : "▾ ") + (mm ? mm[1] + ". " + HO[+mm[2] - 1].toLowerCase() : "Dátum nélkül") + "</span>" +
           '<span class="mh-s">' + g.n + " számla" + (g.be ? " · bevétel " + ft(g.be) : "") + (g.ki ? " · kiadás " + ft(g.ki) : "") + " · nettó " + (ft(g.be - g.ki) === "–" ? "0 Ft" : ft(g.be - g.ki)) + (g.lv ? " · levonható áfa " + ft(g.lv) : "") + "</span></td></tr>";
       }
-      if (INVSHUT[m]) return hdr;
+      if (!q && !INVOPEN[m]) return hdr;
       var nv = navCheck(r, c, NIX);
       return hdr + "<tr" + (nv ? ' class="' + nv.cls + '" title="' + esc(nv.txt) + '"' : "") + ">" +
         '<td data-k="date">' + esc(d) + "</td>" +
@@ -638,7 +638,7 @@
         cb.checked = !val; alert(d && d.error === "moved" ? "A táblázatban időközben elcsúsztak a sorok, frissítsd az oldalt." : "Nem sikerült menteni a pipát.");
       }, function () { cb.disabled = false; cb.checked = !val; alert("Nem sikerült csatlakozni."); });
     };
-    $("k-inv").onclick = function (e) { var h = e.target.closest("tr.mh"); if (!h) return; var m = h.getAttribute("data-m"); INVSHUT[m] = !INVSHUT[m]; renderInv(); };
+    $("k-inv").onclick = function (e) { var h = e.target.closest("tr.mh"); if (!h) return; if (q) return; var m = h.getAttribute("data-m"); INVOPEN[m] = !INVOPEN[m]; renderInv(); };
     $("k-invmeta").textContent = D.rows.length ? rows.length + " / " + D.rows.length + " számla" : "";
   }
 
