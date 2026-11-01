@@ -143,6 +143,12 @@
   .szk table.szkt td.n { text-align: right; white-space: nowrap; font-weight: 600; width: 120px; }
   .szk table.szkt td:last-child { color: var(--muted); font-size: .8rem; }
   .szk table.szkt tr.tot td { font-weight: 700; color: var(--ink); }
+  .szk .szkb { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--track); }
+  .szk .szkb .rl { margin-top: 4px; justify-content: flex-start; }
+  .szk .szkc { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: end; margin-top: 10px; font-size: .85rem; }
+  .szk .szkc label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); }
+  .szk .szkc input { font: inherit; width: 130px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--track); background: var(--bg); color: var(--ink); }
+  .szk .szkc p { margin: 0; flex-basis: 100%; }
   .repr { background: var(--card); border-radius: 16px; padding: 14px 18px 16px; margin: 0 0 14px; }
   .repr .rt { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; align-items: baseline; font-weight: 700; }
   .repr .rt small { font-weight: 600; color: var(--muted); }
@@ -625,7 +631,40 @@
       sor("Egyszeri díjak", g.egy, "pl. hitelképesség-vizsgálat, kártya") +
       (g.kedv ? sor("Kedvezmények (jóváírva)", -g.kedv, "") : "") +
       '<tr class="tot"><td>Összes költség eddig</td><td class="n">' + ft(ossz) + "</td><td>" + (last ? "legutóbbi hónap: " + ft(last) : "") + (used >= 100000 ? " · ez a felhasznált összeg " + (ossz / used * 100).toLocaleString("hu-HU", { maximumFractionDigits: 1 }) + "%-a" : " · a keretet még alig használod: a költség a keret fenntartásáért megy") + "</td></tr>" +
-      "</tbody></table>";
+      "</tbody></table>" + szkBecsles(rows);
+    szkCalc();
+  }
+  // Napi becslés a Széchenyi-számla egyenlegeiből: kamat a lehívott összeg után, jutalék a ki nem használt keret után (napra arányosan, 360 napos év)
+  var SZK_RTJ = 0.01;
+  function szkRate() { try { var v = parseFloat(localStorage.getItem("csk_szk_rate")); return v > 0 ? v : 5.89; } catch (e) { return 5.89; } }
+  function szkBecsles(rows) {
+    var ev = rows.map(function (r) { return { d: flDay(hd(r[2])), raw: num(r[6]) }; }).filter(function (x) { return x.d !== null; }).sort(function (a, b) { return a.d - b.d; });
+    if (!ev.length) return "";
+    var today = Math.floor(Date.now() / 86400000), rate = szkRate() / 100, kam = 0, rtj = 0, days = 0, sumUsed = 0, i = 0, bal = 0, maxU = 0;
+    for (var d = ev[0].d; d <= today; d++) {
+      while (i < ev.length && ev[i].d <= d) { bal = ev[i].raw; i++; }
+      var used = Math.max(0, -bal); maxU = Math.max(maxU, used);
+      kam += used * rate / 360; rtj += Math.max(0, SZK_KERET - used) * SZK_RTJ / 360; sumUsed += used; days++;
+    }
+    return '<div class="szkb"><div class="rt"><span>Becslés napra arányosan (a kivonatok napi egyenlegeiből, ' + days + " nap)</span></div>" +
+      '<div class="rl"><span>Átlagos napi kihasználtság: <b>' + ft(Math.round(sumUsed / days)) + "</b> (" + (sumUsed / days / SZK_KERET * 100).toLocaleString("hu-HU", { maximumFractionDigits: 1 }) + "%) · legnagyobb: " + (maxU ? ft(maxU) : "0 Ft") + "</span></div>" +
+      '<div class="rl"><span>Becsült kamat eddig: <b>' + (Math.round(kam) ? ft(kam) : "0 Ft") + "</b> · becsült rendelkezésre tartási jutalék eddig: <b>" + ft(rtj) + "</b></span></div>" +
+      '<div class="szkc"><label>Ügyleti kamat (%/év) <input type="number" step="0.01" min="0" id="szk-rate" value="' + szkRate() + '"></label>' +
+      '<label>Lehívás (Ft) <input type="number" step="100000" min="0" id="szk-amt" value="2000000"></label>' +
+      '<label>Napok <input type="number" step="1" min="1" id="szk-days" value="7"></label><p id="szk-out"></p></div>' +
+      '<p class="note" style="margin:6px 0 0">A kamatláb becslés (3 havi BUBOR alapú MAX+ kamat, 2026 nyarán 5,89%) – írd át a szerződésben szereplőre, a böngésző megjegyzi. A jutalék 1%/év a ki nem használt keret után (a kivonat szerint).</p></div>';
+  }
+  function szkCalc() {
+    var ri = $("szk-rate"); if (!ri) return;
+    function upd() {
+      var rate = parseFloat(ri.value) / 100 || 0, a = Math.max(0, parseFloat($("szk-amt").value) || 0), n = Math.max(0, parseFloat($("szk-days").value) || 0);
+      try { if (parseFloat(ri.value) > 0) localStorage.setItem("csk_szk_rate", String(parseFloat(ri.value))); } catch (e) {}
+      var k = a * rate * n / 360, j = Math.min(a, SZK_KERET) * SZK_RTJ * n / 360;
+      $("szk-out").innerHTML = "Kamat: <b>" + ft(k) + "</b> − jutalék-megtakarítás: <b>" + ft(j) + "</b> = nettó plusz költség: <b>" + ft(k - j) + "</b>";
+    }
+    ["szk-rate", "szk-amt", "szk-days"].forEach(function (id) { $(id).oninput = upd; });
+    $("szk-rate").onchange = function () { renderSzk(); };
+    upd();
   }
   function renderAcc() {
     $("p-cards").innerHTML = ACC.map(function (n) {
