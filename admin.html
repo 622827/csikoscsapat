@@ -415,7 +415,7 @@
     $("kp-go").disabled = true; $("kp-err").textContent = "";
     call({ action: "login", pw: pw }).then(function (d) {
       $("kp-go").disabled = false;
-      if (d && d.ok && d.token) { setTok(d.token); szSetKey(pw); $("kp-pw").value = ""; load(); return; }
+      if (d && d.ok && d.token) { setTok(d.token); szSetKey(pw, d.szkey); $("kp-pw").value = ""; load(); return; }
       $("kp-err").textContent = d && d.error === "locked" ? "Túl sok hibás próbálkozás, várj 15 percet." : "Hibás jelszó.";
       $("kp-pw").select();
     }).catch(function () { $("kp-go").disabled = false; $("kp-err").textContent = "Nem sikerült csatlakozni, próbáld újra."; });
@@ -849,11 +849,12 @@
   }
 
   // ===== SZÁMLÁK: PDF-feltöltés a közös tárba (Firestore: perf/<kulcs>/sz_files + sz_chunks) =====
-  // A kulcs az admin jelszóból képzett lenyomat; a fájl ~700 KB-os darabokban kerül a tárba (egy bejegyzés legfeljebb 1 MB lehet).
+  // A kulcsot belépéskor a háttér adja (minden admin jelszóval ugyanaz); a fájl ~700 KB-os darabokban kerül a tárba (egy bejegyzés legfeljebb 1 MB lehet).
   var SZK = "csk_szkey", SZCH = 700 * 1024, SZMAX = 15 * 1024 * 1024, SZ = null, SZFILES = [], szUnsub = null, szPick = [];
   function szKey() { try { return localStorage.getItem(SZK) || ""; } catch (e) { return ""; } }
   function szHash(s) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }); }
-  function szSetKey(pw) {
+  function szSetKey(pw, key) {
+    if (key) { try { localStorage.setItem(SZK, key); } catch (e) {} return Promise.resolve(); }   // a háttér adja: minden jelszóval ugyanaz a tár
     if (!pw) { try { localStorage.removeItem(SZK); } catch (e) {} if (szUnsub) { szUnsub(); szUnsub = null; } return; }
     szHash("csk-szamla|" + pw).then(function (h) { try { localStorage.setItem(SZK, h); } catch (e) {} });
   }
@@ -1025,7 +1026,7 @@
     call({ action: "login", pw: pw }).then(function (d) {
       if (!(d && d.ok && d.token)) { $("sz-meta").textContent = d && d.error === "locked" ? "Túl sok hibás próbálkozás, várj 15 percet." : "Hibás jelszó."; return; }
       call({ action: "logout", token: d.token }).catch(function () {});
-      return szHash("csk-szamla|" + pw).then(function (h) { try { localStorage.setItem(SZK, h); } catch (er) {} $("sz-pw").value = ""; szOpen(); });
+      return (d.szkey ? Promise.resolve(d.szkey) : szHash("csk-szamla|" + pw)).then(function (h) { try { localStorage.setItem(SZK, h); } catch (er) {} $("sz-pw").value = ""; szOpen(); });
     }).catch(function () { $("sz-meta").textContent = "Nem sikerült csatlakozni, próbáld újra."; });
   });
   $("sz-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); showMain(); });
