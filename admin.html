@@ -211,9 +211,9 @@
     #fl-mv th:nth-child(1), #fl-inv th:nth-child(1) { width: 92px; } #fl-mv th:nth-child(3) { width: 170px; } #fl-mv th:nth-child(5) { width: 112px; } #fl-mv th:nth-child(6) { width: 120px; }
     #fl-inv th:nth-child(3) { width: 80px; } #fl-inv th:nth-child(4) { width: 196px; } #fl-inv th:nth-child(5) { width: 108px; } #fl-inv th:nth-child(6) { width: 108px; } #fl-inv th:nth-child(7) { width: 72px; }
     #fl-mv td[data-k=cat] { font-size: .85rem; }
-    #fl-mv th:nth-child(1), #fl-inv th:nth-child(1), #nav-dl th:nth-child(1), #nav-only th:nth-child(1) { width: 112px; } #nav-dl th:nth-child(3), #nav-only th:nth-child(3) { width: 80px; } #nav-dl th:nth-child(4), #nav-only th:nth-child(4) { width: 196px; }
-    #nav-dl th:nth-child(5), #nav-only th:nth-child(5) { width: 108px; } #nav-dl th:nth-child(6), #nav-only th:nth-child(6) { width: 130px; }
-    #nav-dl td[data-k=no], #nav-only td[data-k=no] { overflow-wrap: anywhere; }
+    #fl-mv th:nth-child(1), #fl-inv th:nth-child(1), #nav-dl th:nth-child(1), #nav-nol th:nth-child(1), #nav-only th:nth-child(1), #nav-only2 th:nth-child(1) { width: 112px; } #nav-dl th:nth-child(3), #nav-nol th:nth-child(3), #nav-only th:nth-child(3), #nav-only2 th:nth-child(3) { width: 80px; } #nav-dl th:nth-child(4), #nav-nol th:nth-child(4), #nav-only th:nth-child(4), #nav-only2 th:nth-child(4) { width: 196px; }
+    #nav-dl th:nth-child(5), #nav-nol th:nth-child(5), #nav-only th:nth-child(5), #nav-only2 th:nth-child(5) { width: 108px; } #nav-dl th:nth-child(6), #nav-nol th:nth-child(6), #nav-only th:nth-child(6), #nav-only2 th:nth-child(6) { width: 130px; }
+    #nav-dl td[data-k=no], #nav-nol td[data-k=no], #nav-only td[data-k=no], #nav-only2 td[data-k=no] { overflow-wrap: anywhere; }
     #p-list th:nth-child(1) { width: 92px; } #p-list th:nth-child(3) { width: 150px; }
     #p-list th:nth-child(5), #p-list th:nth-child(6) { width: 112px; } #p-list th:nth-child(7) { width: 150px; }
     #p-list td[data-k=cat] { font-size: .85rem; }
@@ -235,6 +235,11 @@
   details.flg > summary .meta { font-weight: 600; }
   details.flg h3 { font-size: 1rem; margin: 18px 0 8px; }
   details.flsub > summary { cursor: pointer; list-style: none; }
+  details.flg h4.navh { font-size: .95rem; margin: 14px 0 6px; display: inline-block; }
+  details.flsub.sub { margin-left: 4px; } details.flsub.sub2 { margin-left: 18px; }
+  details.flsub > summary h4::before { content: "▸ "; color: var(--muted); }
+  details.flsub[open] > summary h4::before { content: "▾ "; }
+  details.flg p.navn { margin: 0 0 8px; }
   details.flsub > summary::-webkit-details-marker { display: none; }
   details.flsub > summary h3 { display: inline-block; }
   details.flsub > summary h3::before { content: "▸ "; color: var(--muted); }
@@ -385,8 +390,12 @@
         <button class="btn pri" type="submit" id="nav-go">Mentés és lekérdezés</button>
         <p class="msg" id="nav-msg"></p>
       </form>
-      <div class="tw" id="nav-diff-w" hidden><table class="inv" id="nav-dl"></table></div>
-      <div class="tw" id="nav-only-w" hidden><table class="inv" id="nav-only"></table></div>
+      <details class="flsub sub" id="nav-diff-w" hidden><summary><h4 class="navh" id="nav-h1"></h4></summary><p class="note navn">A számla a táblázatban és a NAV-ban (vagy a bankban) is megvan, de valamelyik adata eltér.</p><div class="tw"><table class="inv" id="nav-dl"></table></div></details>
+      <details class="flsub sub" id="nav-no-w" hidden><summary><h4 class="navh" id="nav-h2"></h4></summary><p class="note navn">A táblázatban szerepel, de a NAV-ban nincs ilyen számlaszám (elírás, vagy a kiállító nem küldte be).</p><div class="tw"><table class="inv" id="nav-nol"></table></div></details>
+      <details class="flsub sub" id="nav-only-w" hidden><summary><h4 class="navh" id="nav-h3"></h4></summary><p class="note navn">A NAV-ban megvan a TFC nevére, de a táblázatból hiányzik (fel kell vinni, vagy nem a cégé).</p>
+        <details class="flsub sub2"><summary><h4 class="navh" id="nav-h3a"></h4></summary><div class="tw"><table class="inv" id="nav-only"></table></div></details>
+        <details class="flsub sub2"><summary><h4 class="navh" id="nav-h3b"></h4></summary><div class="tw"><table class="inv" id="nav-only2"></table></div></details>
+      </details>
       </details>
     </details>
 
@@ -1220,19 +1229,25 @@
     var diffN = 0, noN = 0, ix = navIndex(), cc = { no: col("Számlaszám"), gross: col("Bruttó (Ft)"), net: col("Nettó (Ft)"), perf: col("Teljesítés dátuma"), iss: col("Kiállítás dátuma"), partner: col("Partner"), dir: col("Irány") }, dl = [];
     ((D && D.rows) || []).forEach(function (r) { var v = chk(r, ix); if (v && v.tag === "diff") diffN++; else if (v) noN++; if (v) dl.push({ r: r, v: v }); });
     dl.sort(function (a, b) { return (a.v.tag === "diff" ? 0 : 1) - (b.v.tag === "diff" ? 0 : 1) || hd(b.r[cc.perf] || b.r[cc.iss]).localeCompare(hd(a.r[cc.perf] || a.r[cc.iss])); });
-    $("nav-diff-w").hidden = !dl.length;
-    $("nav-dl").innerHTML = "<thead><tr><th>Teljesítés</th><th>Partner</th><th>Irány</th><th>Számlaszám</th><th style='text-align:right'>Bruttó</th><th>Jelzés</th></tr></thead><tbody>" + dl.map(function (o) {
+    var dlD = dl.filter(function (o) { return o.v.tag === "diff"; }), dlN = dl.filter(function (o) { return o.v.tag !== "diff"; });
+    $("nav-diff-w").hidden = !dlD.length; $("nav-no-w").hidden = !dlN.length;
+    $("nav-h1").textContent = "1. Eltérés (" + dlD.length + ")"; $("nav-h2").textContent = "2. A NAV-ban nem található (" + dlN.length + ")"; $("nav-h3").textContent = "3. Csak a NAV-ban van (" + only.length + ")";
+    function dlRows(list) { return "<thead><tr><th>Teljesítés</th><th>Partner</th><th>Irány</th><th>Számlaszám</th><th style='text-align:right'>Bruttó</th><th>Jelzés</th></tr></thead><tbody>" + list.map(function (o) {
       var r = o.r;
       return fxRow('<tr class="' + o.v.cls + '"><td data-k="date">' + esc(hd(r[cc.perf] || r[cc.iss])) + '</td><td data-k="partner">' + esc(r[cc.partner] || "–") + '</td><td data-k="cat">' + esc(r[cc.dir]) + '</td><td data-k="no">' + esc(r[cc.no]) + '</td><td data-k="brutto" class="n">' + ft(num(r[cc.gross]) || num(r[cc.net])) + '</td><td data-k="paid"><span class="navtag ' + o.v.tag + '">' + (o.v.tag === "diff" ? o.v.lbl || "NAV-eltérés" : "nincs a NAV-ban") + "</span></td></tr>", diagDiff(r, cc, o.v), 6);
-    }).join("") + "</tbody>";
+    }).join("") + "</tbody>"; }
+    $("nav-dl").innerHTML = dlRows(dlD); $("nav-nol").innerHTML = dlRows(dlN);
     $("fl-h3").textContent = "NAV-ellenőrzés (" + (only.length + diffN + noN) + ")";
     $("nav-st").innerHTML = esc(nav.length + " NAV-számla · utolsó lekérdezés: " + (st.last ? new Date(st.last).toLocaleString("hu-HU", { dateStyle: "medium", timeStyle: "short" }) : "–") + " · ") +
       '<b style="color:#b9770e">' + diffN + " eltérő</b> és <b>" + noN + " NAV-ban nem található</b> tétel a számlalistában (narancs / szürke jelölés) · <b>" + only.length + " csak a NAV-ban</b> " +
       '<button class="btn" type="button" id="nav-sync" style="padding:6px 12px;font-size:.85rem;margin-left:6px">NAV frissítése</button>';
     $("nav-only-w").hidden = !only.length;
-    $("nav-only").innerHTML = "<thead><tr><th>Kiállítás</th><th>Partner</th><th>Irány</th><th>Számlaszám</th><th style='text-align:right'>Bruttó</th><th>Fizetési mód</th></tr></thead><tbody>" + only.map(function (n) {
+    function onlyRows(list) { return "<thead><tr><th>Kiállítás</th><th>Partner</th><th>Irány</th><th>Számlaszám</th><th style='text-align:right'>Bruttó</th><th>Fizetési mód</th></tr></thead><tbody>" + (list.length ? list.map(function (n) {
       return fxRow('<tr><td data-k="date">' + esc(hd(n[5])) + '</td><td data-k="partner">' + esc(n[3] || "–") + '</td><td data-k="cat">' + esc(n[0]) + '</td><td data-k="no">' + esc(n[1]) + '</td><td data-k="brutto" class="n">' + ft(num(n[12])) + '</td><td data-k="paid">' + esc(fizMod(n[7])) + "</td></tr>", diagNav(n), 6);
-    }).join("") + "</tbody>";
+    }).join("") : '<tr><td class="empty" colspan="6">Nincs ilyen tétel.</td></tr>') + "</tbody>"; }
+    var onlyIn = only.filter(function (n) { return n[0] !== "Kimenő"; }), onlyOut = only.filter(function (n) { return n[0] === "Kimenő"; });
+    $("nav-h3a").textContent = "Bejövő számlák (" + onlyIn.length + ")"; $("nav-h3b").textContent = "Kimenő számlák (" + onlyOut.length + ")";
+    $("nav-only").innerHTML = onlyRows(onlyIn); $("nav-only2").innerHTML = onlyRows(onlyOut);
     var b = $("nav-sync"); if (b) b.onclick = function () {
       b.disabled = true; b.textContent = "Lekérdezés…";
       call({ action: "navsync", token: tok() }).then(function (d) { if (d && d.ok) load(); else { b.disabled = false; b.textContent = "NAV frissítése"; alert("A NAV-lekérdezés nem sikerült: " + ((d && (d.error || d.msg)) || "ismeretlen hiba")); } }, function () { b.disabled = false; b.textContent = "NAV frissítése"; });
