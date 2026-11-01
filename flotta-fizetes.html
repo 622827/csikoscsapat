@@ -101,7 +101,7 @@
         var hd = el("div", "ihd"); hd.appendChild(el("b", "", dev ? "Készülék: " + (it.csomag || "készülékrészlet") : (it.csomag || "Előfizetés")));
         hd.appendChild(el("span", "pv", it.prov)); card.appendChild(hd);
         var L = dev ? [["Havi készülékrészlet", it.kesz], ["Elmaradás", it.tart]]
-                    : [["Alapdíj (havidíj + admin)", it.alap], ["Forgalmi díj (sms, vásárlás, parkolás, roaming…)", it.forg], ["Készülékrészlet", it.kesz], ["Elmaradás", it.tart]];
+                    : [["Havidíj", it.alap], ["Forgalmi díj (sms, vásárlás, parkolás, roaming…)", it.forg], ["Készülékrészlet", it.kesz], ["Elmaradás", it.tart]];
         L.forEach(function (c) { if (!c[1]) return; var l = el("div", "line"); l.appendChild(el("span", "", c[0])); l.appendChild(el("b", "", ft(c[1]))); card.appendChild(l); });
         if (it.bef) { var lb = el("div", "line"); lb.appendChild(el("span", "", "Már befizetett")); lb.appendChild(el("b", "", "−" + ft(it.bef))); card.appendChild(lb); }
         var st = el("div", "line sub"); st.appendChild(el("span", "", "Részösszeg")); st.appendChild(el("b", "", ft(it.egy))); card.appendChild(st);
@@ -110,7 +110,7 @@
       var tl = el("div", "line tot"); tl.appendChild(el("span", "", "Összesen fizetendő")); tl.appendChild(el("b", "", ft(d.total))); res.appendChild(tl);
     } else if (due) {
       var P = d.parts || {}, sec = el("div", "parts");
-      [["Alapdíj (havidíj + admin)", P.alap], ["Forgalmi díj (sms, vásárlás, parkolás, roaming…)", P.forg], ["Készülék díj", P.kesz], ["Elmaradás", P.tart]].forEach(function (c) {
+      [["Havidíj", P.alap], ["Forgalmi díj (sms, vásárlás, parkolás, roaming…)", P.forg], ["Készülék díj", P.kesz], ["Elmaradás", P.tart]].forEach(function (c) {
         if (!c[1]) return; var l = el("div", "line"); l.appendChild(el("span", "", c[0])); l.appendChild(el("b", "", ft(c[1]))); sec.appendChild(l);
       });
       if (P.bef) { var lb = el("div", "line"); lb.appendChild(el("span", "", "Már befizetett")); lb.appendChild(el("b", "", "−" + ft(P.bef))); sec.appendChild(lb); }
