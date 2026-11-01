@@ -513,7 +513,7 @@
       var f1 = el("div", "own"); f1.style.width = (cm / topCamp * 100) + "%"; bar1.appendChild(f1);
       q.appendChild(bar1);
       var n1 = el("p"); n1.appendChild(el("b", "", nf.format(cm) + " ES"));
-      n1.appendChild(document.createTextNode(topCamp > 0 ? " · a hónap éllovasa: " + nf.format(topCamp) + " ES" : " · még nincs leadott kampányegység"));
+      if (!(topCamp > 0)) n1.appendChild(document.createTextNode(" · még nincs leadott kampányegység"));
       q.appendChild(n1);
       // 2) összes egység a kvalifikációig
       q.appendChild(el("p", "lbl", "Összes egység a kvalifikációig"));
