@@ -401,10 +401,10 @@
   function $(id) { return document.getElementById(id); }
 
   // A termelési hónap zárása a következő hónap első keddje.
+  var ZNAP = { "2026-11": 4 };   // eltérő zárónap (a 2026. novemberi zárás szerdán, 11.04-én van)
   function firstTuesday(year, month) {
-    var d = new Date(year, month, 1);
-    var offset = (2 - d.getDay() + 7) % 7;
-    return new Date(year, month, 1 + offset, 23, 59, 59);
+    var d = new Date(year, month, 1), k = year + "-" + ("0" + (month + 1)).slice(-2);
+    return new Date(year, month, ZNAP[k] || 1 + ((2 - d.getDay() + 7) % 7), 23, 59, 59);
   }
   var qEnd = null, q = 0, qYear = now.getFullYear();
   for (var y = now.getFullYear() - 1; y <= now.getFullYear() + 1 && !qEnd; y++) {

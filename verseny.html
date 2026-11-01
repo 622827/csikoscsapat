@@ -438,9 +438,10 @@
   $("prize").textContent = "A díj egy négynapos erdélyi út 2027. április 22–25. között a top 3-nak és a két vezetőnek. Nyerni csak " +
     nf.format(QUALIFY) + " egységes kvalifikációval lehet.";
 
+  var ZNAP = { "2026-11": 4 };   // eltérő zárónap (a 2026. novemberi zárás szerdán, 11.04-én van)
   function firstTuesday(year, month) {
-    var d = new Date(year, month, 1);
-    return new Date(year, month, 1 + ((2 - d.getDay() + 7) % 7), 23, 59, 59);
+    var d = new Date(year, month, 1), k = year + "-" + ("0" + (month + 1)).slice(-2);
+    return new Date(year, month, ZNAP[k] || 1 + ((2 - d.getDay() + 7) % 7), 23, 59, 59);
   }
   function monthInfo(m) {
     var y = Math.floor(m / 100), mo = m % 100;            // mo: 1-12
