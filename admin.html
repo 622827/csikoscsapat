@@ -252,6 +252,8 @@
     .inv tr.fxd > td { padding: 0 !important; }
   }
   /* flaggelt tételek: kattintásra lenyíló diagnózis (kategória, probléma, javaslat) */
+  .inv button.rpb { display: block; margin-top: 4px; font: inherit; font-size: .78rem; padding: 2px 8px; border-radius: 999px; border: 1px dashed var(--track); background: none; color: var(--muted); cursor: pointer; }
+  .inv button.rpb.on { border-style: solid; border-color: #e0a800; color: #b98a00; font-weight: 700; }
   .inv select.kat { font: inherit; font-size: .85rem; max-width: 100%; padding: 4px 6px; border-radius: 8px; border: 1px solid var(--track); background: var(--bg); color: var(--ink); cursor: pointer; }
   @keyframes flok { 0% { background: color-mix(in srgb, var(--ok) 45%, transparent); } 100% { background: transparent; } }
   @keyframes flbad { 0%, 40% { background: color-mix(in srgb, var(--gold) 50%, transparent); } 100% { background: transparent; } }
@@ -492,9 +494,18 @@
   }
 
   // Reprezentációs keret: max = az éves (eddigi) bevétel 1%-a; állás = a "Reprezentáció" kategóriás kiadások bruttója
+  // a számlából reprezentációnak számító rész: a "Reprezentációs rész (Ft)" oszlop, vagy Reprezentáció kategóriánál a teljes bruttó
+  function reprOf(r) {
+    var w = num(r[col("Reprezentációs rész (Ft)")]); if (w > 0) return w;
+    return String(r[col("Kategória")]).toLowerCase() === "reprezentáció" ? (num(r[col("Bruttó (Ft)")]) || num(r[col("Nettó (Ft)")])) : 0;
+  }
+  function reprBtn(r) {
+    var a = reprOf(r);
+    return '<button type="button" class="rpb' + (a ? " on" : "") + '" data-row="' + esc(r[r.length - 1]) + '" title="Reprezentációként elszámolandó rész (az 1%-os keretbe számít)">🍽 ' + (a ? ft(a) : "repr.") + "</button>";
+  }
   function renderRepr() {
     var c = CC(), bev = num(D.total && D.total[hx("Bevétel összesen")]), max = Math.min(Math.round(bev * 0.01), 100000000), cur = 0, n = 0;
-    (D.rows || []).forEach(function (r) { if (r[c.dir] === "Kiadás" && String(r[col("Kategória")]).toLowerCase() === "reprezentáció") { cur += num(r[c.gross]) || num(r[c.net]); n++; } });
+    (D.rows || []).forEach(function (r) { var a = r[c.dir] === "Kiadás" ? reprOf(r) : 0; if (a) { cur += a; n++; } });
     var p = max ? cur / max : 0, cls = p >= 0.8 ? "r" : p >= 0.5 ? "y" : "g";
     $("k-repr").innerHTML = '<div class="rt"><span>Reprezentáció (étterem, cukrászda) – adómentes keret</span><small>' + ft(cur) + " / " + ft(max) + " · " + Math.round(p * 100) + "% · " + n + " számla</small></div>" +
       '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="' + max + '" aria-valuenow="' + cur + '"><i class="' + cls + '" style="width:' + Math.min(100, p * 100).toFixed(1) + '%"></i><b style="left:50%"></b><b style="left:80%"></b></div>' +
@@ -806,7 +817,7 @@
       return hdr + "<tr" + (nv ? ' class="' + nv.cls + ' fx" title="Kattints a részletekért"' : "") + ">" +
         '<td data-k="date">' + esc(d) + "</td>" +
         '<td data-k="partner"><span class="dir' + (ki ? " ki" : "") + '" title="' + esc(r[c.dir]) + '"></span>' + esc(r[c.partner] || "–") + (nv ? '<span class="navtag ' + nv.tag + '">' + (nv.tag === "diff" ? nv.lbl || "NAV-eltérés" : "nincs a NAV-ban") + "</span>" : "") + "</td>" +
-        '<td data-k="cat">' + katSel(r, c) + "</td>" +
+        '<td data-k="cat">' + katSel(r, c) + (ki ? reprBtn(r) : "") + "</td>" +
         '<td data-k="no">' + esc(r[c.no]) + "</td>" +
         '<td data-k="netto" class="n">' + ft(r[c.net]) + "</td>" +
         '<td data-k="brutto" class="n">' + ft(r[c.gross]) + "</td>" +
@@ -1006,6 +1017,19 @@
     return t + '<p class="elfw"><b>Melyik a helyes?</b> ' + btn("szamla", "Számla szerint", true) + btn("nav", "NAV szerint", !!n) + btn("bank", "Bank szerint", !!b) +
       '<button type="button" class="btn sos" data-row="' + rn + '" title="E-mail a könyvelőnek erről a tételről">✉ Segítség</button></p>';
   }
+  // 🍽 reprezentációs rész megadása (vegyes számlánál csak a fogyasztás része)
+  document.addEventListener("click", function (e) {
+    var bt = e.target.closest && e.target.closest("button.rpb"); if (!bt) return;
+    var rn = +bt.getAttribute("data-row"), c = CC(), r = D.rows.filter(function (x) { return x[x.length - 1] === rn; })[0]; if (!r) return;
+    var wi = col("Reprezentációs rész (Ft)"); if (wi < 0) { alert("Frissítsd az oldalt."); return; }
+    var cur = reprOf(r), g = Math.round(num(r[c.gross]) || num(r[c.net]));
+    var v = prompt("Mennyi számítson ebből a számlából reprezentációnak (étel-ital)?\nA teljes számla: " + ft(g) + ". Vegyes számlánál csak a fogyasztás részét add meg. 0 = semmi.", String(cur || g));
+    if (v === null) return;
+    var a = Math.max(0, Math.round(Number(String(v).replace(/[^\d.,-]/g, "").replace(",", ".")) || 0)), old = r[wi];
+    r[wi] = a || ""; bt.outerHTML = reprBtn(r); renderRepr();
+    var nb = document.querySelector('button.rpb[data-row="' + rn + '"]'); if (nb) flash(nb.closest("td"), "ok");
+    save({ action: "repr", row: rn, no: r[c.no], amount: a }, function () { r[wi] = old; var b2 = document.querySelector('button.rpb[data-row="' + rn + '"]'); if (b2) { b2.outerHTML = reprBtn(r); } renderRepr(); });
+  });
   // "Segítség": kész e-mail a könyvelőnek (Gmailben nyílik meg, te küldöd el)
   var KONYVELO = "tomsits.ildi@gmail.com";
   document.addEventListener("click", function (e) {
