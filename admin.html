@@ -473,6 +473,7 @@
   }
 
   function render() {
+    D._combo = null;
     var t = D.total, now = new Date(), cm = now.getFullYear() === 2026 ? now.getMonth() + 1 : 12;
     $("k-meta").textContent = "Frissítve: " + new Date(D.updated).toLocaleString("hu-HU", { dateStyle: "medium", timeStyle: "short" });
     if (D.sheetUrl) { $("k-sheet").href = D.sheetUrl; $("k-sheet").hidden = false; }
@@ -636,7 +637,44 @@
         fix: "Írd át a teljesítés dátumát " + nd + "-ra" + (td.slice(0, 7) !== nd.slice(0, 7) ? " – ez más hónap, így az áfa is másik időszakba kerül." : ".") });
     }
     return diffs.length ? { cls: "nav-diff", tag: "diff", txt: "Eltér a NAV-tól – " + diffs.join("; "), items: items, n: n } : null;
-  }  // ===== Háromirányú egyeztetés: táblázat (feltöltött számla) ↔ NAV ↔ bankkivonat =====
+  }  // ===== One / Telekom: egy kártyás fizetés több számlát is fedezhet =====
+  // A számlaszám nélküli One/Telekom fizetésekhez megkeresi a szolgáltató azon számláit (táblázat + csak a NAV-ban lévők),
+  // amelyek összege pontosan kiadja a fizetett összeget (a fizetés előtti 75 napból, legfeljebb 12 jelöltből).
+  function provOf(t) { t = String(t || "").toLowerCase(); return /telekom/.test(t) ? "telekom" : /\bone\b|simplep\*one|vodafone/.test(t) ? "one" : ""; }
+  function comboMap() {
+    if (D._combo) return D._combo;
+    var out = { mv: {}, inv: {} }, c = CC(), used = {};
+    var cand = [];
+    (D.rows || []).forEach(function (r) {
+      var pv = provOf(r[c.partner]); if (!pv || r[c.dir] !== "Kiadás") return;
+      var g = Math.round(num(r[c.gross])); if (!(g > 0) || bankFor(r[c.no])) return;
+      cand.push({ pv: pv, no: String(r[c.no]), g: g, d: flDay(hd(r[c.perf] || r[c.iss])), src: "táblázat", p: r[c.partner] });
+    });
+    navOnly().forEach(function (n) {
+      var pv = provOf(n[3]), g = Math.round(num(n[12])); if (!pv || !(g > 0) || n[0] === "Kimenő") return;
+      cand.push({ pv: pv, no: String(n[1]), g: g, d: flDay(hd(n[6] || n[5])), src: "csak NAV", p: n[3] });
+    });
+    (D.pm || []).map(function (m, i) { return { m: m, i: i }; }).sort(function (a, b) { return hd(a.m[2]).localeCompare(hd(b.m[2])); }).forEach(function (o) {
+      var m = o.m, a = Math.round(Math.abs(num(m[5]))), kk = String(m[10] || "").trim();
+      if (!(num(m[5]) < 0) || (kk && !/^nincs sz[áa]mla/i.test(kk))) return;
+      var pv = provOf([m[7], m[8], m[4]].join(" ")); if (!pv) return;
+      var day = flDay(hd(m[2]));
+      var pool = cand.filter(function (x) { return x.pv === pv && !used[x.no] && x.d !== null && day !== null && x.d <= day + 10 && x.d >= day - 75; })
+        .sort(function (x, y) { return y.d - x.d; }).slice(0, 12);
+      var best = null, n = pool.length;
+      for (var mask = 1; mask < (1 << n); mask++) {
+        var sum = 0, cnt = 0; for (var k = 0; k < n; k++) if (mask & (1 << k)) { sum += pool[k].g; cnt++; }
+        if (cnt >= 2 && Math.abs(sum - a) <= 1 && (!best || cnt < best.cnt)) best = { mask: mask, cnt: cnt };
+      }
+      if (!best) return;
+      var parts = pool.filter(function (x, k) { return best.mask & (1 << k); });
+      parts.forEach(function (x) { used[x.no] = 1; out.inv[x.no.toLowerCase().replace(/\s+/g, "")] = { amount: a, date: hd(m[2]), share: x.g, parts: parts, acc: m[0] }; });
+      out.mv[o.i] = { amount: a, date: hd(m[2]), parts: parts };
+    });
+    D._combo = out; return out;
+  }
+  function comboTxt(parts) { return parts.map(function (x) { return x.no + " (" + ft(x.g) + (x.src === "csak NAV" ? ", csak a NAV-ban" : "") + ")"; }).join(" + "); }
+  // ===== Háromirányú egyeztetés: táblázat (feltöltött számla) ↔ NAV ↔ bankkivonat =====
   function CC() { return { dir: col("Irány"), no: col("Számlaszám"), iss: col("Kiállítás dátuma"), perf: col("Teljesítés dátuma"), partner: col("Partner"), net: col("Nettó (Ft)"), vat: col("Áfa (Ft)"), gross: col("Bruttó (Ft)"), paid: col("Fizetve"), pd: col("Fizetés dátuma"), egy: col("Egyeztetve") }; }
   // a számlához tartozó banki mozgások: a számlaszám a közleményben vagy a Kapcsolódó számla oszlopban
   function bankFor(no) {
@@ -653,6 +691,7 @@
   function chk(r, ix) {
     var c = CC(); if (c.egy > -1 && String(r[c.egy] || "").trim()) return null;   // már egyeztetve (elfogadva)
     var nv = navCheck(r, c, ix), items = nv && nv.items ? nv.items.slice() : [], bank = bankFor(r[c.no]);
+    if (!bank) { var cb = comboMap().inv[String(r[c.no]).toLowerCase().replace(/\s+/g, "")]; if (cb) bank = { sum: cb.share, date: cb.date, n: 1, acc: cb.acc, combo: cb }; }
     var g = Math.round(num(r[c.gross]) || num(r[c.net])), td = hd(r[c.pd]), bankItems = 0;
     if (bank && Math.abs(bank.sum - g) > 1) {
       bankItems++;
@@ -849,6 +888,7 @@
       o.cat = "Átutalás – számla hiányzik"; o.desc = what + "Kimenő utalás, de nincs hozzá számla.";
       o.fix = "Kérd el a számlát a partnertől (ha díjbekérőre utaltál, a végszámlát). Ha nem számlaköteles (pl. óvadék, bírság, illeték), írd a K oszlopba, mi ez.";
     }
+    if (x.combo) { o.hint = "Ez a fizetés valószínűleg több számlát fedez együtt: " + comboTxt(x.combo.parts) + " = " + ft(x.combo.amount) + ". A „csak a NAV-ban” jelűeket fel kell vinni a Számlák fülre."; return o; }
     var n = flNavHit(x.v, x.d, 45);
     if (n) o.hint = "A NAV-ban van egy ide illő, a táblázatból hiányzó számla: " + (n[3] || "–") + " · " + n[1] + " · " + hd(n[6] || n[5]) + " · " + ft(num(n[12])) + ". Valószínűleg ez az: vidd fel a Számlák fülre, és töltsd fel a PDF-et.";
     return o;
@@ -877,6 +917,8 @@
       o.cat = "Fizetetlen számla"; o.desc = what + "Nincs beírva se fizetési határidő, se kifizetés.";
       o.fix = "Nézd meg a PDF-en a határidőt és a fizetési módot; ha már ki van fizetve, jelöld Fizetve-nek.";
     }
+    var cbi = comboMap().inv[String(x.no).toLowerCase().replace(/\s+/g, "")];
+    if (cbi) { o.cat = "Valószínűleg már fizetve (összevont kártyás fizetés)"; o.cls = "ok"; o.hint = "Egy " + cbi.date + "-i, " + ft(cbi.amount) + "-os " + cbi.acc + " fizetés pontosan ezt fedezi: " + comboTxt(cbi.parts) + ". Jelöld Fizetve-nek " + cbi.date + " dátummal."; return o; }
     var day = flDay(x.d), m = FLMV.filter(function (y) { var yd = flDay(y.d); return Math.abs(Math.abs(y.v) - x.g) < 1 && (y.v > 0) === !ki && (day === null || yd === null || yd - day >= -10); })[0];
     if (m) o.hint = "Van egy azonos összegű, számla nélküli mozgás: " + m.d + " · " + (m.p || m.t) + " · " + ft(m.v) + ". Ha ez a kifizetés, jelöld a számlát Fizetve-nek ezzel a dátummal, és mindkét jelzés eltűnik.";
     return o;
@@ -911,7 +953,8 @@
       ["Teljesítés", td, n ? nd : null, null],
       ["Fizetés dátuma", hd(r[c.pd]) || "", null, b ? b.date : null]
     ];
-    var t = '<table class="cmp"><thead><tr><th></th><th>Számla (táblázat)</th><th>NAV</th><th>Bankkivonat</th></tr></thead><tbody>' + rows.map(function (x) { return "<tr><th>" + x[0] + "</th>" + cell(x[1], null) + cell(x[2], x[1]) + cell(x[3], x[1]) + "</tr>"; }).join("") + "</tbody></table>";
+    var cnote = b && b.combo ? '<p class="note" style="margin:8px 0 0">A bank oszlop: egy ' + esc(b.combo.date) + "-i, " + ft(b.combo.amount) + "-os összevont fizetés része (" + esc(comboTxt(b.combo.parts)) + ").</p>" : "";
+    var t = cnote + '<table class="cmp"><thead><tr><th></th><th>Számla (táblázat)</th><th>NAV</th><th>Bankkivonat</th></tr></thead><tbody>' + rows.map(function (x) { return "<tr><th>" + x[0] + "</th>" + cell(x[1], null) + cell(x[2], x[1]) + cell(x[3], x[1]) + "</tr>"; }).join("") + "</tbody></table>";
     var rn = esc(r[r.length - 1]), vals = { nav: n ? { netto: Math.round(num(n[10])), afa: Math.round(num(n[11])), brutto: ng || 0, telj: nd } : null, bank: b ? { brutto: b.sum, fizdat: b.date } : null };
     var btn = function (src, lbl, ok) { return '<button type="button" class="btn elf" data-row="' + rn + '" data-src="' + src + '"' + (ok ? "" : " disabled") + " data-vals='" + esc(JSON.stringify(vals[src] || {})) + "'>" + lbl + "</button>"; };
     return t + '<p class="elfw"><b>Melyik a helyes?</b> ' + btn("szamla", "Számla szerint", true) + btn("nav", "NAV szerint", !!n) + btn("bank", "Bank szerint", !!b) +
@@ -1038,11 +1081,13 @@
       pool.forEach(function (p) { if (!p.used && Math.abs(p.g - a) < 1 && (day === null || p.d === null || Math.abs(p.d - day) <= 20) && !best) best = p; });
       if (best) { best.used = true; return true; } return false;
     }
-    ((D && D.pm) || []).forEach(function (r) {
+    var CMB = comboMap();
+    ((D && D.pm) || []).forEach(function (r, ri) {
       var txt = [r[4], r[7], r[8]].join(" ");
       var kk = String(r[10] || "").trim(), nincs = /^nincs sz[áa]mla/i.test(kk);
+      if (CMB.mv[ri] && CMB.mv[ri].parts.every(function (x) { return x.src === "táblázat"; })) return;   // több számla együtt, mind a táblázatban
       if (!nincs && (kk || FL_OK.test(txt) || !num(r[5]) || matched(num(r[5]), hd(r[2]), txt))) return;
-      mv.push({ d: hd(r[2]), a: r[0], p: pmPartner(r), t: r[4] || "", k: r[8] || "", v: num(r[5]), n: nincs ? kk.replace(/^nincs sz[áa]mla\s*[–-]?\s*/i, "") : "" });
+      mv.push({ d: hd(r[2]), a: r[0], p: pmPartner(r), t: r[4] || "", k: r[8] || "", v: num(r[5]), n: nincs ? kk.replace(/^nincs sz[áa]mla\s*[–-]?\s*/i, "") : "", combo: CMB.mv[ri] || null });
     });
     (((D && D.hp) || {}).rows || []).forEach(function (r) {
       var txt = [r[1], r[3], r[4]].join(" ");
