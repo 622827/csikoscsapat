@@ -670,6 +670,12 @@
         PK.ONE.forEach(function (x) { var v = ONE26[String(x.nev).trim().toLowerCase()]; if (v) { x.alap = v; hit++; } });
         if (hit) F.setDoc(F.doc(db, "perf", id, "fl_meta", "pkgs"), { json: JSON.stringify(PK) }).catch(function () {});
       }
+      // a One-számlán már nem szereplő, ár nélküli régi csomagnevek törlése (egyszeri)
+      var REGI = ["üzleti maxi+10gb", "business red start+10gb", "business red start+10gb+3gb", "üzleti midi+150p+5gb", "midi 10gb + 150 perc", "business l+700p", "üzleti plus+50gb", "10+10 red", "vodafone business xl", "vodafone business s"];
+      if (PK && PK.ONE && PK.ONE.some(function (x) { return !num(x.alap) && REGI.indexOf(String(x.nev).trim().toLowerCase()) > -1; })) {
+        PK.ONE = PK.ONE.filter(function (x) { return !(!num(x.alap) && REGI.indexOf(String(x.nev).trim().toLowerCase()) > -1); });
+        F.setDoc(F.doc(db, "perf", id, "fl_meta", "pkgs"), { json: JSON.stringify(PK) }).catch(function () {});
+      }
     }));
     FUNSUB.push(F.onSnapshot(F.collection(db, "perf", id, "fl_rows"), function (snap) {
       var rows = snap.docs.map(function (d) { return fnorm(Object.assign({}, d.data(), { id: d.id })); });
@@ -902,16 +908,6 @@
     ONE: [
       { nev: "Üzleti Maxi", csomag: "", alap: 6231, admin: 0 },
       { nev: "Üzleti Midi", csomag: "", alap: 3263, admin: 0 },
-      { nev: "Üzleti Maxi+10gb", csomag: "", alap: 0, admin: 0 },
-      { nev: "Business RED Start+10gb", csomag: "", alap: 0, admin: 0 },
-      { nev: "Business RED Start+10gb+3gb", csomag: "", alap: 0, admin: 0 },
-      { nev: "Üzleti Midi+150p+5gb", csomag: "", alap: 0, admin: 0 },
-      { nev: "Midi 10gb + 150 perc", csomag: "", alap: 0, admin: 0 },
-      { nev: "Business L+700p", csomag: "", alap: 0, admin: 0 },
-      { nev: "Üzleti Plus+50gb", csomag: "", alap: 0, admin: 0 },
-      { nev: "10+10 red", csomag: "", alap: 0, admin: 0 },
-      { nev: "Vodafone Business XL", csomag: "", alap: 0, admin: 0 },
-      { nev: "Vodafone Business S", csomag: "", alap: 0, admin: 0 },
       { nev: "Üzleti Mobil Medium", csomag: "", alap: 6803, admin: 0 },
       { nev: "Üzleti Pro", csomag: "", alap: 12896, admin: 0 },
       { nev: "Business MobileNet Infinity", csomag: "", alap: 7119, admin: 0 },
