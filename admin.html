@@ -246,6 +246,7 @@
   .inv label.lev input { transition: transform .15s; } .inv label.lev input:active { transform: scale(.85); }
   .inv td[data-k=levon] label.lev { display: flex; margin: 1px 0; }
   .inv label.lev.ar { color: var(--muted); }
+  .inv td[data-k=levon] .fiz { font-size: .82rem; color: var(--muted); }
   .inv label.lev { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: .88rem; }
   .inv label.lev input { width: 18px; height: 18px; accent-color: var(--ok); cursor: pointer; }
   .inv tr.fx { cursor: pointer; }
@@ -790,7 +791,7 @@
           var lv = levOf(r[c.lev]), rn = esc(r[r.length - 1]);
           return '<label class="lev" title="A teljes áfa levonása"><input type="checkbox" data-row="' + rn + '" data-mode="Teljes"' + (lv === "Teljes" ? " checked" : "") + "> Teljes " + ft(r[c.vat]) + "</label>" +
             '<label class="lev ar" title="Arányos levonás: az áfa ' + pct(arany()) + '-a"><input type="checkbox" data-row="' + rn + '" data-mode="Részleges"' + (lv === "Részleges" ? " checked" : "") + "> Arányos " + ft(Math.round(num(r[c.vat]) * arany())) + "</label>";
-        })() : "") + "</td></tr>" +
+        })() : !ki && num(r[c.vat]) ? '<span class="fiz" title="Kimenő számla áfája: ezt befizetni kell, nem levonni">fizetendő ' + ft(r[c.vat]) + "</span>" : "") + "</td></tr>" +
         (nv ? '<tr class="fxd" hidden><td colspan="9">' + fxBox(diagDiff(r, c, nv)) + "</td></tr>" : "");
     }).join("");
     if (!rows.length) body = '<tr><td class="empty" colspan="9">' + (D.rows.length ? "Nincs a szűrésnek megfelelő számla." : "Még nincs rögzített számla. A táblázat Számlák fülén tudod felvinni őket.") + "</td></tr>";
