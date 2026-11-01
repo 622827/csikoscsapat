@@ -134,6 +134,10 @@
   .szk { background: var(--card); border-radius: 16px; padding: 14px 18px 16px; margin: 12px 0 0; }
   .szk .rt { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; align-items: baseline; font-weight: 700; }
   .szk .rt small { font-weight: 600; color: var(--muted); }
+  .szk details > summary { cursor: pointer; list-style: none; }
+  .szk details > summary::-webkit-details-marker { display: none; }
+  .szk .szk-ch::before { content: "▸ "; color: var(--muted); font-style: normal; }
+  .szk details[open] .szk-ch::before { content: "▾ "; }
   .szk .bar { position: relative; height: 14px; border-radius: 999px; background: var(--track); margin: 10px 0 6px; overflow: hidden; }
   .szk .bar i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; }
   .szk .bar i.g { background: #2e9e6b; } .szk .bar i.y { background: #e0a800; } .szk .bar i.r { background: #d93a3a; }
@@ -629,9 +633,10 @@
     var cls = p >= 0.8 ? "r" : p >= 0.5 ? "y" : "g";
     function sor(l, v, s2) { return "<tr><td>" + l + '</td><td class="n">' + (v ? ft(v) : "0 Ft") + "</td><td>" + (s2 || "") + "</td></tr>"; }
     $("szk-panel").hidden = false;
-    $("szk-panel").innerHTML = '<div class="rt"><span>Széchenyi hitelkeret</span><small>' + ft(used) + " felhasználva a " + ft(SZK_KERET) + "-ból · " + Math.round(p * 100) + "%</small></div>" +
+    var szOpen; try { szOpen = localStorage.getItem("csk_szk_open") === "1"; } catch (e) { szOpen = false; }
+    $("szk-panel").innerHTML = '<details id="szk-d"' + (szOpen ? " open" : "") + '><summary><div class="rt"><span><i class="szk-ch"></i>Széchenyi hitelkeret</span><small>' + ft(used) + " felhasználva a " + ft(SZK_KERET) + "-ból · " + Math.round(p * 100) + "%</small></div>" +
       '<div class="bar"><i class="' + cls + '" style="width:' + Math.min(100, p * 100).toFixed(1) + '%"></i></div>' +
-      '<div class="rl"><span>Felhasznált: <b>' + (used ? ft(used) : "0 Ft") + "</b></span><span>Kihasználatlan: <b>" + ft(free) + "</b></span></div>" +
+      '<div class="rl"><span>Felhasznált: <b>' + (used ? ft(used) : "0 Ft") + "</b></span><span>Kihasználatlan: <b>" + ft(free) + "</b></span></div></summary>" +
       '<table class="szkt"><tbody>' +
       sor("Kamat (a felhasznált összeg után)", g.kamat, "csak a lehívott rész után jár") +
       sor("Rendelkezésre tartási jutalék", g.rtj, "a kihasználatlan keret után – akkor is fizeted, ha nem használod") +
@@ -640,7 +645,8 @@
       sor("Egyszeri díjak", g.egy, "pl. hitelképesség-vizsgálat, kártya") +
       (g.kedv ? sor("Kedvezmények (jóváírva)", -g.kedv, "") : "") +
       '<tr class="tot"><td>Összes költség eddig</td><td class="n">' + ft(ossz) + "</td><td>" + (last ? "legutóbbi hónap: " + ft(last) : "") + (used >= 100000 ? " · ez a felhasznált összeg " + (ossz / used * 100).toLocaleString("hu-HU", { maximumFractionDigits: 1 }) + "%-a" : " · a keretet még alig használod: a költség a keret fenntartásáért megy") + "</td></tr>" +
-      "</tbody></table>" + szkBecsles(rows);
+      "</tbody></table>" + szkBecsles(rows) + "</details>";
+    $("szk-d").addEventListener("toggle", function () { try { localStorage.setItem("csk_szk_open", this.open ? "1" : "0"); } catch (e) {} });
     szkCalc();
   }
   // Napi becslés a Széchenyi-számla egyenlegeiből: kamat a lehívott összeg után, jutalék a ki nem használt keret után (napra arányosan, 360 napos év)
