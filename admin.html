@@ -177,7 +177,7 @@
     #k-inv td[data-k=no] { overflow-wrap: anywhere; }
     #k-inv td[data-k=paid], #k-inv td[data-k=pdf] { white-space: nowrap; }
     #k-inv th:nth-child(1) { width: 110px; } #k-inv th:nth-child(3) { width: 152px; } #k-inv th:nth-child(4) { width: 168px; }
-    #k-inv th:nth-child(5), #k-inv th:nth-child(6) { width: 104px; } #k-inv th:nth-child(7) { width: 86px; } #k-inv th:nth-child(8) { width: 88px; } #k-inv th:nth-child(9) { width: 112px; }
+    #k-inv th:nth-child(5), #k-inv th:nth-child(6) { width: 104px; } #k-inv th:nth-child(7) { width: 86px; } #k-inv th:nth-child(8) { width: 88px; } #k-inv th:nth-child(9) { width: 150px; }
     #k-inv select.kat { width: 100%; }
     #k-inv td[data-k=levon] { white-space: nowrap; }
     #fl-mv th:nth-child(1), #fl-inv th:nth-child(1) { width: 92px; } #fl-mv th:nth-child(3) { width: 170px; } #fl-mv th:nth-child(5) { width: 112px; } #fl-mv th:nth-child(6) { width: 120px; }
@@ -244,6 +244,8 @@
   .inv td.fl-ok { animation: flok .9s ease-out; }
   .inv td.fl-bad { animation: flbad 1.4s ease-out; }
   .inv label.lev input { transition: transform .15s; } .inv label.lev input:active { transform: scale(.85); }
+  .inv td[data-k=levon] label.lev { display: flex; margin: 1px 0; }
+  .inv label.lev.ar { color: var(--muted); }
   .inv label.lev { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: .88rem; }
   .inv label.lev input { width: 18px; height: 18px; accent-color: var(--ok); cursor: pointer; }
   .inv tr.fx { cursor: pointer; }
@@ -486,7 +488,8 @@
     ].map(function (k) { return '<div class="kpi"><p class="l">' + k[0] + '</p><p class="v">' + k[1] + '</p><p class="s">' + k[2] + "</p></div>"; }).join("");
     renderMonths(cm);
     var r = num(D.ratio);
-    $("k-ratio").textContent = "Levonható áfa: a lenti Számlák listában bepipált számlák áfája.";
+    var rb = ratioBase();
+    $("k-ratio").textContent = "Levonható áfa: „Teljes” pipa = a számla teljes áfája; „Arányos” pipa = az áfa " + pct(r) + "-a. Az arány: áfás (adóköteles) bevétel " + ft(rb.ado) + " ÷ összes bevétel " + ft(rb.ossz) + " (óvadék nélkül), az év eddigi számláiból.";
     var c = D.checks || {};
     $("k-checks").innerHTML = [
       ["Kifizetetlen kimenő számla", num(c.openOut), " db"],
@@ -716,6 +719,16 @@
     return String(v || "").replace(/-/g, ".").replace(/\.$/, "");
   }
   var LEVT = null, PEND = 0;
+  // áfa-levonás: "Teljes" (a teljes áfa) vagy "Részleges" (az áfa × arányszám); a régi TRUE pipa Teljesnek számít
+  function levOf(v) { return v === true || v === "Teljes" ? "Teljes" : v === "Részleges" ? "Részleges" : ""; }
+  function arany() { return Math.max(0, Math.min(1, num(D && D.ratio))); }
+  function pct(x) { return (x * 100).toLocaleString("hu-HU", { maximumFractionDigits: 1 }) + "%"; }
+  function levAmt(r, c) { var m = levOf(r[c.lev]), v = num(r[c.vat]); return m === "Teljes" ? v : m === "Részleges" ? Math.round(v * arany()) : 0; }
+  function ratioBase() {
+    var c = CC(), k = col("Áfa-besorolás"), o = { ado: 0, ossz: 0 };
+    (D.rows || []).forEach(function (r) { if (r[c.dir] !== "Bevétel" || String(r[col("Kategória")]) === "Óvadék") return; var n = num(r[c.net]); o.ossz += n; if (r[k] === "Adóköteles") o.ado += n; });
+    return o;
+  }
   function flash(td, kind) { if (!td) return; td.classList.remove("fl-ok", "fl-bad"); void td.offsetWidth; td.classList.add(kind === "bad" ? "fl-bad" : "fl-ok"); }
   // háttérmentés: a felület azonnal vált, a kérések párhuzamosan mennek; hiba esetén visszaáll és pirosan villan
   function save(body, undo) {
@@ -746,13 +759,13 @@
       if (q && [r[c.partner], r[c.no], r[c.cat]].join(" ").toLowerCase().indexOf(q) < 0) return false;
       return true;
     }).sort(function (a, b) { return hd(b[c.perf] || b[c.iss]).localeCompare(hd(a[c.perf] || a[c.iss])); });
-    var th = "<thead><tr><th>Dátum</th><th>Partner</th><th>Kategória</th><th>Számlaszám</th><th style='text-align:right'>Nettó</th><th style='text-align:right'>Bruttó</th><th>Fizetve</th><th>PDF</th><th title='Pipáld be, amelyik számla áfáját le akarod vonni'>Áfa levonás</th></tr></thead>";
+    var th = "<thead><tr><th>Dátum</th><th>Partner</th><th>Kategória</th><th>Számlaszám</th><th style='text-align:right'>Nettó</th><th style='text-align:right'>Bruttó</th><th>Fizetve</th><th>PDF</th><th title='Teljes: a teljes áfa; Arányos: az áfa × arányszám'>Áfa levonás<br><small style='text-transform:none;font-weight:600'>arány: " + pct(arany()) + "</small></th></tr></thead>";
     // hónapokra bontva: hónapfejléc (darab, bevétel, kiadás, nettó), kattintásra becsukható
     var grp = {}, NIX = navIndex();
     rows.forEach(function (r) {
       var m = hd(r[c.perf] || r[c.iss]).slice(0, 7) || "–", g = grp[m] || (grp[m] = { n: 0, be: 0, ki: 0, lv: 0 });
       g.n++; if (r[c.dir] === "Kiadás") g.ki += num(r[c.net]); else g.be += num(r[c.net]);
-      if (r[c.dir] === "Kiadás" && c.lev > -1 && r[c.lev] === true) g.lv += num(r[c.vat]);
+      if (r[c.dir] === "Kiadás" && c.lev > -1) g.lv += levAmt(r, c);
     });
     var lastM = null;
     var body = rows.map(function (r) {
@@ -773,7 +786,11 @@
         '<td data-k="brutto" class="n">' + ft(r[c.gross]) + "</td>" +
         '<td data-k="paid">' + (r[c.paid] === true ? '<span class="pill ok">Fizetve</span>' : '<span class="pill open">Nyitott</span>') + "</td>" +
         '<td data-k="pdf">' + (/^https:\/\//.test(pdf) ? '<a href="' + esc(pdf) + '" target="_blank" rel="noopener">Megnyitás</a>' : "") + "</td>" +
-        '<td data-k="levon">' + (ki && num(r[c.vat]) && c.lev > -1 ? '<label class="lev"><input type="checkbox" data-row="' + esc(r[r.length - 1]) + '"' + (r[c.lev] === true ? " checked" : "") + "> " + ft(r[c.vat]) + "</label>" : "") + "</td></tr>" +
+        '<td data-k="levon">' + (ki && num(r[c.vat]) && c.lev > -1 ? (function () {
+          var lv = levOf(r[c.lev]), rn = esc(r[r.length - 1]);
+          return '<label class="lev" title="A teljes áfa levonása"><input type="checkbox" data-row="' + rn + '" data-mode="Teljes"' + (lv === "Teljes" ? " checked" : "") + "> Teljes " + ft(r[c.vat]) + "</label>" +
+            '<label class="lev ar" title="Arányos levonás: az áfa ' + pct(arany()) + '-a"><input type="checkbox" data-row="' + rn + '" data-mode="Részleges"' + (lv === "Részleges" ? " checked" : "") + "> Arányos " + ft(Math.round(num(r[c.vat]) * arany())) + "</label>";
+        })() : "") + "</td></tr>" +
         (nv ? '<tr class="fxd" hidden><td colspan="9">' + fxBox(diagDiff(r, c, nv)) + "</td></tr>" : "");
     }).join("");
     if (!rows.length) body = '<tr><td class="empty" colspan="9">' + (D.rows.length ? "Nincs a szűrésnek megfelelő számla." : "Még nincs rögzített számla. A táblázat Számlák fülén tudod felvinni őket.") + "</td></tr>";
@@ -793,13 +810,16 @@
         return;
       }
       if (!el.matches("input[data-row]")) return;
-      var val = el.checked; r[c.lev] = val; flash(el.closest("td"), "ok"); levHead();
-      save({ action: "levon", row: rn, no: r[c.no], val: val }, function () { r[c.lev] = !val; el.checked = !val; flash(el.closest("td"), "bad"); levHead(); });
+      var mode = el.getAttribute("data-mode") || "Teljes", prev = levOf(r[c.lev]), val = el.checked ? mode : "", td = el.closest("td");
+      r[c.lev] = val;
+      Array.prototype.forEach.call(td.querySelectorAll("input[data-row]"), function (x) { x.checked = x.getAttribute("data-mode") === val; });
+      flash(td, "ok"); levHead();
+      save({ action: "levon", row: rn, no: r[c.no], val: val }, function () { r[c.lev] = prev; Array.prototype.forEach.call(td.querySelectorAll("input[data-row]"), function (x) { x.checked = x.getAttribute("data-mode") === prev; }); flash(td, "bad"); levHead(); });
     };
     // a hónapsor "levonható áfa" összege azonnal frissül, a táblázat újrarajzolása nélkül
     function levHead() {
       var sum = {};
-      D.rows.forEach(function (x) { if (x[c.dir] === "Kiadás" && x[c.lev] === true) { var m = hd(x[c.perf] || x[c.iss]).slice(0, 7) || "–"; sum[m] = (sum[m] || 0) + num(x[c.vat]); } });
+      D.rows.forEach(function (x) { var a = x[c.dir] === "Kiadás" ? levAmt(x, c) : 0; if (a) { var m = hd(x[c.perf] || x[c.iss]).slice(0, 7) || "–"; sum[m] = (sum[m] || 0) + a; } });
       Array.prototype.forEach.call(document.querySelectorAll("#k-inv tr.mh"), function (h) {
         var sp = h.querySelector(".mh-s"); if (!sp) return; var m = h.getAttribute("data-m"), t = sp.textContent.replace(/ · levonható áfa .*$/, "");
         sp.textContent = t + (sum[m] ? " · levonható áfa " + ft(sum[m]) : "");
