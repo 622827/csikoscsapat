@@ -603,7 +603,7 @@
     return String(v || "").replace(/-/g, ".").replace(/\.$/, "");
   }
   var LEVT = null;
-  var KAT = ["Flotta", "Utazás", "Iroda", "Készlet", "Alvállalkozó", "OVB Jutalék", "Fővállalkozó"];
+  var KAT = ["Flotta", "Utazás", "Iroda", "Készlet", "Alvállalkozó", "OVB Jutalék", "Fővállalkozó", "Óvadék"];
   function katSel(r, c) {
     var cur = String(r[c.cat] || ""), opts = KAT.slice(), hit = KAT.filter(function (k) { return k.toLowerCase() === cur.toLowerCase(); })[0];
     if (cur && !hit) opts.push(cur);
