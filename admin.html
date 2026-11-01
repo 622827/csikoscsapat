@@ -176,8 +176,9 @@
     .inv td.n, .inv td[data-k=date] { white-space: nowrap; }
     #k-inv td[data-k=no] { overflow-wrap: anywhere; }
     #k-inv td[data-k=paid], #k-inv td[data-k=pdf] { white-space: nowrap; }
-    #k-inv th:nth-child(1) { width: 92px; } #k-inv th:nth-child(3) { width: 118px; } #k-inv th:nth-child(4) { width: 196px; }
-    #k-inv th:nth-child(5), #k-inv th:nth-child(6) { width: 104px; } #k-inv th:nth-child(7) { width: 88px; } #k-inv th:nth-child(8) { width: 92px; } #k-inv th:nth-child(9) { width: 118px; }
+    #k-inv th:nth-child(1) { width: 110px; } #k-inv th:nth-child(3) { width: 152px; } #k-inv th:nth-child(4) { width: 168px; }
+    #k-inv th:nth-child(5), #k-inv th:nth-child(6) { width: 104px; } #k-inv th:nth-child(7) { width: 86px; } #k-inv th:nth-child(8) { width: 88px; } #k-inv th:nth-child(9) { width: 112px; }
+    #k-inv select.kat { width: 100%; }
     #k-inv td[data-k=levon] { white-space: nowrap; }
     #fl-mv th:nth-child(1), #fl-inv th:nth-child(1) { width: 92px; } #fl-mv th:nth-child(3) { width: 170px; } #fl-mv th:nth-child(5) { width: 112px; } #fl-mv th:nth-child(6) { width: 120px; }
     #fl-inv th:nth-child(3) { width: 80px; } #fl-inv th:nth-child(4) { width: 196px; } #fl-inv th:nth-child(5) { width: 108px; } #fl-inv th:nth-child(6) { width: 108px; } #fl-inv th:nth-child(7) { width: 72px; }
@@ -238,6 +239,11 @@
   }
   /* flaggelt tételek: kattintásra lenyíló diagnózis (kategória, probléma, javaslat) */
   .inv select.kat { font: inherit; font-size: .85rem; max-width: 100%; padding: 4px 6px; border-radius: 8px; border: 1px solid var(--track); background: var(--bg); color: var(--ink); cursor: pointer; }
+  @keyframes flok { 0% { background: color-mix(in srgb, var(--ok) 45%, transparent); } 100% { background: transparent; } }
+  @keyframes flbad { 0%, 40% { background: color-mix(in srgb, var(--gold) 50%, transparent); } 100% { background: transparent; } }
+  .inv td.fl-ok { animation: flok .9s ease-out; }
+  .inv td.fl-bad { animation: flbad 1.4s ease-out; }
+  .inv label.lev input { transition: transform .15s; } .inv label.lev input:active { transform: scale(.85); }
   .inv label.lev { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: .88rem; }
   .inv label.lev input { width: 18px; height: 18px; accent-color: var(--ok); cursor: pointer; }
   .inv tr.fx { cursor: pointer; }
@@ -247,6 +253,9 @@
   .inv tr.fxd > td { padding: 4px 14px 14px; white-space: normal; text-align: left; }
   .fxb { border-left: 3px solid var(--gold); padding: 8px 12px; border-radius: 0 8px 8px 0; background: color-mix(in srgb, var(--gold) 7%, transparent); font-size: .9rem; line-height: 1.45; }
   .fxb p { margin: 6px 0 0; }
+  .fxb ol.fxl { margin: 8px 0 0; padding-left: 22px; }
+  .fxb ol.fxl li { margin: 0 0 8px; }
+  .fxb ol.fxl li span { color: var(--muted); }
   .fxb .fxc { display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px; padding: 2px 10px; background: var(--gold-bg); color: var(--gold); }
   .fxb .fxc.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
   .fxb .fxc.gr { background: var(--track); color: var(--muted); }
@@ -591,10 +600,32 @@
     if (!D || !D.nav || !D.nav.length) return null;
     var no = String(r[c.no] || "").trim(); if (!no || navNem(no)) return null;
     var hits = ix[navNo(no)]; if (!hits) return { cls: "nav-no", tag: "no", txt: "A NAV-ban nincs ilyen számlaszám" };
-    var n = hits[hits.length - 1], diffs = [], g = Math.round(num(r[c.gross]) || num(r[c.net])), ng = Math.round(num(n[12]));
-    if (ng && Math.abs(g - ng) > 1) diffs.push("bruttó: táblázat " + ft(g) + ", NAV " + ft(ng));
-    var nd = hd(n[6] || n[5]), td = hd(r[c.perf] || r[c.iss]); if (nd && td && nd !== td) diffs.push("teljesítés: táblázat " + td + ", NAV " + nd);
-    return diffs.length ? { cls: "nav-diff", tag: "diff", txt: "Eltér a NAV-tól – " + diffs.join("; ") } : null;
+    var n = hits[hits.length - 1], diffs = [], items = [], g = Math.round(num(r[c.gross]) || num(r[c.net])), ng = Math.round(num(n[12]));
+    var tn = Math.round(num(r[c.net])), nn = Math.round(num(n[10])), nv = Math.round(num(n[11])), d = g - ng;
+    if (ng && Math.abs(d) > 1) {
+      diffs.push("bruttó: táblázat " + ft(g) + ", NAV " + ft(ng));
+      var tv = Math.round(num(r[col("Áfa (Ft)")]));
+      var ok = Math.abs(Math.abs(d) - Math.abs(nv)) <= 2 ? "Az eltérés pont az áfa összege: valószínűleg az egyik helyen a nettó szerepel a bruttó helyett."
+        : tn && Math.abs(tn - nn) <= 1 && Math.abs(tv - nv) <= 1 ? "A nettó és az áfa egyezik a NAV-val, csak a bruttó más: a Bruttó oszlopba valószínűleg a fizetendő összeg került (benne pl. készülékrészlet, előző havi egyenleg vagy késedelmi díj), nem a számla végösszege."
+        : tn && Math.abs(tn - nn) <= 1 ? "A nettó egyezik, csak az áfa más: valószínűleg rossz áfakulccsal vagy rossz áfaösszeggel került be."
+        : d > 0 ? "A táblázatban több szerepel: valószínűleg a fizetendő összeg került be (benne pl. készülékrészlet, előző havi egyenleg, késedelmi díj), a NAV viszont csak a számla végösszegét mutatja."
+        : "A táblázatban kevesebb szerepel: valószínűleg csak a ténylegesen kifizetett összeg került be (pl. előleg, utalvány vagy jóváírás levonása után), vagy a számla egy része lemaradt.";
+      items.push({ t: "Bruttó összeg: táblázat " + ft(g) + " ↔ NAV " + ft(ng) + " (eltérés " + ft(d) + ")", ok: ok,
+        fix: d > 0 && !/nettó/.test(ok) ? "A Bruttó oszlopba a számla végösszege kell (" + ft(ng) + "); a többletet (pl. készülékrészletet) külön kell kezelni." : "Nézd meg a PDF-et, és javítsd a táblázatot a számla szerinti összegre (" + ft(ng) + ")." });
+    }
+    var nd = hd(n[6] || n[5]), td = hd(r[c.perf] || r[c.iss]);
+    if (nd && td && nd !== td) {
+      diffs.push("teljesítés: táblázat " + td + ", NAV " + nd);
+      var ki = hd(n[5]), hi = hd(n[8]);
+      var ok2 = td === ki ? "A táblázatba a számla kelte (kiállítás dátuma) került a teljesítés dátuma helyett."
+        : td === hi ? "A táblázatba a fizetési határidő került a teljesítés dátuma helyett."
+        : nd === hi ? "Időszakos szolgáltatásnál (telefon, internet, közüzem) a teljesítés napja a fizetési határidő, nem a számla kelte vagy az időszak vége."
+        : Math.abs((flDay(td) || 0) - (flDay(nd) || 0)) <= 3 ? "Pár nap az eltérés: valószínűleg elírás, vagy a fizetés napja került be."
+        : "Valószínűleg rossz dátum került be (pl. a fizetés vagy a feltöltés napja).";
+      items.push({ t: "Teljesítés dátuma: táblázat " + td + " ↔ NAV " + nd, ok: ok2,
+        fix: "Írd át a teljesítés dátumát " + nd + "-ra" + (td.slice(0, 7) !== nd.slice(0, 7) ? " – ez más hónap, így az áfa is másik időszakba kerül." : ".") });
+    }
+    return diffs.length ? { cls: "nav-diff", tag: "diff", txt: "Eltér a NAV-tól – " + diffs.join("; "), items: items } : null;
   }
   function col(name) { return D.cols.indexOf(name); }
   // Dátum egységesen "ÉÉÉÉ.HH.NN" alakban; a táblázat belső dátumszámát (pl. 46326) is átírja.
@@ -602,7 +633,20 @@
     if (typeof v === "number" || /^\d{5}(\.\d+)?$/.test(String(v || ""))) { var t = new Date(Date.UTC(1899, 11, 30) + Math.floor(Number(v)) * 86400000); return t.getUTCFullYear() + "." + ("0" + (t.getUTCMonth() + 1)).slice(-2) + "." + ("0" + t.getUTCDate()).slice(-2); }
     return String(v || "").replace(/-/g, ".").replace(/\.$/, "");
   }
-  var LEVT = null;
+  var LEVT = null, PEND = 0;
+  function flash(td, kind) { if (!td) return; td.classList.remove("fl-ok", "fl-bad"); void td.offsetWidth; td.classList.add(kind === "bad" ? "fl-bad" : "fl-ok"); }
+  // háttérmentés: a felület azonnal vált, a kérések párhuzamosan mennek; hiba esetén visszaáll és pirosan villan
+  function save(body, undo) {
+    PEND++; body.token = tok(); clearTimeout(LEVT);
+    call(body).then(function (d) { if (!(d && d.ok)) { undo(); toastErr(d && d.error === "moved" ? "A táblázatban elcsúsztak a sorok, frissítsd az oldalt." : "Nem sikerült menteni."); } }, function () { undo(); toastErr("Nem sikerült csatlakozni, a módosítás nem mentődött."); })
+      .then(function () { PEND--; if (!PEND) { clearTimeout(LEVT); LEVT = setTimeout(function () { if (!PEND) load(); }, 4000); } });
+  }
+  function toastErr(t) { $("k-invmeta").textContent = "⚠ " + t; }
+  function pKulcs(p) {
+    return String(p || "").toLowerCase().replace(/\([^)]*\)/g, " ").replace(/[^a-z0-9áéíóöőúüű]+/g, " ")
+      .replace(/\b(kft|zrt|nyrt|bt|ev|rt|kkt|e v|korlátolt|felelősségű|társaság|zártkörűen|működő|részvénytársaság|kereskedelmi|magyarország|hungary|limited|ltd)\b/g, " ")
+      .replace(/\s+/g, " ").trim();
+  }
   var KAT = ["Flotta", "Utazás", "Iroda", "Készlet", "Alvállalkozó", "OVB Jutalék", "Fővállalkozó", "Óvadék"];
   function katSel(r, c) {
     var cur = String(r[c.cat] || ""), opts = KAT.slice(), hit = KAT.filter(function (k) { return k.toLowerCase() === cur.toLowerCase(); })[0];
@@ -653,28 +697,32 @@
     if (!rows.length) body = '<tr><td class="empty" colspan="9">' + (D.rows.length ? "Nincs a szűrésnek megfelelő számla." : "Még nincs rögzített számla. A táblázat Számlák fülén tudod felvinni őket.") + "</td></tr>";
     $("k-inv").innerHTML = th + "<tbody>" + body + "</tbody>";
     $("k-inv").onchange = function (e) {
-      var cb = e.target;
-      if (cb.matches && cb.matches("select.kat")) {
-        var krn = +cb.getAttribute("data-row"), kr = D.rows.filter(function (x) { return x[x.length - 1] === krn; })[0]; if (!kr) return;
-        var cat = cb.value, old = kr[c.cat]; if (!cat) return; cb.disabled = true;
-        call({ action: "kategoria", token: tok(), row: krn, no: kr[c.no], cat: cat }).then(function (d) {
-          if (d && d.ok) {
-            (d.rows || []).forEach(function (n) { D.rows.forEach(function (x) { if (x[x.length - 1] === n) x[c.cat] = cat; }); });
-            renderInv(); $("k-invmeta").textContent = "„" + cat + "” kategóriába került " + (d.rows || []).length + " számla (" + (kr[c.partner] || "") + ").";
-            clearTimeout(LEVT); LEVT = setTimeout(load, 2500); return;
-          }
-          cb.disabled = false; cb.value = old; alert(d && d.error === "moved" ? "A táblázatban időközben elcsúsztak a sorok, frissítsd az oldalt." : "Nem sikerült menteni a kategóriát.");
-        }, function () { cb.disabled = false; cb.value = old; alert("Nem sikerült csatlakozni."); });
+      var el = e.target, rn = +el.getAttribute("data-row"), r = D.rows.filter(function (x) { return x[x.length - 1] === rn; })[0]; if (!r) return;
+      if (el.matches("select.kat")) {
+        // azonnal: az azonos partner (azonos irány) összes sora átíródik, villan; a mentés a háttérben megy
+        var cat = el.value; if (!cat) return;
+        var key = pKulcs(r[c.partner]), hit = D.rows.filter(function (x) { return x === r || (key && x[c.dir] === r[c.dir] && pKulcs(x[c.partner]) === key); });
+        var olds = hit.map(function (x) { return x[c.cat]; });
+        hit.forEach(function (x) { x[c.cat] = cat; var s2 = document.querySelector('#k-inv select.kat[data-row="' + x[x.length - 1] + '"]'); if (s2) { s2.value = cat; flash(s2.closest("td"), "ok"); } });
+        $("k-invmeta").textContent = "„" + cat + "”: " + hit.length + " számla (" + (r[c.partner] || "") + ")";
+        save({ action: "kategoria", row: rn, no: r[c.no], cat: cat }, function () {
+          hit.forEach(function (x, i) { x[c.cat] = olds[i]; var s2 = document.querySelector('#k-inv select.kat[data-row="' + x[x.length - 1] + '"]'); if (s2) { s2.value = olds[i] || ""; flash(s2.closest("td"), "bad"); } });
+        });
         return;
-      } if (!cb.matches || !cb.matches("input[data-row]")) return;
-      var rn = +cb.getAttribute("data-row"), r = D.rows.filter(function (x) { return x[x.length - 1] === rn; })[0]; if (!r) return;
-      var val = cb.checked; cb.disabled = true;
-      call({ action: "levon", token: tok(), row: rn, no: r[c.no], val: val }).then(function (d) {
-        cb.disabled = false;
-        if (d && d.ok) { r[c.lev] = val; renderInv(); clearTimeout(LEVT); LEVT = setTimeout(load, 2500); return; }
-        cb.checked = !val; alert(d && d.error === "moved" ? "A táblázatban időközben elcsúsztak a sorok, frissítsd az oldalt." : "Nem sikerült menteni a pipát.");
-      }, function () { cb.disabled = false; cb.checked = !val; alert("Nem sikerült csatlakozni."); });
+      }
+      if (!el.matches("input[data-row]")) return;
+      var val = el.checked; r[c.lev] = val; flash(el.closest("td"), "ok"); levHead();
+      save({ action: "levon", row: rn, no: r[c.no], val: val }, function () { r[c.lev] = !val; el.checked = !val; flash(el.closest("td"), "bad"); levHead(); });
     };
+    // a hónapsor "levonható áfa" összege azonnal frissül, a táblázat újrarajzolása nélkül
+    function levHead() {
+      var sum = {};
+      D.rows.forEach(function (x) { if (x[c.dir] === "Kiadás" && x[c.lev] === true) { var m = hd(x[c.perf] || x[c.iss]).slice(0, 7) || "–"; sum[m] = (sum[m] || 0) + num(x[c.vat]); } });
+      Array.prototype.forEach.call(document.querySelectorAll("#k-inv tr.mh"), function (h) {
+        var sp = h.querySelector(".mh-s"); if (!sp) return; var m = h.getAttribute("data-m"), t = sp.textContent.replace(/ · levonható áfa .*$/, "");
+        sp.textContent = t + (sum[m] ? " · levonható áfa " + ft(sum[m]) : "");
+      });
+    }
     $("k-inv").onclick = function (e) {
       if (e.target.closest("a,input,select,label")) return;
       var fx = e.target.closest("tr.fx"), nx = fx && fx.nextElementSibling;
@@ -719,7 +767,9 @@
   // ---- Lenyíló diagnózis a flaggelt tételekhez: kategória + a probléma leírása + javasolt megoldás ----
   var FLMV = [];   // a számla nélküli mozgások (a számla- és NAV-diagnózis is használja)
   function fxBox(o) {
-    return '<div class="fxb"><span class="fxc ' + (o.cls || "") + '">' + esc(o.cat) + "</span><p><b>Probléma:</b> " + esc(o.desc) + "</p><p><b>Javaslat:</b> " + esc(o.fix) + "</p>" +
+    return '<div class="fxb"><span class="fxc ' + (o.cls || "") + '">' + esc(o.cat) + "</span><p><b>Probléma:</b> " + esc(o.desc) + "</p>" +
+      (o.items ? '<ol class="fxl">' + o.items.map(function (it) { return "<li><b>" + esc(it.t) + "</b><br><span>Lehetséges ok: " + esc(it.ok) + "</span><br><span>Javaslat: " + esc(it.fix) + "</span></li>"; }).join("") + "</ol>" : "") +
+      (o.fix ? "<p><b>Javaslat:</b> " + esc(o.fix) + "</p>" : "") +
       (o.hint ? '<p class="hint">💡 ' + esc(o.hint) + "</p>" : "") + "</div>";
   }
   function fxRow(html, o, cols) { return html.replace(/^<tr( class="([^"]*)")?/, function (m, a, c) { return '<tr class="fx' + (c ? " " + c : "") + '"'; }) + '<tr class="fxd" hidden><td colspan="' + cols + '">' + fxBox(o) + "</td></tr>"; }
@@ -812,9 +862,20 @@
     var o = { desc: (r[c.partner] || "–") + " · " + r[c.no] + " · " + ft(num(r[c.gross]) || num(r[c.net])) + ". " + v.txt + "." };
     if (v.tag === "no") {
       o.cat = "Nincs a NAV-ban"; o.cls = "gr";
-      o.fix = "Nézd meg betűre a számlaszámot a PDF-en (elírás esetén a NAV-ban más számmal szerepel). Külföldi számla (pl. Booking, Google, Apple), magánszemély bizonylata vagy nem a cég nevére szóló blokk nem kerül a NAV-ba: ilyenkor rendben van, ha a számla tényleg a cégé.";
-      var hit = flNavHit(num(r[c.gross]) || num(r[c.net]), hd(r[c.perf] || r[c.iss]), 10);
-      if (hit) o.hint = "A NAV-ban van egy azonos összegű számla más számmal: " + (hit[3] || "–") + " · " + hit[1] + " · " + hd(hit[6] || hit[5]) + ". Valószínűleg elírás: javítsd a számlaszámot erre.";
+      var hit = flNavHit(num(r[c.gross]) || num(r[c.net]), hd(r[c.perf] || r[c.iss]), 10), pn = String(r[c.partner] || ""), no = String(r[c.no] || "");
+      var kulf = /s\.?r\.?l|limited|ltd\b|ireland|uab\b|gmbh|inc\b|llc|b\.?v\.|\bs\.?a\.?\b|sp\.? z o\.?o|booking|google|apple|amazon|stefan|sebastian|brikkmenn|engel|frenzl|autotava/i.test(pn);
+      var ok = hit ? "Elírt számlaszám: a NAV-ban ugyanekkora összegű számla van " + hit[1] + " számmal (" + (hit[3] || "–") + ", " + hd(hit[6] || hit[5]) + ")."
+        : kulf ? "Külföldi kiállító: a külföldi cégek számlái nem kerülnek a magyar NAV Online Számla rendszerébe, ez így rendben van."
+        : /^szbs_/i.test(no) ? "Számviteli bizonylat, nem számla: nem kell a NAV-ba."
+        : num(r[c.vat]) === 0 && !/kft|zrt|nyrt|bt\b/i.test(pn) ? "Magánszemély vagy alanyi adómentes egyéni vállalkozó bizonylata lehet, ami nem kerül a NAV-ba, vagy még nem küldték be."
+        : "Elírt számlaszám, vagy a kiállító még nem küldte be (vagy nem a TFC adószámára állította ki).";
+      o.desc = (pn || "–") + " · " + no + " · " + ft(num(r[c.gross]) || num(r[c.net])) + ".";
+      o.items = [{ t: "A számlaszám nem található a NAV-ban", ok: ok,
+        fix: hit ? "Javítsd a számlaszámot erre: " + hit[1] + "." : kulf ? "Nincs teendő." : "Nézd meg betűre a számlaszámot a PDF-en; ha egyezik, kérdezd meg a kiállítót, hogy beküldte-e a NAV-nak, és a TFC adószámára szól-e." }];
+      o.fix = "";
+    } else if (v.items && v.items.length) {
+      o.cat = "Eltérés a NAV-tól (" + v.items.length + ")"; o.desc = (r[c.partner] || "–") + " · " + r[c.no] + ".";
+      o.items = v.items; o.fix = "";
     } else {
       o.cat = "Eltérés a NAV-tól";
       o.fix = /bruttó/.test(v.txt) && /teljesítés/.test(v.txt) ? "Nézd meg a PDF-et: ha a NAV-adat a helyes, javítsd az összeget és a teljesítés dátumát a táblázatban (az áfa-időszak a teljesítéstől függ)."
