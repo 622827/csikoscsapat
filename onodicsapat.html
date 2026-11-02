@@ -318,6 +318,9 @@
   .pg .sb-l textarea { font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
   .pg .sb-hint { color: var(--muted); font-size: .85rem; margin: 8px 0 0; }
   .pg .sb-pct.ok { color: #1f9d5c; } .pg .sb-pct.wait { color: var(--muted); }
+  .sb-es { display: flex; align-items: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+  .pg .sb-es input[type=range] { flex: 1 1 auto; width: auto; min-width: 200px; accent-color: var(--accent); height: 28px; margin: 0; padding: 0; background: none; border: 0; }
+  .pg .sb-es .sb-in { flex: 0 0 110px; width: 110px; text-align: right; margin: 0; }
   .pg .sb-k { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--card, #f0f3f7); }
   .sb-six { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
   @media (max-width: 560px) { .sb-six { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -525,7 +528,7 @@
     <p class="none" id="as-none"></p>
   </div>
   <div id="v-sb" hidden>
-    <p class="lead">Start bónusz: 100 000 Ft új munkatársanként, a saját kontóra. MNB-s jelöltnél 60 000 Ft a betanulásra, 20 000 Ft az első sikeres MNB vizsgára és 20 000 Ft a 15 próbaelemzésre jár. Diplomás jelöltnél 60 000 Ft a betanulási SB-kre, 20 000 Ft a 15 próbaelemzésre és 20 000 Ft az 500 egységre (formalitás). Ha a külső elemző vizsga után 2 hónapon belül nincs meg a cél (MNB-s: 200, diplomás: 500 egység), az egész bónusz elvész.</p>
+    <p class="lead">Start bónusz: 100 000 Ft új munkatársanként, a saját kontóra. MNB-s jelöltnél 60 000 Ft a betanulásra, 20 000 Ft az első sikeres MNB vizsgára és 20 000 Ft a 15 próbaelemzésre jár. Diplomás jelöltnél 60 000 Ft a betanulási SB-kre, 20 000 Ft a 15 próbaelemzésre és 20 000 Ft az 500 egységre (formalitás). A kifizetés feltétele az egységcél: MNB-s jelöltnél 200, diplomásnál 500 egység.</p>
     <form class="as-add" id="sb-form" autocomplete="off">
       <input id="sb-name" type="text" maxlength="60" placeholder="Új munkatárs neve" aria-label="Név" required>
       <label class="as-lb">Kezdés <input id="sb-start" type="text" aria-label="Kezdés dátuma"></label>
@@ -565,7 +568,7 @@
   }
   function err(t) { $("err").textContent = t || ""; }
   function start() {
-    err("Betöltés…"); setTimeout(asInit, 0); sbLoadEs();
+    err("Betöltés…"); setTimeout(asInit, 0);
     sha("onodi-perf|" + PW).then(function (h) { ID = h; return fetch("firebase-config.json").then(function (r) { return r.json(); }); }).then(function (cfg) {
       CFG = cfg;
       var V = "https://www.gstatic.com/firebasejs/10.14.1/";
@@ -731,7 +734,7 @@
   function onIso(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
   function onSb6(p) { var a = Array.isArray(p.sb6) ? p.sb6.slice(0, 6) : []; while (a.length < 6) a.push(p.betan && !Array.isArray(p.sb6) ? p.betan : false); return a; }
   function sbCalc(p) {
-    var dipl = p.tipus === "dipl", e = sbEs(p), esv = p.esMan !== undefined && p.esMan !== "" && p.esMan !== null ? +p.esMan : (e && e.found ? e.v : 0);
+    var dipl = p.tipus === "dipl", e = null, esv = Math.max(0, +p.esMan || 0);  // egység: kézzel (csúszka / mező), nem a pipeline-ból
     var cel = dipl ? ON.celDipl : ON.celMnb, pr = Math.max(0, +p.proba || 0);
     var items = dipl
       ? [["betan", "Betanulási SB-k", ON.betan, !!p.betan], ["proba", ON.probaDb + " próbaelemzés", ON.proba, pr >= ON.probaDb], ["es500", "500 egység (formalitás)", ON.es500, esv >= 500]]
@@ -739,9 +742,7 @@
     // betanulás: 6 külön SB × 10 000 Ft
     var sb6 = onSb6(p), sbDb = sb6.filter(Boolean).length; items[0][3] = sbDb > 0; items[0].push(sbDb);
     var sum = 0; items.forEach(function (x) { if (x[0] === "betan") sum += sbDb * ON.betanSb; else if (x[3]) sum += x[2]; });
-    var hat = p.kevDate ? onAddM(p.kevDate, ON.honap) : null, now = new Date(), celOk = esv >= cel;
-    var allapot = !p.kevDate ? "nokev" : celOk ? "ok" : now > hat ? "elveszett" : "fut";
-    var napok = hat ? Math.ceil((hat - now) / 864e5) : null;
+    var hat = null, celOk = esv >= cel, allapot = celOk ? "ok" : "fut", napok = null;  // a külső elemző vizsgát itt nem mérjük
     return { dipl: dipl, e: e, es: esv, cel: cel, celOk: celOk, proba: pr, items: items, sum: sum, hat: hat, napok: napok, allapot: allapot, fiz: allapot === "elveszett" ? 0 : sum };
   }
   function sbRender() {
@@ -767,7 +768,7 @@
     }).catch(function () { if (SBPIPE[k] && SBPIPE[k].list) return; SBPIPE[k] = { err: "nem tölthető be" }; sbEsVer++; soon(sbRender); });
     return SBPIPE[k];
   }
-  function sbSig(p) { return JSON.stringify([p.name, p.start, p.mentor, p.mnb, p.kev, p.ta, p.esName, p.tipus, p.betan, p.sb6, p.proba, p.kevDate, p.esMan, sbConfirm === p.id, sbEsVer, sbEsErr, SBC && SBC.bon, sbAnim.indexOf(p.id + ":") === 0 ? sbAnim : ""]); }
+  function sbSig(p) { return JSON.stringify([p.name, p.start, p.mentor, p.mnb, p.kev, p.ta, p.esName, p.tipus, p.betan, p.sb6, p.proba, p.esMan, sbConfirm === p.id, sbEsVer, sbEsErr, SBC && SBC.bon, sbAnim.indexOf(p.id + ":") === 0 ? sbAnim : ""]); }
   function sbCard(p) {
       var R = sbCalc(p), card = el("div", "sb-c csk-keep"), h = el("div", "sb-h");
       h.appendChild(el("span", "sb-n", p.name));
@@ -783,18 +784,21 @@
       card.appendChild(h);
       // Feltétel: külső elemző vizsga + 2 hónapon belül a cél egység
       var fk = el("div", "sb-k"), fh = el("div", "sb-kh");
-      fh.appendChild(el("b", "", "Feltétel: " + sbNum(R.cel) + " egység " + ON.honap + " hónapon belül"));
-      var tg = { ok: ["ok", "teljesült"], fut: ["wait", R.napok + " nap van hátra"], elveszett: ["", "elveszett"], nokev: ["wait", "vizsgadátum kell"] }[R.allapot];
+      fh.appendChild(el("b", "", "Feltétel: " + sbNum(R.cel) + " egység"));
+      var tg = { ok: ["ok", "teljesült"], fut: ["wait", sbNum(Math.max(0, R.cel - R.es)) + " hiányzik"], elveszett: ["", "elveszett"] }[R.allapot];
       var tge = el("span", "sb-tag " + tg[0], tg[1]); if (R.allapot === "elveszett") tge.style.cssText = "background:var(--hot,#cc0066);color:#fff"; fh.appendChild(tge);
-      fh.appendChild(el("span", "sb-v", sbNum(R.es) + " / " + sbNum(R.cel) + " ES")); fk.appendChild(fh);
+      fh.appendChild(el("span", "sb-v", sbNum(R.es) + " / " + sbNum(R.cel) + " egység")); fk.appendChild(fh);
       var bar = el("div", "sb-bar"), bi = el("i"); bi.style.width = Math.min(100, R.cel > 0 ? R.es / R.cel * 100 : 0) + "%"; bar.appendChild(bi); fk.appendChild(bar);
-      var kl = el("label", "sb-note"); kl.appendChild(document.createTextNode("Külső elemző vizsga dátuma: ")); var ki = el("input"); dpAttach(ki); ki.value = p.kevDate || ""; ki.addEventListener("change", function () { sbUpd(p.id, { kevDate: ki.value }); }); kl.appendChild(ki);
-      if (R.hat) kl.appendChild(document.createTextNode(" · határidő: " + onIso(R.hat).replace(/-/g, ". ") + "."));
-      fk.appendChild(kl);
-      var esNote = (p.esMan !== undefined && p.esMan !== null && p.esMan !== "") ? "Egység: kézzel megadva (a pipeline helyett)." : R.e && R.e.found ? "Egység a(z) „" + (p.esName || p.name) + "” pipeline-ból (a kezdés hónapjától)." : "Nincs ilyen nevű sor a pipeline-ban – add meg a pipeline-ban szereplő nevet, vagy írd be kézzel az egységet.";
-      fk.appendChild(el("div", "sb-note", esNote + " Ha a határidőig nincs meg, az egész bónusz elvész."));
-      var row = el("div", "sb-note"); var ni = el("input"); ni.type = "text"; ni.placeholder = "Név a pipeline-ban"; ni.value = p.esName || ""; ni.className = "sb-in"; ni.addEventListener("change", function () { sbUpd(p.id, { esName: ni.value.trim() }); }); row.appendChild(ni);
-      var mi = el("input"); mi.type = "number"; mi.min = "0"; mi.placeholder = "Egység kézzel"; mi.value = p.esMan !== undefined && p.esMan !== null ? p.esMan : ""; mi.className = "sb-in"; mi.style.marginLeft = "8px"; mi.addEventListener("change", function () { sbUpd(p.id, { esMan: mi.value === "" ? "" : +mi.value }); }); row.appendChild(mi);
+      fk.appendChild(el("div", "sb-note", "Egység: a csúszkával vagy a mezőbe írva állítsd be."));
+      var row = el("div", "sb-es"), rg = el("input"), nm = el("input");
+      rg.type = "range"; rg.min = "0"; rg.max = String(R.cel); rg.step = "1"; rg.value = String(Math.min(R.es, R.cel)); rg.setAttribute("aria-label", "Egység");
+      nm.type = "number"; nm.min = "0"; nm.step = "1"; nm.value = String(R.es); nm.className = "sb-in"; nm.setAttribute("aria-label", "Egység kézzel");
+      function live(v) { bi.style.width = Math.min(100, R.cel > 0 ? v / R.cel * 100 : 0) + "%"; }
+      rg.addEventListener("input", function () { nm.value = rg.value; live(+rg.value); });
+      rg.addEventListener("change", function () { sbUpd(p.id, { esMan: +rg.value }); });
+      nm.addEventListener("input", function () { var v = Math.max(0, +nm.value || 0); rg.value = String(Math.min(v, R.cel)); live(v); });
+      nm.addEventListener("change", function () { sbUpd(p.id, { esMan: Math.max(0, Math.round(+nm.value || 0)) }); });
+      row.appendChild(rg); row.appendChild(nm); row.appendChild(el("span", "sb-note", "/ " + sbNum(R.cel) + " egység"));
       fk.appendChild(row); card.appendChild(fk);
       // Bónuszelemek
       R.items.forEach(function (q) {
@@ -818,7 +822,7 @@
           kb.appendChild(gr); card.appendChild(kb); return;
         }
         if (key === "es500") {
-          var k5 = el("div", "sb-k" + (done ? " done" : "")), h5 = el("div", "sb-kh"); h5.appendChild(el("b", "", q[1])); h5.appendChild(el("span", "sb-tag " + (done ? "ok" : "wait"), sbNum(R.es) + " / 500 ES")); h5.appendChild(el("span", "sb-v", done ? sbFt(val) : "0 / " + sbFt(val))); k5.appendChild(h5); card.appendChild(k5); return;
+          var k5 = el("div", "sb-k" + (done ? " done" : "")), h5 = el("div", "sb-kh"); h5.appendChild(el("b", "", q[1])); h5.appendChild(el("span", "sb-tag " + (done ? "ok" : "wait"), sbNum(R.es) + " / 500 egység")); h5.appendChild(el("span", "sb-v", done ? sbFt(val) : "0 / " + sbFt(val))); k5.appendChild(h5); card.appendChild(k5); return;
         }
         var on = !!p[key], an = sbAnim === p.id + ":" + key, kc = el("label", "sb-k sb-ck" + (on ? " done" : "") + (an ? (on ? " fillin" : " unfill") : "")), ck = el("input"); ck.type = "checkbox"; ck.checked = on;
         ck.addEventListener("change", function () { var o = {}; o[key] = ck.checked ? todayIso() : false; p[key] = o[key]; sbAnim = p.id + ":" + key; sbRender(); setTimeout(function () { if (sbAnim === p.id + ":" + key) { sbAnim = ""; } }, 800); sbUpd(p.id, o); });
@@ -828,7 +832,7 @@
       var sm = el("div", "sb-sum");
       function tile(cls, lab, val, sub) { var t = el("div", "sb-tile " + cls); t.appendChild(el("span", "sb-tl", lab)); t.appendChild(el("b", "sb-tv", val)); [].concat(sub || []).forEach(function (x) { var ln = el("span", "sb-ts"); if (Array.isArray(x)) { ln.classList.add("two"); ln.appendChild(el("span", "", x[0])); if (x[1]) ln.appendChild(el("b", "", x[1])); } else ln.textContent = x; t.appendChild(ln); }); sm.appendChild(t); }
       tile("bon" + (R.sum ? " ok" : ""), "Megszerzett", sbFt(R.sum), R.items.map(function (q) { return q[0] === "betan" ? [(q[4] ? "✓ " : "– ") + q[1] + " (" + q[4] + "/" + ON.sbDb + ")", q[4] ? sbFt(q[4] * ON.betanSb) : ""] : [(q[3] ? "✓ " : "– ") + q[1], q[3] ? sbFt(q[2]) : ""]; }));
-      tile("all", "Kifizethető", sbFt(R.allapot === "ok" ? R.sum : 0), R.allapot === "ok" ? "a saját kontóra" : R.allapot === "elveszett" ? "a cél nem teljesült a határidőig – a bónusz elveszett" : R.allapot === "fut" ? sbNum(Math.max(0, R.cel - R.es)) + " ES hiányzik a határidőig" : "add meg a külső elemző vizsga dátumát");
+      tile("all", "Kifizethető", sbFt(R.allapot === "ok" ? R.sum : 0), R.allapot === "ok" ? "a saját kontóra" : R.allapot === "elveszett" ? "a cél nem teljesült a határidőig – a bónusz elveszett" : sbNum(Math.max(0, R.cel - R.es)) + " egység hiányzik a feltételhez");
       card.appendChild(sm);
       return card;
   }
@@ -846,7 +850,7 @@
   }
   function sbStart() {
     if (sbReady) return; sbReady = true;
-    FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "sb"), function (snap) { SB = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); SB.forEach(sbPipe); soon(sbRender); }, function (e) { toast("Start bónusz: " + e.message); });
+    FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "sb"), function (snap) { SB = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); soon(sbRender); }, function (e) { toast("Start bónusz: " + e.message); });
     FB.F.onSnapshot(FB.F.doc(FB.db, "perf", ID, "sbcfg", "main"), function (d) { SBC = d.exists() ? d.data() : null; soon(sbRender); }, function () {});
   }
   function sbInit() {
@@ -856,7 +860,7 @@
     $("sb-form").addEventListener("submit", function (ev) {
       ev.preventDefault(); if (!FB) { toast("Az adatbázis még nem töltött be."); return; }
       var nm = $("sb-name").value.trim(); if (!nm) return;
-      FB.F.setDoc(FB.F.doc(FB.F.collection(FB.db, "perf", ID, "sb")), { name: nm, start: $("sb-start").value || todayIso(), mentor: $("sb-mentor").value, tipus: $("sb-tipus").value, betan: false, sb6: [false, false, false, false, false, false], mnb: false, proba: 0, kevDate: "", ta: [], created: Date.now() }).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
+      FB.F.setDoc(FB.F.doc(FB.F.collection(FB.db, "perf", ID, "sb")), { name: nm, start: $("sb-start").value || todayIso(), mentor: $("sb-mentor").value, tipus: $("sb-tipus").value, betan: false, sb6: [false, false, false, false, false, false], mnb: false, proba: 0, esMan: 0, ta: [], created: Date.now() }).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
       $("sb-name").value = ""; $("sb-name").focus();
     });
   }
