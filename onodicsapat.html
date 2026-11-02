@@ -340,6 +340,9 @@
   .pg .sb-ck > * { position: relative; }
   .pg .sb-ck::before { content: ""; position: absolute; inset: 0; background: rgba(31,157,92,.22); transform: scaleX(0); transform-origin: left center; }
   .pg .sb-ck.done::before { transform: scaleX(1); }
+  .on-share { margin: 14px 0 0; color: var(--muted); font-size: .92rem; }
+  .on-share a { color: var(--accent); font-weight: 700; }
+  .on-copy { font: inherit; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
   /* Ónodi: animációk */
   .pg .sb-bar i { transition: width .8s cubic-bezier(.2,.8,.2,1); }
   @keyframes onPop { 0% { transform: scale(1); } 35% { transform: scale(1.08); } 65% { transform: scale(.97); } 100% { transform: scale(1); } }
@@ -545,6 +548,7 @@
   </div>
   <div id="v-sb" hidden>
     <p class="lead">Start bónusz: 100 000 Ft új munkatársanként, a saját kontóra. MNB-s jelöltnél 60 000 Ft a betanulásra, 20 000 Ft az első sikeres MNB vizsgára és 20 000 Ft a 15 próbaelemzésre jár. Diplomás jelöltnél 60 000 Ft a betanulási SZB-kre, 20 000 Ft a 15 próbaelemzésre és 20 000 Ft az 500 egységre (formalitás). A kifizetés feltétele az egységcél: MNB-s jelöltnél 200, diplomásnál 500 egység.</p>
+    <p class="on-share">Munkatársi nézet (csak olvasható, ezt küldd ki az új munkatársaknak): <a href="onodi-haladas.html" target="_blank" rel="noopener">megnyitás ↗</a> · <button type="button" class="on-copy" id="on-copy">link másolása</button></p>
     <form class="as-add" id="sb-form" autocomplete="off">
       <input id="sb-name" type="text" maxlength="60" placeholder="Új munkatárs neve" aria-label="Név" required>
       <label class="as-lb">Kezdés <input id="sb-start" type="text" aria-label="Kezdés dátuma"></label>
@@ -881,6 +885,19 @@
     var pct = card.querySelector(".sb-h .sb-pct"); if (pct && /Ft/.test(pct.textContent)) onCount(pct, pv.sum, cur.sum, sbFt);
     if (cur.sum !== pv.sum) onFx(card.querySelector(".sb-tile.bon"), cur.sum > pv.sum ? "on-up" : "on-unpop");
   }
+  // ---- Munkatársi nézet (onodi-haladas.html): csak olvasható összesítő a közös tárban ----
+  var onPubT = 0, onPubLast = "";
+  function onPubSoon() { clearTimeout(onPubT); onPubT = setTimeout(onPub, 1200); }
+  function onPub() {
+    if (!FB) return;
+    var items = SB.slice().sort(function (a, b) { return (b.start || "").localeCompare(a.start || "") || (b.created || 0) - (a.created || 0); }).map(function (p) {
+      var R = sbCalc(p), sb6 = onSb6(p);
+      return { name: p.name || "", tipus: R.dipl ? "dipl" : "mnb", start: p.start || "", szb: sb6.filter(Boolean).length, proba: R.proba, mnb: !!p.mnb, es: R.es, cel: R.cel, celOk: R.celOk, sum: R.sum, fiz: R.allapot === "ok" ? R.sum : 0 };
+    });
+    var js = JSON.stringify(items); if (js === onPubLast) return; onPubLast = js;
+    FB.F.setDoc(FB.F.doc(FB.db, "perf", "pub-onodi-sb", "pub", "lista"), { upd: new Date().toISOString(), items: items }).catch(function () { onPubLast = ""; });
+  }
+  (function () { var b = document.getElementById("on-copy"); if (!b) return; b.addEventListener("click", function () { var u = location.origin + "/onodi-haladas.html"; (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function () { toast("Link kimásolva: " + u); }).catch(function () { prompt("A munkatársi nézet linkje:", u); }); }); })();
   function sbUpd(id, patch) { FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "sb", id), patch).catch(function (e) { toast("Mentés sikertelen: " + e.message); }); }
   function sbLsGet(k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
   function sbLsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
@@ -895,7 +912,7 @@
   }
   function sbStart() {
     if (sbReady) return; sbReady = true;
-    FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "sb"), function (snap) { SB = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); soon(sbRender); }, function (e) { toast("Start bónusz: " + e.message); });
+    FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "sb"), function (snap) { SB = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); soon(sbRender); onPubSoon(); }, function (e) { toast("Start bónusz: " + e.message); });
     FB.F.onSnapshot(FB.F.doc(FB.db, "perf", ID, "sbcfg", "main"), function (d) { SBC = d.exists() ? d.data() : null; soon(sbRender); }, function () {});
   }
   function sbInit() {
