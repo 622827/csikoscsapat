@@ -340,6 +340,22 @@
   .pg .sb-ck > * { position: relative; }
   .pg .sb-ck::before { content: ""; position: absolute; inset: 0; background: rgba(31,157,92,.22); transform: scaleX(0); transform-origin: left center; }
   .pg .sb-ck.done::before { transform: scaleX(1); }
+  /* Ónodi: animációk */
+  .pg .sb-bar i { transition: width .8s cubic-bezier(.2,.8,.2,1); }
+  @keyframes onPop { 0% { transform: scale(1); } 35% { transform: scale(1.08); } 65% { transform: scale(.97); } 100% { transform: scale(1); } }
+  @keyframes onRing { 0% { box-shadow: 0 0 0 0 rgba(92,184,255,.75); } 100% { box-shadow: 0 0 0 16px rgba(92,184,255,0); } }
+  @keyframes onShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  @keyframes onTick { 0% { transform: translateY(0); } 40% { transform: translateY(-4px) scale(1.12); color: var(--accent); } 100% { transform: translateY(0); } }
+  @keyframes onWin { 0% { box-shadow: 0 0 0 0 rgba(143,227,255,.9); transform: scale(1); } 30% { transform: scale(1.025); } 100% { box-shadow: 0 0 0 22px rgba(143,227,255,0); transform: scale(1); } }
+  @keyframes onUp { 0% { transform: translateY(0); } 40% { transform: translateY(-6px); } 100% { transform: translateY(0); } }
+  .on-pop { animation: onPop .5s cubic-bezier(.2,.8,.2,1), onRing .9s ease-out; }
+  .on-pop input { animation: onPop .5s cubic-bezier(.2,.8,.2,1); }
+  .on-unpop { animation: onShake .35s ease; }
+  .on-tick { display: inline-block; animation: onTick .5s ease; }
+  .on-win { animation: onWin 1.1s ease-out 2; }
+  .on-up { animation: onUp .5s ease, onRing 1s ease-out; }
+  .sb-six-i::before { background: rgba(92,184,255,.22) !important; transition: transform .45s cubic-bezier(.2,.8,.2,1); }
+  @media (prefers-reduced-motion: reduce) { .on-pop, .on-pop input, .on-unpop, .on-tick, .on-win, .on-up, .pg .sb-bar i { animation: none !important; transition: none !important; } }
   .pg .sb-ck.fillin::before { animation: sbFill .55s cubic-bezier(.2,.7,.2,1); }
   .pg .sb-ck.unfill::before { animation: sbUnfill .4s ease; }
   @keyframes sbFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
@@ -783,7 +799,7 @@
       else { del.addEventListener("click", function () { sbConfirm = p.id; sbRender(); }); h.appendChild(del); }
       card.appendChild(h);
       // Feltétel: külső elemző vizsga + 2 hónapon belül a cél egység
-      var fk = el("div", "sb-k"), fh = el("div", "sb-kh");
+      var fk = el("div", "sb-k"), fh = el("div", "sb-kh"); fk.dataset.k = "cel";
       fh.appendChild(el("b", "", "Feltétel: " + sbNum(R.cel) + " egység"));
       var tg = { ok: ["ok", "teljesült"], fut: ["wait", sbNum(Math.max(0, R.cel - R.es)) + " hiányzik"], elveszett: ["", "elveszett"] }[R.allapot];
       var tge = el("span", "sb-tag " + tg[0], tg[1]); if (R.allapot === "elveszett") tge.style.cssText = "background:var(--hot,#cc0066);color:#fff"; fh.appendChild(tge);
@@ -804,27 +820,27 @@
       R.items.forEach(function (q) {
         var key = q[0], val = q[2], done = q[3];
         if (key === "proba") {
-          var k = el("div", "sb-k" + (done ? " done" : "")), kh = el("div", "sb-kh"); kh.appendChild(el("b", "", q[1])); kh.appendChild(el("span", "sb-tag " + (done ? "ok" : "wait"), R.proba + " / " + ON.probaDb)); kh.appendChild(el("span", "sb-v", done ? sbFt(val) : "0 / " + sbFt(val))); k.appendChild(kh);
-          var b2 = el("div", "sb-bar"), b2i = el("i"); b2i.style.width = Math.min(100, R.proba / ON.probaDb * 100) + "%"; b2.appendChild(b2i); k.appendChild(b2);
+          var k = el("div", "sb-k" + (done ? " done" : "")), kh = el("div", "sb-kh"); k.dataset.k = "proba"; kh.appendChild(el("b", "", q[1])); kh.appendChild(el("span", "sb-tag " + (done ? "ok" : "wait"), R.proba + " / " + ON.probaDb)); kh.appendChild(el("span", "sb-v", done ? sbFt(val) : "0 / " + sbFt(val))); k.appendChild(kh);
+          var b2 = el("div", "sb-bar"), b2i = el("i"); b2i.dataset.bar = "proba"; b2i.style.width = Math.min(100, R.proba / ON.probaDb * 100) + "%"; b2.appendChild(b2i); k.appendChild(b2);
           var ctl = el("div", "sb-note"), mn = el("button", "sm gh", "−"), pl = el("button", "sm gh", "+"); mn.type = pl.type = "button";
           mn.addEventListener("click", function () { sbUpd(p.id, { proba: Math.max(0, R.proba - 1) }); }); pl.addEventListener("click", function () { sbUpd(p.id, { proba: R.proba + 1 }); });
           ctl.appendChild(mn); ctl.appendChild(document.createTextNode(" " + R.proba + " db próbaelemzés ")); ctl.appendChild(pl); k.appendChild(ctl); card.appendChild(k); return;
         }
         if (key === "betan") {
-          var sb6 = onSb6(p), db = q[4], kb = el("div", "sb-k" + (db === ON.sbDb ? " done" : "")), hb = el("div", "sb-kh");
+          var sb6 = onSb6(p), db = q[4], kb = el("div", "sb-k" + (db === ON.sbDb ? " done" : "")), hb = el("div", "sb-kh"); kb.dataset.k = "betan";
           hb.appendChild(el("b", "", q[1])); hb.appendChild(el("span", "sb-tag " + (db === ON.sbDb ? "ok" : "wait"), db + " / " + ON.sbDb + " SZB")); hb.appendChild(el("span", "sb-v", sbFt(db * ON.betanSb) + " / " + sbFt(val))); kb.appendChild(hb);
           var gr = el("div", "sb-six");
           sb6.forEach(function (v, ix) {
-            var lb = el("label", "sb-ck sb-six-i" + (v ? " done" : "")), c6 = el("input"); c6.type = "checkbox"; c6.checked = !!v;
+            var lb = el("label", "sb-ck sb-six-i" + (v ? " done" : "")), c6 = el("input"); lb.dataset.ix = String(ix); c6.type = "checkbox"; c6.checked = !!v;
             c6.addEventListener("change", function () { var a = onSb6(p); a[ix] = c6.checked ? todayIso() : false; p.sb6 = a; sbRender(); sbUpd(p.id, { sb6: a }); });
             lb.appendChild(c6); var t6 = el("span", "sb-ckt"); t6.appendChild(el("b", "", (ix + 1) + ". SZB")); t6.appendChild(el("small", "", v && typeof v === "string" ? " · " + v.slice(5).replace("-", ". ") + "." : " · " + sbFt(ON.betanSb))); lb.appendChild(t6); gr.appendChild(lb);
           });
           kb.appendChild(gr); card.appendChild(kb); return;
         }
         if (key === "es500") {
-          var k5 = el("div", "sb-k" + (done ? " done" : "")), h5 = el("div", "sb-kh"); h5.appendChild(el("b", "", q[1])); h5.appendChild(el("span", "sb-tag " + (done ? "ok" : "wait"), sbNum(R.es) + " / 500 egység")); h5.appendChild(el("span", "sb-v", done ? sbFt(val) : "0 / " + sbFt(val))); k5.appendChild(h5); card.appendChild(k5); return;
+          var k5 = el("div", "sb-k" + (done ? " done" : "")), h5 = el("div", "sb-kh"); k5.dataset.k = "es500"; h5.appendChild(el("b", "", q[1])); h5.appendChild(el("span", "sb-tag " + (done ? "ok" : "wait"), sbNum(R.es) + " / 500 egység")); h5.appendChild(el("span", "sb-v", done ? sbFt(val) : "0 / " + sbFt(val))); k5.appendChild(h5); card.appendChild(k5); return;
         }
-        var on = !!p[key], an = sbAnim === p.id + ":" + key, kc = el("label", "sb-k sb-ck" + (on ? " done" : "") + (an ? (on ? " fillin" : " unfill") : "")), ck = el("input"); ck.type = "checkbox"; ck.checked = on;
+        var on = !!p[key], an = sbAnim === p.id + ":" + key, kc = el("label", "sb-k sb-ck" + (on ? " done" : "") + (an ? (on ? " fillin" : " unfill") : "")), ck = el("input"); ck.type = "checkbox"; ck.checked = on; kc.dataset.k = key;
         ck.addEventListener("change", function () { var o = {}; o[key] = ck.checked ? todayIso() : false; p[key] = o[key]; sbAnim = p.id + ":" + key; sbRender(); setTimeout(function () { if (sbAnim === p.id + ":" + key) { sbAnim = ""; } }, 800); sbUpd(p.id, o); });
         kc.appendChild(ck); var tx = el("span", "sb-ckt"); tx.appendChild(el("b", "", q[1])); if (on && typeof p[key] === "string") tx.appendChild(el("small", "", " · " + p[key].replace(/-/g, ". ") + ".")); kc.appendChild(tx);
         kc.appendChild(el("span", "sb-v", on ? sbFt(val) : "0 / " + sbFt(val))); card.appendChild(kc);
@@ -834,7 +850,36 @@
       tile("bon" + (R.sum ? " ok" : ""), "Megszerzett", sbFt(R.sum), R.items.map(function (q) { return q[0] === "betan" ? [(q[4] ? "✓ " : "– ") + q[1] + " (" + q[4] + "/" + ON.sbDb + ")", q[4] ? sbFt(q[4] * ON.betanSb) : ""] : [(q[3] ? "✓ " : "– ") + q[1], q[3] ? sbFt(q[2]) : ""]; }));
       tile("all", "Kifizethető", sbFt(R.allapot === "ok" ? R.sum : 0), R.allapot === "ok" ? "a saját kontóra" : R.allapot === "elveszett" ? "a cél nem teljesült a határidőig – a bónusz elveszett" : sbNum(Math.max(0, R.cel - R.es)) + " egység hiányzik a feltételhez");
       card.appendChild(sm);
+      onAnimate(card, p, R);
       return card;
+  }
+  // ---- Animációk: minden változás (pipálás, csúszka, számláló, teljesülés) mozogva jelenik meg ----
+  var ONPREV = {};
+  function onEase(t) { return 1 - Math.pow(1 - t, 3); }
+  function onCount(elm, from, to, fmt) {
+    if (!elm || from === to) return; var t0 = null, d = 700;
+    function st(ts) { if (t0 === null) t0 = ts; var k = Math.min(1, (ts - t0) / d); elm.textContent = fmt(from + (to - from) * onEase(k)); if (k < 1) requestAnimationFrame(st); else elm.textContent = fmt(to); }
+    elm.textContent = fmt(from); requestAnimationFrame(st);
+  }
+  function onBar(i, fromPct) { if (!i) return; var to = i.style.width; i.style.transition = "none"; i.style.width = fromPct + "%"; requestAnimationFrame(function () { requestAnimationFrame(function () { i.style.transition = ""; i.style.width = to; }); }); }
+  function onFx(elm, cls) { if (!elm) return; elm.classList.remove(cls); void elm.offsetWidth; elm.classList.add(cls); setTimeout(function () { elm.classList.remove(cls); }, 1600); }
+  function onAnimate(card, p, R) {
+    var PV = ONPREV[p.id], sb6 = onSb6(p), done = {}; R.items.forEach(function (q) { done[q[0]] = !!q[3] && (q[0] !== "betan" || q[4] === ON.sbDb); });
+    var cur = { es: R.es, proba: R.proba, szb: sb6.map(Boolean), done: done, cel: R.celOk, sum: R.sum, fiz: R.allapot === "ok" ? R.sum : 0 };
+    ONPREV[p.id] = cur;
+    var pv = PV || { es: 0, proba: 0, szb: [], done: {}, cel: R.celOk, sum: 0, fiz: 0 };
+    var celBar = card.querySelector('[data-k="cel"] .sb-bar i');
+    onBar(celBar, R.cel > 0 ? Math.min(100, pv.es / R.cel * 100) : 0);
+    onBar(card.querySelector('[data-bar="proba"]'), Math.min(100, pv.proba / ON.probaDb * 100));
+    if (!PV) return;  // első megjelenés: csak a csíkok töltődnek fel
+    sb6.forEach(function (v, ix) { var lb = card.querySelector('[data-ix="' + ix + '"]'); if (!!v !== !!pv.szb[ix]) { onFx(lb, v ? "on-pop" : "on-unpop"); onFx(lb, v ? "fillin" : "unfill"); } });
+    Object.keys(done).forEach(function (k) { if (done[k] && !pv.done[k]) onFx(card.querySelector('[data-k="' + k + '"]'), "on-win"); else if (!done[k] && pv.done[k]) onFx(card.querySelector('[data-k="' + k + '"]'), "on-unpop"); });
+    if (R.celOk && !pv.cel) { onFx(card.querySelector('[data-k="cel"]'), "on-win"); onFx(card.querySelector(".sb-tile.all"), "on-win"); }
+    if (cur.proba !== pv.proba) onFx(card.querySelector('[data-k="proba"] .sb-tag'), "on-tick");
+    if (cur.es !== pv.es) onFx(card.querySelector('[data-k="cel"] .sb-v'), "on-tick");
+    var tv = card.querySelectorAll(".sb-tv"); onCount(tv[0], pv.sum, cur.sum, sbFt); onCount(tv[1], pv.fiz, cur.fiz, sbFt);
+    var pct = card.querySelector(".sb-h .sb-pct"); if (pct && /Ft/.test(pct.textContent)) onCount(pct, pv.sum, cur.sum, sbFt);
+    if (cur.sum !== pv.sum) onFx(card.querySelector(".sb-tile.bon"), cur.sum > pv.sum ? "on-up" : "on-unpop");
   }
   function sbUpd(id, patch) { FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "sb", id), patch).catch(function (e) { toast("Mentés sikertelen: " + e.message); }); }
   function sbLsGet(k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
