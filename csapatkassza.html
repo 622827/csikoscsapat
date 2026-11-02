@@ -963,7 +963,7 @@
           var w = el("div", "pk-r");
           var i = { nev: inp("text", r.nev, { placeholder: "pl. Üzleti Maxi" }), csomag: inp("text", r.netk || "", { placeholder: "Net" }), beszed: inp("text", r.beszed || "", { placeholder: "Beszéd" }), sms: inp("text", r.sms || "", { placeholder: "SMS" }), alap: inp("text", r.alap === "" ? "" : String(r.alap), { inputmode: "numeric", placeholder: "Csomagdíj" }), admin: inp("text", r.admin === "" ? "" : String(r.admin), { inputmode: "numeric", placeholder: "Admin" }) };
           var x = el("button", "", "×"); x.type = "button"; x.setAttribute("aria-label", "Csomag törlése"); x.style.cssText = "font:inherit;border:1px solid var(--track);background:var(--bg);color:var(--frk);border-radius:8px;width:34px;height:34px;cursor:pointer";
-          var ent = { i: i, w: w, cs: r.csomag || "" }; boxes[k].push(ent);
+          var ent = { i: i, w: w, cs: r.csomag || "", orig: r.nev || "" }; boxes[k].push(ent);
           x.addEventListener("click", function () { w.remove(); boxes[k].splice(boxes[k].indexOf(ent), 1); });
           ["nev", "csomag", "beszed", "sms", "alap", "admin"].forEach(function (n) { i[n].style.minWidth = "0"; i[n].setAttribute("aria-label", n); w.appendChild(i[n]); }); w.appendChild(x); box.appendChild(w);
         }
@@ -974,24 +974,29 @@
         fields.appendChild(ad);
       });
     }, function () {
-      var out = { BB: [], TFC: [], ONE: [] };
+      var out = { BB: [], TFC: [], ONE: [] }, orig = { BB: [], TFC: [], ONE: [] };
       for (var k in boxes) for (var n = 0; n < boxes[k].length; n++) {
         var i = boxes[k][n].i, nev = i.nev.value.trim(); if (!nev && !i.alap.value.trim()) continue;
         var al = num(i.alap.value || 0), ad = num(i.admin.value || 0);
         if (!nev || !isFinite(al) || !isFinite(ad)) return Promise.reject(new Error("Minden csomagnál add meg az internetet és számokat a díjakhoz."));
-        out[k].push({ nev: nev, csomag: boxes[k][n].cs || "", netk: i.csomag.value.trim(), beszed: i.beszed.value.trim(), sms: i.sms.value.trim(), bv: 3, alap: al, admin: ad });
+        out[k].push({ nev: nev, csomag: boxes[k][n].cs || "", netk: i.csomag.value.trim(), beszed: i.beszed.value.trim(), sms: i.sms.value.trim(), bv: 3, alap: al, admin: ad }); orig[k].push(String(boxes[k][n].orig || "").trim().toLowerCase());
       }
       if (FMODE !== "live" || !FST) { try { localStorage.setItem(PKEY, JSON.stringify(out)); } catch (e) {} toast("Csomagok mentve ezen az eszközön (a közös tár még nincs betöltve)."); return Promise.resolve(); }
       var F = FST.F, chg = [];
       (FD ? FD.rows : []).forEach(function (r) {
-        var L = out[r.fl] || [], q = L.filter(function (z) { return String(z.csomag || "").trim().toLowerCase() === r.csomag.trim().toLowerCase() && String(z.nev).trim().toLowerCase() === r.net.trim().toLowerCase(); })[0];
-        if (q && q.alap + q.admin > 0 && (q.alap !== r.alap || q.admin !== r.admin) && !(r.kesz > 0 && !r.alap && !r.admin)) chg.push({ r: r, q: q });
+        // átnevezett csomagnál a régi névvel rögzített sorokat is megtalálja (és a nevet is átírja)
+        var L = out[r.fl] || [], O = orig[r.fl] || [], rn = r.net.trim().toLowerCase(), rc = r.csomag.trim().toLowerCase(), q = null;
+        L.forEach(function (z, ix) { if (!q && String(z.csomag || "").trim().toLowerCase() === rc && (String(z.nev).trim().toLowerCase() === rn || (O[ix] && O[ix] === rn))) q = z; });
+        if (!q && rn) L.forEach(function (z) { if (!q && String(z.csomag || "").trim().toLowerCase() === rc && String(z.nev).trim().toLowerCase().indexOf(rn + " ") === 0) q = z; });
+        if (!q || (r.kesz > 0 && !r.alap && !r.admin)) return;
+        var ren = String(q.nev).trim() !== r.net.trim(), dif = q.alap + q.admin > 0 && (q.alap !== r.alap || q.admin !== r.admin);
+        if (ren || dif) chg.push({ r: r, q: q, ren: ren, dif: dif });
       });
       return F.setDoc(F.doc(FST.db, "perf", fid(), "fl_meta", "pkgs"), { json: JSON.stringify(out) }).then(function () {
         PK = out; toast("Csomagok mentve.");
-        if (chg.length && confirm(chg.length + " sor díja eltér az új árlistától. Átírjam őket az árlista szerinti csomagdíjra és admin díjra?")) {
-          var bt = F.writeBatch(FST.db); chg.forEach(function (c) { bt.update(F.doc(fcol("fl_rows"), c.r.id), { alap: c.q.alap, admin: c.q.admin }); });
-          FPUBDIRTY = true; return bt.commit().then(function () { setTimeout(fpubSync, 400); toast(chg.length + " sor díja frissítve."); });
+        if (chg.length && confirm(chg.length + " sor eltér az új árlistától (díj vagy átnevezett csomagnév). Átírjam őket az árlista szerint?")) {
+          var bt = F.writeBatch(FST.db); chg.forEach(function (c) { var u = {}; if (c.dif) { u.alap = c.q.alap; u.admin = c.q.admin; } if (c.ren) u.net = c.q.nev; bt.update(F.doc(fcol("fl_rows"), c.r.id), u); });
+          FPUBDIRTY = true; return bt.commit().then(function () { setTimeout(fpubSync, 400); toast(chg.length + " sor frissítve."); });
         }
       });
     });
