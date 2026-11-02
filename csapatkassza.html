@@ -670,7 +670,7 @@
     FUNSUB.push(F.onSnapshot(F.doc(db, "perf", id, "fl_meta", "info"), { includeMetadataChanges: true }, function (d) {
       if (!d.exists() && d.metadata && d.metadata.fromCache) { if (FMODE !== "live") $("f-sub").textContent = "Kapcsolódás a közös tárhoz…"; return; }
       fsrv = true; clearTimeout(ftm);
-      FMODE = d.exists() ? "live" : "new";
+      FMODE = d.exists() ? "live" : "new"; FINFO = d.exists() ? (d.data() || {}) : {}; ffix1();
       if (FMODE === "live") { if (FD) renderF(); } else fshowMigrate();
     }, function (e) { $("f-sub").textContent = "Nem sikerült betölteni: " + e.message; }));
     FUNSUB.push(F.onSnapshot(F.doc(db, "perf", id, "fl_meta", "pkgs"), function (d) {
@@ -680,8 +680,26 @@
     FUNSUB.push(F.onSnapshot(F.collection(db, "perf", id, "fl_rows"), function (snap) {
       var rows = snap.docs.map(function (d) { return fnorm(Object.assign({}, d.data(), { id: d.id })); });
       rows.sort(function (a, b) { return fnum(a.ord) - fnum(b.ord); });
-      FD = { rows: rows, updated: Date.now() }; if (FMODE === "live") { renderF(); if (FPUBDIRTY) fpubSync(); }
+      FD = { rows: rows, updated: Date.now() }; if (FMODE === "live") { renderF(); if (FPUBDIRTY) fpubSync(); ffix1(); }
     }, function (e) { $("f-sub").textContent = "Nem sikerült betölteni: " + e.message; }));
+  }
+  // Egyszeri javítás (2026.11.02.): az átállás egy régi oldalváltozattal futott, ezért a One-sorok a régi csomagnevekkel
+  // és árakkal kerültek át. A szeptemberi One-számla szerinti csomagnevet és az árlista szerinti díjat egyszer ráírja.
+  var FINFO = {}, FFIXING = false;
+  function ffix1() {
+    if (FFIXING || FMODE !== "live" || !FD || !FST || FINFO.fix1) return;
+    var P = pkgs(), F = FST.F, bt = F.writeBatch(FST.db), n = 0;
+    FD.rows.forEach(function (r) {
+      var l9 = String(r.tel || "").replace(/\D/g, "").slice(-9), nv = FBILL[l9];
+      if (r.fl !== "ONE" || !nv || r.kesz > 0 || r.net === nv) return;
+      var q = (P.ONE || []).filter(function (z) { return String(z.nev).trim().toLowerCase() === nv.toLowerCase(); })[0], u = { net: nv, csomag: "" };
+      if (q && q.alap + q.admin > 0) { u.alap = q.alap; u.admin = q.admin; }
+      bt.update(F.doc(fcol("fl_rows"), r.id), u); n++;
+    });
+    FFIXING = true;
+    bt.set(F.doc(FST.db, "perf", fid(), "fl_meta", "info"), { fix1: new Date().toISOString(), fix1n: n }, { merge: true });
+    FPUBDIRTY = true;
+    bt.commit().then(function () { FINFO.fix1 = 1; if (n) toast(n + " One-sor csomagneve és díja frissítve a One-számla szerint."); setTimeout(fpubSync, 800); }).catch(function () {}).then(function () { FFIXING = false; });
   }
   function fload(force) {
     if (!kt()) { gate(""); return Promise.resolve(); }
