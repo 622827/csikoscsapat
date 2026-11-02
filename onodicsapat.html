@@ -319,6 +319,11 @@
   .pg .sb-hint { color: var(--muted); font-size: .85rem; margin: 8px 0 0; }
   .pg .sb-pct.ok { color: #1f9d5c; } .pg .sb-pct.wait { color: var(--muted); }
   .pg .sb-k { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--card, #f0f3f7); }
+  .sb-six { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+  @media (max-width: 560px) { .sb-six { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .sb-six-i { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--bg); border: 1px solid var(--track); cursor: pointer; }
+  .sb-six-i.done { border-color: var(--accent); }
+  .sb-six-i small { color: var(--muted); }
   .pg .sb-kh { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .pg .sb-kh b, .pg .sb-ckt b { font-weight: 800; }
   .pg .sb-v { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -721,16 +726,19 @@
   //  MNB-s jelölt:     betanulás 60 000 + első sikeres MNB 20 000 + 15 próbaelemzés 20 000
   //  Diplomás jelölt:  betanulási SB-k 60 000 + 15 próbaelemzés 20 000 + 500 egység 20 000 (formalitás)
   //  Ha a külső elemző vizsga után 2 hónapon belül nincs meg a cél (MNB-s 200, diplomás 500 egység), az egész bónusz elvész.
-  var ON = { betan: 60000, mnb: 20000, proba: 20000, es500: 20000, probaDb: 15, celMnb: 200, celDipl: 500, honap: 2 };
+  var ON = { betanSb: 10000, sbDb: 6, betan: 60000, mnb: 20000, proba: 20000, es500: 20000, probaDb: 15, celMnb: 200, celDipl: 500, honap: 2 };
   function onAddM(iso, m) { var d = new Date(iso + "T12:00:00"); d.setMonth(d.getMonth() + m); return d; }
   function onIso(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function onSb6(p) { var a = Array.isArray(p.sb6) ? p.sb6.slice(0, 6) : []; while (a.length < 6) a.push(p.betan && !Array.isArray(p.sb6) ? p.betan : false); return a; }
   function sbCalc(p) {
     var dipl = p.tipus === "dipl", e = sbEs(p), esv = p.esMan !== undefined && p.esMan !== "" && p.esMan !== null ? +p.esMan : (e && e.found ? e.v : 0);
     var cel = dipl ? ON.celDipl : ON.celMnb, pr = Math.max(0, +p.proba || 0);
     var items = dipl
       ? [["betan", "Betanulási SB-k", ON.betan, !!p.betan], ["proba", ON.probaDb + " próbaelemzés", ON.proba, pr >= ON.probaDb], ["es500", "500 egység (formalitás)", ON.es500, esv >= 500]]
       : [["betan", "Betanulás", ON.betan, !!p.betan], ["mnb", "Első sikeres MNB vizsga", ON.mnb, !!p.mnb], ["proba", ON.probaDb + " próbaelemzés", ON.proba, pr >= ON.probaDb]];
-    var sum = 0; items.forEach(function (x) { if (x[3]) sum += x[2]; });
+    // betanulás: 6 külön SB × 10 000 Ft
+    var sb6 = onSb6(p), sbDb = sb6.filter(Boolean).length; items[0][3] = sbDb > 0; items[0].push(sbDb);
+    var sum = 0; items.forEach(function (x) { if (x[0] === "betan") sum += sbDb * ON.betanSb; else if (x[3]) sum += x[2]; });
     var hat = p.kevDate ? onAddM(p.kevDate, ON.honap) : null, now = new Date(), celOk = esv >= cel;
     var allapot = !p.kevDate ? "nokev" : celOk ? "ok" : now > hat ? "elveszett" : "fut";
     var napok = hat ? Math.ceil((hat - now) / 864e5) : null;
@@ -759,7 +767,7 @@
     }).catch(function () { if (SBPIPE[k] && SBPIPE[k].list) return; SBPIPE[k] = { err: "nem tölthető be" }; sbEsVer++; soon(sbRender); });
     return SBPIPE[k];
   }
-  function sbSig(p) { return JSON.stringify([p.name, p.start, p.mentor, p.mnb, p.kev, p.ta, p.esName, p.tipus, p.betan, p.proba, p.kevDate, p.esMan, sbConfirm === p.id, sbEsVer, sbEsErr, SBC && SBC.bon, sbAnim.indexOf(p.id + ":") === 0 ? sbAnim : ""]); }
+  function sbSig(p) { return JSON.stringify([p.name, p.start, p.mentor, p.mnb, p.kev, p.ta, p.esName, p.tipus, p.betan, p.sb6, p.proba, p.kevDate, p.esMan, sbConfirm === p.id, sbEsVer, sbEsErr, SBC && SBC.bon, sbAnim.indexOf(p.id + ":") === 0 ? sbAnim : ""]); }
   function sbCard(p) {
       var R = sbCalc(p), card = el("div", "sb-c csk-keep"), h = el("div", "sb-h");
       h.appendChild(el("span", "sb-n", p.name));
@@ -798,6 +806,17 @@
           mn.addEventListener("click", function () { sbUpd(p.id, { proba: Math.max(0, R.proba - 1) }); }); pl.addEventListener("click", function () { sbUpd(p.id, { proba: R.proba + 1 }); });
           ctl.appendChild(mn); ctl.appendChild(document.createTextNode(" " + R.proba + " db próbaelemzés ")); ctl.appendChild(pl); k.appendChild(ctl); card.appendChild(k); return;
         }
+        if (key === "betan") {
+          var sb6 = onSb6(p), db = q[4], kb = el("div", "sb-k" + (db === ON.sbDb ? " done" : "")), hb = el("div", "sb-kh");
+          hb.appendChild(el("b", "", q[1])); hb.appendChild(el("span", "sb-tag " + (db === ON.sbDb ? "ok" : "wait"), db + " / " + ON.sbDb + " SB")); hb.appendChild(el("span", "sb-v", sbFt(db * ON.betanSb) + " / " + sbFt(val))); kb.appendChild(hb);
+          var gr = el("div", "sb-six");
+          sb6.forEach(function (v, ix) {
+            var lb = el("label", "sb-ck sb-six-i" + (v ? " done" : "")), c6 = el("input"); c6.type = "checkbox"; c6.checked = !!v;
+            c6.addEventListener("change", function () { var a = onSb6(p); a[ix] = c6.checked ? todayIso() : false; p.sb6 = a; sbRender(); sbUpd(p.id, { sb6: a }); });
+            lb.appendChild(c6); var t6 = el("span", "sb-ckt"); t6.appendChild(el("b", "", (ix + 1) + ". SB")); t6.appendChild(el("small", "", v && typeof v === "string" ? " · " + v.slice(5).replace("-", ". ") + "." : " · " + sbFt(ON.betanSb))); lb.appendChild(t6); gr.appendChild(lb);
+          });
+          kb.appendChild(gr); card.appendChild(kb); return;
+        }
         if (key === "es500") {
           var k5 = el("div", "sb-k" + (done ? " done" : "")), h5 = el("div", "sb-kh"); h5.appendChild(el("b", "", q[1])); h5.appendChild(el("span", "sb-tag " + (done ? "ok" : "wait"), sbNum(R.es) + " / 500 ES")); h5.appendChild(el("span", "sb-v", done ? sbFt(val) : "0 / " + sbFt(val))); k5.appendChild(h5); card.appendChild(k5); return;
         }
@@ -808,7 +827,7 @@
       });
       var sm = el("div", "sb-sum");
       function tile(cls, lab, val, sub) { var t = el("div", "sb-tile " + cls); t.appendChild(el("span", "sb-tl", lab)); t.appendChild(el("b", "sb-tv", val)); [].concat(sub || []).forEach(function (x) { var ln = el("span", "sb-ts"); if (Array.isArray(x)) { ln.classList.add("two"); ln.appendChild(el("span", "", x[0])); if (x[1]) ln.appendChild(el("b", "", x[1])); } else ln.textContent = x; t.appendChild(ln); }); sm.appendChild(t); }
-      tile("bon" + (R.sum ? " ok" : ""), "Megszerzett", sbFt(R.sum), R.items.map(function (q) { return [(q[3] ? "✓ " : "– ") + q[1], q[3] ? sbFt(q[2]) : ""]; }));
+      tile("bon" + (R.sum ? " ok" : ""), "Megszerzett", sbFt(R.sum), R.items.map(function (q) { return q[0] === "betan" ? [(q[4] ? "✓ " : "– ") + q[1] + " (" + q[4] + "/" + ON.sbDb + ")", q[4] ? sbFt(q[4] * ON.betanSb) : ""] : [(q[3] ? "✓ " : "– ") + q[1], q[3] ? sbFt(q[2]) : ""]; }));
       tile("all", "Kifizethető", sbFt(R.allapot === "ok" ? R.sum : 0), R.allapot === "ok" ? "a saját kontóra" : R.allapot === "elveszett" ? "a cél nem teljesült a határidőig – a bónusz elveszett" : R.allapot === "fut" ? sbNum(Math.max(0, R.cel - R.es)) + " ES hiányzik a határidőig" : "add meg a külső elemző vizsga dátumát");
       card.appendChild(sm);
       return card;
@@ -837,7 +856,7 @@
     $("sb-form").addEventListener("submit", function (ev) {
       ev.preventDefault(); if (!FB) { toast("Az adatbázis még nem töltött be."); return; }
       var nm = $("sb-name").value.trim(); if (!nm) return;
-      FB.F.setDoc(FB.F.doc(FB.F.collection(FB.db, "perf", ID, "sb")), { name: nm, start: $("sb-start").value || todayIso(), mentor: $("sb-mentor").value, tipus: $("sb-tipus").value, betan: false, mnb: false, proba: 0, kevDate: "", ta: [], created: Date.now() }).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
+      FB.F.setDoc(FB.F.doc(FB.F.collection(FB.db, "perf", ID, "sb")), { name: nm, start: $("sb-start").value || todayIso(), mentor: $("sb-mentor").value, tipus: $("sb-tipus").value, betan: false, sb6: [false, false, false, false, false, false], mnb: false, proba: 0, kevDate: "", ta: [], created: Date.now() }).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
       $("sb-name").value = ""; $("sb-name").focus();
     });
   }
