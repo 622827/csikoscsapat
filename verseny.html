@@ -625,8 +625,12 @@
   }
   load();
   if (API_URL) {
-    setInterval(load, 300000);
-    document.addEventListener("visibilitychange", function () { if (!document.hidden) load(); });
+    // minden oldallátogatáskor friss adat: visszalépéskor (gyorsítótárból visszaállított oldal), fülváltáskor és ablakba visszatéréskor is
+    var lastLoad = Date.now();
+    function again() { if (Date.now() - lastLoad < 3000) return; lastLoad = Date.now(); load(); }
+    window.addEventListener("pageshow", function (e) { if (e.persisted) again(); });
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) again(); });
+    window.addEventListener("focus", again);
   }
 </script>
 <script>
