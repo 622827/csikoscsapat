@@ -27,59 +27,6 @@
   #csk-gate > * { position: relative; z-index: 1; }
     @media print { body::before { display: none; } }
 </style>
-<script>
-(function () {
-  var API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
-  var K = "csk_token", tok = "", root = document.documentElement, of = window.fetch.bind(window);
-  function ckGet() { var m = document.cookie.match(/(?:^|; )csk_token=([^;]*)/); return m ? decodeURIComponent(m[1]) : ""; }
-  function ckSet(v) {
-    var h = location.hostname.replace(/^www\./, ""), dom = /^[\d.]+$|^localhost$/.test(h) || !h ? "" : "; domain=." + h;
-    document.cookie = "csk_token=" + (v ? encodeURIComponent(v) : "") + dom + "; path=/; max-age=" + (v ? 31536000 : 0) + "; SameSite=Lax" + (location.protocol === "https:" ? "; Secure" : "");
-  }
-  try { tok = localStorage.getItem(K) || ""; } catch (e) {}
-  if (!tok) tok = ckGet();
-  if (tok) { try { localStorage.setItem(K, tok); } catch (e) {} ckSet(tok); }
-  if (!tok) root.classList.add("csklock");
-
-  window.fetch = function (u, o) {
-    var s = typeof u === "string" ? u : (u && u.url) || "";
-    if (s.indexOf("AKfycbxQ-h6UZiyI") < 0 || s.indexOf("login=") > -1) return of(u, o);
-    s += (s.indexOf("?") > -1 ? "&" : "?") + "t=" + encodeURIComponent(tok);
-    return of(s, o).then(function (r) {
-      r.clone().json().then(function (d) { if (d && d.error === "auth") lock(); }).catch(function () {});
-      return r;
-    });
-  };
-
-  function lock() {
-    try { localStorage.removeItem(K); } catch (e) {} ckSet("");
-    tok = ""; root.classList.add("csklock"); build();
-  }
-  function build() {
-    if (document.getElementById("csk-gate")) return;
-    if (!document.body) { document.addEventListener("DOMContentLoaded", build); return; }
-    var g = document.createElement("div"); g.id = "csk-gate";
-    g.innerHTML = '<form autocomplete="on"><h1>Ónodi csapat</h1><p>Add meg a jelszót a belépéshez.</p>' +
-      '<input type="password" id="csk-pw" placeholder="Jelszó" autocomplete="current-password" autofocus>' +
-      '<button type="submit">Belépés</button><p class="err" id="csk-err" role="alert"></p></form>';
-    document.body.appendChild(g);
-    var f = g.querySelector("form"), pw = g.querySelector("#csk-pw"), btn = g.querySelector("button"), er = g.querySelector("#csk-err");
-    setTimeout(function () { pw.focus(); }, 50);
-    f.addEventListener("submit", function (ev) {
-      ev.preventDefault(); if (!pw.value) return;
-      btn.disabled = true; er.textContent = "";
-      of(API + "?login=" + encodeURIComponent(pw.value) + "&_=" + Date.now())
-        .then(function (r) { return r.json(); })
-        .then(function (d) {
-          if (d && d.ok && d.token) { try { localStorage.setItem(K, d.token); } catch (e) {} ckSet(d.token); location.reload(); }
-          else { er.textContent = "Hibás jelszó."; btn.disabled = false; pw.select(); }
-        })
-        .catch(function () { er.textContent = "Nem sikerült csatlakozni, próbáld újra."; btn.disabled = false; });
-    });
-  }
-  if (!tok) build();
-})();
-</script>
 <meta name="robots" content="noindex"><link rel="icon" type="image/png" sizes="32x32" href="ikon/favicon-32.png" media="(prefers-color-scheme: light)">
 <link rel="icon" type="image/png" sizes="32x32" href="ikon/favicon-dark-32.png" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/png" sizes="48x48" href="ikon/favicon-48.png">
@@ -566,13 +513,13 @@
   var API = "https://script.google.com/macros/s/AKfycbyeBUhK2P5wGl9YbQKG_MSewVomcXoqL9mxP5NioW91kUEsMH8VSV165YuIUqV0C3nU/exec";
   function $(i) { return document.getElementById(i); }
   function sha(s) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }); }
-  var PW = "", H = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2", D = null;
+  var PW = "", H = "c5f09fdec62688999563b9a09b832b2b215b4b57ba27fcc326dc197eca76e872", D = null;
   function openApp() { $("gate").hidden = true; $("app").hidden = false; start(); }
   try { if (sessionStorage.getItem("tj_ok") === H) { PW = sessionStorage.getItem("tj_pw") || ""; openApp(); } } catch (e) {}
   $("gform").addEventListener("submit", function (ev) {
     ev.preventDefault();
-    sha($("gpw").value.trim()).then(function (h) {
-      if (h === H) { PW = $("gpw").value.trim(); try { sessionStorage.setItem("tj_ok", H); sessionStorage.setItem("tj_pw", PW); } catch (e) {} $("gerr").textContent = ""; openApp(); }
+    sha($("gpw").value.trim().toUpperCase()).then(function (h) {
+      if (h === H) { PW = $("gpw").value.trim().toUpperCase(); try { sessionStorage.setItem("tj_ok", H); sessionStorage.setItem("tj_pw", PW); } catch (e) {} $("gerr").textContent = ""; openApp(); }
       else { $("gerr").textContent = "Hibás jelszó."; $("gpw").select(); }
     });
   });
