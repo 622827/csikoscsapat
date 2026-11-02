@@ -528,7 +528,7 @@
     <p class="none" id="as-none"></p>
   </div>
   <div id="v-sb" hidden>
-    <p class="lead">Start bónusz: 100 000 Ft új munkatársanként, a saját kontóra. MNB-s jelöltnél 60 000 Ft a betanulásra, 20 000 Ft az első sikeres MNB vizsgára és 20 000 Ft a 15 próbaelemzésre jár. Diplomás jelöltnél 60 000 Ft a betanulási SB-kre, 20 000 Ft a 15 próbaelemzésre és 20 000 Ft az 500 egységre (formalitás). A kifizetés feltétele az egységcél: MNB-s jelöltnél 200, diplomásnál 500 egység.</p>
+    <p class="lead">Start bónusz: 100 000 Ft új munkatársanként, a saját kontóra. MNB-s jelöltnél 60 000 Ft a betanulásra, 20 000 Ft az első sikeres MNB vizsgára és 20 000 Ft a 15 próbaelemzésre jár. Diplomás jelöltnél 60 000 Ft a betanulási SZB-kre, 20 000 Ft a 15 próbaelemzésre és 20 000 Ft az 500 egységre (formalitás). A kifizetés feltétele az egységcél: MNB-s jelöltnél 200, diplomásnál 500 egység.</p>
     <form class="as-add" id="sb-form" autocomplete="off">
       <input id="sb-name" type="text" maxlength="60" placeholder="Új munkatárs neve" aria-label="Név" required>
       <label class="as-lb">Kezdés <input id="sb-start" type="text" aria-label="Kezdés dátuma"></label>
@@ -727,7 +727,7 @@
   function sbTaLive(t, ag) { if (t.src === "pipeline" && ag) { var o = ag.by[sbPlain(t.nev)]; return o ? { nev: t.nev, es: o.es, sz: o.sz, src: t.src } : { nev: t.nev, es: 0, sz: 0, src: t.src }; } return t; }
   // Ónodi csapat Start bónusz (100 000 Ft, a saját kontóra):
   //  MNB-s jelölt:     betanulás 60 000 + első sikeres MNB 20 000 + 15 próbaelemzés 20 000
-  //  Diplomás jelölt:  betanulási SB-k 60 000 + 15 próbaelemzés 20 000 + 500 egység 20 000 (formalitás)
+  //  Diplomás jelölt:  betanulási SZB-k 60 000 + 15 próbaelemzés 20 000 + 500 egység 20 000 (formalitás)
   //  Ha a külső elemző vizsga után 2 hónapon belül nincs meg a cél (MNB-s 200, diplomás 500 egység), az egész bónusz elvész.
   var ON = { betanSb: 10000, sbDb: 6, betan: 60000, mnb: 20000, proba: 20000, es500: 20000, probaDb: 15, celMnb: 200, celDipl: 500, honap: 2 };
   function onAddM(iso, m) { var d = new Date(iso + "T12:00:00"); d.setMonth(d.getMonth() + m); return d; }
@@ -737,9 +737,9 @@
     var dipl = p.tipus === "dipl", e = null, esv = Math.max(0, +p.esMan || 0);  // egység: kézzel (csúszka / mező), nem a pipeline-ból
     var cel = dipl ? ON.celDipl : ON.celMnb, pr = Math.max(0, +p.proba || 0);
     var items = dipl
-      ? [["betan", "Betanulási SB-k", ON.betan, !!p.betan], ["proba", ON.probaDb + " próbaelemzés", ON.proba, pr >= ON.probaDb], ["es500", "500 egység (formalitás)", ON.es500, esv >= 500]]
+      ? [["betan", "Betanulási SZB-k", ON.betan, !!p.betan], ["proba", ON.probaDb + " próbaelemzés", ON.proba, pr >= ON.probaDb], ["es500", "500 egység (formalitás)", ON.es500, esv >= 500]]
       : [["betan", "Betanulás", ON.betan, !!p.betan], ["mnb", "Első sikeres MNB vizsga", ON.mnb, !!p.mnb], ["proba", ON.probaDb + " próbaelemzés", ON.proba, pr >= ON.probaDb]];
-    // betanulás: 6 külön SB × 10 000 Ft
+    // betanulás: 6 külön SZB × 10 000 Ft
     var sb6 = onSb6(p), sbDb = sb6.filter(Boolean).length; items[0][3] = sbDb > 0; items[0].push(sbDb);
     var sum = 0; items.forEach(function (x) { if (x[0] === "betan") sum += sbDb * ON.betanSb; else if (x[3]) sum += x[2]; });
     var hat = null, celOk = esv >= cel, allapot = celOk ? "ok" : "fut", napok = null;  // a külső elemző vizsgát itt nem mérjük
@@ -812,12 +812,12 @@
         }
         if (key === "betan") {
           var sb6 = onSb6(p), db = q[4], kb = el("div", "sb-k" + (db === ON.sbDb ? " done" : "")), hb = el("div", "sb-kh");
-          hb.appendChild(el("b", "", q[1])); hb.appendChild(el("span", "sb-tag " + (db === ON.sbDb ? "ok" : "wait"), db + " / " + ON.sbDb + " SB")); hb.appendChild(el("span", "sb-v", sbFt(db * ON.betanSb) + " / " + sbFt(val))); kb.appendChild(hb);
+          hb.appendChild(el("b", "", q[1])); hb.appendChild(el("span", "sb-tag " + (db === ON.sbDb ? "ok" : "wait"), db + " / " + ON.sbDb + " SZB")); hb.appendChild(el("span", "sb-v", sbFt(db * ON.betanSb) + " / " + sbFt(val))); kb.appendChild(hb);
           var gr = el("div", "sb-six");
           sb6.forEach(function (v, ix) {
             var lb = el("label", "sb-ck sb-six-i" + (v ? " done" : "")), c6 = el("input"); c6.type = "checkbox"; c6.checked = !!v;
             c6.addEventListener("change", function () { var a = onSb6(p); a[ix] = c6.checked ? todayIso() : false; p.sb6 = a; sbRender(); sbUpd(p.id, { sb6: a }); });
-            lb.appendChild(c6); var t6 = el("span", "sb-ckt"); t6.appendChild(el("b", "", (ix + 1) + ". SB")); t6.appendChild(el("small", "", v && typeof v === "string" ? " · " + v.slice(5).replace("-", ". ") + "." : " · " + sbFt(ON.betanSb))); lb.appendChild(t6); gr.appendChild(lb);
+            lb.appendChild(c6); var t6 = el("span", "sb-ckt"); t6.appendChild(el("b", "", (ix + 1) + ". SZB")); t6.appendChild(el("small", "", v && typeof v === "string" ? " · " + v.slice(5).replace("-", ". ") + "." : " · " + sbFt(ON.betanSb))); lb.appendChild(t6); gr.appendChild(lb);
           });
           kb.appendChild(gr); card.appendChild(kb); return;
         }
