@@ -213,3 +213,25 @@
   }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden"] });
   window.addEventListener("pageshow", function (e) { if (e.persisted) document.body.classList.remove("csk-leave"); });
 })();
+
+/* Csapat-logók a fejlécben a „Csikós BL csapat” felirat előtt: csikós → Csikós csapat főoldala, oroszlán → Ónodi csapat (Start bónusz) */
+(function () {
+  function go() {
+    var b = document.querySelector(".topnav .brand"); if (!b || document.querySelector(".csk-logos")) return;
+    var st = document.createElement("style");
+    st.textContent = ".csk-logos{display:inline-flex;align-items:center;gap:6px;margin-right:10px;flex:none}" +
+      ".csk-logos a{display:inline-flex;width:34px;height:34px;border-radius:50%;align-items:center;justify-content:center;transition:transform .18s ease,background .2s ease}" +
+      ".csk-logos a:hover{transform:scale(1.1);background:var(--track,#e5e5e5)}.csk-logos a:focus-visible{outline:3px solid var(--accent,#003366);outline-offset:2px}" +
+      ".csk-logos .lg-k{display:block;width:30px;height:30px;background:var(--ink,#003366);-webkit-mask:url(ikon/csikos-96.png) center/contain no-repeat;mask:url(ikon/csikos-96.png) center/contain no-repeat}" +
+      ".csk-logos img{width:26px;height:26px;display:block}.csk-logos a.lg-o{background:#eaf3ff}.csk-logos a.lg-o:hover{background:#d6e8ff}" +
+      "@media (max-width:640px){.topnav .csk-logos{display:inline-flex!important}}";
+    document.head.appendChild(st);
+    var w = document.createElement("span"); w.className = "csk-logos";
+    var a1 = document.createElement("a"); a1.href = "index.html"; a1.title = "Csikós csapat"; a1.setAttribute("aria-label", "Csikós csapat főoldala");
+    var k = document.createElement("span"); k.className = "lg-k"; a1.appendChild(k);
+    var a2 = document.createElement("a"); a2.className = "lg-o"; a2.href = "onodicsapat.html"; a2.title = "Ónodi csapat"; a2.setAttribute("aria-label", "Ónodi csapat – Start bónusz");
+    var im = document.createElement("img"); im.src = "ikon/oroszlan-96.png"; im.alt = ""; a2.appendChild(im);
+    w.appendChild(a1); w.appendChild(a2); b.parentNode.insertBefore(w, b);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+})();
