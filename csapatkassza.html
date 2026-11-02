@@ -664,7 +664,12 @@
   function fstart() {
     FUNSUB.forEach(function (u) { try { u(); } catch (e) {} }); FUNSUB = []; FD = null; FMODE = ""; PK = null;
     var F = FST.F, db = FST.db, id = fid();
-    FUNSUB.push(F.onSnapshot(F.doc(db, "perf", id, "fl_meta", "info"), function (d) {
+    // A helyi gyorsítótárból jövő „nincs ilyen” választ nem vesszük készpénznek (pl. törölt böngészőadat, VPN): megvárjuk a szervert.
+    var fsrv = false, ftm = setTimeout(function () { if (!fsrv) $("f-sub").textContent = "A közös tár nem érhető el. Ha VPN be van kapcsolva (pl. Opera VPN), kapcsold ki, és frissítsd az oldalt."; }, 12000);
+    FUNSUB.push(function () { clearTimeout(ftm); });
+    FUNSUB.push(F.onSnapshot(F.doc(db, "perf", id, "fl_meta", "info"), { includeMetadataChanges: true }, function (d) {
+      if (!d.exists() && d.metadata && d.metadata.fromCache) { if (FMODE !== "live") $("f-sub").textContent = "Kapcsolódás a közös tárhoz…"; return; }
+      fsrv = true; clearTimeout(ftm);
       FMODE = d.exists() ? "live" : "new";
       if (FMODE === "live") { if (FD) renderF(); } else fshowMigrate();
     }, function (e) { $("f-sub").textContent = "Nem sikerült betölteni: " + e.message; }));
