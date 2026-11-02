@@ -288,6 +288,19 @@
   .pg .sb-ck::before { content: ""; position: absolute; inset: 0; background: rgba(31,157,92,.22); transform: scaleX(0); transform-origin: left center; }
   .pg .sb-ck.done::before { transform: scaleX(1); }
   .pg .sb-c { border: 3px solid var(--accent) !important; box-shadow: 0 6px 20px rgba(0,0,0,.25); margin-top: 22px; }
+  .on-mig { margin-top: 16px; padding: 14px 16px; border-radius: 14px; border: 2px dashed var(--accent); background: var(--card); }
+  .on-mig p { margin: 0 0 10px; color: var(--muted); }
+  .on-mig p b { color: var(--ink); }
+  .on-mig form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .on-mig input { font: inherit; padding: 8px 12px; border-radius: 10px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); }
+  .on-mig-err { color: var(--hot); font-size: .9rem; }
+  .on-logos { position: fixed; top: 14px; left: 16px; z-index: 50; display: flex; gap: 8px; }
+  .on-logos a { display: inline-flex; width: 42px; height: 42px; border-radius: 50%; align-items: center; justify-content: center; background: #eaf3ff; transition: transform .18s ease, box-shadow .2s ease; }
+  .on-logos a:hover { transform: scale(1.1); }
+  .on-logos a.on { box-shadow: 0 0 0 3px var(--accent); }
+  .on-logos a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .on-logos .lg-k { display: block; width: 32px; height: 32px; background: #003366; -webkit-mask: url(ikon/csikos-96.png) center/contain no-repeat; mask: url(ikon/csikos-96.png) center/contain no-repeat; }
+  .on-logos img { width: 32px; height: 32px; display: block; }
   .on-share { margin: 14px 0 0; color: var(--muted); font-size: .92rem; }
   .on-share a { color: var(--accent); font-weight: 700; }
   .on-copy { font: inherit; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
@@ -452,6 +465,7 @@
     <p class="gerr" id="gerr" role="alert"></p>
   </form>
 </div>
+<nav class="on-logos" aria-label="Csapatok"><a class="lg-c" href="index.html" title="Csikós csapat" aria-label="Csikós csapat főoldala"><span class="lg-k"></span></a><a class="lg-o on" href="onodicsapat.html" title="Ónodi csapat" aria-label="Ónodi csapat – Start bónusz" aria-current="page"><img src="ikon/oroszlan-96.png" alt=""></a></nav>
 <main class="pg" id="app" hidden>
   <h1>Start bónusz</h1>
   <div class="tabs vtabs2" role="tablist" aria-label="Nézet">
@@ -503,6 +517,10 @@
       <label class="as-lb">Vezető <select id="sb-mentor" aria-label="Vezető"></select></label>
       <button class="sm" type="submit">Hozzáadás</button>
     </form>
+    <div class="on-mig" id="on-mig" hidden>
+      <p><b>Korábbi bejegyzések áthozatala.</b> A jelszócsere előtt felvett munkatársak a régi jelszó alatt vannak tárolva. Add meg egyszer a régi jelszót (amivel eddig ezt az oldalt nyitottad), és átkerülnek ide. Semmi nem törlődik.</p>
+      <form id="on-mig-f" autocomplete="off"><input id="on-mig-pw" type="password" placeholder="Régi jelszó" aria-label="Régi jelszó"><button class="sm" type="submit">Áthozás</button><span class="on-mig-err" id="on-mig-err"></span></form>
+    </div>
     <div id="sb-list"></div>
     <p class="none" id="sb-none"></p>
   </div>
@@ -857,9 +875,31 @@
       SBES = { people: d.people.map(function (x) { return { name: x.name, proc: x.proc, mt: x.mt }; }), months: d.months || [] }; sbLsSet("sb_es", SBES); sbEsVer++; soon(sbRender);
     }).catch(function () { sbEsVer++; sbEsErr = "A pipeline adatai nem tölthetők be."; soon(sbRender); });
   }
+  // Egyszeri áthozatal a régi (jelszócsere előtti) tárból
+  var OLD_H = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2", onMigDone = false;
+  function onMigShow() { var b = $("on-mig"); if (b) b.hidden = onMigDone || SB.length > 0; }
+  function onMigrate(old) {
+    var F = FB.F, db = FB.db, oid;
+    return sha("onodi-perf|" + old).then(function (h) { oid = h; return F.getDocs(F.collection(db, "perf", oid, "sb")); }).then(function (snap) {
+      if (!snap.docs.length) throw new Error("A régi tárban nincs bejegyzés ezzel a jelszóval.");
+      var bt = F.writeBatch(db); snap.docs.forEach(function (d) { bt.set(F.doc(db, "perf", ID, "sb", d.id), d.data()); });
+      return F.getDoc(F.doc(db, "perf", oid, "sbcfg", "main")).then(function (c) { if (c.exists()) bt.set(F.doc(db, "perf", ID, "sbcfg", "main"), c.data()); return bt.commit(); }).then(function () { return snap.docs.length; });
+    });
+  }
+  (function () {
+    var f = document.getElementById("on-mig-f"); if (!f) return;
+    f.addEventListener("submit", function (ev) {
+      ev.preventDefault(); var v = $("on-mig-pw").value.trim(); if (!v || !FB) return;
+      sha(v).then(function (h) {
+        if (h !== OLD_H) { $("on-mig-err").textContent = "Ez nem a régi jelszó."; return; }
+        $("on-mig-err").textContent = "Áthozás…";
+        return onMigrate(v).then(function (n) { onMigDone = true; onMigShow(); toast(n + " munkatárs áthozva."); }).catch(function (e) { $("on-mig-err").textContent = e.message || "Nem sikerült."; });
+      });
+    });
+  })();
   function sbStart() {
     if (sbReady) return; sbReady = true;
-    FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "sb"), function (snap) { SB = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); soon(sbRender); onPubSoon(); }, function (e) { toast("Start bónusz: " + e.message); });
+    FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "sb"), function (snap) { SB = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); soon(sbRender); onMigShow(); if (SB.length) onPubSoon(); }, function (e) { toast("Start bónusz: " + e.message); });
     FB.F.onSnapshot(FB.F.doc(FB.db, "perf", ID, "sbcfg", "main"), function (d) { SBC = d.exists() ? d.data() : null; soon(sbRender); }, function () {});
   }
   function sbInit() {
