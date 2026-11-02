@@ -733,10 +733,12 @@
   var FSKIP = { "702442962": 1 }; // Rozbora Csilla: megszűnt szám, nem kerül át
   var FMOVED = { "703666424": 1, "202305959": 1, "202544187": 1, "202756979": 1, "203127059": 1, "303769588": 1, "305876642": 1, "704173642": 1, "705290004": 1, "709449242": 1, "205368166": 1, "208064009": 1 };
   function fshowMigrate() {
-    var host = $("f-bal"); host.textContent = ""; $("f-sub").textContent = "Az új flotta tár még üres.";
-    var b = el("button", "primary", "Átállás az új tárra (egyszeri másolás)"); b.type = "button"; b.addEventListener("click", fmigrate);
-    var w = el("div"); w.style.cssText = "padding:16px 0"; w.appendChild(el("p", "fnote", "Az adatok a mostani flotta listából átmásolódnak az új közös tárba. A régi adat nem törlődik. Ha ezt már elvégezted, de mégis ezt látod, akkor valószínűleg elírtad a jelszót: zárd be az oldalt, és a Flotta fülön add meg újra.")); w.appendChild(b); host.appendChild(w);
-    var rs = el("button", "tl", "Másik jelszó megadása"); rs.type = "button"; rs.style.marginTop = "10px"; rs.addEventListener("click", function () { try { localStorage.removeItem("kassza_fid"); } catch (e) {} FMODE = ""; fload(true); }); w.appendChild(rs);
+    // Az átállás (régi táblázat → közös tár) már megtörtént; ha üres tárat látunk, az szinte biztosan rossz jelszó.
+    var host = $("f-bal"); host.textContent = ""; $("f-sub").textContent = "Ezzel a jelszóval nem található flotta.";
+    var w = el("div"); w.style.cssText = "padding:16px 0";
+    w.appendChild(el("p", "fnote", "Valószínűleg nem a flotta jelszava van megjegyezve ezen az eszközön (pl. elírás, vagy azóta megváltozott a kassza jelszava). Add meg azt a jelszót, amellyel a flottát eddig megnyitottad."));
+    var rs = el("button", "primary", "Jelszó újra megadása"); rs.type = "button"; rs.addEventListener("click", function () { try { localStorage.removeItem("kassza_fid"); } catch (e) {} FMODE = ""; fload(true); }); w.appendChild(rs);
+    host.appendChild(w);
   }
   function fmigrate() {
     var f = {};
