@@ -93,6 +93,33 @@
   .szst { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .78rem; font-weight: 700; background: var(--track); }
   .szst.ok { background: color-mix(in srgb, #1f9d55 22%, transparent); }
   @media (max-width: 760px) { .szup { grid-template-columns: 1fr 1fr; } .szup .szdrop, .szup .btn { grid-column: 1 / -1; } }
+  /* Magánköltségvetés */
+  .mg-wrap { margin-top: 18px; }
+  .mg-sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 14px 0 6px; }
+  .mg-sum div { background: var(--card); border-radius: 14px; padding: 14px 16px; }
+  .mg-sum small { display: block; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+  .mg-sum b { font-size: 1.35rem; display: block; margin-top: 4px; font-variant-numeric: tabular-nums; transition: color .3s; }
+  .mg-sum b.neg { color: var(--gold); } .mg-sum b.pos { color: var(--ok); }
+  .mg-grp { background: var(--card); border-radius: 16px; padding: 14px 16px 10px; margin-top: 14px; }
+  .mg-grp h3 { margin: 0 0 8px; font-size: 1.05rem; display: flex; gap: 10px; align-items: baseline; }
+  .mg-grp h3 small { margin-left: auto; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .mg-row { display: grid; grid-template-columns: minmax(0, 1fr) 120px 120px 28px; gap: 8px; align-items: center; padding: 5px 0; border-top: 1px solid color-mix(in srgb, var(--muted) 18%, transparent); animation: rowin .26s cubic-bezier(.2,.7,.2,1) both; }
+  .mg-row.hd { border-top: 0; color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; padding-top: 0; }
+  .mg-row input { width: 100%; font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--ink); }
+  .mg-row input:hover { border-color: var(--track); } .mg-row input:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+  .mg-row input[type=number] { text-align: right; font-variant-numeric: tabular-nums; }
+  .mg-row input.over { color: var(--gold); font-weight: 700; }
+  .mg-row button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 2px; border-radius: 6px; }
+  .mg-row button:hover { color: var(--gold); }
+  .mg-row .pb { grid-column: 1 / -1; height: 4px; border-radius: 4px; background: color-mix(in srgb, var(--muted) 18%, transparent); overflow: hidden; margin-top: -2px; }
+  .mg-row .pb i { display: block; height: 100%; background: var(--ok); transition: width .4s cubic-bezier(.2,.7,.2,1); }
+  .mg-row .pb i.over { background: var(--gold); }
+  .mg-add { margin: 6px 0 4px; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; padding: 4px 0; }
+  .mg-month { display: flex; align-items: center; gap: 8px; }
+  .mg-month select { font: inherit; padding: 7px 10px; border-radius: 10px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); }
+  .mg-note { color: var(--muted); font-size: .85rem; margin-top: 14px; }
+  @media (max-width: 560px) { .mg-row { grid-template-columns: minmax(0, 1fr) 92px 92px 22px; gap: 4px; } .mg-row input { padding: 6px 4px; } }
+  .mg-row input[type=number] { -moz-appearance: textfield; } .mg-row input[type=number]::-webkit-inner-spin-button, .mg-row input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   .kp-lock { max-width: 380px; margin-top: 28px; background: var(--card); border-radius: 16px; padding: 22px; }
   .kp-lock h2 { margin: 0 0 6px; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
   .kp-lock h2 svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -351,6 +378,7 @@
     <div class="tiles">
       <a class="tile" href="#konyveles" data-sec="konyveles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 11h8M8 15h8"/></svg><b>Könyvelés</b><span>The Financial Company Kft. · 2026</span></a>
       <a class="tile" href="#szamlak" data-sec="szamlak"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg><b>Számlák</b><span>Számla, blokk, bizonylat feltöltése (PDF vagy fotó)</span></a>
+      <a class="tile" href="#magan" data-sec="magan"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/><path d="M8 6V4h8v2"/></svg><b>Magánköltségvetés</b><span>Havi terv és tény · külön jelszóval</span></a>
     </div>
   </section>
 
@@ -372,6 +400,31 @@
     </form>
     <h2>Feltöltött számlák</h2>
     <div class="tw"><table class="szlist" id="sz-list"></table></div>
+  </section>
+
+  <section id="magan" hidden>
+    <div class="bar">
+      <p class="meta" id="mg-meta"></p>
+      <span class="sp"></span>
+      <span class="mg-month" id="mg-mw" hidden><select id="mg-mon" aria-label="Hónap"></select></span>
+      <a class="btn" href="#" id="mg-lockb" hidden>Zárolás</a>
+      <a class="btn" href="#" id="mg-back">Menük</a>
+    </div>
+    <section class="kp-lock" id="mg-lock">
+      <form id="mg-form" autocomplete="off">
+        <h2><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Magán terület</h2>
+        <p id="mg-ltxt">A magánköltségvetéshez külön jelszó kell. Az adatok titkosítva tárolódnak, a jelszó nélkül senki nem tudja elolvasni őket.</p>
+        <input type="password" id="mg-pw" placeholder="Magán jelszó" autocomplete="off" style="text-transform:uppercase">
+        <input type="password" id="mg-pw2" placeholder="Jelszó még egyszer" autocomplete="new-password" hidden style="margin-top:10px">
+        <button class="btn pri" type="submit" id="mg-go">Megnyitás</button>
+        <p class="err" id="mg-err" role="alert"></p>
+      </form>
+    </section>
+    <div class="mg-wrap" id="mg-main" hidden>
+      <div class="mg-sum" id="mg-sum"></div>
+      <div id="mg-grps"></div>
+      <p class="mg-note">Terv = havi keret, Tény = az adott hónapban ténylegesen elköltött vagy befolyt összeg. Minden módosítás automatikusan, titkosítva mentődik.</p>
+    </div>
   </section>
 
   <section id="konyveles" hidden>
@@ -498,16 +551,17 @@
   function loading(on) { document.body.classList.toggle("loading", !!on); }
 
   function showLock(msg) {
-    $("konyveles").hidden = true; $("szamlak").hidden = true; $("kp-hub").hidden = true; $("kp-lock").hidden = false; head("");
+    $("konyveles").hidden = true; $("szamlak").hidden = true; $("magan").hidden = true; $("kp-hub").hidden = true; $("kp-lock").hidden = false; head("");
     $("kp-err").textContent = msg || ""; setTimeout(function () { $("kp-pw").focus(); }, 50);
   }
-  var SECS = { konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"] };
+  var SECS = { konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"], magan: ["Magánköltségvetés", "Havi terv és tény · csak a magán jelszóval nyílik"] };
   function head(sec) { $("kp-h1").textContent = sec ? SECS[sec][0] : "ADMIN"; $("kp-lead").textContent = sec ? SECS[sec][1] : ""; }
   function showMain() {
     $("kp-lock").hidden = true;
     var sec = location.hash.replace("#", ""); if (!SECS[sec]) sec = "";
-    $("kp-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; $("szamlak").hidden = sec !== "szamlak"; head(sec);
+    $("kp-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; $("szamlak").hidden = sec !== "szamlak"; $("magan").hidden = sec !== "magan"; head(sec);
     if (sec === "szamlak") szOpen();
+    if (sec === "magan" && window.mgOpen) window.mgOpen();
   }
   window.addEventListener("hashchange", function () { if (tok()) showMain(); });
 
@@ -1556,7 +1610,210 @@
   });
   $("sz-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); showMain(); });
   load();
-  setTimeout(function () { if ($("kp-lock").hidden && $("kp-hub").hidden && $("konyveles").hidden && $("szamlak").hidden) { if (tok()) showMain(); else showLock(""); } }, 2500);
+  setTimeout(function () { if ($("kp-lock").hidden && $("kp-hub").hidden && $("konyveles").hidden && $("szamlak").hidden && $("magan").hidden) { if (tok()) showMain(); else showLock(""); } }, 2500);
+})();
+</script>
+<script>
+/* Magánköltségvetés: külön jelszó, AES-GCM titkosítás a böngészőben; a Firestore csak titkosított adatot lát. */
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var SK = "csk_magan", MG = null, KEY = null, ID = "", DATA = null, MON = "", tSave = 0, busy = false, fresh = false;
+  var HO = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+  var te = new TextEncoder();
+  function hex(b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }
+  function b64(b) { var s = "", u = new Uint8Array(b); for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }
+  function unb64(s) { var r = atob(s), u = new Uint8Array(r.length); for (var i = 0; i < r.length; i++) u[i] = r.charCodeAt(i); return u; }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function ft(v) { return Math.round(v || 0).toLocaleString("hu-HU") + " Ft"; }
+  function uid() { return Math.random().toString(36).slice(2, 9); }
+  function curMon() { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2); }
+
+  function db() {
+    if (MG) return Promise.resolve(MG);
+    return fetch("firebase-config.json").then(function (r) { return r.json(); }).then(function (cfg) {
+      var V = "https://www.gstatic.com/firebasejs/10.14.1/";
+      return Promise.all([import(V + "firebase-app.js"), import(V + "firebase-firestore.js")]).then(function (m) {
+        var app = m[0].initializeApp(cfg, "magan"); MG = { F: m[1], db: m[1].getFirestore(app) }; return MG;
+      });
+    });
+  }
+  function ref() { return MG.F.doc(MG.db, "perf", ID, "mg", "data"); }
+  function derive(pw) {
+    return Promise.all([
+      crypto.subtle.digest("SHA-256", te.encode("csk-magan|" + pw)),
+      crypto.subtle.importKey("raw", te.encode(pw), "PBKDF2", false, ["deriveKey"]).then(function (k) {
+        return crypto.subtle.deriveKey({ name: "PBKDF2", salt: te.encode("csk-magan-v1"), iterations: 200000, hash: "SHA-256" }, k, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+      })
+    ]).then(function (r) { return { id: hex(r[0]), key: r[1] }; });
+  }
+  function enc(obj) {
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, KEY, te.encode(JSON.stringify(obj))).then(function (ct) { return { iv: b64(iv), ct: b64(ct), upd: Date.now() }; });
+  }
+  function dec(d) {
+    return crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(d.iv) }, KEY, unb64(d.ct)).then(function (b) { return JSON.parse(new TextDecoder().decode(b)); });
+  }
+  function remember() {
+    crypto.subtle.exportKey("raw", KEY).then(function (raw) { try { sessionStorage.setItem(SK, JSON.stringify({ id: ID, k: b64(raw) })); } catch (e) {} });
+  }
+  function forget() { try { sessionStorage.removeItem(SK); } catch (e) {} KEY = null; ID = ""; DATA = null; }
+
+  function seed() {
+    function it(n, v) { return { id: uid(), nev: n, terv: v }; }
+    return { v: 1, teny: {}, groups: [
+      { id: uid(), nev: "Bevételek", tip: "be", items: [it("OVB bevétel", 0), it("Egyéb bevétel", 0)] },
+      { id: uid(), nev: "Céges kiadások", tip: "ki", items: [it("Könyvelő", 30000), it("Központi", 49000), it("Személyi", 80000), it("Irodabérlet", 45000), it("Banki költségek", 10000), it("Szeminárium", 21667), it("Egyéb céges", 20000), it("Jogvédelem", 28220), it("Tankolás", 30000)] },
+      { id: uid(), nev: "Magán kiadások", tip: "ki", items: [it("Kötelező", 20000), it("Adók", 1250), it("Megtakarítás", 16667), it("Biztosítások", 27858), it("Lakbér + rezsi", 130000), it("Hitelek", 19668), it("Kaja", 130000), it("Thai box", 56000), it("Szórakozás", 50000)] }
+    ] };
+  }
+
+  function lockUi(msg, create) {
+    fresh = !!create;
+    $("mg-lock").hidden = false; $("mg-main").hidden = true; $("mg-mw").hidden = true; $("mg-lockb").hidden = true;
+    $("mg-pw2").hidden = !create; $("mg-go").textContent = create ? "Új költségvetés létrehozása" : "Megnyitás";
+    $("mg-ltxt").textContent = create ? "Ehhez a jelszóhoz még nincs költségvetés. Ha jól írtad, add meg még egyszer, és létrehozom (a mintát a régi táblázatod kategóriáiból töltöm ki). Ha elírtad, javítsd ki fent." :
+      "A magánköltségvetéshez külön jelszó kell. Az adatok titkosítva tárolódnak, a jelszó nélkül senki nem tudja elolvasni őket.";
+    $("mg-err").textContent = msg || ""; $("mg-meta").textContent = "Zárva";
+    setTimeout(function () { (create ? $("mg-pw2") : $("mg-pw")).focus(); }, 50);
+  }
+  function openUi() {
+    $("mg-lock").hidden = true; $("mg-main").hidden = false; $("mg-mw").hidden = false; $("mg-lockb").hidden = false;
+    if (!MON) MON = curMon();
+    var sel = $("mg-mon"), o = "", d = new Date(), seen = {};
+    for (var i = -12; i <= 2; i++) { var x = new Date(d.getFullYear(), d.getMonth() + i, 1), k = x.getFullYear() + "-" + ("0" + (x.getMonth() + 1)).slice(-2); seen[k] = 1; o += '<option value="' + k + '">' + x.getFullYear() + ". " + HO[x.getMonth()].toLowerCase() + "</option>"; }
+    Object.keys(DATA.teny || {}).sort().forEach(function (k) { if (!seen[k]) o = '<option value="' + k + '">' + k + "</option>" + o; });
+    sel.innerHTML = o; sel.value = MON;
+    render();
+  }
+
+  function tenyOf(id) { var t = (DATA.teny[MON] || {})[id]; return t == null || t === "" ? null : Number(t); }
+  function totals() {
+    var r = { beT: 0, kiT: 0, beF: 0, kiF: 0, g: {} };
+    DATA.groups.forEach(function (g) {
+      var t = 0, f = 0; g.items.forEach(function (i) { t += Number(i.terv) || 0; f += tenyOf(i.id) || 0; });
+      r.g[g.id] = { t: t, f: f };
+      if (g.tip === "be") { r.beT += t; r.beF += f; } else { r.kiT += t; r.kiF += f; }
+    });
+    return r;
+  }
+  function sumHtml() {
+    var t = totals(), egT = t.beT - t.kiT, egF = t.beF - t.kiF;
+    function box(l, v, cls) { return "<div><small>" + l + '</small><b class="' + (cls || "") + '" data-v="' + Math.round(v) + '">' + ft(v) + "</b></div>"; }
+    return box("Bevétel – terv", t.beT) + box("Kiadás – terv", t.kiT) + box("Egyenleg – terv", egT, egT < 0 ? "neg" : "pos") +
+      box("Bevétel – tény", t.beF) + box("Kiadás – tény", t.kiF) + box("Egyenleg – tény", egF, egF < 0 ? "neg" : "pos");
+  }
+  function pbHtml(g, i) {
+    var f = tenyOf(i.id), tv = Number(i.terv) || 0;
+    if (f == null || !tv) return '<div class="pb"><i style="width:0"></i></div>';
+    var p = Math.min(100, f / tv * 100), over = g.tip === "ki" && f > tv;
+    return '<div class="pb"><i class="' + (over ? "over" : "") + '" style="width:' + p.toFixed(1) + '%"></i></div>';
+  }
+  function render() {
+    $("mg-sum").innerHTML = sumHtml();
+    var t = totals();
+    $("mg-grps").innerHTML = DATA.groups.map(function (g) {
+      return '<div class="mg-grp" data-g="' + g.id + '"><h3><input value="' + esc(g.nev) + '" data-gn="' + g.id + '" style="font:inherit;font-weight:700;border:0;background:none;color:inherit;padding:0;width:auto;min-width:6ch" size="' + Math.max(6, g.nev.length) + '"><small data-gt="' + g.id + '">' + ft(t.g[g.id].f) + " / " + ft(t.g[g.id].t) + "</small></h3>" +
+        '<div class="mg-row hd"><span>Tétel</span><span style="text-align:right">Terv</span><span style="text-align:right">Tény</span><span></span></div>' +
+        g.items.map(function (i) {
+          var f = tenyOf(i.id), over = g.tip === "ki" && f != null && f > (Number(i.terv) || 0);
+          return '<div class="mg-row" data-i="' + i.id + '"><input value="' + esc(i.nev) + '" data-f="nev" aria-label="Tétel neve">' +
+            '<input type="number" inputmode="numeric" step="1000" value="' + (Number(i.terv) || 0) + '" data-f="terv" aria-label="Terv">' +
+            '<input type="number" inputmode="numeric" step="1000" value="' + (f == null ? "" : f) + '" placeholder="–" data-f="teny" class="' + (over ? "over" : "") + '" aria-label="Tény">' +
+            '<button type="button" data-del="' + i.id + '" title="Törlés" aria-label="Törlés">×</button>' + pbHtml(g, i) + "</div>";
+        }).join("") +
+        '<button type="button" class="mg-add" data-add="' + g.id + '">+ új tétel</button></div>';
+    }).join("");
+  }
+  function refreshNums() {
+    var t = totals(), box = $("mg-sum");
+    var tmp = document.createElement("div"); tmp.innerHTML = sumHtml();
+    Array.prototype.forEach.call(tmp.querySelectorAll("b"), function (nb, k) { var ob = box.querySelectorAll("b")[k]; if (ob && ob.textContent !== nb.textContent) { ob.textContent = nb.textContent; ob.className = nb.className; } });
+    DATA.groups.forEach(function (g) {
+      var el = document.querySelector('[data-gt="' + g.id + '"]'); if (el) el.textContent = ft(t.g[g.id].f) + " / " + ft(t.g[g.id].t);
+      g.items.forEach(function (i) {
+        var row = document.querySelector('.mg-row[data-i="' + i.id + '"]'); if (!row) return;
+        var f = tenyOf(i.id), over = g.tip === "ki" && f != null && f > (Number(i.terv) || 0);
+        row.querySelector('[data-f="teny"]').classList.toggle("over", over);
+        var pb = row.querySelector(".pb"); pb.outerHTML = pbHtml(g, i);
+      });
+    });
+  }
+  function find(id) { for (var a = 0; a < DATA.groups.length; a++) for (var b = 0; b < DATA.groups[a].items.length; b++) if (DATA.groups[a].items[b].id === id) return { g: DATA.groups[a], i: DATA.groups[a].items[b], k: b }; return null; }
+
+  function save() {
+    clearTimeout(tSave); $("mg-meta").textContent = "Mentés…";
+    tSave = setTimeout(function () {
+      var snap = DATA;
+      enc(snap).then(function (d) { return db().then(function () { return MG.F.setDoc(ref(), d); }); })
+        .then(function () { $("mg-meta").textContent = "Mentve · " + new Date().toLocaleTimeString("hu-HU", { hour: "2-digit", minute: "2-digit" }); })
+        .catch(function () { $("mg-meta").textContent = "A mentés nem sikerült – próbáld újra (VPN?)"; });
+    }, 700);
+  }
+  function loadDoc(create) {
+    $("mg-meta").textContent = "Betöltés…";
+    return db().then(function () { return MG.F.getDoc(ref()); }).then(function (snap) {
+      if (!snap.exists()) {
+        if (create) { DATA = seed(); remember(); openUi(); save(); return; }
+        forget(); lockUi("", true); return;
+      }
+      return dec(snap.data()).then(function (d) { DATA = d; DATA.teny = DATA.teny || {}; remember(); openUi(); $("mg-meta").textContent = "Megnyitva"; })
+        .catch(function () { forget(); lockUi("Hibás jelszó."); });
+    });
+  }
+
+  $("mg-form").addEventListener("submit", function (e) {
+    e.preventDefault(); if (busy) return;
+    var pw = $("mg-pw").value.trim().toUpperCase(); if (!pw) return;
+    if (fresh) {
+      if ($("mg-pw2").value.trim().toUpperCase() !== pw) { $("mg-err").textContent = "A két jelszó nem egyezik."; return; }
+    }
+    busy = true; $("mg-go").disabled = true; $("mg-err").textContent = "";
+    derive(pw).then(function (r) { ID = r.id; KEY = r.key; return loadDoc(fresh); })
+      .then(function () { if (KEY) { $("mg-pw").value = ""; $("mg-pw2").value = ""; fresh = false; } })
+      .catch(function () { forget(); lockUi("Nem sikerült csatlakozni (VPN?), próbáld újra.", fresh); })
+      .then(function () { busy = false; $("mg-go").disabled = false; });
+  });
+  $("mg-pw").addEventListener("input", function () { if (fresh) lockUi("", false); });
+
+  var main = $("mg-main");
+  main.addEventListener("input", function (e) {
+    var el = e.target;
+    if (el.dataset.gn) { DATA.groups.forEach(function (g) { if (g.id === el.dataset.gn) g.nev = el.value; }); save(); return; }
+    var row = el.closest(".mg-row"); if (!row || !el.dataset.f) return;
+    var h = find(row.dataset.i); if (!h) return;
+    if (el.dataset.f === "nev") h.i.nev = el.value;
+    else if (el.dataset.f === "terv") h.i.terv = Number(el.value) || 0;
+    else { var m = DATA.teny[MON] = DATA.teny[MON] || {}; if (el.value === "") delete m[h.i.id]; else m[h.i.id] = Number(el.value) || 0; }
+    refreshNums(); save();
+  });
+  main.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.add) {
+      var g = DATA.groups.filter(function (x) { return x.id === b.dataset.add; })[0], ni = { id: uid(), nev: "", terv: 0 };
+      g.items.push(ni); render(); save();
+      var inp = document.querySelector('.mg-row[data-i="' + ni.id + '"] input'); if (inp) inp.focus();
+    } else if (b.dataset.del) {
+      var h = find(b.dataset.del); if (!h) return;
+      if ((h.i.nev || h.i.terv) && !confirm("Törlöd ezt a tételt: " + (h.i.nev || "(névtelen)") + "?")) return;
+      h.g.items.splice(h.k, 1); Object.keys(DATA.teny).forEach(function (m) { delete DATA.teny[m][h.i.id]; });
+      var row = b.closest(".mg-row"); row.style.animation = "rowout .17s ease-in both";
+      setTimeout(function () { render(); }, 170); save();
+    }
+  });
+  $("mg-mon").addEventListener("change", function () { MON = this.value; render(); });
+  $("mg-lockb").addEventListener("click", function (e) { e.preventDefault(); clearTimeout(tSave); if (DATA && KEY) { enc(DATA).then(function (d) { return MG.F.setDoc(ref(), d); }).catch(function () {}); } forget(); lockUi(""); });
+  $("mg-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); window.dispatchEvent(new HashChangeEvent("hashchange")); });
+
+  window.mgOpen = function () {
+    if (DATA && KEY) { openUi(); return; }
+    var s = null; try { s = JSON.parse(sessionStorage.getItem(SK) || "null"); } catch (e) {}
+    if (s && s.id && s.k) {
+      crypto.subtle.importKey("raw", unb64(s.k), { name: "AES-GCM" }, true, ["encrypt", "decrypt"]).then(function (k) { KEY = k; ID = s.id; return loadDoc(false); })
+        .catch(function () { forget(); lockUi(""); });
+      return;
+    }
+    lockUi("");
+  };
 })();
 </script>
 <script src="anim.js?v=25" defer></script>
