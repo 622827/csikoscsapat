@@ -371,6 +371,7 @@
     <div class="tiles">
       <a class="tile" href="#konyveles" data-sec="konyveles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 11h8M8 15h8"/></svg><b>Könyvelés</b><span>The Financial Company Kft. · 2026</span></a>
       <a class="tile" href="#szamlak" data-sec="szamlak"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg><b>Számlák</b><span>Számla, blokk, bizonylat feltöltése (PDF vagy fotó)</span></a>
+      <a class="tile" href="#startbonusz" data-sec="startbonusz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg><b>Start bónusz</b><span>Munkatársak teljesítménye · szerkesztés</span></a>
       <a class="tile" href="#magan" data-sec="magan"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/><path d="M8 6V4h8v2"/></svg><b>Magánköltségvetés</b><span>Számlák, hónapok, kategóriák</span></a>
     </div>
   </section>
@@ -416,6 +417,15 @@
       <div class="tw"><table class="mg-tb" id="mg-tx"></table></div>
       <p class="mg-note">Forrás: a „Magán Könyvelés 2026” Google táblázat (Drive, Magán – Claude mappa). A kategóriát itt át lehet írni, a táblázatba azonnal visszaíródik. A belső mozgások (saját számlák közti átvezetés) nem számítanak költésnek.</p>
     </div>
+  </section>
+
+  <section id="startbonusz" hidden>
+    <div class="bar">
+      <p class="meta">Itt szerkesztheted. A munkatársak az olvasható oldalt látják: <a href="csikos-haladas.html" target="_blank" rel="noopener">csikos-haladas.html ↗</a></p>
+      <span class="sp"></span>
+      <a class="btn" href="#" id="sb-back">Menük</a>
+    </div>
+    <iframe id="sb-frame" title="Start bónusz szerkesztő" style="width:100%;height:80vh;border:0;border-radius:14px;margin-top:12px;background:var(--bg)"></iframe>
   </section>
 
   <section id="konyveles" hidden>
@@ -542,19 +552,21 @@
   function loading(on) { document.body.classList.toggle("loading", !!on); }
 
   function showLock(msg) {
-    $("konyveles").hidden = true; $("szamlak").hidden = true; $("magan").hidden = true; $("kp-hub").hidden = true; $("kp-lock").hidden = false; head("");
+    $("konyveles").hidden = true; $("szamlak").hidden = true; $("magan").hidden = true; $("startbonusz").hidden = true; $("kp-hub").hidden = true; $("kp-lock").hidden = false; head("");
     $("kp-err").textContent = msg || ""; setTimeout(function () { $("kp-pw").focus(); }, 50);
   }
-  var SECS = { konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"], magan: ["Magánköltségvetés", "Revolut, Erste, Erste TFC · költés kategóriánként"] };
+  var SECS = { konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"], startbonusz: ["Start bónusz", "Új munkatársak mérőszámai: itt szerkeszthető, a munkatársi oldal ebből frissül"], magan: ["Magánköltségvetés", "Revolut, Erste, Erste TFC · költés kategóriánként"] };
   function head(sec) { $("kp-h1").textContent = sec ? SECS[sec][0] : "ADMIN"; $("kp-lead").textContent = sec ? SECS[sec][1] : ""; }
   function showMain() {
     $("kp-lock").hidden = true;
     var sec = location.hash.replace("#", ""); if (!SECS[sec]) sec = "";
-    $("kp-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; $("szamlak").hidden = sec !== "szamlak"; $("magan").hidden = sec !== "magan"; head(sec);
+    $("kp-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; $("szamlak").hidden = sec !== "szamlak"; $("magan").hidden = sec !== "magan"; $("startbonusz").hidden = sec !== "startbonusz"; head(sec);
+    if (sec === "startbonusz" && !$("sb-frame").getAttribute("src")) $("sb-frame").src = "startbonusz-szerk.html";
     if (sec === "szamlak") szOpen();
     if (sec === "magan" && window.mgOpen) window.mgOpen();
   }
   window.addEventListener("hashchange", function () { if (tok()) showMain(); });
+  $("sb-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); window.dispatchEvent(new HashChangeEvent("hashchange")); });
 
   $("kp-form").addEventListener("submit", function (e) {
     e.preventDefault(); var pw = $("kp-pw").value; if (!pw) return;
@@ -1601,7 +1613,7 @@
   });
   $("sz-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); showMain(); });
   load();
-  setTimeout(function () { if ($("kp-lock").hidden && $("kp-hub").hidden && $("konyveles").hidden && $("szamlak").hidden && $("magan").hidden) { if (tok()) showMain(); else showLock(""); } }, 2500);
+  setTimeout(function () { if ($("kp-lock").hidden && $("kp-hub").hidden && $("konyveles").hidden && $("szamlak").hidden && $("magan").hidden && $("startbonusz").hidden) { if (tok()) showMain(); else showLock(""); } }, 2500);
 })();
 </script>
 <script>
