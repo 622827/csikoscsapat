@@ -118,6 +118,19 @@
   .mg-month { display: flex; align-items: center; gap: 8px; }
   .mg-month select { font: inherit; padding: 7px 10px; border-radius: 10px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); }
   .mg-note { color: var(--muted); font-size: .85rem; margin-top: 14px; }
+  .mg-up { margin-top: 6px; } .mg-up .szdrop.on { border-color: var(--accent); }
+  .mg-files { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; font-size: .88rem; }
+  .mg-files li { display: flex; gap: 10px; flex-wrap: wrap; } .mg-files small { color: var(--muted); } .mg-files .ok { color: var(--ok); } .mg-files .er { color: var(--gold); }
+  .mg-txh { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; } .mg-txh h3 { margin: 0; font-size: 1.05rem; } .mg-txh .sp { flex: 1; }
+  .mg-txh .btn { padding: 6px 12px; font-size: .85rem; }
+  table.mg-txt { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  table.mg-txt td { padding: 6px 6px; border-top: 1px solid color-mix(in srgb, var(--muted) 18%, transparent); vertical-align: middle; }
+  table.mg-txt tr { animation: rowin .26s cubic-bezier(.2,.7,.2,1) both; }
+  table.mg-txt tr.nk td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
+  table.mg-txt td.p { width: 100%; } table.mg-txt td.p small { display: block; color: var(--muted); font-size: .78rem; }
+  table.mg-txt td.o { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; } table.mg-txt td.o.be { color: var(--ok); }
+  table.mg-txt select { font: inherit; font-size: .85rem; padding: 5px 6px; border-radius: 8px; border: 1px solid var(--track); background: var(--bg); color: var(--ink); max-width: 190px; }
+  @media (max-width: 560px) { table.mg-txt tr { display: grid; grid-template-columns: auto 1fr auto; } table.mg-txt td:last-child { grid-column: 1 / -1; padding-top: 0; } table.mg-txt select { max-width: none; width: 100%; } }
   @media (max-width: 560px) { .mg-row { grid-template-columns: minmax(0, 1fr) 92px 92px 22px; gap: 4px; } .mg-row input { padding: 6px 4px; } }
   .mg-row input[type=number] { -moz-appearance: textfield; } .mg-row input[type=number]::-webkit-inner-spin-button, .mg-row input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   .kp-lock { max-width: 380px; margin-top: 28px; background: var(--card); border-radius: 16px; padding: 22px; }
@@ -421,8 +434,14 @@
       </form>
     </section>
     <div class="mg-wrap" id="mg-main" hidden>
+      <div class="mg-up">
+        <label class="szdrop" id="mg-drop" tabindex="0">Magán számlakivonatok feltöltése – PDF, CSV vagy Excel, egyszerre több is (kattints, vagy húzd ide)<input type="file" id="mg-file" accept=".pdf,.csv,.xls,.xlsx,application/pdf,text/csv,image/*" multiple hidden></label>
+        <p class="msg" id="mg-upmsg" role="status"></p>
+        <ul class="mg-files" id="mg-files"></ul>
+      </div>
       <div class="mg-sum" id="mg-sum"></div>
       <div id="mg-grps"></div>
+      <div class="mg-grp" id="mg-tx"></div>
       <p class="mg-note">Terv = havi keret, Tény = az adott hónapban ténylegesen elköltött vagy befolyt összeg. Minden módosítás automatikusan, titkosítva mentődik.</p>
     </div>
   </section>
@@ -1617,7 +1636,7 @@
 /* Magánköltségvetés: külön jelszó, AES-GCM titkosítás a böngészőben; a Firestore csak titkosított adatot lát. */
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var SK = "csk_magan", MG = null, KEY = null, ID = "", DATA = null, MON = "", tSave = 0, busy = false, fresh = false;
+  var SK = "csk_magan", TX = {}, TXF = "kat", MG = null, KEY = null, ID = "", DATA = null, MON = "", tSave = 0, busy = false, fresh = false;
   var HO = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
   var te = new TextEncoder();
   function hex(b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }
@@ -1653,10 +1672,30 @@
   function dec(d) {
     return crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(d.iv) }, KEY, unb64(d.ct)).then(function (b) { return JSON.parse(new TextDecoder().decode(b)); });
   }
+  function encB(u8, iv) { return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, KEY, u8); }
+  function col(n) { return MG.F.collection(MG.db, "perf", ID, n); }
+  function norm(p) { return String(p || "").toLowerCase().replace(/\d[\d\s\/.:-]{3,}/g, " ").replace(/[^a-záéíóöőúüű ]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 40); }
+  // havi tranzakciók: perf/<ID>/mg_tx/<ÉÉÉÉ-HH>, titkosítva
+  function txLoad(m) {
+    if (TX[m]) return Promise.resolve(TX[m]);
+    return db().then(function () { return MG.F.getDoc(MG.F.doc(MG.db, "perf", ID, "mg_tx", m)); }).then(function (sn) {
+      if (!sn.exists()) return (TX[m] = { tx: [] });
+      return dec(sn.data()).then(function (d) { return (TX[m] = d && d.tx ? d : { tx: [] }); });
+    }).catch(function () { return { tx: [] }; });
+  }
+  var tTx = 0;
+  function txSave(m) {
+    clearTimeout(tTx); $("mg-meta").textContent = "Mentés…";
+    tTx = setTimeout(function () {
+      enc(TX[m]).then(function (d) { return MG.F.setDoc(MG.F.doc(MG.db, "perf", ID, "mg_tx", m), d); })
+        .then(function () { $("mg-meta").textContent = "Mentve · " + new Date().toLocaleTimeString("hu-HU", { hour: "2-digit", minute: "2-digit" }); })
+        .catch(function () { $("mg-meta").textContent = "A mentés nem sikerült – próbáld újra (VPN?)"; });
+    }, 500);
+  }
   function remember() {
     crypto.subtle.exportKey("raw", KEY).then(function (raw) { try { sessionStorage.setItem(SK, JSON.stringify({ id: ID, k: b64(raw) })); } catch (e) {} });
   }
-  function forget() { try { sessionStorage.removeItem(SK); } catch (e) {} KEY = null; ID = ""; DATA = null; }
+  function forget() { try { sessionStorage.removeItem(SK); } catch (e) {} KEY = null; ID = ""; DATA = null; TX = {}; }
 
   function seed() {
     function it(n, v) { return { id: uid(), nev: n, terv: v }; }
@@ -1683,10 +1722,15 @@
     for (var i = -12; i <= 2; i++) { var x = new Date(d.getFullYear(), d.getMonth() + i, 1), k = x.getFullYear() + "-" + ("0" + (x.getMonth() + 1)).slice(-2); seen[k] = 1; o += '<option value="' + k + '">' + x.getFullYear() + ". " + HO[x.getMonth()].toLowerCase() + "</option>"; }
     Object.keys(DATA.teny || {}).sort().forEach(function (k) { if (!seen[k]) o = '<option value="' + k + '">' + k + "</option>" + o; });
     sel.innerHTML = o; sel.value = MON;
-    render();
+    render(); upList();
+    txLoad(MON).then(function () { if (DATA) render(); });
   }
 
-  function tenyOf(id) { var t = (DATA.teny[MON] || {})[id]; return t == null || t === "" ? null : Number(t); }
+  function hasTx() { return !!(TX[MON] && TX[MON].tx.length); }
+  function tenyOf(id) {
+    if (hasTx()) { var s = 0, any = false; TX[MON].tx.forEach(function (t) { if (t.k === id) { s += Math.abs(Number(t.o) || 0); any = true; } }); return any ? s : null; }
+    var t = (DATA.teny[MON] || {})[id]; return t == null || t === "" ? null : Number(t);
+  }
   function totals() {
     var r = { beT: 0, kiT: 0, beF: 0, kiF: 0, g: {} };
     DATA.groups.forEach(function (g) {
@@ -1718,11 +1762,32 @@
           var f = tenyOf(i.id), over = g.tip === "ki" && f != null && f > (Number(i.terv) || 0);
           return '<div class="mg-row" data-i="' + i.id + '"><input value="' + esc(i.nev) + '" data-f="nev" aria-label="Tétel neve">' +
             '<input type="number" inputmode="numeric" step="1000" value="' + (Number(i.terv) || 0) + '" data-f="terv" aria-label="Terv">' +
-            '<input type="number" inputmode="numeric" step="1000" value="' + (f == null ? "" : f) + '" placeholder="–" data-f="teny" class="' + (over ? "over" : "") + '" aria-label="Tény">' +
+            '<input type="number" inputmode="numeric" step="1000" value="' + (f == null ? "" : f) + '" placeholder="–" data-f="teny" class="' + (over ? "over" : "") + '" aria-label="Tény"' + (hasTx() ? ' readonly title="A számlakivonat tételeiből számolva"' : "") + ">" +
             '<button type="button" data-del="' + i.id + '" title="Törlés" aria-label="Törlés">×</button>' + pbHtml(g, i) + "</div>";
         }).join("") +
         '<button type="button" class="mg-add" data-add="' + g.id + '">+ új tétel</button></div>';
     }).join("");
+    renderTx();
+  }
+  function katOpts(k) {
+    var o = '<option value="">– besorolatlan –</option>';
+    DATA.groups.forEach(function (g) { o += '<optgroup label="' + esc(g.nev) + '">' + g.items.map(function (i) { return '<option value="' + i.id + '"' + (i.id === k ? " selected" : "") + ">" + esc(i.nev || "(névtelen)") + "</option>"; }).join("") + "</optgroup>"; });
+    return o + '<option value="-"' + (k === "-" ? " selected" : "") + ">Nem számít (saját számlák közti átvezetés)</option>";
+  }
+  function renderTx() {
+    var box = $("mg-tx"), T = TX[MON];
+    if (!T) { box.innerHTML = '<p class="mg-note">Tranzakciók betöltése…</p>'; return; }
+    if (!T.tx.length) { box.innerHTML = '<p class="mg-note">Ehhez a hónaphoz még nincs feldolgozott számlakivonat. Töltsd fel fent, és Claude beolvassa: a tételeket a kategóriákba sorolja, a Tény oszlop pedig ezekből számolódik.</p>'; return; }
+    var nb = T.tx.filter(function (t) { return !t.k; }).length;
+    if (!nb && TXF === "kat") TXF = "all";
+    var list = T.tx.slice().sort(function (a, b) { return a.d < b.d ? 1 : a.d > b.d ? -1 : 0; }).filter(function (t) { return TXF === "all" || !t.k; });
+    box.innerHTML = '<div class="mg-txh"><h3>Tranzakciók · ' + T.tx.length + ' db</h3><span class="sp"></span>' +
+      '<button type="button" class="btn' + (TXF === "kat" ? " pri" : "") + '" data-txf="kat">Besorolatlan (' + nb + ")</button>" +
+      '<button type="button" class="btn' + (TXF === "all" ? " pri" : "") + '" data-txf="all">Összes</button></div>' +
+      (list.length ? '<div class="tw"><table class="mg-txt"><tbody>' + list.map(function (t) {
+        return '<tr data-t="' + t.id + '"' + (t.k ? "" : ' class="nk"') + "><td>" + esc(String(t.d).slice(5).replace("-", ".")) + '.</td><td class="p">' + esc(t.p) + (t.m ? "<small>" + esc(t.m) + "</small>" : "") +
+          '</td><td class="o ' + (t.o < 0 ? "ki" : "be") + '">' + ft(t.o) + '</td><td><select data-k="' + t.id + '" aria-label="Kategória">' + katOpts(t.k) + "</select></td></tr>";
+      }).join("") + "</tbody></table></div>" : '<p class="mg-note">Minden tétel be van sorolva. ✓</p>');
   }
   function refreshNums() {
     var t = totals(), box = $("mg-sum");
@@ -1800,7 +1865,60 @@
       setTimeout(function () { render(); }, 170); save();
     }
   });
-  $("mg-mon").addEventListener("change", function () { MON = this.value; render(); });
+  main.addEventListener("change", function (e) {
+    var el = e.target; if (!el.dataset.k) return;
+    var T = TX[MON], t = T.tx.filter(function (x) { return x.id === el.dataset.k; })[0]; if (!t) return;
+    t.k = el.value; var n = norm(t.p), cnt = 0;
+    if (n) {
+      DATA.rules = DATA.rules || {}; if (el.value) DATA.rules[n] = el.value; else delete DATA.rules[n];
+      if (el.value) T.tx.forEach(function (x) { if (!x.k && norm(x.p) === n) { x.k = el.value; cnt++; } });
+      save();
+    }
+    txSave(MON);
+    var tr = el.closest("tr"); if (tr && TXF === "kat" && el.value) { tr.style.animation = "rowout .2s ease-in both"; setTimeout(render, 200); } else render();
+    if (cnt) $("mg-meta").textContent = "+" + cnt + " hasonló tétel is besorolva";
+  });
+  main.addEventListener("click", function (e) { var b = e.target.closest("[data-txf]"); if (b) { TXF = b.dataset.txf; renderTx(); } });
+  $("mg-mon").addEventListener("change", function () { MON = this.value; TXF = "kat"; render(); txLoad(MON).then(function () { if (MON) render(); }); });
+
+  // ===== Számlakivonat-feltöltés: a fájl a böngészőben titkosul, darabokban kerül a tárba =====
+  var CH = 700000;
+  function upList() {
+    return db().then(function () { return MG.F.getDocs(col("mg_files")); }).then(function (qs) {
+      var a = []; qs.forEach(function (d) { a.push(Object.assign({ id: d.id }, d.data())); });
+      return Promise.all(a.map(function (f) { return dec(f.meta).then(function (m) { f.m = m; return f; }).catch(function () { f.m = { name: "?" }; return f; }); }));
+    }).then(function (a) {
+      a.sort(function (x, y) { return y.up - x.up; });
+      $("mg-files").innerHTML = a.length ? a.map(function (f) {
+        return "<li><span>" + esc(f.m.name) + "</span><small>" + new Date(f.up).toLocaleDateString("hu-HU") + " · " + (f.st === "kesz" ? '<b class="ok">feldolgozva' + (f.info ? " · " + esc(f.info) : "") + "</b>" : f.st === "hiba" ? '<b class="er">' + esc(f.info || "nem olvasható") + "</b>" : "feldolgozásra vár") + "</small></li>";
+      }).join("") : "";
+    }).catch(function () {});
+  }
+  function upOne(f) {
+    return f.arrayBuffer().then(function (buf) {
+      var u8 = new Uint8Array(buf), fiv = crypto.getRandomValues(new Uint8Array(12)), F = MG.F, fid = F.doc(col("mg_files")).id;
+      return encB(u8, fiv).then(function (ct) {
+        ct = new Uint8Array(ct); var n = Math.ceil(ct.length / CH), jobs = [];
+        for (var i = 0; i < n; i++) jobs.push(F.setDoc(F.doc(col("mg_chunks"), fid + "_" + i), { f: fid, i: i, d: F.Bytes.fromUint8Array(ct.subarray(i * CH, (i + 1) * CH)) }));
+        return Promise.all(jobs).then(function () { return enc({ name: f.name, type: f.type || "", size: f.size }); })
+          .then(function (meta) { return F.setDoc(F.doc(col("mg_files"), fid), { meta: meta, n: n, fiv: b64(fiv), up: Date.now(), st: "uj" }); });
+      });
+    });
+  }
+  function upFiles(list) {
+    list = Array.prototype.slice.call(list || []); if (!list.length || !KEY) return;
+    var msg = $("mg-upmsg"), done = 0; msg.textContent = "Feltöltés: 0 / " + list.length + "…";
+    db().then(function () {
+      return list.reduce(function (p, f) { return p.then(function () { return upOne(f).then(function () { done++; msg.textContent = "Feltöltés: " + done + " / " + list.length + "…"; }); }); }, Promise.resolve());
+    }).then(function () { msg.textContent = "✓ " + done + " fájl feltöltve. Claude óránként átnézi és feldolgozza."; $("mg-file").value = ""; upList(); })
+      .catch(function () { msg.textContent = "A feltöltés megszakadt (" + done + " / " + list.length + " kész). Próbáld újra (VPN?)."; upList(); });
+  }
+  $("mg-file").addEventListener("change", function () { upFiles(this.files); });
+  var dz = $("mg-drop");
+  dz.addEventListener("dragover", function (e) { e.preventDefault(); dz.classList.add("on"); });
+  dz.addEventListener("dragleave", function () { dz.classList.remove("on"); });
+  dz.addEventListener("drop", function (e) { e.preventDefault(); dz.classList.remove("on"); upFiles(e.dataTransfer.files); });
+  dz.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("mg-file").click(); } });
   $("mg-lockb").addEventListener("click", function (e) { e.preventDefault(); clearTimeout(tSave); if (DATA && KEY) { enc(DATA).then(function (d) { return MG.F.setDoc(ref(), d); }).catch(function () {}); } forget(); lockUi(""); });
   $("mg-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); window.dispatchEvent(new HashChangeEvent("hashchange")); });
 
