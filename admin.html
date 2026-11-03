@@ -352,7 +352,7 @@
 <body>
 <div class="ldbar" aria-hidden="true"></div>
 
-<nav class="topnav" aria-label="Főmenü"><div class="in"><a class="brand" href="index.html">Csikós BL csapat</a><ul><li><a href="index.html">Kezdőlap</a></li><li><a href="negyedev.html">Negyedéves cél</a></li><li><a href="verseny.html">Versenyek és utazások</a></li><li><a href="csapatkassza.html">Csapatkassza</a></li><li><a href="elemzo.html">Elemző füzet</a></li><li><a href="teljesitmeny-uj.html">Teljesítmény</a></li><li><a href="vizsga.html">Vizsga gyakorló</a></li><li><a aria-disabled="true" tabindex="-1" title="Hamarosan" style="pointer-events:none;cursor:default;opacity:.55">Tanácsadó PPT generátor 🔒</a></li><li><a aria-disabled="true" tabindex="-1" title="Hamarosan" style="pointer-events:none;cursor:default;opacity:.55">Vezetőjelölti 🔒</a></li></ul></div></nav>
+<nav class="topnav" aria-label="Főmenü"><div class="in"><a class="brand" href="index.html">Csikós BL csapat</a><ul><li><a href="index.html">Kezdőlap</a></li><li><a href="negyedev.html">Negyedéves cél</a></li><li><a href="verseny.html">Versenyek és utazások</a></li><li><a href="elemzo.html">Elemző füzet</a></li><li><a href="teljesitmeny-uj.html">Teljesítmény</a></li><li><a href="vizsga.html">Vizsga gyakorló</a></li><li><a aria-disabled="true" tabindex="-1" title="Hamarosan" style="pointer-events:none;cursor:default;opacity:.55">Tanácsadó PPT generátor 🔒</a></li><li><a aria-disabled="true" tabindex="-1" title="Hamarosan" style="pointer-events:none;cursor:default;opacity:.55">Vezetőjelölti 🔒</a></li></ul></div></nav>
 <main>
   <p class="eyebrow">ADMIN</p>
   <h1 id="kp-h1">ADMIN</h1>
@@ -377,6 +377,9 @@
       <a class="tile" href="#elemzesek" data-sec="elemzesek"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><b>Elemzések utáni teendők</b><span>Ügyfelek a naptárból, teendők</span></a>
       <a class="tile" href="#ppt" data-sec="ppt"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><b>PPT</b><span>Prezentációk</span></a>
       <a class="tile" href="#webshop" data-sec="webshop"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><b>Webshop</b><span>Rendelések</span></a>
+      <a class="tile" href="#kassza" data-sec="kassza"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg><b>Csapatkassza</b><span>Egyenleg és tételek</span></a>
+      <a class="tile" href="#flotta" data-sec="flotta"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg><b>OVB flotta</b><span>Flotta tételek, címkék</span></a>
+      <a class="tile" href="#iroda" data-sec="iroda"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg><b>Iroda kassza</b><span>Iroda tételek</span></a>
       <a class="tile" href="#magan" data-sec="magan"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/><path d="M8 6V4h8v2"/></svg><b>Magánköltségvetés</b><span>Számlák, hónapok, kategóriák</span></a>
     </div>
   </section>
@@ -569,8 +572,8 @@
     $("konyveles").hidden = true; $("szamlak").hidden = true; $("magan").hidden = true; $("startbonusz").hidden = true; $("emb").hidden = true; $("kp-hub").hidden = true; $("kp-lock").hidden = false; head("");
     $("kp-err").textContent = msg || ""; setTimeout(function () { $("kp-pw").focus(); }, 50);
   }
-  var SECS = { konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"], asszisztens: ["Asszisztensi feladatok", "Kárbejelentés, nyomtatványok, felülvizsgálatok és minden más teendő"], elemzesek: ["Elemzések utáni teendők", "Az ügyfelek a munkatársak naptárából érkeznek"], ppt: ["PPT", "Prezentációk"], webshop: ["Webshop", "Rendelések"], startbonusz: ["Start bónusz", "Új munkatársak mérőszámai: itt szerkeszthető, a munkatársi oldal ebből frissül"], magan: ["Magánköltségvetés", "Revolut, Erste, Erste TFC · költés kategóriánként"] };
-  var EMB = { asszisztens: "teljesitmeny-szerk.html?v=as", elemzesek: "teljesitmeny-szerk.html?v=perf", ppt: "ppt.html", webshop: "webshop.html" };
+  var SECS = { konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"], kassza: ["Csapatkassza", "Egyenleg és tételek"], flotta: ["OVB flotta", "Flotta tételek, címkék"], iroda: ["Iroda kassza", "Iroda tételek"], asszisztens: ["Asszisztensi feladatok", "Kárbejelentés, nyomtatványok, felülvizsgálatok és minden más teendő"], elemzesek: ["Elemzések utáni teendők", "Az ügyfelek a munkatársak naptárából érkeznek"], ppt: ["PPT", "Prezentációk"], webshop: ["Webshop", "Rendelések"], startbonusz: ["Start bónusz", "Új munkatársak mérőszámai: itt szerkeszthető, a munkatársi oldal ebből frissül"], magan: ["Magánköltségvetés", "Revolut, Erste, Erste TFC · költés kategóriánként"] };
+  var EMB = { kassza: "csapatkassza.html#kassza", flotta: "csapatkassza.html#flotta", iroda: "csapatkassza.html#iroda", asszisztens: "teljesitmeny-szerk.html?v=as", elemzesek: "teljesitmeny-szerk.html?v=perf", ppt: "ppt.html", webshop: "webshop.html" };
   var PAH = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2", paDone = false;
   function perfAuth() {
     if (paDone) return; paDone = true;
@@ -1703,6 +1706,6 @@
   window.mgOpen = function () { load(); };
 })();
 </script>
-<script src="anim.js?v=27" defer></script>
+<script src="anim.js?v=28" defer></script>
 </body>
 </html>

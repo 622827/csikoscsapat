@@ -93,7 +93,7 @@
 /* Almenü: a lefelé nyíllal jelölt menüpontra kattintva lenyílnak az aloldalak */
 (function () {
   var SUB = { "verseny.html": [["Erdélyi Incentive", "verseny.html#erdely"], ["Téli Incentive", "verseny.html#teli"], ["2026 Lengyelország karácsony", "verseny.html#lengyel"]],
-              "csapatkassza.html": [["Csapatkassza", "csapatkassza.html#kassza"], ["OVB flotta", "csapatkassza.html#flotta"], ["Iroda kassza", "csapatkassza.html#iroda"]]};
+;
   function init() {
     var nav = document.querySelector(".topnav"); if (!nav) return;
     var st = document.createElement("style");
