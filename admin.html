@@ -372,6 +372,10 @@
       <a class="tile" href="#konyveles" data-sec="konyveles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 11h8M8 15h8"/></svg><b>Könyvelés</b><span>The Financial Company Kft. · 2026</span></a>
       <a class="tile" href="#szamlak" data-sec="szamlak"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg><b>Számlák</b><span>Számla, blokk, bizonylat feltöltése (PDF vagy fotó)</span></a>
       <a class="tile" href="#startbonusz" data-sec="startbonusz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg><b>Start bónusz</b><span>Munkatársak teljesítménye · szerkesztés</span></a>
+      <a class="tile" href="#teljesitmeny" data-sec="teljesitmeny"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><b>Teljesítmény</b><span>Elemzések utáni teendők, asszisztensi feladatok</span></a>
+      <a class="tile" href="#ppt" data-sec="ppt"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><b>PPT</b><span>Prezentációk</span></a>
+      <a class="tile" href="#webshop" data-sec="webshop"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><b>Webshop</b><span>Rendelések</span></a>
+      <a class="tile" href="#onodi" data-sec="onodi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><b>Ónodi csapat</b><span>Ónodi csapat felület</span></a>
       <a class="tile" href="#magan" data-sec="magan"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/><path d="M8 6V4h8v2"/></svg><b>Magánköltségvetés</b><span>Számlák, hónapok, kategóriák</span></a>
     </div>
   </section>
@@ -426,6 +430,15 @@
       <a class="btn" href="#" id="sb-back">Menük</a>
     </div>
     <iframe id="sb-frame" title="Start bónusz szerkesztő" scrolling="no" style="width:100%;height:80vh;border:0;margin-top:12px;background:transparent"></iframe>
+  </section>
+
+  <section id="emb" hidden>
+    <div class="bar">
+      <p class="meta" id="emb-meta"></p>
+      <span class="sp"></span>
+      <a class="btn" href="#" id="emb-back">Menük</a>
+    </div>
+    <iframe id="emb-frame" title="Beágyazott oldal" style="width:100%;height:85vh;border:0;margin-top:12px;background:transparent"></iframe>
   </section>
 
   <section id="konyveles" hidden>
@@ -552,21 +565,34 @@
   function loading(on) { document.body.classList.toggle("loading", !!on); }
 
   function showLock(msg) {
-    $("konyveles").hidden = true; $("szamlak").hidden = true; $("magan").hidden = true; $("startbonusz").hidden = true; $("kp-hub").hidden = true; $("kp-lock").hidden = false; head("");
+    $("konyveles").hidden = true; $("szamlak").hidden = true; $("magan").hidden = true; $("startbonusz").hidden = true; $("emb").hidden = true; $("kp-hub").hidden = true; $("kp-lock").hidden = false; head("");
     $("kp-err").textContent = msg || ""; setTimeout(function () { $("kp-pw").focus(); }, 50);
   }
-  var SECS = { konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"], startbonusz: ["Start bónusz", "Új munkatársak mérőszámai: itt szerkeszthető, a munkatársi oldal ebből frissül"], magan: ["Magánköltségvetés", "Revolut, Erste, Erste TFC · költés kategóriánként"] };
+  var SECS = { konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"], teljesitmeny: ["Teljesítmény", "Elemzések utáni teendők, asszisztensi feladatok"], ppt: ["PPT", "Prezentációk"], webshop: ["Webshop", "Rendelések"], onodi: ["Ónodi csapat", "Ónodi csapat felület"], startbonusz: ["Start bónusz", "Új munkatársak mérőszámai: itt szerkeszthető, a munkatársi oldal ebből frissül"], magan: ["Magánköltségvetés", "Revolut, Erste, Erste TFC · költés kategóriánként"] };
+  var EMB = { teljesitmeny: "teljesitmeny-uj.html", ppt: "ppt.html", webshop: "webshop.html", onodi: "onodicsapat.html" };
+  var PAH = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2", paDone = false;
+  function perfAuth() {
+    if (paDone) return; paDone = true;
+    call({ action: "perfid", token: tok() }).then(function (d) {
+      if (!(d && d.pw)) { paDone = false; return; }
+      try { ["tj", "ws", "ppt"].forEach(function (k) { sessionStorage.setItem(k + "_ok", PAH); sessionStorage.setItem(k + "_pw", d.pw); }); } catch (e) {}
+      Object.keys(EMB).forEach(function (k) { var f = $("emb-frame"); if (f.getAttribute("data-s") === k) f.src = EMB[k]; });
+    }, function () { paDone = false; });
+  }
   function head(sec) { $("kp-h1").textContent = sec ? SECS[sec][0] : "ADMIN"; $("kp-lead").textContent = sec ? SECS[sec][1] : ""; }
   function showMain() {
     $("kp-lock").hidden = true;
     var sec = location.hash.replace("#", ""); if (!SECS[sec]) sec = "";
-    $("kp-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; $("szamlak").hidden = sec !== "szamlak"; $("magan").hidden = sec !== "magan"; $("startbonusz").hidden = sec !== "startbonusz"; head(sec);
+    $("kp-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; $("szamlak").hidden = sec !== "szamlak"; $("magan").hidden = sec !== "magan"; $("startbonusz").hidden = sec !== "startbonusz"; $("emb").hidden = !EMB[sec]; head(sec);
+    if (EMB[sec]) { var fr = $("emb-frame"); if (fr.getAttribute("data-s") !== sec) { fr.setAttribute("data-s", sec); fr.src = EMB[sec]; } }
+    if (sec) perfAuth();
     if (sec === "startbonusz" && !$("sb-frame").getAttribute("src")) $("sb-frame").src = "startbonusz-szerk.html";
     if (sec === "szamlak") szOpen();
     if (sec === "magan" && window.mgOpen) window.mgOpen();
   }
   window.addEventListener("hashchange", function () { if (tok()) showMain(); });
   window.addEventListener("message", function (e) { if (e.origin === location.origin && e.data && e.data.sbh) $("sb-frame").style.height = Math.max(300, e.data.sbh + 8) + "px"; });
+  $("emb-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); window.dispatchEvent(new HashChangeEvent("hashchange")); });
   $("sb-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); window.dispatchEvent(new HashChangeEvent("hashchange")); });
 
   $("kp-form").addEventListener("submit", function (e) {
@@ -1614,7 +1640,7 @@
   });
   $("sz-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); showMain(); });
   load();
-  setTimeout(function () { if ($("kp-lock").hidden && $("kp-hub").hidden && $("konyveles").hidden && $("szamlak").hidden && $("magan").hidden && $("startbonusz").hidden) { if (tok()) showMain(); else showLock(""); } }, 2500);
+  setTimeout(function () { if ($("kp-lock").hidden && $("kp-hub").hidden && $("konyveles").hidden && $("szamlak").hidden && $("magan").hidden && $("startbonusz").hidden && $("emb").hidden) { if (tok()) showMain(); else showLock(""); } }, 2500);
 })();
 </script>
 <script>
