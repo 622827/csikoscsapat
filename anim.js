@@ -231,7 +231,7 @@
     var k = document.createElement("span"); k.className = "lg-k"; a1.appendChild(k);
     var a2 = document.createElement("a"); a2.className = "lg-o"; a2.href = "onodicsapat.html"; a2.title = "Ónodi csapat"; a2.setAttribute("aria-label", "Ónodi csapat – Start bónusz");
     var im = document.createElement("img"); im.src = "ikon/oroszlan-96.png"; im.alt = ""; a2.appendChild(im);
-    var a3 = document.createElement("a"); a3.className = "lg-f"; a3.href = "felber.html"; a3.title = "Felber csapat"; a3.setAttribute("aria-label", "Felber csapat"); var vv = document.createElement("span"); vv.className = "lg-v"; a3.appendChild(vv);
+    var a3 = document.createElement("a"); a3.className = "lg-f"; a3.href = "felbercsapat.html"; a3.title = "Felber csapat"; a3.setAttribute("aria-label", "Felber csapat"); var vv = document.createElement("span"); vv.className = "lg-v"; a3.appendChild(vv);
     w.appendChild(a1); w.appendChild(a2); w.appendChild(a3); b.parentNode.insertBefore(w, b);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
