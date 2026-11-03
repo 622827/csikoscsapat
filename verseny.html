@@ -414,6 +414,19 @@
           <div class="zn" data-z="0"><h4>Még nincs szobában</h4><small></small><div class="zl"></div></div>
         </div>
       </div>
+      <div class="bk-s"><h3>Bevásárlólista – mit hozzunk</h3>
+        <p class="hint" style="margin:0 0 10px">Húzd a tételt annak a családnak a dobozába, aki hozza. Új tételt lent lehet felvenni.</p>
+        <div class="cz rz" data-b="bevasar">
+          <div class="zn" data-z="1"><h4>Gulyás család</h4><div class="zl"></div></div>
+          <div class="zn" data-z="2"><h4>Farkas család</h4><div class="zl"></div></div>
+          <div class="zn" data-z="3"><h4>Csikós család</h4><div class="zl"></div></div>
+          <div class="zn" data-z="4"><h4>Tóth család</h4><div class="zl"></div></div>
+          <div class="zn" data-z="5"><h4>Sznyt család</h4><div class="zl"></div></div>
+          <div class="zn" data-z="6"><h4>Őry család</h4><div class="zl"></div></div>
+          <div class="zn" data-z="0"><h4>Még nincs gazdája</h4><div class="zl"></div></div>
+        </div>
+        <form id="bv-add" style="margin-top:10px;display:flex;gap:8px"><input id="bv-in" placeholder="Új tétel (pl. mandarin)" style="font:inherit;padding:7px 10px;border:1px solid #9aa3b8;border-radius:6px;flex:1;max-width:280px"><button style="font:inherit;font-weight:700;padding:7px 14px;border:0;border-radius:6px;background:#003b95;color:#fff;cursor:pointer">Hozzáad</button></form>
+      </div>
       <div class="bk-s"><h3>Szobák felszereltsége</h3><ul><li>Saját fürdőszoba, törölköző, ingyenes piperecikkek, hajszárító</li><li>Konyhasarok: hűtő, kávé- és teafőző, mikró, konyhai eszközök</li><li>TV, fűtés, hegyi kilátás</li><li class="bk-ok">Ingyenes privát parkoló és WiFi a helyszínen</li></ul></div>
       <div class="bk-s"><h3>Fontos tudnivalók</h3><div class="bk-note"><b>Reggeli nincs az árban</b> – a szobaár semmilyen ellátást nem tartalmaz.</div><ul style="margin-top:10px"><li>Az idegenforgalmi adó (2 PLN/fő/éjszaka) nincs az árban, a helyszínen fizetendő.</li><li>A foglalás nem módosítható díjmentesen, és nem téríthető vissza.</li></ul></div>
     </div>
@@ -735,6 +748,8 @@
     var zones=root.querySelectorAll(".zn"),st={},cur=null,ghost=null,dx=0,dy=0,dirty=false,saved="{}";
     try{st=norm(JSON.parse(localStorage.getItem(cfg.ls)||"{}")||{})}catch(e){}
     saved=JSON.stringify(st);
+    function sync(){Object.keys(st).forEach(function(k){if(cfg.items.indexOf(k)<0)cfg.items.push(k)})}
+    sync();
     function z(c){return st[c]!=null?st[c]:(cfg.def[c]||0)}
     var bar=document.createElement("div");bar.className="csb";bar.hidden=true;
     bar.innerHTML='<span class="csr"><span>Nem mentett változtatás</span><input type="password" placeholder="Jelszó" autocomplete="off" aria-label="Mentési jelszó"><button type="button" class="ok">Mentés</button><button type="button" class="sec2">Elvetés</button></span><span class="csm" role="status"></span>';
@@ -769,7 +784,7 @@
     function pull(){
       if(cur||dirty)return;
       fetch(API+"?key="+cfg.key+"&_="+Date.now()).then(function(r){return r.json()}).then(function(d){
-        if(d&&d.state&&!cur&&!dirty&&Object.keys(d.state).length){st=norm(d.state);saved=JSON.stringify(st);try{localStorage.setItem(cfg.ls,saved)}catch(e){}render();}
+        if(d&&d.state&&!cur&&!dirty&&Object.keys(d.state).length){st=norm(d.state);sync();saved=JSON.stringify(st);try{localStorage.setItem(cfg.ls,saved)}catch(e){}render();}
       }).catch(function(){});
     }
     function zoneAt(x,y){var e=document.elementFromPoint(x,y);var n=e&&e.closest?e.closest(".zn"):null;return n&&root.contains(n)?n:null}
@@ -793,6 +808,7 @@
       ghost.remove();ghost=null;cur=null;zones.forEach(function(zn){zn.classList.remove("over")});render();
     }
     document.addEventListener("pointerup",end);document.addEventListener("pointercancel",end);
+    if(cfg.add){cfg.add(function(n){if(!n||cfg.items.indexOf(n)>=0)return;cfg.items.push(n);st[n]=0;setDirty(true);render()})}
     render();pull();setInterval(pull,15000);
   }
   make({id:"auto",key:"lengyelauto",ls:"csk_lengyel_autok_v1",cls:"car",
@@ -804,6 +820,11 @@
     items:["Gulyás Anna","Farkas Niki","Farkas Mónika","Akela","Csikós Máté","Ónodi Virág","Koda","Mia","Tóth Oszkár","Nagy Bettina","Sznyt Alex","Vendég (Sznyt) 1","Vendég (Sznyt) 2","Őry Péter","Vendég (Őry)"],
     def:{"Gulyás Anna":1,"Farkas Niki":1,"Farkas Mónika":1,"Akela":1,"Csikós Máté":2,"Ónodi Virág":2,"Koda":2,"Mia":2,"Tóth Oszkár":3,"Nagy Bettina":3,"Sznyt Alex":4,"Vendég (Sznyt) 1":4,"Vendég (Sznyt) 2":4,"Őry Péter":5,"Vendég (Őry)":5},
     chip:function(c){return (DOGICON[c]||"")+"<span>"+(c.indexOf("Vendég")===0?"+ vendég (még nincs név)":c)+"</span>"}});
+  make({id:"bevasar",key:"lengyelbevasar",ls:"csk_lengyel_bevasar_v1",cls:"ppl",
+    items:["Mandarin","Dió, mogyoró","Szaloncukor","Bejgli","Hal / halászlé alap","Töltött káposzta","Sült kolbász, kolbászáru","Sajt, felvágott","Kenyér, péksütemény","Tej, tojás, vaj","Üdítő, ásványvíz","Bor, pálinka","Kávé, tea","Papírtörlő, szalvéta, WC-papír","Eldobható tányér, pohár","Társasjáték, kártya","Karácsonyi dekoráció","Ajándékok"],
+    def:{},
+    add:function(cb){var f=document.getElementById("bv-add");if(!f)return;f.addEventListener("submit",function(e){e.preventDefault();var i=document.getElementById("bv-in");cb(i.value.trim());i.value=""})},
+    chip:function(c){return "<span>"+c+"</span>"}});
 })();
 </script>
 <script src="anim.js?v=29" defer></script>
