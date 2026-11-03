@@ -18,8 +18,21 @@
   h1 { font-size: clamp(2rem, 6vw, 2.8rem); letter-spacing: -.03em; line-height: 1; margin: 0 0 12px; }
   .lead { color: var(--muted); font-size: 1.05rem; margin: 0 0 22px; max-width: 70ch; }
   .msg { color: var(--muted); }
-  #grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
-  @media (max-width: 860px) { #grid { grid-template-columns: 1fr; } }
+  #grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 26px; align-items: start; }
+  @media (max-width: 900px) { #grid { grid-template-columns: 1fr; } }
+  #wheel { width: 100%; height: auto; max-width: 640px; margin: 0 auto; display: block; }
+  .sg { cursor: pointer; outline: none; }
+  .sg path { stroke: var(--bg); stroke-width: 3; transition: filter .15s; }
+  .sg:hover path, .sg:focus path { filter: brightness(1.25); }
+  .sg.sel path { stroke: #fff; stroke-width: 4; }
+  .sg text { fill: #fff; font-weight: 700; pointer-events: none; font-family: inherit; }
+  .sg .mn { font-size: 21px; } .sg .th { font-size: 11.5px; font-weight: 600; opacity: .9; }
+  .sg.cur .mn { fill: var(--accent); }
+  .ct { fill: var(--muted); font-size: 15px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-family: inherit; }
+  .ct2 { fill: #fff; font-size: 22px; font-weight: 700; font-family: inherit; }
+  .lg { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 10px; color: var(--muted); font-size: .8rem; }
+  .lg i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  #det { position: sticky; top: 16px; }
   .c { background: var(--card); border: 3px solid var(--track); border-radius: 18px; padding: 18px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
   .c.now { border-color: var(--accent); }
   .ch { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
@@ -37,7 +50,7 @@
 <body>
 <main>
   <h1>Kampánynaptár 2027</h1>
-  <p class="lead">Havi ügyfél-kampányok: témák, üzenetek, ajánlatok és csatornák. Ebből dolgozunk az év során.</p>
+  <p class="lead">Kattints egy hónapra a körön: megmutatja, miről szól a hónap, kinek, milyen ajánlattal és csatornán.</p>
   <div id="grid"><p class="msg">Betöltés…</p></div>
   <p class="upd" id="upd"></p>
 </main>
@@ -56,19 +69,48 @@
   }
   function defaults() { return fetch("kampany-2027.json").then(function (r) { return r.json(); }); }
 
+  var SEL = 0, DATA = null, NS = "http://www.w3.org/2000/svg";
+  var COL = { terv: "#0c4d86", folyamatban: "#c2557f", kesz: "#2f9e6a" };
+  function sv(t, a) { var n = document.createElementNS(NS, t); for (var k in a) n.setAttribute(k, a[k]); return n; }
+  function pt(r, deg) { var a = (deg - 90) * Math.PI / 180; return [300 + r * Math.cos(a), 300 + r * Math.sin(a)]; }
+  function short(t, n) { t = t || ""; return t.length > n ? t.slice(0, n - 1).trim() + "…" : t; }
+  function wrap(t, n) { var w = (t || "").split(" "), L = [], c = ""; w.forEach(function (x) { if ((c + " " + x).trim().length > n && c) { L.push(c); c = x; } else c = (c + " " + x).trim(); }); if (c) L.push(c); return L.slice(0, 3); }
+
   function render(d) {
-    var g = $("grid"); g.textContent = ""; var now = new Date(), cur = now.getFullYear() === (d.year || 2027) ? now.getMonth() + 1 : 0;
-    (d.months || []).forEach(function (x) {
-      var c = el("section", "c" + (x.m === cur ? " now" : "")), h = el("div", "ch"), left = el("div");
-      left.appendChild(el("small", "", HO[x.m - 1] + " " + (d.year || 2027))); left.appendChild(el("h2", "", x.tema || "–")); h.appendChild(left);
-      var st = ST[x.allapot] || ST.terv; h.appendChild(el("span", "badge " + st[1], st[0])); c.appendChild(h);
-      if (x.uzenet) c.appendChild(el("p", "mq", "„" + x.uzenet + "”"));
-      var dl = el("dl");
-      [["cel", "Célcsoport"], ["ajanlat", "Ajánlat, tartalom"], ["csatorna", "Csatornák"], ["datumok", "Fontos dátumok"], ["jegyzet", "Megjegyzés"]].forEach(function (f) {
-        if (!x[f[0]]) return; var w = el("div"); w.appendChild(el("dt", "", f[1])); w.appendChild(el("dd", "", x[f[0]])); dl.appendChild(w);
-      });
-      c.appendChild(dl); g.appendChild(c);
+    DATA = d; var g = $("grid"); g.textContent = "";
+    var now = new Date(), cur = now.getFullYear() === (d.year || 2027) ? now.getMonth() + 1 : 0;
+    if (!SEL) SEL = cur || 1;
+    var left = el("div"), svg = sv("svg", { id: "wheel", viewBox: "0 0 600 600", role: "group", "aria-label": "Kampánynaptár kördiagram" });
+    var R = 290, r = 140, M = {};
+    (d.months || []).forEach(function (x) { M[x.m] = x; });
+    for (var m = 1; m <= 12; m++) {
+      var x = M[m] || { m: m }, a0 = (m - 1) * 30 + .0, a1 = m * 30;
+      var p0 = pt(R, a0), p1 = pt(R, a1), q1 = pt(r, a1), q0 = pt(r, a0);
+      var gg = sv("g", { "class": "sg" + (m === SEL ? " sel" : "") + (m === cur ? " cur" : ""), tabindex: 0, role: "button", "aria-label": HO[m - 1] + ": " + (x.tema || "") });
+      gg.appendChild(sv("path", { d: "M" + p0 + " A" + R + "," + R + " 0 0 1 " + p1 + " L" + q1 + " A" + r + "," + r + " 0 0 0 " + q0 + " Z", fill: COL[x.allapot] || COL.terv }));
+      var mid = pt((R + r) / 2, a0 + 15), t = sv("text", { x: mid[0], y: mid[1] - 18, "text-anchor": "middle", "class": "mn" }); t.textContent = HO[m - 1].slice(0, 3).toUpperCase(); gg.appendChild(t);
+      wrap(short(x.tema, 44), 14).forEach(function (ln, i) { var u = sv("text", { x: mid[0], y: mid[1] + 2 + i * 14, "text-anchor": "middle", "class": "th" }); u.textContent = ln; gg.appendChild(u); });
+      (function (mm) { gg.addEventListener("click", function () { SEL = mm; render(DATA); }); gg.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); SEL = mm; render(DATA); } }); })(m);
+      svg.appendChild(gg);
+    }
+    var sx = M[SEL] || { m: SEL };
+    var c1 = sv("text", { x: 300, y: 268, "text-anchor": "middle", "class": "ct" }); c1.textContent = (d.year || 2027); svg.appendChild(c1);
+    var c2 = sv("text", { x: 300, y: 302, "text-anchor": "middle", "class": "ct2" }); c2.textContent = HO[SEL - 1]; svg.appendChild(c2);
+    wrap(sx.tema || "", 22).forEach(function (ln, i) { var u = sv("text", { x: 300, y: 330 + i * 18, "text-anchor": "middle", "class": "ct", style: "font-size:13px;text-transform:none;letter-spacing:0" }); u.textContent = ln; svg.appendChild(u); });
+    left.appendChild(svg);
+    var lg = el("div", "lg"); [["terv", "Terv"], ["folyamatban", "Folyamatban"], ["kesz", "Kész"]].forEach(function (k) { var s = el("span"); var i = el("i"); i.style.background = COL[k[0]]; s.appendChild(i); s.appendChild(document.createTextNode(k[1])); lg.appendChild(s); });
+    left.appendChild(lg); g.appendChild(left);
+
+    var x2 = sx, c = el("section", "c" + (x2.m === cur ? " now" : "")), h = el("div", "ch"), lf = el("div");
+    c.id = "det";
+    lf.appendChild(el("small", "", HO[x2.m - 1] + " " + (d.year || 2027))); lf.appendChild(el("h2", "", x2.tema || "–")); h.appendChild(lf);
+    var st = ST[x2.allapot] || ST.terv; h.appendChild(el("span", "badge " + st[1], st[0])); c.appendChild(h);
+    if (x2.uzenet) c.appendChild(el("p", "mq", "„" + x2.uzenet + "”"));
+    var dl = el("dl");
+    [["cel", "Célcsoport"], ["ajanlat", "Ajánlat, tartalom"], ["csatorna", "Csatornák"], ["datumok", "Fontos dátumok"], ["jegyzet", "Megjegyzés"]].forEach(function (f) {
+      if (!x2[f[0]]) return; var w = el("div"); w.appendChild(el("dt", "", f[1])); w.appendChild(el("dd", "", x2[f[0]])); dl.appendChild(w);
     });
+    c.appendChild(dl); g.appendChild(c);
     if (d.upd) { var u = new Date(d.upd); if (!isNaN(u)) $("upd").textContent = "Frissítve: " + u.toLocaleString("hu-HU", { dateStyle: "medium", timeStyle: "short" }); }
   }
   defaults().then(function (def) {
