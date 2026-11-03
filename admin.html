@@ -76,6 +76,9 @@
   body.loading #meta { animation: ldpulse 1.2s ease-in-out infinite; }
   .eyebrow { margin: 0; font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
   .lead { color: var(--muted); font-size: clamp(1rem, 2vw, 1.15rem); margin: 0; }
+  .hgrp { margin: 30px 0 0; font-size: 1.05rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .hgrp:first-child { margin-top: 8px; }
+  .hgrp + .tiles { margin-top: 12px; }
   .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 22px; }
   .tile { display: flex; flex-direction: column; gap: 8px; padding: 22px; border-radius: 18px; background: var(--card); color: var(--ink); text-decoration: none; border: 2px solid var(--track); transition: transform .15s ease, border-color .2s ease; }
   .tile:hover, .tile:focus-visible { transform: translateY(-2px); border-color: var(--accent); }
@@ -369,17 +372,24 @@
   </section>
 
   <section id="kp-hub" hidden>
+    <h2 class="hgrp">Vezetői eszközök</h2>
     <div class="tiles">
-      <a class="tile" href="#konyveles" data-sec="konyveles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 11h8M8 15h8"/></svg><b>Könyvelés</b><span>The Financial Company Kft. · 2026</span></a>
-      <a class="tile" href="#szamlak" data-sec="szamlak"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg><b>Számlák</b><span>Számla, blokk, bizonylat feltöltése (PDF vagy fotó)</span></a>
       <a class="tile" href="#startbonusz" data-sec="startbonusz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg><b>Start bónusz</b><span>Munkatársak teljesítménye · szerkesztés</span></a>
       <a class="tile" href="#asszisztens" data-sec="asszisztens"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><b>Asszisztensi feladatok</b><span>Kárbejelentés, nyomtatványok, felülvizsgálatok</span></a>
       <a class="tile" href="#elemzesek" data-sec="elemzesek"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><b>Elemzések utáni teendők</b><span>Ügyfelek a naptárból, teendők</span></a>
+      <a class="tile" href="#flotta" data-sec="flotta"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg><b>OVB flotta</b><span>Flotta tételek, címkék</span></a>
       <a class="tile" href="#ppt" data-sec="ppt"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><b>PPT</b><span>Prezentációk</span></a>
       <a class="tile" href="#webshop" data-sec="webshop"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><b>Webshop</b><span>Rendelések</span></a>
+    </div>
+    <h2 class="hgrp">Pénzügyi</h2>
+    <div class="tiles">
       <a class="tile" href="#kassza" data-sec="kassza"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg><b>Csapatkassza</b><span>Egyenleg és tételek</span></a>
-      <a class="tile" href="#flotta" data-sec="flotta"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg><b>OVB flotta</b><span>Flotta tételek, címkék</span></a>
       <a class="tile" href="#iroda" data-sec="iroda"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg><b>Iroda kassza</b><span>Iroda tételek</span></a>
+    </div>
+    <h2 class="hgrp">Könyvelés</h2>
+    <div class="tiles">
+      <a class="tile" href="#konyveles" data-sec="konyveles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 11h8M8 15h8"/></svg><b>TFC könyvelés</b><span>The Financial Company Kft. · 2026</span></a>
+      <a class="tile" href="#szamlak" data-sec="szamlak"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg><b>Számlák</b><span>Számla, blokk, bizonylat feltöltése (PDF vagy fotó)</span></a>
       <a class="tile" href="#magan" data-sec="magan"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/><path d="M8 6V4h8v2"/></svg><b>Magánköltségvetés</b><span>Számlák, hónapok, kategóriák</span></a>
     </div>
   </section>
