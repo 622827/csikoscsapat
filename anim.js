@@ -223,7 +223,7 @@
       ".csk-logos a{display:inline-flex;width:34px;height:34px;border-radius:50%;align-items:center;justify-content:center;transition:transform .18s ease,background .2s ease}" +
       ".csk-logos a:hover{transform:scale(1.1);background:var(--track,#e5e5e5)}.csk-logos a:focus-visible{outline:3px solid var(--accent,#003366);outline-offset:2px}" +
       ".csk-logos .lg-k{display:block;width:30px;height:30px;background:var(--ink,#003366);-webkit-mask:url(ikon/csikos-96.png) center/contain no-repeat;mask:url(ikon/csikos-96.png) center/contain no-repeat}" +
-      ".csk-logos img{width:26px;height:26px;display:block}.csk-logos a.lg-o,.csk-logos a.lg-c{background:#eaf3ff}.csk-logos a.lg-o:hover,.csk-logos a.lg-c:hover{background:#d6e8ff}.csk-logos a.lg-c .lg-k{background:#003366;width:26px;height:26px}" +
+      ".csk-logos img{width:26px;height:26px;display:block}.csk-logos a.lg-o,.csk-logos a.lg-c{background:#eaf3ff}.csk-logos a.lg-o:hover,.csk-logos a.lg-c:hover{background:#d6e8ff}.csk-logos a.lg-c .lg-k{background:#003366;width:26px;height:26px}.csk-logos a.lg-f{background:#eaf3ff}.csk-logos a.lg-f:hover{background:#d6e8ff}.csk-logos .lg-v{display:block;width:22px;height:22px;background:#0f7a45;-webkit-mask:url(ikon/villam-96.png) center/contain no-repeat;mask:url(ikon/villam-96.png) center/contain no-repeat}" +
       "@media (max-width:640px){.topnav .csk-logos{display:inline-flex!important}}";
     document.head.appendChild(st);
     var w = document.createElement("span"); w.className = "csk-logos";
@@ -231,7 +231,8 @@
     var k = document.createElement("span"); k.className = "lg-k"; a1.appendChild(k);
     var a2 = document.createElement("a"); a2.className = "lg-o"; a2.href = "onodicsapat.html"; a2.title = "Ónodi csapat"; a2.setAttribute("aria-label", "Ónodi csapat – Start bónusz");
     var im = document.createElement("img"); im.src = "ikon/oroszlan-96.png"; im.alt = ""; a2.appendChild(im);
-    w.appendChild(a1); w.appendChild(a2); b.parentNode.insertBefore(w, b);
+    var a3 = document.createElement("a"); a3.className = "lg-f"; a3.href = "felber.html"; a3.title = "Felber csapat"; a3.setAttribute("aria-label", "Felber csapat"); var vv = document.createElement("span"); vv.className = "lg-v"; a3.appendChild(vv);
+    w.appendChild(a1); w.appendChild(a2); w.appendChild(a3); b.parentNode.insertBefore(w, b);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
 })();
