@@ -821,7 +821,7 @@
     def:{"Gulyás Anna":1,"Farkas Niki":1,"Farkas Mónika":1,"Akela":1,"Csikós Máté":2,"Ónodi Virág":2,"Koda":2,"Mia":2,"Tóth Oszkár":3,"Nagy Bettina":3,"Sznyt Alex":4,"Vendég (Sznyt) 1":4,"Vendég (Sznyt) 2":4,"Őry Péter":5,"Vendég (Őry)":5},
     chip:function(c){return (DOGICON[c]||"")+"<span>"+(c.indexOf("Vendég")===0?"+ vendég (még nincs név)":c)+"</span>"}});
   make({id:"bevasar",key:"lengyelbevasar",ls:"csk_lengyel_bevasar_v1",cls:"ppl",
-    items:["Kártya","Társasjáték","Jégoldó","Jégkaparó"],
+    items:["Kártya","Társasjáték","Jégoldó","Jégkaparó","JBL"],
     def:{},
     add:function(cb){var f=document.getElementById("bv-add");if(!f)return;f.addEventListener("submit",function(e){e.preventDefault();var i=document.getElementById("bv-in");cb(i.value.trim());i.value=""})},
     chip:function(c){return "<span>"+c+"</span>"}});
