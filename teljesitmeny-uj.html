@@ -247,6 +247,7 @@
 <script>try{if(self!==top)document.documentElement.classList.add("emb")}catch(e){}</script><style>.emb .topnav,.emb .ldbar{display:none!important}.emb body::before{display:none!important}</style>
 <style>.emb html,html.emb,html.emb body{background:transparent!important}html.emb body{min-height:0!important;overflow:hidden!important}html.emb h1,html.emb .pg>h1,html.emb main>h1{display:none!important}html.emb main,html.emb .pg{padding-top:0!important;margin-top:0!important}</style>
 <script>(function(){if(self===top)return;function send(){try{parent.postMessage({embh:document.documentElement.scrollHeight},location.origin)}catch(e){}}if(window.ResizeObserver)new ResizeObserver(send).observe(document.documentElement);window.addEventListener("load",send);setInterval(send,1200)})();</script>
+<style>html.emb #mt-sb{display:none!important}</style>
 </head>
 <body>
 <div class="ldbar" aria-hidden="true"></div>
@@ -710,7 +711,7 @@
       FB.F.setDoc(ref, data).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
       $("as-title").value = ""; $("as-prod").value = ""; $("as-client").value = ""; $("as-note").value = ""; $("as-due").value = ""; $("as-title").focus();
     });
-    try { var tv = sessionStorage.getItem("tj_view"); if (tv === "as" || tv === "sb") asTab(tv); } catch (e) {}
+    try { var tv = sessionStorage.getItem("tj_view"); if (tv === "as" || (tv === "sb" && self === top)) asTab(tv); } catch (e) {}
     function fromHash() { if (location.hash === "#asszisztens") asTab("as"); else if (location.hash === "#startbonusz") asTab("sb"); else if (location.hash === "#elemzesek") asTab("perf"); }
     fromHash(); window.addEventListener("hashchange", fromHash);
   }
