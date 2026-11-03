@@ -439,7 +439,7 @@
       <span class="sp"></span>
       <a class="btn" href="#" id="emb-back">Menük</a>
     </div>
-    <iframe id="emb-frame" title="Beágyazott oldal" style="width:100%;height:85vh;border:0;margin-top:12px;background:transparent"></iframe>
+    <iframe id="emb-frame" title="Beágyazott oldal" scrolling="no" style="width:100%;height:85vh;border:0;margin-top:12px;background:transparent"></iframe>
   </section>
 
   <section id="konyveles" hidden>
@@ -592,6 +592,7 @@
     if (sec === "magan" && window.mgOpen) window.mgOpen();
   }
   window.addEventListener("hashchange", function () { if (tok()) showMain(); });
+  window.addEventListener("message", function (e) { if (e.origin === location.origin && e.data && e.data.embh) $("emb-frame").style.height = Math.max(300, e.data.embh + 8) + "px"; });
   window.addEventListener("message", function (e) { if (e.origin === location.origin && e.data && e.data.sbh) $("sb-frame").style.height = Math.max(300, e.data.sbh + 8) + "px"; });
   $("emb-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); window.dispatchEvent(new HashChangeEvent("hashchange")); });
   $("sb-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); window.dispatchEvent(new HashChangeEvent("hashchange")); });
