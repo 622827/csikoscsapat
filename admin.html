@@ -425,7 +425,7 @@
       <span class="sp"></span>
       <a class="btn" href="#" id="sb-back">Menük</a>
     </div>
-    <iframe id="sb-frame" title="Start bónusz szerkesztő" style="width:100%;height:80vh;border:0;border-radius:14px;margin-top:12px;background:var(--bg)"></iframe>
+    <iframe id="sb-frame" title="Start bónusz szerkesztő" scrolling="no" style="width:100%;height:80vh;border:0;margin-top:12px;background:transparent"></iframe>
   </section>
 
   <section id="konyveles" hidden>
@@ -566,6 +566,7 @@
     if (sec === "magan" && window.mgOpen) window.mgOpen();
   }
   window.addEventListener("hashchange", function () { if (tok()) showMain(); });
+  window.addEventListener("message", function (e) { if (e.origin === location.origin && e.data && e.data.sbh) $("sb-frame").style.height = Math.max(300, e.data.sbh + 8) + "px"; });
   $("sb-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); window.dispatchEvent(new HashChangeEvent("hashchange")); });
 
   $("kp-form").addEventListener("submit", function (e) {

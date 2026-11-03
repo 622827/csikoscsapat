@@ -192,6 +192,15 @@
   @media (prefers-reduced-motion: reduce) { .ldbar::before { animation-duration: 3s; } body.loading .ldp { animation: none !important; } }
   body.loading #meta { animation: ldpulse 1.2s ease-in-out infinite; }
 </style>
+<style>
+  /* beágyazott nézet: az admin adja a címet, itt csak a szerkesztő látszik */
+  html, body { background: transparent !important; }
+  body::before { display: none !important; }
+  .pg { padding-top: 0 !important; margin-top: 0 !important; max-width: none !important; }
+  .pg > h1, .cs-share, #v-sb > .lead { display: none !important; }
+  #sb-form { max-width: none !important; margin-top: 0; }
+  .ldbar { display: none !important; }
+</style>
 </head>
 <body>
 <div class="ldbar" aria-hidden="true"></div>
@@ -1115,5 +1124,9 @@
 
 
 <script src="anim.js?v=25" defer></script>
+<script>
+(function () { function send() { try { parent.postMessage({ sbh: document.documentElement.scrollHeight }, location.origin); } catch (e) {} }
+  if (window.ResizeObserver) new ResizeObserver(send).observe(document.body); window.addEventListener("load", send); setInterval(send, 1500); })();
+</script>
 </body>
 </html>
