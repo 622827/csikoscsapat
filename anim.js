@@ -23,7 +23,7 @@
   }
   function init() {
     var nav = document.querySelector(".topnav"), host = nav && nav.querySelector(".in"), ul = host && host.querySelector("ul");
-    if (!ul || document.querySelector(".csk-sidebar")) return;
+    if (!ul || self !== top || document.querySelector(".csk-sidebar")) return;
     var root = document.documentElement, KEY = "csk_side", mobile = function () { return window.innerWidth < 800; };
     var st = document.createElement("style");
     st.textContent =
