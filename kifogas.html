@@ -84,7 +84,7 @@ h2 { font-size: 1.15rem; margin: 26px 0 10px; }
 .topic { margin-top: 22px; }
 .topic-h { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--brand); color: var(--on-brand); }
 .topic-h b { font-size: 1.05rem; } .topic-h span { font-size: .82rem; opacity: .8; }
-.path { position: relative; padding: 10px 0 4px; }
+.path { position: relative; padding: 40px 0 4px; }
 .node { --x: 0px; display: flex; flex-direction: column; align-items: center; margin: 14px auto; transform: translateX(var(--x)); width: 120px; }
 .node button { width: 74px; height: 70px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; background: var(--brand); color: var(--on-brand);
   box-shadow: 0 6px 0 color-mix(in srgb, var(--brand) 65%, #000); transition: transform .1s; }
@@ -105,7 +105,7 @@ h2 { font-size: 1.15rem; margin: 26px 0 10px; }
 .timer { height: 5px; background: var(--track); border-radius: 9px; overflow: hidden; margin-top: 8px; } .timer i { display: block; height: 100%; background: var(--hot); width: 100%; }
 .client { display: flex; gap: 12px; align-items: flex-end; margin: 22px 0 16px; }
 .ava { flex: none; width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; font-weight: 700; font-size: 1.2rem; color: #fff; background: var(--sky); position: relative; }
-.ava svg { width: 34px; height: 34px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
+.ava > svg:not(.fig) { width: 34px; height: 34px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
 .bubble { position: relative; background: var(--surface); border: 2px solid var(--line); border-radius: 18px 18px 18px 4px; padding: 12px 14px; font-size: 1.08rem; box-shadow: var(--shadow); }
 .bubble .who { display: block; font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
 .bubble .say { border: 0; background: none; cursor: pointer; color: var(--sky); padding: 0; margin-left: 6px; vertical-align: middle; }
@@ -195,12 +195,77 @@ textarea { min-height: 110px; resize: vertical; }
 .switch input:checked + i { background: var(--ok); } .switch input:checked + i::after { transform: translateX(22px); }
 .pill { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--track); color: var(--muted); }
 .pill.hot { background: var(--hot-bg); color: var(--hot); } .pill.ok { background: var(--ok-bg); color: var(--ok); }
+
+/* 2. kör */
+.ava { background: color-mix(in srgb, var(--sky) 22%, var(--surface)); overflow: hidden; }
+.ava svg.fig { width: 100%; height: 100%; stroke: none; fill: initial; }
+.ava.big { width: 84px; height: 84px; border-radius: 26px; } .ava.sm { width: 42px; height: 42px; border-radius: 14px; flex: none; }
+.fig { transition: transform .3s; } .fig-happy { animation: hop .5s; } .fig-angry { animation: shake .35s; }
+@keyframes hop { 40% { transform: translateY(-5px); } }
+body.has-nav .wrap { padding-bottom: calc(96px + var(--safe-b)); }
+.bnav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--surface); border-top: 1px solid var(--line); padding: 6px 8px calc(6px + var(--safe-b)); }
+.bnav .in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.bnav button { border: 0; background: none; cursor: pointer; display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 12px; color: var(--muted); font-size: .72rem; font-weight: 600; }
+.bnav button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.bnav button.on { color: var(--brand); background: color-mix(in srgb, var(--sky) 16%, transparent); }
+.chip.coin svg { width: 18px; height: 18px; }
+.progw { flex: 1; position: relative; } .progw .prog { display: block; }
+.combo { position: absolute; left: 4px; top: -15px; font-size: .72rem; font-weight: 800; letter-spacing: .06em; color: var(--ok); opacity: 0; transition: opacity .2s; }
+.combo.show { opacity: 1; } .combo.bump { animation: pop .45s cubic-bezier(.2,1.6,.4,1); }
+.tag { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 800; letter-spacing: .06em; margin-top: 8px; }
+.tag svg { width: 16px; height: 16px; fill: currentColor; } .tag.sky { color: var(--sky); } .tag.hot { color: var(--hot); } .tag.gold { color: var(--gold); }
+.task { font-size: 1.3rem; margin: 6px 0 4px; }
+.gapcard { background: var(--surface); border: 2px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 14px; font-size: 1.05rem; line-height: 1.6; }
+.gapcard .who { display: block; font-size: .72rem; font-weight: 700; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
+.gap { display: inline-block; min-width: 90px; border-bottom: 3px solid var(--sky); padding: 0 4px; font-weight: 700; color: var(--sky); transition: background .2s; }
+.gap.fill { animation: pop .3s; } .gap.right { color: var(--ok); border-color: var(--ok); } .gap.wrong { color: var(--hot); border-color: var(--hot); }
+.sh-h { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; } .sh-h h3 { margin: 0; }
+.sh-ic { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: currentColor; flex: none; }
+.sheet.good .sh-ic { color: var(--ok); } .sheet.bad .sh-ic, .sheet.mid .sh-ic { color: var(--hot); } .sheet.mid .sh-ic { color: var(--gold); }
+.sh-ic svg { width: 20px; height: 20px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.sh-more { border: 0; background: none; color: var(--sky); font-weight: 700; cursor: pointer; font-size: .9rem; padding: 6px; }
+.sh-det { margin-bottom: 6px; }
+.topic-h { background: var(--tc); color: #fff; box-shadow: 0 5px 0 color-mix(in srgb, var(--tc) 65%, #000); display: grid; gap: 2px; padding: 14px 16px; }
+.topic-h span { font-size: .72rem; font-weight: 800; letter-spacing: .06em; opacity: .8; } .topic-h b { font-size: 1.2rem; }
+.node { position: relative; }
+.node button { width: 80px; height: 74px; background: var(--tc); box-shadow: 0 7px 0 color-mix(in srgb, var(--tc) 60%, #000); color: #fff; }
+.node button svg { width: 32px; height: 32px; }
+.node.done button { background: color-mix(in srgb, var(--tc) 75%, #fff); }
+.node.spec button, .node.boss button { background: var(--surface); color: var(--tc); border: 3px solid var(--tc); box-shadow: 0 7px 0 color-mix(in srgb, var(--tc) 50%, var(--line)); }
+.node.boss button { width: 92px; height: 84px; }
+.node.chest button { border-radius: 20px; background: linear-gradient(#e7a93a, #b87414); box-shadow: 0 7px 0 #7a4c0a; } .node.chest.locked button { background: var(--track); box-shadow: 0 7px 0 var(--line); color: var(--muted); }
+.node.chest.ready button { animation: wiggle 1.6s infinite; } .node.chest.opened button { opacity: .55; }
+@keyframes wiggle { 0%, 70%, 100% { transform: rotate(0); } 75% { transform: rotate(-6deg); } 85% { transform: rotate(6deg); } }
+.node.cur button { outline: 6px solid color-mix(in srgb, var(--tc) 30%, transparent); outline-offset: 6px; animation: none; }
+.startb { position: absolute; top: -40px; background: var(--surface); color: var(--tc); border: 2px solid var(--line); font-weight: 800; font-size: .78rem; letter-spacing: .06em; padding: 6px 12px; border-radius: 12px; animation: bob 1.4s ease-in-out infinite; white-space: nowrap; }
+.startb::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 10px; height: 10px; background: var(--surface); border-right: 2px solid var(--line); border-bottom: 2px solid var(--line); transform: translateX(-50%) rotate(45deg); }
+@keyframes bob { 50% { transform: translateY(-4px); } }
+.chestbig { width: 110px; height: 110px; margin: 0 auto; border-radius: 30px; display: grid; place-items: center; background: linear-gradient(#e7a93a, #b87414); }
+.chestbig svg { width: 64px; height: 64px; fill: none; stroke: #fff; stroke-width: 2; }
+.ccards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.ccard { border: 2px solid var(--line); background: var(--surface); border-radius: 18px; padding: 10px 6px 12px; cursor: pointer; display: grid; justify-items: center; gap: 6px; box-shadow: 0 3px 0 var(--line); }
+.ccard.on { border-color: var(--ok); box-shadow: 0 3px 0 var(--ok); background: var(--ok-bg); } .ccard b { font-size: .82rem; text-align: center; line-height: 1.15; }
+.dots { display: flex; gap: 3px; } .dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--track); } .dots i.on { background: var(--hot); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; } .chip2 { border: 2px solid var(--line); background: var(--surface); border-radius: 99px; padding: 7px 12px; cursor: pointer; font-weight: 600; font-size: .88rem; }
+.chip2.on { border-color: var(--brand); background: var(--brand); color: var(--on-brand); }
+.hist { display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 14px; padding: 10px; margin-bottom: 8px; box-shadow: var(--shadow); } .hist > div:nth-child(2) { flex: 1; min-width: 0; }
+.prof { display: flex; align-items: center; gap: 14px; } .prof .av { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 1.2rem; }
+.week { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; } .wd { display: grid; justify-items: center; gap: 4px; font-size: .78rem; color: var(--muted); }
+.wd i { width: 36px; height: 36px; border-radius: 50%; background: var(--track); display: grid; place-items: center; } .wd.on i { background: var(--hot); } .wd i svg { width: 18px; height: 18px; fill: #fff; }
+.wd.t span { color: var(--ink); font-weight: 800; }
+.inv { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .inv .card { display: grid; justify-items: center; gap: 6px; text-align: center; }
+.invic { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; background: color-mix(in srgb, var(--sky) 20%, var(--surface)); flex: none; }
+.invic svg { width: 28px; height: 28px; fill: none; stroke: var(--sky); stroke-width: 2; stroke-linejoin: round; } .invic svg circle[fill] { stroke: none; }
+.shopi { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; } .shopi > div:nth-child(2) { flex: 1; }
+.btn svg { width: 18px; height: 18px; }
+.empty { text-align: center; display: grid; justify-items: center; gap: 6px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
 <div class="top" id="top" hidden><div class="in" id="topin"></div></div>
 <div class="wrap"><main id="view"></main></div>
+<nav class="bnav" id="bnav" hidden></nav>
 <div class="sheet" id="sheet"><div class="in" id="sheetin"></div></div>
 <div class="modal" id="modal"><div class="box" id="modalbox"></div></div>
 <div class="toast" id="toast"></div>
@@ -254,6 +319,13 @@ var IC = {
   trophy: '<svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>',
   medal: '<svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="6"/><path d="M8 3l4 5 4-5"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>',
+  coin: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#e0a100"/><circle cx="12" cy="12" r="6" fill="none" stroke="#fff3c4" stroke-width="2"/></svg>',
+  path: '<svg viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5"/></svg>',
+  dumbbell: '<svg viewBox="0 0 24 24"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10"/></svg>',
+  crown: '<svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>',
+  chest: '<svg viewBox="0 0 24 24"><path d="M3 10a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v9H3z"/><path d="M3 12h18"/><rect x="10" y="10.5" width="4" height="4" rx="1"/></svg>',
+  spark: '<svg viewBox="0 0 24 24"><path d="M12 2l2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2z"/></svg>',
+  shield: '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M13 7l-3 6h3l-1 4 3-6h-3z"/></svg>',
   person: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>'
 };
 
@@ -300,6 +372,12 @@ var DEFAULT_CONTENT = {
     { id: "i8", level: "l_van1", type: "order", prompt: "Van már megtakarításom a banknál.",
       parts: ["Ez nagyon jó alap.", "Tudja, mekkora rajta a valós hozam a költségek után?", "Ha megmutatja, tíz perc alatt összevetjük."],
       sample: "Ez nagyon jó alap. Tudja, mekkora rajta a valós hozam a költségek után? Ha megmutatja, tíz perc alatt összevetjük." },
+    { id: "i11", level: "l_penz1", type: "gap", prompt: "Most tényleg nem fér bele semmi.", text: "Értem, és pont ezért nem is nagy összegben gondolkodunk. ___ ",
+      options: [{ t: "Mekkora az az összeg, ami biztosan nem hiányozna havonta?", ok: true, fb: "Kérdéssel bevonod az ügyfelet, és kicsiben indítasz." }, { t: "De hát ez a jövője, erre muszáj költeni!", ok: false, fb: "Nyomásgyakorlás: az ügyfél bezárkózik." }, { t: "Akkor majd jövőre visszatérünk rá.", ok: false, fb: "Feladod, és nem tudod meg, mi a valódi akadály." }],
+      sample: "Értem, és pont ezért nem is nagy összegben gondolkodunk. Mekkora az az összeg, ami biztosan nem hiányozna havonta?" },
+    { id: "i12", level: "l_aj1", type: "gap", prompt: "Nem szeretném, ha a barátaimat zaklatnák.", text: "Teljesen érthető, ezért kérem azt, hogy ___ Így senkit nem érünk váratlanul.",
+      options: [{ t: "előbb Ön szóljon nekik, hogy keresni fogom.", ok: true, fb: "Meleg megkeresés: az ajánló készíti elő a terepet." }, { t: "adja meg a telefonszámukat, a többit intézem.", ok: false, fb: "Hideg megkeresés: pont ettől tart az ügyfél." }, { t: "gondolja át, és majd szóljon, ha eszébe jut valaki.", ok: false, fb: "Nyitva hagyod: ritkán lesz belőle ajánlás." }],
+      sample: "Teljesen érthető, ezért kérem azt, hogy előbb Ön szóljon nekik, hogy keresni fogom. Így senkit nem érünk váratlanul." },
     { id: "i9", level: "l_aj1", type: "open", prompt: "(A találkozó végén) Nem igazán jut eszembe senki, akit ajánlhatnék.",
       sample: "Ahogy az elején megbeszéltük, a munkám ajánlásból működik. Gondoljon azokra, akik most költöznek, gyereket várnak, lakást vesznek vagy a nyugdíjon gondolkodnak. Ki jut eszébe? Megkérem, hogy előbb Ön szóljon nekik, hogy keresni fogom." },
     { id: "i10", level: "l_aj1", type: "mc", prompt: "Majd szólok, ha valaki érdeklődik.",
@@ -310,16 +388,17 @@ var DEFAULT_CONTENT = {
       ], sample: "Köszönöm! Az elején abban maradtunk, hogy ha hasznos volt, megosztja. Kiben van most változás: költözés, baba, lakásvásárlás?" }
   ],
   clients: [
-    { id: "c_kedves", name: "Kedves, de halogató", level: 1, persona: "Barátságos, egyetért, de mindig halasztana.",
+    { id: "c_kedves", name: "Kedves, de halogató", level: 1, look: "b", persona: "Barátságos, egyetért, de mindig halasztana.",
       pos: ["Igazából... ha így nézzük, akár most is megbeszélhetjük.", "Ez tényleg logikus. Mi lenne a következő lépés?"],
       neg: ["Persze, persze, csak majd valamikor...", "Jó, jó, de most inkább még várnék."] },
-    { id: "c_siet", name: "Siető", level: 2, persona: "Türelmetlen, rövid válaszokat vár.",
+    { id: "c_siet", name: "Siető", level: 2, look: "a", persona: "Türelmetlen, rövid válaszokat vár.",
       pos: ["Jó, ez gyors volt. Mondja tovább.", "Rendben, ennyi belefér."],
       neg: ["Nézze, nincs erre időm.", "Ezt röviden, kérem."] },
-    { id: "c_bizalmatlan", name: "Bizalmatlan", level: 3, persona: "Gyanakvó, a jutalékra gyanakszik, bizonyítékot kér.",
+    { id: "c_bizalmatlan", name: "Bizalmatlan", level: 3, look: "c", persona: "Gyanakvó, a jutalékra gyanakszik, bizonyítékot kér.",
       pos: ["Hm. Ez korrektnek hangzik.", "Rendben, ezt meg tudom nézni."],
       neg: ["Ezt mindenki mondja.", "Honnan tudjam, hogy nem csak eladni akar?"] }
   ],
+  shop: [],
   criteria: [
     { id: "k_emp", group: "kifogas", name: "Elismerte az ügyfél érzését", desc: "Kezdd elismeréssel: „Értem”, „Teljesen érthető”.", kw: ["értem", "érthető", "jogos", "megértem", "teljesen", "gratulál"] },
     { id: "k_kerd", group: "kifogas", name: "Kérdéssel vitte tovább", desc: "Zárd nyitott kérdéssel, hogy az ügyfél beszéljen.", rule: "kerdes" },
@@ -491,23 +570,68 @@ var AI = {
 };
 
 /* ===================== Felhasználó ===================== */
-function blankUser(name) { return { name: name, xp: 0, lessons: 0, streak: 0, best: 0, lastDay: "", days: {}, done: {}, weak: {}, stats: {}, badges: [], reviews: 0, perfect: 0 }; }
+function blankUser(name) { return { name: name, xp: 0, lessons: 0, streak: 0, best: 0, lastDay: "", days: {}, done: {}, weak: {}, stats: {}, badges: [], reviews: 0, perfect: 0, shields: 0, coins: 0, chests: {}, hist: [] }; }
 function saveMe() { S.me.upd = Date.now(); return setD("kk_users", S.uid, S.me).catch(function () { toast("Nem sikerült menteni, újrapróbálom később."); }); }
 function lvlOf(xp) { var l = Math.floor(Math.sqrt(xp / 40)) + 1, lo = 40 * Math.pow(l - 1, 2), hi = 40 * Math.pow(l, 2); return { l: l, p: (xp - lo) / (hi - lo) }; }
 function todayXp() { return S.me.days[today()] || 0; }
 function weekXp(u) { var ws = weekStart(), s = 0; Object.keys(u.days || {}).forEach(function (d) { if (d >= ws) s += u.days[d]; }); return s; }
-function liveStreak() { var d = S.me.lastDay; return d === today() || d === addDays(today(), -1) ? S.me.streak : 0; }
+/* Sorozat: csak a munkanapok számítanak. A hétvégi gyakorlás is növeli, de a kihagyott hétvége nem szakítja meg.
+   Kihagyott munkanapot egy-egy sorozatpajzs véd ki (a ládákból). */
+function isWork(s) { var p = s.split("-"), w = new Date(+p[0], +p[1] - 1, +p[2]).getDay(); return w > 0 && w < 6; }
+function missedWork(from, to) { var n = 0, d = addDays(from, 1); while (d < to && n < 99) { if (isWork(d)) n++; d = addDays(d, 1); } return n; }
+function liveStreak() { var u = S.me; if (!u.lastDay) return 0; if (u.lastDay === today()) return u.streak; return missedWork(u.lastDay, today()) <= (u.shields || 0) ? u.streak : 0; }
+function bumpStreak(u, d) {
+  if (u.lastDay === d) return 0; var used = 0;
+  if (!u.lastDay) u.streak = 1;
+  else { var m = missedWork(u.lastDay, d); if (m === 0) u.streak++; else if (m <= (u.shields || 0)) { u.shields -= m; used = m; u.streak++; } else u.streak = 1; }
+  u.lastDay = d; u.best = Math.max(u.best, u.streak); return used;
+}
 
 var BADGES = [
   { id: "elso", name: "Első lecke", d: "Teljesíts egy leckét", test: function (u) { return u.lessons >= 1; } },
-  { id: "s3", name: "3 napos sorozat", d: "Gyakorolj 3 napig egymás után", test: function (u) { return u.best >= 3; } },
-  { id: "s7", name: "Heti sorozat", d: "7 nap egymás után", test: function (u) { return u.best >= 7; } },
+  { id: "s3", name: "3 napos sorozat", d: "3 munkanap egymás után", test: function (u) { return u.best >= 3; } },
+  { id: "s7", name: "Kéthetes sorozat", d: "10 munkanap egymás után", test: function (u) { return u.best >= 10; } },
   { id: "hibatlan", name: "Hibátlan", d: "100%-os lecke", test: function (u) { return u.perfect >= 1; } },
   { id: "l10", name: "Kitartó", d: "10 lecke", test: function (u) { return u.lessons >= 10; } },
   { id: "ism", name: "Visszatérő", d: "5 ismétlő lecke", test: function (u) { return u.reviews >= 5; } },
+  { id: "boss", name: "Főnökverő", d: "Győzz le egy főnök-ügyfelet", test: function (u) { return Object.keys(u.done).some(function (k) { return k.indexOf("boss_") === 0 && u.done[k].stars > 0; }); } },
   { id: "aj", name: "Ajánlás-mester", d: "Minden ajánláskérés szint kész", test: function (u) { var t = S.C.topics.filter(function (x) { return x.group === "ajanlas"; }); return t.length > 0 && t.every(function (x) { return x.levels.every(function (l) { return u.done[l.id] && u.done[l.id].stars > 0; }); }); } },
   { id: "xp500", name: "500 XP", d: "Gyűjts 500 XP-t", test: function (u) { return u.xp >= 500; } }
 ];
+
+/* ===================== Ügyfélfigurák (saját rajz, hangulattal) ===================== */
+var LOOKS = {
+  a: { hair: "#3b2a20", skin: "#f1c7a3", shirt: "#6699cc", style: "rovid" },
+  b: { hair: "#b8862b", skin: "#f6d6bb", shirt: "#cc0066", style: "hosszu" },
+  c: { hair: "#8b9099", skin: "#d8a27e", shirt: "#00806f", style: "kopasz", glasses: true },
+  d: { hair: "#1d1d1f", skin: "#8d5b3c", shirt: "#e0a100", style: "gondor" }
+};
+function lookOf(cl) { if (cl && LOOKS[cl.look]) return LOOKS[cl.look]; var k = "abcd"[hue(cl && (cl.id || cl.name) || "x") % 4]; return LOOKS[k]; }
+function figure(cl, mood) {
+  var L = lookOf(cl), m = mood || "neutral", h = "";
+  h += '<svg viewBox="0 0 100 100" class="fig fig-' + m + '" aria-hidden="true">';
+  h += '<path d="M14 100c2-20 16-30 36-30s34 10 36 30z" fill="' + L.shirt + '"/><path d="M42 66h16v10a8 8 0 0 1-16 0z" fill="' + L.skin + '"/>';
+  if (L.style === "hosszu") h += '<path d="M24 44c0-20 10-30 26-30s26 10 26 30v26H24z" fill="' + L.hair + '"/>';
+  h += '<ellipse cx="50" cy="44" rx="21" ry="24" fill="' + L.skin + '"/>';
+  if (L.style === "rovid") h += '<path d="M29 40c0-16 9-22 21-22s21 6 21 22c-6-8-14-10-21-10s-15 2-21 10z" fill="' + L.hair + '"/>';
+  if (L.style === "hosszu") h += '<path d="M29 40c2-14 10-20 21-20s19 6 21 20c-8-6-14-12-21-12-6 4-13 8-21 12z" fill="' + L.hair + '"/>';
+  if (L.style === "kopasz") h += '<path d="M29 46c-2-8 0-12 3-14M71 46c2-8 0-12-3-14" stroke="' + L.hair + '" stroke-width="5" stroke-linecap="round" fill="none"/>';
+  if (L.style === "gondor") h += '<g fill="' + L.hair + '"><circle cx="34" cy="28" r="9"/><circle cx="46" cy="22" r="10"/><circle cx="58" cy="23" r="10"/><circle cx="68" cy="31" r="8"/><circle cx="30" cy="38" r="6"/><circle cx="71" cy="40" r="6"/></g>';
+  // szemöldök
+  var br = m === "angry" ? ['M37 37l9 3', 'M63 37l-9 3'] : m === "happy" ? ['M37 37q4-3 9-1', 'M63 37q-4-3-9-1'] : ['M37 38h9', 'M54 38h9'];
+  h += '<g stroke="#2a1d16" stroke-width="2.6" stroke-linecap="round" fill="none"><path d="' + br[0] + '"/><path d="' + br[1] + '"/></g>';
+  // szem
+  if (m === "happy") h += '<g stroke="#2a1d16" stroke-width="2.6" stroke-linecap="round" fill="none"><path d="M38 46q3.5-4 7 0"/><path d="M55 46q3.5-4 7 0"/></g>';
+  else h += '<g fill="#2a1d16"><circle cx="41.5" cy="46" r="2.8"/><circle cx="58.5" cy="46" r="2.8"/></g>';
+  if (L.glasses) h += '<g stroke="#2a1d16" stroke-width="2" fill="none"><circle cx="41.5" cy="46" r="7"/><circle cx="58.5" cy="46" r="7"/><path d="M48.5 46h3"/></g>';
+  // száj
+  var mo = m === "happy" ? 'M41 56q9 9 18 0' : m === "angry" ? 'M42 60q8-6 16 0' : 'M43 58h14';
+  h += '<path d="' + mo + '" stroke="#2a1d16" stroke-width="2.8" stroke-linecap="round" fill="' + (m === "happy" ? "#fff" : "none") + '"/>';
+  if (m === "happy") h += '<g fill="#ff7a9a" opacity=".35"><circle cx="34" cy="54" r="4"/><circle cx="66" cy="54" r="4"/></g>';
+  h += '</svg>';
+  return h;
+}
+function moodOf(score) { return score >= 70 ? "happy" : score < 40 ? "angry" : "neutral"; }
 
 /* ===================== Indulás ===================== */
 TTS.init();
@@ -521,20 +645,21 @@ function boot() {
       if (!S.C && S.admin) { S.C = clone(DEFAULT_CONTENT); return setD("kk_content", "main", S.C); }
     }).then(function () {
       if (!S.C) return locked("Még nincs feltöltve tartalom.");
+      S.C.shop = S.C.shop || [];
       if (location.hash === "#admin") { if (!S.admin) return locked(); return Admin.open(); }
       return who();
     });
   }).catch(function (e) { console.error(e); locked("Nem sikerült betölteni. Ellenőrizd a kapcsolatot."); });
 }
 function locked(msg) {
-  $("#top").hidden = true;
-  $("#view").innerHTML = '<div class="center view"><div class="card"><div class="ava" style="margin:0 auto 12px;background:var(--brand)">' + IC.lock.replace("<svg", '<svg style="stroke:var(--on-brand)"') + '</div><h1>Kifogáskezelő</h1><p class="muted">' + esc(msg || "Hamarosan érkezik a csapatnak. Addig a vezetői felületen tesztelünk.") + '</p></div></div>';
+  $("#top").hidden = true; nav(null);
+  $("#view").innerHTML = '<div class="center view"><div class="card"><div class="ava" style="margin:0 auto 12px;background:var(--brand)">' + IC.lock.replace("<svg", '<svg style="stroke:var(--on-brand);fill:none;stroke-width:2"') + '</div><h1>Kifogáskezelő</h1><p class="muted">' + esc(msg || "Hamarosan érkezik a csapatnak. Addig a vezetői felületen tesztelünk.") + '</p></div></div>';
 }
 function who() {
   var name = LS.get("kk_name", "");
   if (name) return loadMe(name);
   return allUsers().catch(function () { return []; }).then(function (us) {
-    $("#top").hidden = true;
+    $("#top").hidden = true; nav(null);
     $("#view").innerHTML = '<div class="center view"><div class="card" style="text-align:left;width:100%"><h1>Szia!</h1><p class="muted">Add meg a neved, így látod a haladásod és a heti ranglistát.</p>' +
       '<input type="text" id="nm" list="nml" placeholder="Teljes név" autocomplete="name"><datalist id="nml">' + us.map(function (u) { return '<option value="' + esc(u.name) + '">'; }).join("") + '</datalist>' +
       '<div style="height:12px"></div><button class="btn" id="nmok">Kezdjük</button></div></div>';
@@ -550,92 +675,168 @@ function loadMe(name) {
   });
 }
 
-/* ===================== Felső sáv ===================== */
+/* ===================== Felső sáv, alsó menü ===================== */
 function topbar(kind, opts) {
   $("#top").hidden = false; var h = "";
   if (kind === "home") {
     var st = liveStreak();
-    h = '<span class="chip streak' + (todayXp() ? "" : " off") + '" title="Napi sorozat">' + IC.bolt + st + '</span><span class="chip xp" title="XP">' + IC.gem + S.me.xp + '</span><span class="sp"></span>' +
+    h = '<span class="chip streak' + (S.me.lastDay === today() ? "" : " off") + '" title="Sorozat (munkanapok)">' + IC.bolt + st + '</span>' +
+      '<span class="chip xp" title="XP">' + IC.gem + S.me.xp + '</span>' +
+      '<span class="chip coin" title="Érme">' + IC.coin + (S.me.coins || 0) + '</span><span class="sp"></span>' +
       '<button class="iconbtn' + (S.voice ? " on" : "") + '" id="tb-voice" title="Hangos mód">' + (S.voice ? IC.sound : IC.mute) + '</button>' +
       (S.admin ? '<button class="iconbtn" id="tb-admin" title="Vezetői felület">' + IC.gear + '</button>' : "");
   } else if (kind === "lesson") {
-    h = '<button class="iconbtn" id="tb-x" title="Kilépés">' + IC.close + '</button><div class="prog"><i id="prog"></i></div>' +
+    h = '<button class="iconbtn" id="tb-x" title="Kilépés">' + IC.close + '</button><div class="progw"><span class="combo" id="combo"></span><div class="prog"><i id="prog"></i></div></div>' +
       '<button class="iconbtn' + (S.voice ? " on" : "") + '" id="tb-voice" title="Hangos mód">' + (S.voice ? IC.sound : IC.mute) + '</button>';
   } else {
-    h = '<button class="iconbtn" id="tb-back" title="Vissza">' + IC.back + '</button><b>' + esc(opts && opts.title || "") + '</b><span class="sp"></span>';
+    h = (opts && opts.back ? '<button class="iconbtn" id="tb-back" title="Vissza">' + IC.back + '</button>' : "") + '<h1 style="margin:0;font-size:1.35rem">' + esc(opts && opts.title || "") + '</h1><span class="sp"></span>' + (opts && opts.right || "");
   }
   $("#topin").innerHTML = h;
-  var v = $("#tb-voice"); if (v) v.onclick = function () { S.voice = !S.voice; LS.set("kk_voice", S.voice); if (!S.voice) TTS.stop(); v.classList.toggle("on", S.voice); v.innerHTML = S.voice ? IC.sound : IC.mute; toast(S.voice ? "Hangos mód: a kifogásokat felolvasom, válaszolhatsz szóban." : "Írásos mód"); };
+  var v = $("#tb-voice"); if (v) v.onclick = function () { S.voice = !S.voice; LS.set("kk_voice", S.voice); if (!S.voice) TTS.stop(); v.classList.toggle("on", S.voice); v.innerHTML = S.voice ? IC.sound : IC.mute; toast(S.voice ? "Hangos mód: felolvasom a kifogásokat, válaszolhatsz szóban." : "Írásos mód"); };
   var a = $("#tb-admin"); if (a) a.onclick = function () { location.hash = "#admin"; Admin.open(); };
-  var b = $("#tb-back"); if (b) b.onclick = function () { Home.open(); };
-  var x = $("#tb-x"); if (x) x.onclick = function () { if (confirm("Biztosan kilépsz? A lecke haladása elvész.")) { TTS.stop(); STT.stop(); hideSheet(); Home.open(); } };
+  var b = $("#tb-back"); if (b) b.onclick = function () { (opts.back)(); };
+  var x = $("#tb-x"); if (x) x.onclick = function () { if (confirm("Biztosan kilépsz? A lecke haladása elvész.")) { TTS.stop(); STT.stop(); hideSheet(); L = null; Home.open(); } };
+}
+var NAV = [["home", "Ösvény", IC.path], ["role", "Szerepjáték", IC.chat], ["rank", "Ranglista", IC.trophy], ["prof", "Profil", IC.person]];
+function nav(active) {
+  var n = $("#bnav");
+  if (!active) { n.hidden = true; document.body.classList.remove("has-nav"); return; }
+  n.hidden = false; document.body.classList.add("has-nav");
+  n.innerHTML = '<div class="in">' + NAV.map(function (x) { return '<button data-n="' + x[0] + '" class="' + (x[0] === active ? "on" : "") + '">' + x[2] + '<span>' + x[1] + '</span></button>'; }).join("") + '</div>';
+  $$("button", n).forEach(function (b) { b.onclick = function () { FX.tap(); var k = b.getAttribute("data-n"); if (k === "home") Home.open(); else if (k === "role") Role.open(); else if (k === "rank") Rank.open(); else Profile.open(); }; });
 }
 function view(html) { var v = $("#view"); v.innerHTML = '<div class="view">' + html + '</div>'; window.scrollTo(0, 0); return v; }
 
-/* ===================== Kezdőlap ===================== */
+/* ===================== Kezdőlap: tanösvény ===================== */
+var TCOL = ["#003366", "#cc0066", "#00806f", "#4f7fb3", "#b07800", "#6b4fa0"];
+function bossDone(t) { var d = S.me.done["boss_" + t.id]; return !!(d && d.stars > 0); }
+function nodesOf(t) {
+  var a = t.levels.map(function (l, j) { return { k: "level", l: l, j: j }; });
+  if (t.levels.length) { a.push({ k: "practice" }); a.push({ k: "boss" }); a.push({ k: "chest" }); }
+  return a;
+}
 var Home = {
   open: function () {
-    document.body.classList.remove("admin-mode"); hideSheet(); topbar("home");
+    document.body.classList.remove("admin-mode"); hideSheet(); topbar("home"); nav("home");
     if (location.hash === "#admin") history.replaceState(null, "", location.pathname);
-    var goal = S.cfg.dailyGoal, tx = todayXp(), k = Math.min(1, tx / goal), L = lvlOf(S.me.xp), nx = nextLevel(), due = dueItems().length, C = 2 * Math.PI * 36;
+    var goal = S.cfg.dailyGoal, tx = todayXp(), k = Math.min(1, tx / goal), Lv = lvlOf(S.me.xp), nx = nextLevel(), due = dueItems().length, C = 2 * Math.PI * 36;
     var h = '<div class="hero"><div><div class="muted small">Szia, ' + esc(S.me.name.split(" ").slice(-1)[0]) + '!</div><h1>' + (tx >= goal ? "Mai cél teljesítve" : "Napi 5 perc gyakorlás") + '</h1>' +
-      '<div class="small muted">' + L.l + '. szint</div><div class="lvlbar"><i id="lvlb" style="width:0"></i></div></div>' +
+      '<div class="small muted">' + Lv.l + '. szint</div><div class="lvlbar"><i id="lvlb" style="width:0"></i></div></div>' +
       '<div class="ring"><svg viewBox="0 0 84 84"><circle class="bg" cx="42" cy="42" r="36"/><circle class="fg" id="ringfg" cx="42" cy="42" r="36" stroke-dasharray="' + C + '" stroke-dashoffset="' + C + '"/></svg><b>' + tx + '/' + goal + '<br>XP</b></div></div>';
-    h += '<div style="height:14px"></div>' + (nx ? '<button class="btn" id="go">' + IC.play.replace("<svg", '<svg style="width:20px;height:20px;fill:currentColor"') + 'Folytatás: ' + esc(topicOf(nx.id).title) + ' · ' + esc(nx.title) + '</button>' : '<button class="btn ghost" id="go">Minden szint kész. Gyakorolj kártyákkal!</button>');
     h += '<div class="modes">' +
-      '<button class="mode" data-m="quick">' + IC.cards + '<b>Gyors kártyák</b><span>Kifogások egymás után, időre</span></button>' +
-      '<button class="mode" data-m="role">' + IC.chat + '<b>Szerepjáték</b><span>Egy ügyfél, végig</span></button>' +
-      '<button class="mode" data-m="review">' + IC.repeat + '<b>Ismétlés</b><span>Ahol elakadtál</span>' + (due ? '<i class="badge">' + due + '</i>' : "") + '</button>' +
-      '<button class="mode" data-m="rank">' + IC.trophy + '<b>Heti ranglista</b><span>A csapat ezen a héten</span></button>' +
-      '</div><div class="modes" style="grid-template-columns:1fr"><button class="mode" data-m="badges">' + IC.medal + '<b>Jelvények</b><span>' + S.me.badges.length + ' / ' + BADGES.length + ' megszerezve</span></button></div>';
-    h += '<h2>Tanösvény</h2>';
-    var zz = [0, 46, 64, 46, 0, -46, -64, -46];
-    S.C.topics.forEach(function (t) {
-      var dn = t.levels.filter(function (l) { return isDone(l.id); }).length;
-      h += '<section class="topic"><div class="topic-h"><div><b>' + esc(t.title) + '</b><br><span>' + dn + ' / ' + t.levels.length + ' szint</span></div></div><div class="path">';
-      t.levels.forEach(function (l, j) {
-        var open = isOpen(t, j), done = isDone(l.id), st = done ? S.me.done[l.id].stars : 0, isNext = nx && nx.id === l.id, empty = !itemsOf(l.id).length;
-        h += '<div class="node ' + (done ? "done" : open ? "" : "locked") + (isNext ? " next" : "") + '" style="--x:' + zz[j % zz.length] + 'px"><button data-l="' + l.id + '"' + (open && !empty ? "" : " disabled") + ' aria-label="' + esc(l.title) + '">' + (done ? IC.check : open ? IC.star : IC.lock) + '</button>' +
-          (done ? '<div class="stars">' + [1, 2, 3].map(function (n) { return IC.star.replace("<svg", '<svg class="' + (n <= st ? "on" : "") + '"'); }).join("") + '</div>' : "") +
-          '<small>' + esc(l.title) + (empty ? " · üres" : "") + '</small></div>';
+      '<button class="mode" data-m="quick">' + IC.cards + '<b>Gyors kártyák</b><span>Időre, egymás után</span></button>' +
+      '<button class="mode" data-m="review">' + IC.repeat + '<b>Ismétlés</b><span>Ahol elakadtál</span>' + (due ? '<i class="badge">' + due + '</i>' : "") + '</button></div>';
+    var zz = [0, 52, 72, 52, 0, -52, -72, -52];
+    S.C.topics.forEach(function (t, ti) {
+      var col = t.color || TCOL[ti % TCOL.length], dn = t.levels.filter(function (l) { return isDone(l.id); }).length;
+      h += '<section class="topic" style="--tc:' + col + '"><div class="topic-h"><span>' + (ti + 1) + '. TÉMAKÖR · ' + dn + '/' + t.levels.length + ' SZINT</span><b>' + esc(t.title) + '</b></div><div class="path">';
+      nodesOf(t).forEach(function (n, j) {
+        var x = zz[j % zz.length], cls = "", icon = IC.star, label = "", data = "", cur = false;
+        if (n.k === "level") {
+          var open = isOpen(t, n.j), done = isDone(n.l.id), empty = !itemsOf(n.l.id).length;
+          cls = done ? "done" : open && !empty ? "" : "locked"; icon = done ? IC.check : open ? IC.star : IC.lock; label = n.l.title + (empty ? " · üres" : "");
+          data = 'data-l="' + n.l.id + '" data-t="' + t.id + '"'; cur = nx && nx.id === n.l.id;
+          var st = done ? S.me.done[n.l.id].stars : 0;
+          h += node(x, cls, icon, label, data, cur, done ? st : -1);
+          return;
+        }
+        var anyDone = t.levels.some(function (l) { return isDone(l.id); }), allDone = t.levels.every(function (l) { return isDone(l.id); });
+        if (n.k === "practice") h += node(x, anyDone ? "spec" : "locked", IC.dumbbell, "Gyakorlás", 'data-p="' + t.id + '"', false, -1);
+        if (n.k === "boss") h += node(x, bossDone(t) ? "done boss" : allDone ? "boss" : "locked", IC.crown, "Főnök-ügyfél", 'data-b="' + t.id + '"', allDone && !bossDone(t) && !nx, bossDone(t) ? S.me.done["boss_" + t.id].stars : -1);
+        if (n.k === "chest") { var opened = S.me.chests[t.id]; h += node(x, opened ? "chest opened" : bossDone(t) ? "chest ready" : "chest locked", IC.chest, opened ? "Kinyitva" : "Jutalomláda", 'data-c="' + t.id + '"', false, -1); }
       });
       h += '</div></section>';
     });
     var v = view(h);
-    requestAnimationFrame(function () { setTimeout(function () { var r = $("#ringfg"); if (r) r.style.strokeDashoffset = C * (1 - k); var b = $("#lvlb"); if (b) b.style.width = Math.round(L.p * 100) + "%"; }, 60); });
-    $("#go").onclick = function () { FX.tap(); if (nx) Lesson.start({ kind: "level", level: nx.id }); else Lesson.start({ kind: "quick" }); };
-    $$("[data-l]", v).forEach(function (b) { b.onclick = function () { FX.tap(); Lesson.start({ kind: "level", level: b.getAttribute("data-l") }); }; });
+    requestAnimationFrame(function () { setTimeout(function () { var r = $("#ringfg"); if (r) r.style.strokeDashoffset = C * (1 - k); var b = $("#lvlb"); if (b) b.style.width = Math.round(Lv.p * 100) + "%"; }, 60); });
+    var curN = $(".node.cur", v); if (curN && S.me.lessons) setTimeout(function () { curN.scrollIntoView({ block: "center", behavior: "smooth" }); }, 250);
+    $$("[data-l]", v).forEach(function (b) { b.onclick = function () {
+      FX.tap(); var lid = b.getAttribute("data-l"), t = S.C.topics.filter(function (x) { return x.id === b.getAttribute("data-t"); })[0], j = t.levels.map(function (l) { return l.id; }).indexOf(lid);
+      if (!itemsOf(lid).length) return toast("Ehhez a szinthez még nincs kifogás.");
+      if (isOpen(t, j)) return Lesson.start({ kind: "level", level: lid });
+      Jump.ask(t, j);
+    }; });
+    $$("[data-p]", v).forEach(function (b) { b.onclick = function () { FX.tap(); if (b.parentNode.classList.contains("locked")) return toast("Előbb teljesíts egy szintet ebben a témában."); Lesson.start({ kind: "practice", topic: b.getAttribute("data-p") }); }; });
+    $$("[data-b]", v).forEach(function (b) { b.onclick = function () { FX.tap(); if (b.parentNode.classList.contains("locked")) return toast("A főnök-ügyfél a téma összes szintje után nyílik."); Lesson.start({ kind: "boss", topic: b.getAttribute("data-b") }); }; });
+    $$("[data-c]", v).forEach(function (b) { b.onclick = function () { FX.tap(); var tid = b.getAttribute("data-c"); if (S.me.chests[tid]) return toast("Ezt a ládát már kinyitottad."); if (b.parentNode.classList.contains("locked")) return toast("A láda a főnök-ügyfél legyőzése után nyílik."); Chest.open(tid); }; });
     $$("[data-m]", v).forEach(function (b) { b.onclick = function () { FX.tap(); var m = b.getAttribute("data-m");
-      if (m === "quick") Lesson.start({ kind: "quick" }); else if (m === "role") Role.pick(); else if (m === "review") { if (!dueItems().length) toast("Most nincs ismételnivaló. Szép munka!"); else Lesson.start({ kind: "review" }); }
-      else if (m === "rank") Rank.open(); else if (m === "badges") Badges.open(); }; });
+      if (m === "quick") Lesson.start({ kind: "quick" }); else if (!dueItems().length) toast("Most nincs ismételnivaló. Szép munka!"); else Lesson.start({ kind: "review" }); }; });
+  }
+};
+function node(x, cls, icon, label, data, cur, stars) {
+  return '<div class="node ' + cls + (cur ? " cur" : "") + '" style="--x:' + x + 'px">' + (cur ? '<span class="startb">KEZDÉS</span>' : "") + '<button ' + data + ' aria-label="' + esc(label) + '">' + icon + '</button>' +
+    (stars >= 0 ? '<div class="stars">' + [1, 2, 3].map(function (n) { return IC.star.replace("<svg", '<svg class="' + (n <= stars ? "on" : "") + '"'); }).join("") + '</div>' : "") + '<small>' + esc(label) + '</small></div>';
+}
+
+/* ===================== Jutalomláda, szintugrás ===================== */
+var Chest = {
+  open: function (tid) {
+    var coins = 30, u = S.me; u.chests[tid] = today(); u.shields = (u.shields || 0) + 1; u.coins = (u.coins || 0) + coins; saveMe();
+    modal('<div style="text-align:center"><div class="chestbig pop">' + IC.chest + '</div><h2 style="margin:8px 0 4px">Láda kinyitva!</h2><p class="muted">Ezt kaptad:</p>' +
+      '<div class="tiles3" style="grid-template-columns:1fr 1fr"><div class="pop" style="animation-delay:.3s"><b>+1</b><span>sorozatpajzs</span></div><div class="pop" style="animation-delay:.45s"><b>+' + coins + '</b><span>érme</span></div></div>' +
+      '<p class="small muted">A pajzs egy kihagyott munkanapon megvédi a sorozatodat.</p><button class="btn" id="chok">Szuper</button></div>', function (b) { $("#chok", b).onclick = function () { closeModal(); Home.open(); }; });
+    FX.win();
+  }
+};
+var Jump = {
+  ask: function (t, j) {
+    var prev = t.levels.slice(0, j), n = prev.reduce(function (s, l) { return s + itemsOf(l.id).length; }, 0);
+    if (!n) return toast("Ez a szint még zárva van.");
+    modal('<h2 style="margin-top:0">Ugrás ide?</h2><p class="muted">Ha már jól megy a(z) „' + esc(t.title) + '” téma, egy rövid szintfelmérővel átugorhatod az előző szinteket. 80% felett feloldod a(z) „' + esc(t.levels[j].title) + '” szintet.</p>' +
+      '<button class="btn" id="jgo">Szintfelmérő indítása</button><div style="height:8px"></div><button class="btn ghost" id="jno">Mégse</button>', function (b) {
+      $("#jgo", b).onclick = function () { closeModal(); Lesson.start({ kind: "jump", topic: t.id, upto: j }); };
+      $("#jno", b).onclick = closeModal;
+    });
   }
 };
 
 /* ===================== Lecke-motor ===================== */
-/* opts.kind: level | quick | review | role ; opts.client (role) ; opts.topic (role) */
+/* opts.kind: level | quick | review | role | practice | boss | jump */
 var L = null;
+function topicById(id) { return S.C.topics.filter(function (t) { return t.id === id; })[0]; }
+function hardest() { return S.C.clients.slice().sort(function (a, b) { return (b.level || 1) - (a.level || 1); })[0]; }
 var Lesson = {
   start: function (opts) {
-    var items, client;
-    if (opts.kind === "level") { items = shuffle(itemsOf(opts.level)).slice(0, Math.max(S.cfg.lessonLen, 2)); client = clientById(levelById(opts.level).client); }
+    var items, client, t = opts.topic && topicById(opts.topic);
+    if (opts.kind === "level") { items = shuffle(itemsOf(opts.level)).slice(0, Math.max(S.cfg.lessonLen, 2)); }
     else if (opts.kind === "quick") { var pool = unlockedItems().filter(function (i) { return i.type !== "open"; }); if (pool.length < 3) pool = unlockedItems(); items = shuffle(pool).slice(0, S.cfg.quickLen); }
     else if (opts.kind === "review") { items = shuffle(dueItems()).slice(0, 5); }
-    else if (opts.kind === "role") { items = shuffle(S.C.items.filter(function (i) { var t = topicOf(i.level); return !opts.topic || (t && t.id === opts.topic); })).slice(0, 3); client = clientById(opts.client); }
+    else if (opts.kind === "practice") { items = shuffle([].concat.apply([], t.levels.filter(function (l, j) { return isOpen(t, j); }).map(function (l) { return itemsOf(l.id); }))).slice(0, 5); }
+    else if (opts.kind === "jump") { items = shuffle([].concat.apply([], t.levels.slice(0, opts.upto).map(function (l) { return itemsOf(l.id); }))).slice(0, 4); }
+    else if (opts.kind === "boss") { items = shuffle([].concat.apply([], t.levels.map(function (l) { return itemsOf(l.id); }))).slice(0, 4); client = hardest(); }
+    else if (opts.kind === "role") { items = shuffle(S.C.items.filter(function (i) { var tp = topicOf(i.level); return !opts.topic || (tp && tp.id === opts.topic); })).slice(0, 3); client = clientById(opts.client); }
     if (!items || !items.length) { toast("Ehhez még nincs kifogás feltöltve."); return; }
-    L = { opts: opts, items: items, i: 0, res: [], client: client, history: [] };
-    topbar("lesson"); Lesson.show();
+    L = { opts: opts, items: items, i: 0, res: [], client: client, history: [], combo: 0, maxCombo: 0, chat: opts.kind === "role" || opts.kind === "boss" };
+    topbar("lesson"); nav(null); Lesson.show();
   },
   clientFor: function (item) { return L.client || clientById((levelById(item.level) || {}).client); },
+  tag: function (it, cl) {
+    if (L.opts.kind === "boss") return ["hot", "FŐNÖK-ÜGYFÉL"];
+    if (L.opts.kind === "jump") return ["sky", "SZINTFELMÉRŐ"];
+    if (L.opts.kind === "review" || (S.me.weak && S.me.weak[it.id])) return ["gold", "ISMÉTLÉS"];
+    if ((cl.level || 1) >= 3) return ["hot", "NEHÉZ ÜGYFÉL"];
+    if (!S.me.stats[it.id]) return ["sky", "ÚJ KIFOGÁS"];
+    return null;
+  },
   show: function () {
-    hideSheet(); TTS.stop();
-    var it = L.items[L.i], cl = Lesson.clientFor(it), role = L.opts.kind === "role", type = role ? "open" : it.type;
+    hideSheet(); TTS.stop(); L.checked = false;
+    var it = L.items[L.i], cl = Lesson.clientFor(it), type = L.chat ? "open" : it.type, tg = Lesson.tag(it, cl);
     $("#prog").style.width = Math.round(100 * L.i / L.items.length) + "%";
+    var task = type === "mc" ? "Mit válaszolsz?" : type === "order" ? "Rakd sorba a választ!" : type === "gap" ? "Egészítsd ki a választ!" : L.chat ? (L.opts.kind === "boss" ? "Győzd meg a legnehezebb ügyfelet!" : "Szerepjáték · " + esc(cl.name)) : "Válaszolj saját szavaiddal!";
+    if (L.chat && L.i > 0 && $("#chat")) {
+      // folyamatos beszélgetés: az ügyfél a következő kifogással folytatja
+      $("#chat").insertAdjacentHTML("beforeend", clientBubble(cl, it.prompt, false, "neutral"));
+      var ex0 = $("#ex"), f0 = $("#foot"); ex0.style.display = ""; ex0.classList.remove("shake"); f0.style.display = ""; $(".lesson").style.minHeight = "";
+      Ex.open(it, ex0, f0); TTS.speak(it.prompt);
+      setTimeout(function () { var lb = $("#chat").lastElementChild; lb && lb.scrollIntoView({ block: "start", behavior: "smooth" }); }, 50);
+      return;
+    }
     var h = '<div class="lesson">' + (L.opts.kind === "quick" ? '<div class="timer"><i id="tmr"></i></div>' : "");
-    h += '<div class="task">' + (type === "mc" ? "Mit válaszolsz?" : type === "order" ? "Rakd sorba a választ!" : role ? "Szerepjáték · " + esc(cl.name) + " ügyfél" : "Válaszolj saját szavaiddal!") + '</div>';
-    h += '<div class="chat" id="chat">' + clientBubble(cl, it.prompt) + '</div><div id="ex"></div><div class="foot" id="foot"></div></div>';
+    h += (tg ? '<div class="tag ' + tg[0] + '">' + IC.spark + tg[1] + '</div>' : "") + '<div class="task">' + task + '</div>';
+    h += '<div class="chat" id="chat">' + clientBubble(cl, it.prompt, false, "neutral") + '</div><div id="ex"></div><div class="foot" id="foot"></div></div>';
     view(h);
     var ex = $("#ex"), foot = $("#foot");
-    if (type === "mc") Ex.mc(it, ex, foot); else if (type === "order") Ex.order(it, ex, foot); else Ex.open(it, ex, foot);
+    if (type === "mc") Ex.mc(it, ex, foot); else if (type === "order") Ex.order(it, ex, foot); else if (type === "gap") Ex.gap(it, ex, foot); else Ex.open(it, ex, foot);
     TTS.speak(it.prompt);
     if (L.opts.kind === "quick") Lesson.timer();
   },
@@ -644,62 +845,81 @@ var Lesson = {
     L.t0 = t0;
     (function f(t) { if (!L || L.i !== idx || L.checked) return; var k = 1 - (t - t0) / (sec * 1000); if (el) el.style.width = Math.max(0, k * 100) + "%"; if (k <= 0) { Lesson.result(0, [], "Lejárt az idő.", null); return; } requestAnimationFrame(f); })(t0);
   },
-  // Egy feladat eredménye → alsó lap
+  setCombo: function () {
+    var c = $("#combo"); if (!c) return;
+    if (L.combo >= 2) { c.textContent = "KOMBÓ ×" + L.combo; c.classList.remove("bump"); void c.offsetWidth; c.classList.add("show", "bump"); }
+    else c.classList.remove("show");
+  },
+  // Egy feladat eredménye → rövid visszajelző sáv, részletek egy koppintásra
   result: function (score, hits, fbText, reply) {
     if (L.checked) return; L.checked = true;
     var ft = $("#foot"); if (ft) ft.style.display = "none"; var ls = $(".lesson"); if (ls) ls.style.minHeight = "0";
     var it = L.items[L.i], cl = Lesson.clientFor(it), good = score >= 70, mid = score >= 40 && !good;
     var bonus = 0; if (L.opts.kind === "quick" && good && L.t0) { var used = (performance.now() - L.t0) / 1000; bonus = used < S.cfg.quickSec / 2 ? 2 : 0; }
+    L.combo = good ? L.combo + 1 : 0; L.maxCombo = Math.max(L.maxCombo, L.combo); Lesson.setCombo();
     L.res.push({ id: it.id, score: score, hits: hits || [], bonus: bonus });
     (good ? FX.good : FX.bad)();
     if (!good) { var ex = $("#ex"); ex && ex.classList.add("shake"); }
-    var showSample = score < 100 && it.sample;
-    var h = '<h3>' + (good ? pick(["Szép!", "Ez az!", "Pontosan!", "Így kell!"]) : mid ? "Majdnem!" : "Ezen még csiszolj") + (bonus ? ' <span class="pill ok">+' + bonus + ' gyorsasági XP</span>' : "") + '</h3>' +
-      (fbText ? '<p>' + esc(fbText) + '</p>' : "") +
-      (hits && hits.length ? '<p class="small">' + hits.map(function (x) { return '<span class="pill ' + (x.ok ? "ok" : "hot") + '">' + (x.ok ? "✓ " : "✗ ") + esc(x.name) + '</span>'; }).join(" ") + '</p>' : "") +
-      (showSample ? '<div class="sample"><b>Így is mondhatod</b>' + esc(it.sample) + '</div>' : "") +
+    var title = good ? pick(["Szép!", "Ez az!", "Pontosan!", "Így kell!", "Meggyőző!"]) : mid ? "Majdnem!" : "Ezen még csiszolj";
+    var det = (fbText ? '<p>' + esc(fbText) + '</p>' : "") +
+      (hits && hits.length ? '<p class="small">' + hits.map(function (x) { return '<span class="pill ' + (x.ok ? "ok" : "hot") + '">' + (x.ok ? "✓ " : "✗ ") + esc(x.name) + '</span>'; }).join(" ") + '</p>' : "");
+    var sample = score < 100 && it.sample ? '<div class="sample"><b>Így is mondhatod</b>' + esc(it.sample) + '</div>' : "";
+    var h = '<div class="sh-h"><span class="sh-ic">' + (good ? IC.check : IC.close) + '</span><h3>' + title + (bonus ? ' <span class="pill ok">+' + bonus + ' XP</span>' : "") + '</h3><span class="sp"></span>' +
+      (det || (good && sample) ? '<button class="sh-more" id="more">Részletek</button>' : "") + '</div>' +
+      '<div class="sh-det" id="det"' + (good ? " hidden" : "") + '>' + det + (good ? sample : "") + '</div>' + (!good ? sample : "") +
       '<button class="btn ' + (good ? "ok" : mid ? "" : "hot") + '" id="next">Tovább</button>';
     showSheet(good ? "good" : mid ? "mid" : "bad", h);
-    if (reply) Lesson.reply(cl, reply);
-    $("#next").onclick = function () { FX.tap(); L.checked = false; L.i++; if (L.i < L.items.length) Lesson.show(); else Lesson.finish(); };
+    var mo = $("#more"); if (mo) mo.onclick = function () { var d = $("#det"); d.hidden = !d.hidden; mo.textContent = d.hidden ? "Részletek" : "Kevesebb"; showSheet.fit(); };
+    if (reply) Lesson.reply(cl, reply, moodOf(score));
+    if (L.chat) L.history.push({ c: it.prompt, me: L.lastAnswer || "", r: reply || "", s: score });
+    $("#next").onclick = function () { FX.tap(); L.i++; if (L.i < L.items.length) Lesson.show(); else Lesson.finish(); };
   },
-  reply: function (cl, text) {
+  reply: function (cl, text, mood) {
     var chat = $("#chat"); if (!chat) return;
-    var d = document.createElement("div"); d.innerHTML = clientBubble(cl, "", true); chat.appendChild(d.firstChild);
-    setTimeout(function () { var last = chat.lastElementChild; if (last) last.outerHTML = clientBubble(cl, text); var nb = chat.lastElementChild; if (nb) { var sh = $("#sheet").offsetHeight, rb = nb.getBoundingClientRect().bottom; window.scrollBy({ top: rb - (innerHeight - sh) + 12, behavior: "smooth" }); } TTS.speak(text); }, 800);
+    chat.insertAdjacentHTML("beforeend", clientBubble(cl, "", true, mood));
+    setTimeout(function () {
+      var last = chat.lastElementChild; if (last) last.outerHTML = clientBubble(cl, text, false, mood);
+      var nb = chat.lastElementChild; if (nb) { var sh = $("#sheet").offsetHeight, rb = nb.getBoundingClientRect().bottom; window.scrollBy({ top: rb - (innerHeight - sh) + 12, behavior: "smooth" }); }
+      TTS.speak(text);
+    }, 800);
   },
   finish: function () {
     hideSheet(); TTS.stop();
-    var n = L.res.length, avg = Math.round(L.res.reduce(function (s, r) { return s + r.score; }, 0) / n), bonus = L.res.reduce(function (s, r) { return s + r.bonus; }, 0);
-    var xp = 10 + Math.round(avg / 10) + bonus + (avg === 100 ? 5 : 0), stars = avg >= 90 ? 3 : avg >= 70 ? 2 : avg >= 50 ? 1 : 0;
-    var u = S.me, d = today(), prevStreak = liveStreak(), oldBadges = u.badges.slice();
-    // XP, sorozat
+    var kind = L.opts.kind, n = L.res.length, avg = Math.round(L.res.reduce(function (s, r) { return s + r.score; }, 0) / n), bonus = L.res.reduce(function (s, r) { return s + r.bonus; }, 0);
+    var comboXp = L.maxCombo >= 3 ? Math.floor(L.maxCombo / 3) * 3 : 0, cl = L.client;
+    var xp = 10 + Math.round(avg / 10) + bonus + comboXp + (avg === 100 ? 5 : 0) + (cl ? ((cl.level || 1) - 1) * 3 : 0) + (kind === "boss" ? 10 : 0);
+    var stars = avg >= 90 ? 3 : avg >= 70 ? 2 : avg >= 50 ? 1 : 0;
+    var u = S.me, d = today(), prevStreak = liveStreak(), oldBadges = u.badges.slice(), extra = [];
     u.xp += xp; u.days[d] = (u.days[d] || 0) + xp; u.lessons++;
-    if (u.lastDay !== d) { u.streak = u.lastDay === addDays(d, -1) ? u.streak + 1 : 1; u.lastDay = d; }
-    u.best = Math.max(u.best, u.streak); if (avg === 100) u.perfect++; if (L.opts.kind === "review") u.reviews++;
-    if (L.opts.kind === "level") { var lid = L.opts.level, cur = u.done[lid] || { stars: 0, best: 0 }; u.done[lid] = { stars: Math.max(cur.stars, stars), best: Math.max(cur.best, avg) }; }
-    // Okos ismétlés + statisztika
+    var usedShield = bumpStreak(u, d); if (usedShield) extra.push("Sorozatpajzs használva (" + usedShield + ")");
+    if (avg === 100) u.perfect++; if (kind === "review") u.reviews++;
+    if (kind === "level") { var lid = L.opts.level, cur = u.done[lid] || { stars: 0, best: 0 }; u.done[lid] = { stars: Math.max(cur.stars, stars), best: Math.max(cur.best, avg) }; }
+    if (kind === "boss") { var bk = "boss_" + L.opts.topic, bc = u.done[bk] || { stars: 0, best: 0 }; var bs = avg >= 70 ? stars : 0; u.done[bk] = { stars: Math.max(bc.stars, bs), best: Math.max(bc.best, avg) }; extra.push(avg >= 70 ? "Legyőzted a főnök-ügyfelet! Kinyílt a jutalomláda." : "A főnök-ügyfélhez 70% kell. Próbáld újra!"); }
+    if (kind === "jump") {
+      var tj = topicById(L.opts.topic);
+      if (avg >= 80) { tj.levels.slice(0, L.opts.upto).forEach(function (l) { if (!isDone(l.id)) u.done[l.id] = { stars: 1, best: avg }; }); extra.push("Szintugrás sikerült, feloldottad: " + tj.levels[L.opts.upto].title); }
+      else extra.push("A szintugráshoz 80% kell. Haladj sorban, vagy próbáld újra később.");
+    }
+    if (L.chat) { u.hist = [{ d: d, k: kind, cl: cl && cl.id, t: L.opts.topic || "", s: avg, turns: L.history }].concat(u.hist || []).slice(0, 20); }
     L.res.forEach(function (r) {
       var s = u.stats[r.id] || { t: 0, s: 0 }; s.t++; s.s += r.score; u.stats[r.id] = s;
       var w = u.weak[r.id];
       if (r.score < 70) u.weak[r.id] = { n: (w ? w.n : 0) + 1, due: addDays(d, w ? 1 : 0) };
       else if (w) { if (r.score >= 85 || w.n <= 1) delete u.weak[r.id]; else u.weak[r.id] = { n: w.n - 1, due: addDays(d, 3) }; }
     });
-    // Elakadás nyoma (vezetői statisztikához)
     BADGES.forEach(function (b) { if (u.badges.indexOf(b.id) < 0 && b.test(u)) u.badges.push(b.id); });
     var newB = u.badges.filter(function (b) { return oldBadges.indexOf(b) < 0; });
     saveMe();
-    // Visszajelzés összesítése
     var good = {}, bad = {}; L.res.forEach(function (r) { r.hits.forEach(function (x) { (x.ok ? good : bad)[x.name] = x.desc || x.name; }); });
     var worst = L.res.slice().sort(function (a, b) { return a.score - b.score; })[0], wi = itemById(worst.id);
     var goalHit = todayXp() >= S.cfg.dailyGoal && todayXp() - xp < S.cfg.dailyGoal;
-    topbar("plain", { title: "" }); $("#tb-back").style.visibility = "hidden";
-    var h = '<div class="result"><div class="muted">' + (L.opts.kind === "role" ? "Szerepjáték vége" : L.opts.kind === "quick" ? "Gyors kártyák vége" : L.opts.kind === "review" ? "Ismétlés kész" : "Lecke kész") + '</div>' +
+    topbar("plain", { title: "" });
+    var ttl = { role: "Szerepjáték vége", boss: "Főnök-ügyfél", quick: "Gyors kártyák vége", review: "Ismétlés kész", jump: "Szintfelmérő", practice: "Gyakorlás kész" }[kind] || "Lecke kész";
+    var h = '<div class="result">' + (cl ? '<div class="ava big pop" style="margin:0 auto">' + figure(cl, moodOf(avg)) + '</div>' : "") + '<div class="muted">' + ttl + '</div>' +
       '<div class="score pop"><span id="sc">0</span>%</div>' +
       '<div class="stars" style="justify-content:center;gap:6px">' + [1, 2, 3].map(function (k) { return IC.star.replace("<svg", '<svg class="pop ' + (k <= stars ? "on" : "") + '" style="width:30px;height:30px;animation-delay:' + (0.3 + k * .15) + 's"'); }).join("") + '</div>' +
-      '<div class="tiles3 rise" style="animation-delay:.4s"><div><b>+<span id="xpn">0</span></b><span>XP</span></div><div><b>' + IC.bolt.replace("<svg", '<svg style="width:18px;height:18px;fill:var(--hot);vertical-align:-3px"') + u.streak + '</b><span>napos sorozat</span></div><div><b>' + todayXp() + '/' + S.cfg.dailyGoal + '</b><span>mai cél</span></div></div>' +
-      (u.streak > prevStreak ? '<p class="rise" style="animation-delay:.6s"><span class="pill ok">Sorozat: ' + u.streak + ' nap!</span></p>' : "") +
-      (goalHit ? '<p class="rise" style="animation-delay:.7s"><span class="pill ok">Mai cél teljesítve</span></p>' : "") +
+      '<div class="tiles3 rise" style="animation-delay:.4s"><div><b>+<i id="xpn" style="font-style:normal">0</i></b><span>XP</span></div><div><b>' + IC.bolt.replace("<svg", '<svg style="width:18px;height:18px;fill:var(--hot);vertical-align:-3px"') + u.streak + '</b><span>napos sorozat</span></div><div><b>' + todayXp() + '/' + S.cfg.dailyGoal + '</b><span>mai cél</span></div></div>' +
+      '<p class="rise" style="animation-delay:.6s">' + (u.streak > prevStreak ? '<span class="pill ok">Sorozat: ' + u.streak + ' nap!</span> ' : "") + (goalHit ? '<span class="pill ok">Mai cél teljesítve</span> ' : "") + (comboXp ? '<span class="pill ok">Kombó ×' + L.maxCombo + ': +' + comboXp + ' XP</span> ' : "") + extra.map(function (e) { return '<span class="pill">' + esc(e) + '</span> '; }).join("") + '</p>' +
       '<div class="card fb rise" style="animation-delay:.8s">' +
       (Object.keys(good).length ? '<b>Ami jól ment</b><ul>' + Object.keys(good).map(function (k) { return "<li>" + esc(k) + "</li>"; }).join("") + '</ul>' : "") +
       (Object.keys(bad).length ? '<b>Legközelebb erre figyelj</b><ul>' + Object.keys(bad).map(function (k) { return "<li>" + esc(bad[k]) + "</li>"; }).join("") + '</ul>' : "") +
@@ -709,15 +929,15 @@ var Lesson = {
       '<div style="height:16px"></div><button class="btn" id="done">Tovább</button></div>';
     view(h); (avg >= 50 ? FX.win : FX.bad)();
     countUp($("#sc"), avg, 900); countUp($("#xpn"), xp, 900);
-    $("#done").onclick = function () { L = null; Home.open(); };
+    $("#done").onclick = function () { var k = L.opts.kind; L = null; if (k === "role") Role.open(); else Home.open(); };
   }
 };
-function clientBubble(cl, text, typing) {
-  var hh = hue(cl.id || cl.name);
-  return '<div class="client rise"><div class="ava" style="background:hsl(' + hh + ' 45% 42%)">' + IC.person + '</div><div class="bubble"><span class="who">' + esc(cl.name || "Ügyfél") + '</span>' +
+function clientBubble(cl, text, typing, mood) {
+  return '<div class="client rise"><div class="ava">' + figure(cl, mood) + '</div><div class="bubble"><span class="who">' + esc(cl.name || "Ügyfél") + '</span>' +
     (typing ? '<span class="typing"><span></span><span></span><span></span></span>' : esc(text) + '<button class="say" data-t="' + esc(text) + '" aria-label="Felolvasás">' + IC.sound + '</button>') + '</div></div>';
 }
-function showSheet(cls, html) { var s = $("#sheet"); s.className = "sheet " + cls; $("#sheetin").innerHTML = html; requestAnimationFrame(function () { s.classList.add("show"); document.body.style.paddingBottom = s.offsetHeight + "px"; }); }
+function showSheet(cls, html) { var s = $("#sheet"); s.className = "sheet " + cls; $("#sheetin").innerHTML = html; requestAnimationFrame(function () { s.classList.add("show"); showSheet.fit(); }); }
+showSheet.fit = function () { document.body.style.paddingBottom = $("#sheet").offsetHeight + "px"; };
 function hideSheet() { var s = $("#sheet"); s.classList.remove("show"); document.body.style.paddingBottom = ""; }
 
 /* ===================== Feladattípusok ===================== */
@@ -730,6 +950,20 @@ var Ex = {
     $("#chk").onclick = function () {
       var o = opts[sel], cl = Lesson.clientFor(it);
       $$(".opt", ex).forEach(function (x, i) { if (opts[i].ok) x.classList.add("right"); else if (i === sel) x.classList.add("wrong"); });
+      Lesson.result(o.ok ? 100 : 0, [], o.fb || "", o.ok ? pick(cl.pos) : pick(cl.neg));
+    };
+  },
+  // Hiányzó mondatrész: a jó válaszból kimarad egy kulcsrész ("___"), két-három lehetőségből kell választani
+  gap: function (it, ex, foot) {
+    var opts = shuffle(it.options || []), sel = -1, parts = String(it.text || "___").split("___");
+    ex.innerHTML = '<div class="gapcard"><span class="who">A te válaszod</span>' + esc(parts[0]) + '<span class="gap" id="gp">&nbsp;</span>' + esc(parts.slice(1).join("___")) + '</div>' +
+      '<div class="opts">' + opts.map(function (o, i) { return '<button class="opt" data-i="' + i + '">' + esc(o.t) + '</button>'; }).join("") + '</div>';
+    foot.innerHTML = '<button class="btn" id="chk" disabled>Ellenőrzés</button>';
+    $$(".opt", ex).forEach(function (b) { b.onclick = function () { if (L.checked) return; FX.tap(); $$(".opt", ex).forEach(function (x) { x.classList.remove("sel"); }); b.classList.add("sel"); sel = +b.getAttribute("data-i"); var g = $("#gp"); g.textContent = opts[sel].t; g.classList.add("fill"); $("#chk").disabled = false; }; });
+    $("#chk").onclick = function () {
+      var o = opts[sel], cl = Lesson.clientFor(it);
+      $$(".opt", ex).forEach(function (x, i) { if (opts[i].ok) x.classList.add("right"); else if (i === sel) x.classList.add("wrong"); });
+      $("#gp").classList.add(o.ok ? "right" : "wrong");
       Lesson.result(o.ok ? 100 : 0, [], o.fb || "", o.ok ? pick(cl.pos) : pick(cl.neg));
     };
   },
@@ -750,7 +984,6 @@ var Ex = {
       if (toIdx == null) (z === "a" ? pool : ans).push(p); else ans.splice(Math.min(toIdx, ans.length), 0, p);
       render();
     }
-    // Húzás: mutatóeseményekkel (telefonon is). Rövid koppintás = áthelyezés a másik zónába.
     function bind(el) {
       el.addEventListener("pointerdown", function (e) {
         if (L.checked) return;
@@ -782,13 +1015,11 @@ var Ex = {
     };
   },
   open: function (it, ex, foot) {
-    var role = L.opts.kind === "role";
     ex.innerHTML = (STT.ok ? '<button class="mic" id="mic">' + IC.mic + '<span>Nyomd és beszélj</span></button>' : "") +
       '<textarea id="ans" placeholder="' + (STT.ok ? "…vagy írd be a válaszod" : "Írd be a válaszod") + '"></textarea>';
-    foot.innerHTML = '<button class="btn" id="chk" disabled>' + (role ? "Elküldöm" : "Ellenőrzés") + '</button>';
-    var ta = $("#ans"); ta.oninput = function () { $("#chk").disabled = words(ta.value) < 2; };
-    if (!S.voice && !STT.ok) setTimeout(function () { ta.focus(); }, 300);
-    var mic = $("#mic");
+    foot.innerHTML = '<button class="btn" id="chk" disabled>' + (L.chat ? "Elküldöm" : "Ellenőrzés") + '</button>';
+    var ta = $("#ans", ex); ta.oninput = function () { $("#chk").disabled = words(ta.value) < 2; };
+    var mic = $("#mic", ex);
     if (mic) {
       var base = "";
       var startRec = function (e) { e.preventDefault(); if (L.checked || STT.rec) return; TTS.stop(); base = ta.value ? ta.value + " " : ""; mic.classList.add("rec"); mic.querySelector("span").textContent = "Hallgatlak… engedd el, ha kész"; vib(15);
@@ -798,48 +1029,93 @@ var Ex = {
     }
     $("#chk").onclick = function () {
       var a = ta.value.trim(), cl = Lesson.clientFor(it); if (!a) return;
-      $("#chk").disabled = true; ta.disabled = true; if (mic) mic.disabled = true;
+      $("#chk").disabled = true; ta.disabled = true; if (mic) mic.disabled = true; L.lastAnswer = a;
       var chat = $("#chat"), me = document.createElement("div"); me.className = "me rise"; me.textContent = a; chat.appendChild(me);
       ex.style.display = "none";
-      AI.respond(it, cl, a, L.history).then(function (r) {
-        L.history.push({ client: it.prompt, me: a });
-        Lesson.result(r.score, r.hits, r.tip || "", r.reply);
-      });
+      AI.respond(it, cl, a, L.history).then(function (r) { Lesson.result(r.score, r.hits, r.tip || "", r.reply); });
     };
   }
 };
 
-/* ===================== Szerepjáték: ügyfél és téma választása ===================== */
+/* ===================== Szerepjáték ===================== */
 var Role = {
-  pick: function () {
+  sel: null, topic: "",
+  open: function () {
+    topbar("plain", { title: "Szerepjáték" }); nav("role");
+    var cls = S.C.clients.slice().sort(function (a, b) { return (a.level || 1) - (b.level || 1); });
+    if (!Role.sel || !clientById(Role.sel) || clientById(Role.sel).id !== Role.sel) Role.sel = cls[0] && cls[0].id;
     var tps = S.C.topics.filter(function (t) { return t.levels.some(function (l) { return itemsOf(l.id).length; }); });
-    modal('<h2 style="margin-top:0">Szerepjáték</h2><p class="muted small">Válassz ügyféltípust és témát. A nehezebb ügyfél több XP-t ér.</p>' +
-      '<div class="ed"><label>Ügyfél<select id="rc">' + S.C.clients.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + ' · ' + "●".repeat(c.level || 1) + '</option>'; }).join("") + '</select></label>' +
-      '<label>Téma<select id="rt"><option value="">Vegyes</option>' + tps.map(function (t) { return '<option value="' + t.id + '">' + esc(t.title) + '</option>'; }).join("") + '</select></label></div>' +
-      '<button class="btn" id="rgo">Indulás</button>', function (b) {
-      $("#rgo", b).onclick = function () { var c = $("#rc", b).value, t = $("#rt", b).value; closeModal(); Lesson.start({ kind: "role", client: c, topic: t }); };
-    });
+    var c = clientById(Role.sel), xp = 10 + ((c.level || 1) - 1) * 3;
+    var h = '<p class="muted small" style="margin-top:0">Válassz ügyfelet: egy beszélgetés, három kifogás egymás után. A nehezebb ügyfél több XP-t ér.</p><div class="ccards">' +
+      cls.map(function (x) { return '<button class="ccard' + (x.id === Role.sel ? " on" : "") + '" data-c="' + x.id + '"><div class="ava big">' + figure(x, x.id === Role.sel ? "happy" : "neutral") + '</div><b>' + esc(x.name) + '</b><span class="dots">' + [1, 2, 3].map(function (n) { return '<i class="' + (n <= (x.level || 1) ? "on" : "") + '"></i>'; }).join("") + '</span></button>'; }).join("") + '</div>' +
+      '<p class="small muted" style="min-height:1.2em">' + esc(c.persona || "") + '</p>' +
+      '<div class="chips"><button class="chip2' + (!Role.topic ? " on" : "") + '" data-t="">Vegyes</button>' + tps.map(function (t) { return '<button class="chip2' + (Role.topic === t.id ? " on" : "") + '" data-t="' + t.id + '">' + esc(t.title) + '</button>'; }).join("") + '</div>' +
+      '<div style="height:12px"></div><button class="btn" id="rgo">Beszélgetés indítása · +' + xp + ' XP</button>';
+    var hs = S.me.hist || [];
+    h += '<h2>Előzmények</h2>' + (hs.length ? hs.map(function (x, i) { var cc = clientById(x.cl);
+      return '<div class="hist rise" style="animation-delay:' + i * .03 + 's"><div class="ava sm">' + figure(cc, moodOf(x.s)) + '</div><div><b>' + esc(x.k === "boss" ? "Főnök-ügyfél" : cc.name) + '</b><div class="small muted">' + esc(x.d) + (x.t && topicById(x.t) ? " · " + esc(topicById(x.t).title) : "") + '</div></div><span class="pill ' + (x.s >= 70 ? "ok" : x.s < 40 ? "hot" : "") + '">' + x.s + '%</span><button class="sh-more" data-h="' + i + '">Visszanézés</button></div>'; }).join("") : '<p class="muted small">Még nincs lejátszott beszélgetés.</p>');
+    var v = view(h);
+    $$("[data-c]", v).forEach(function (b) { b.onclick = function () { FX.tap(); Role.sel = b.getAttribute("data-c"); Role.open(); }; });
+    $$("[data-t]", v).forEach(function (b) { b.onclick = function () { FX.tap(); Role.topic = b.getAttribute("data-t"); Role.open(); }; });
+    $$("[data-h]", v).forEach(function (b) { b.onclick = function () { Role.review(hs[+b.getAttribute("data-h")]); }; });
+    $("#rgo").onclick = function () { FX.tap(); Lesson.start({ kind: "role", client: Role.sel, topic: Role.topic }); };
+  },
+  review: function (x) {
+    var cc = clientById(x.cl);
+    modal('<h2 style="margin-top:0">' + esc(x.k === "boss" ? "Főnök-ügyfél" : cc.name) + ' · ' + x.s + '%</h2><div class="chat">' + (x.turns || []).map(function (t) {
+      return clientBubble(cc, t.c, false, "neutral") + '<div class="me">' + esc(t.me) + '</div>' + (t.r ? clientBubble(cc, t.r, false, moodOf(t.s)) : "");
+    }).join("") + '</div><button class="btn" id="rvx">Bezárás</button>', function (b) { $("#rvx", b).onclick = closeModal; });
   }
 };
 
-/* ===================== Ranglista, jelvények ===================== */
+/* ===================== Ranglista ===================== */
 var Rank = {
   open: function () {
-    topbar("plain", { title: "Heti ranglista" });
+    topbar("plain", { title: "Heti ranglista" }); nav("rank");
     view('<p class="muted">Betöltés…</p>');
     allUsers().then(function (us) {
       us.forEach(function (u) { u._w = weekXp(u); }); us.sort(function (a, b) { return b._w - a._w; });
-      view('<p class="muted small">Hétfőtől számolva. A hét végén újraindul.</p>' + us.map(function (u, i) {
+      view('<p class="muted small" style="margin-top:0">Hétfőtől számolva, a hét végén újraindul.</p>' + us.map(function (u, i) {
         return '<div class="rank rise' + (u._id === S.uid ? " me" : "") + '" style="animation-delay:' + i * .04 + 's"><span class="n">' + (i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1) + '</span><span class="av" style="background:hsl(' + hue(u.name) + ' 45% 42%)">' + esc(initials(u.name)) + '</span><b>' + esc(u.name) + '</b><span class="x">' + u._w + ' XP</span></div>';
       }).join("") || '<p class="muted">Még senki nem gyakorolt ezen a héten.</p>');
     }).catch(function () { view('<p class="muted">Nem sikerült betölteni.</p>'); });
   }
 };
-var Badges = {
+
+/* ===================== Profil, jelvények, bolt ===================== */
+var Profile = {
   open: function () {
-    topbar("plain", { title: "Jelvények" });
-    view('<div class="badges">' + BADGES.map(function (b, i) { var on = S.me.badges.indexOf(b.id) > -1;
-      return '<div class="bdg rise' + (on ? "" : " off") + '" style="animation-delay:' + i * .04 + 's"><div class="ic">' + IC.medal.replace("<svg", '<svg style="fill:none;stroke:#fff;stroke-width:2"') + '</div><b>' + esc(b.name) + '</b><span>' + esc(b.d) + '</span></div>'; }).join("") + '</div>');
+    topbar("plain", { title: "Profil" }); nav("prof");
+    var u = S.me, Lv = lvlOf(u.xp), ws = weekStart(), days = ["H", "K", "Sze", "Cs", "P"];
+    var h = '<div class="card prof"><span class="av" style="background:hsl(' + hue(u.name) + ' 45% 42%)">' + esc(initials(u.name)) + '</span><div><b style="font-size:1.15rem">' + esc(u.name) + '</b><div class="small muted">' + Lv.l + '. szint · ' + u.xp + ' XP</div></div></div>' +
+      '<div class="tiles3"><div><b>' + liveStreak() + '</b><span>sorozat</span></div><div><b>' + (u.best || 0) + '</b><span>legjobb</span></div><div><b>' + u.lessons + '</b><span>lecke</span></div></div>' +
+      '<div class="card"><b>Ez a hét</b><div class="week">' + days.map(function (dn, i) { var d = addDays(ws, i), on = !!u.days[d], isT = d === today(); return '<div class="wd' + (on ? " on" : "") + (isT ? " t" : "") + '"><i>' + (on ? IC.bolt : "") + '</i><span>' + dn + '</span></div>'; }).join("") + '</div>' +
+      '<p class="small muted" style="margin:8px 0 0">A sorozat munkanapokon számít, a hétvége nem szakítja meg. Sorozatpajzs: <b>' + (u.shields || 0) + '</b></p></div>' +
+      '<div class="modes" style="grid-template-columns:1fr"><button class="mode" id="shop">' + IC.coin + '<b>Bolt</b><span>' + (u.coins || 0) + ' érme · tárgyak</span></button></div>' +
+      '<h2>Jelvények</h2><div class="badges">' + BADGES.map(function (b, i) { var on = u.badges.indexOf(b.id) > -1;
+        return '<div class="bdg rise' + (on ? "" : " off") + '" style="animation-delay:' + i * .03 + 's"><div class="ic">' + IC.medal.replace("<svg", '<svg style="fill:none;stroke:#fff;stroke-width:2"') + '</div><b>' + esc(b.name) + '</b><span>' + esc(b.d) + '</span></div>'; }).join("") + '</div>' +
+      '<div style="height:18px"></div><button class="btn ghost" id="rename">Nem ' + esc(u.name) + ' vagyok</button>';
+    var v = view(h);
+    $("#shop").onclick = function () { FX.tap(); Shop.open(); };
+    $("#rename").onclick = function () { LS.set("kk_name", ""); S.me = null; who(); };
+  }
+};
+/* A bolt szerkezete kész, a kínálat (S.C.shop) egyelőre üres; a vezetői felületen tölthető fel.
+   Tétel: { id, name, desc, price, effect: "pajzs" | "egyeb" } */
+var Shop = {
+  open: function () {
+    topbar("plain", { title: "Bolt", back: Profile.open, right: '<span class="chip coin">' + IC.coin + (S.me.coins || 0) + '</span>' }); nav("prof");
+    var items = S.C.shop || [];
+    var h = '<h2 style="margin-top:4px">Tárgyaim</h2><div class="inv"><div class="card"><div class="invic">' + IC.shield + '</div><b>Sorozatpajzs</b><span class="pill">×' + (S.me.shields || 0) + '</span></div></div>' +
+      '<h2>Kínálat</h2>' + (items.length ? items.map(function (it, i) { var can = (S.me.coins || 0) >= (it.price || 0);
+        return '<div class="card shopi"><div class="invic">' + (it.effect === "pajzs" ? IC.shield : IC.spark) + '</div><div><b>' + esc(it.name) + '</b><div class="small muted">' + esc(it.desc || "") + '</div></div><button class="btn sm' + (can ? "" : " ghost") + '" data-b="' + i + '"' + (can ? "" : " disabled") + '>' + IC.coin + (it.price || 0) + '</button></div>'; }).join("")
+        : '<div class="card empty"><div class="invic">' + IC.coin + '</div><b>A bolt hamarosan nyílik</b><p class="small muted">Az érméidet addig is gyűjtheted: a jutalomládákból kapod őket.</p></div>');
+    var v = view(h);
+    $$("[data-b]", v).forEach(function (b) { b.onclick = function () {
+      var it = items[+b.getAttribute("data-b")]; if (!confirm(it.name + " megvásárlása " + it.price + " érméért?")) return;
+      S.me.coins -= it.price; if (it.effect === "pajzs") S.me.shields = (S.me.shields || 0) + 1; else (S.me.inv = S.me.inv || {})[it.id] = ((S.me.inv || {})[it.id] || 0) + 1;
+      saveMe(); FX.good(); toast("Megvetted: " + it.name); Shop.open();
+    }; });
   }
 };
 
@@ -847,8 +1123,8 @@ var Badges = {
 var Admin = {
   tab: "tartalom", C: null, cfg: null, dirty: false,
   open: function () {
-    document.body.classList.add("admin-mode"); hideSheet();
-    Admin.C = clone(S.C); Admin.cfg = clone(S.cfg); Admin.dirty = false;
+    document.body.classList.add("admin-mode"); hideSheet(); nav(null);
+    Admin.C = clone(S.C); Admin.C.shop = Admin.C.shop || []; Admin.cfg = clone(S.cfg); Admin.dirty = false;
     $("#top").hidden = false;
     $("#topin").innerHTML = '<b>Kifogáskezelő (béta) · vezetői felület</b><span class="sp"></span><button class="btn sm" id="ad-play">Gyakorló nézet</button>';
     $("#ad-play").onclick = function () {
@@ -859,7 +1135,7 @@ var Admin = {
     Admin.render();
   },
   render: function () {
-    var tabs = [["tartalom", "Témák és szintek"], ["kifogas", "Kifogások"], ["ugyfel", "Ügyféltípusok"], ["szempont", "Értékelési szempontok"], ["stat", "Statisztika"], ["beall", "Beállítások"]];
+    var tabs = [["tartalom", "Témák és szintek"], ["kifogas", "Kifogások"], ["ugyfel", "Ügyféltípusok"], ["szempont", "Értékelési szempontok"], ["bolt", "Bolt"], ["stat", "Statisztika"], ["beall", "Beállítások"]];
     var h = '<div class="tabs">' + tabs.map(function (t) { return '<button data-t="' + t[0] + '" class="' + (Admin.tab === t[0] ? "on" : "") + '">' + t[1] + '</button>'; }).join("") + '</div><div id="ad"></div>';
     view(h);
     $$(".tabs button").forEach(function (b) { b.onclick = function () { Admin.tab = b.getAttribute("data-t"); Admin.render(); }; });
@@ -917,10 +1193,11 @@ var Admin = {
     var h = '<div class="ed"><label>Szint<select id="kf">' + lv.map(function (l) { return '<option value="' + l.id + '"' + (l.id === f ? " selected" : "") + '>' + esc(l.name) + '</option>'; }).join("") + '</select></label></div>';
     C.items.forEach(function (it, ii) {
       if (it.level !== f) return;
-      h += '<div class="card ed"><div class="row"><label>Feladattípus<select data-f="C.items.' + ii + '.type" data-re="1"><option value="mc"' + (it.type === "mc" ? " selected" : "") + '>Feleletválasztós</option><option value="order"' + (it.type === "order" ? " selected" : "") + '>Sorbarakós (húzogatós)</option><option value="open"' + (it.type === "open" ? " selected" : "") + '>Szabad válasz (írás / mikrofon)</option></select></label>' +
+      h += '<div class="card ed"><div class="row"><label>Feladattípus<select data-f="C.items.' + ii + '.type" data-re="1"><option value="mc"' + (it.type === "mc" ? " selected" : "") + '>Feleletválasztós</option><option value="gap"' + (it.type === "gap" ? " selected" : "") + '>Hiányzó mondatrész</option><option value="order"' + (it.type === "order" ? " selected" : "") + '>Sorbarakós (húzogatós)</option><option value="open"' + (it.type === "open" ? " selected" : "") + '>Szabad válasz (írás / mikrofon)</option></select></label>' +
         '<label>Szint<select data-f="C.items.' + ii + '.level" data-re="1">' + lv.map(function (l) { return '<option value="' + l.id + '"' + (l.id === it.level ? " selected" : "") + '>' + esc(l.name) + '</option>'; }).join("") + '</select></label></div>' +
         '<label>Az ügyfél kifogása<textarea data-f="C.items.' + ii + '.prompt">' + esc(it.prompt) + '</textarea></label>';
-      if (it.type === "mc") {
+      if (it.type === "gap") h += '<label>A te válaszod, a hiányzó résznél ___ (három aláhúzás)<textarea data-f="C.items.' + ii + '.text">' + esc(it.text || "") + '</textarea></label>';
+      if (it.type === "mc" || it.type === "gap") {
         (it.options || []).forEach(function (o, oi) {
           h += '<div class="optrow"><label class="switch" title="Helyes válasz"><input type="checkbox" data-f="C.items.' + ii + '.options.' + oi + '.ok"' + (o.ok ? " checked" : "") + '><i></i></label><div class="ed" style="margin:0"><label>' + (oi + 1) + '. válaszlehetőség<textarea data-f="C.items.' + ii + '.options.' + oi + '.t">' + esc(o.t) + '</textarea></label><label>Visszajelzés, ha ezt választja<input type="text" data-f="C.items.' + ii + '.options.' + oi + '.fb" value="' + esc(o.fb || "") + '"></label><button class="del" data-do="' + ii + '.' + oi + '" style="justify-self:start">Lehetőség törlése</button></div></div>';
         });
@@ -937,7 +1214,7 @@ var Admin = {
     h += '<button class="btn sm ghost" id="ai">+ Új kifogás ehhez a szinthez</button>' + Admin.savebar();
     el.innerHTML = h;
     $("#kf", el).onchange = function () { Admin.kfFilter = this.value; Admin.kifogas(el); };
-    $$("[data-re]", el).forEach(function (s) { s.addEventListener("change", function () { var ii = +s.getAttribute("data-f").split(".")[2], it = C.items[ii]; if (it.type === "mc" && !it.options) it.options = [{ t: "", ok: true, fb: "" }, { t: "", ok: false, fb: "" }]; if (it.type === "order" && !it.parts) it.parts = []; setTimeout(function () { Admin.kifogas(el); }, 0); }); });
+    $$("[data-re]", el).forEach(function (s) { s.addEventListener("change", function () { var ii = +s.getAttribute("data-f").split(".")[2], it = C.items[ii]; if ((it.type === "mc" || it.type === "gap") && !it.options) it.options = [{ t: "", ok: true, fb: "" }, { t: "", ok: false, fb: "" }]; if (it.type === "order" && !it.parts) it.parts = []; setTimeout(function () { Admin.kifogas(el); }, 0); }); });
     $$("[data-ao]", el).forEach(function (b) { b.onclick = function () { var it = C.items[+b.getAttribute("data-ao")]; (it.options = it.options || []).push({ t: "", ok: false, fb: "" }); Admin.mark(); Admin.kifogas(el); }; });
     $$("[data-do]", el).forEach(function (b) { b.onclick = function () { var p = b.getAttribute("data-do").split("."); C.items[+p[0]].options.splice(+p[1], 1); Admin.mark(); Admin.kifogas(el); }; });
     $$("[data-di]", el).forEach(function (b) { b.onclick = function () { if (!confirm("Törlöd ezt a kifogást?")) return; C.items.splice(+b.getAttribute("data-di"), 1); Admin.mark(); Admin.kifogas(el); }; });
@@ -950,6 +1227,7 @@ var Admin = {
     var C = Admin.C, h = '<p class="muted small">Az ügyféltípus határozza meg, hogyan reagál az ügyfél. A „Jellem” mezőt később az AI kapja meg szerepleírásként; a jó és rossz reakciók a teszt (helyi) módban és tartaléknak kellenek.</p>';
     C.clients.forEach(function (c, ci) {
       h += '<div class="card ed"><div class="row"><label>Név<input type="text" data-f="C.clients.' + ci + '.name" value="' + esc(c.name) + '"></label><label>Nehézség (1–3)<input type="number" min="1" max="3" data-f="C.clients.' + ci + '.level" value="' + (c.level || 1) + '"></label></div>' +
+        '<label>Figura<select data-f="C.clients.' + ci + '.look">' + [["a", "Rövid barna haj"], ["b", "Hosszú szőke haj"], ["c", "Őszülő, szemüveges"], ["d", "Göndör, sötét"]].map(function (o) { return '<option value="' + o[0] + '"' + (c.look === o[0] ? " selected" : "") + '>' + o[1] + '</option>'; }).join("") + '</select></label>' +
         '<label>Jellem (AI-nak)<textarea data-f="C.clients.' + ci + '.persona">' + esc(c.persona || "") + '</textarea></label>' +
         '<div class="row"><label>Reakció jó válaszra (soronként)<textarea data-arr data-f="C.clients.' + ci + '.pos">' + esc((c.pos || []).join("\n")) + '</textarea></label><label>Reakció gyenge válaszra (soronként)<textarea data-arr data-f="C.clients.' + ci + '.neg">' + esc((c.neg || []).join("\n")) + '</textarea></label></div>' +
         '<button class="del" data-dc="' + ci + '" style="justify-self:start">Ügyféltípus törlése</button></div>';
@@ -973,6 +1251,20 @@ var Admin = {
     el.innerHTML = h;
     $$("[data-dk]", el).forEach(function (b) { b.onclick = function () { if (!confirm("Törlöd?")) return; var id = C.criteria[+b.getAttribute("data-dk")].id; C.criteria.splice(+b.getAttribute("data-dk"), 1); C.items.forEach(function (i) { if (i.criteria) i.criteria = i.criteria.filter(function (x) { return x !== id; }); }); Admin.mark(); Admin.szempont(el); }; });
     $("#ak", el).onclick = function () { C.criteria.push({ id: rid("k_"), group: "kifogas", name: "Új szempont", desc: "", kw: [] }); Admin.mark(); Admin.szempont(el); };
+    Admin.bindFields(el); Admin.height();
+  },
+
+  bolt: function (el) {
+    var C = Admin.C, h = '<p class="muted small">A munkatársak a jutalomládákból kapnak érmét. Amíg itt nincs tétel, a boltban „Hamarosan nyílik” látszik.</p>';
+    C.shop.forEach(function (it, i) {
+      h += '<div class="card ed"><div class="row"><label>Megnevezés<input type="text" data-f="C.shop.' + i + '.name" value="' + esc(it.name) + '"></label><label>Ár (érme)<input type="number" min="0" data-f="C.shop.' + i + '.price" value="' + (it.price || 0) + '"></label></div>' +
+        '<label>Leírás<input type="text" data-f="C.shop.' + i + '.desc" value="' + esc(it.desc || "") + '"></label><label>Hatás<select data-f="C.shop.' + i + '.effect"><option value="pajzs"' + (it.effect === "pajzs" ? " selected" : "") + '>+1 sorozatpajzs</option><option value="egyeb"' + (it.effect !== "pajzs" ? " selected" : "") + '>Egyéb (a munkatárs tárgyai közé kerül)</option></select></label>' +
+        '<button class="del" data-ds="' + i + '" style="justify-self:start">Tétel törlése</button></div>';
+    });
+    h += '<button class="btn sm ghost" id="as">+ Új tétel</button>' + Admin.savebar();
+    el.innerHTML = h;
+    $$("[data-ds]", el).forEach(function (b) { b.onclick = function () { C.shop.splice(+b.getAttribute("data-ds"), 1); Admin.mark(); Admin.bolt(el); }; });
+    $("#as", el).onclick = function () { C.shop.push({ id: rid("s_"), name: "Új tétel", desc: "", price: 50, effect: "pajzs" }); Admin.mark(); Admin.bolt(el); };
     Admin.bindFields(el); Admin.height();
   },
 
