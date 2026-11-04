@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#003366">
+<title>Kifogáskezelő · Csikós csapat</title>
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<!--
+  KIFOGÁSKEZELŐ (béta)
+  - Hozzáférés: béta alatt csak az ADMIN felületről (admin belépés + teljesítmény-jelszó a munkamenetben).
+    Élesítés után a csapat-háttér (Apps Script, action=kk_init) adja ki a tár azonosítóját, ha az admin kapcsoló be van kapcsolva.
+  - Adatok: Firestore perf/<tár>/kk_content (main, config) és perf/<tár>/kk_users/<felhasználó>.
+  - AI: AI.* adapter. Alapból helyi (teszt) értékelés; "gemini" módban a háttér kk_ai műveletét hívja.
+  - Felolvasás: TTS.* adapter, később profi hangszolgáltatásra cserélhető.
+-->
+<style>
+:root {
+  --bg: #f4f7fb; --surface: #ffffff; --ink: #003366; --muted: #4d6f94; --line: #dfe7f0;
+  --brand: #003366; --on-brand: #fff; --hot: #cc0066; --hot-bg: #ffe6f2; --ok: #00806f; --ok-bg: #dff5f1;
+  --sky: #6699cc; --gold: #e0a100; --track: #e5ebf2; --shadow: 0 1px 2px rgba(0,40,80,.06), 0 8px 24px rgba(0,40,80,.08);
+  --r: 18px; --safe-b: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #001a33; --surface: #002547; --ink: #f2f7ff; --muted: #8fb0d6; --line: #0d3a66; --brand: #ff99cc; --on-brand: #001f3d;
+    --hot: #ff7ab6; --hot-bg: #3a0a2a; --ok: #5fd6c4; --ok-bg: #063a3a; --sky: #6699cc; --track: #0b355e; --shadow: 0 8px 24px rgba(0,0,0,.35); }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font-family: "Stag Sans", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 16px; line-height: 1.4; min-height: 100vh; overscroll-behavior-y: contain; }
+button { font: inherit; color: inherit; }
+.wrap { max-width: 560px; margin: 0 auto; padding: 12px 16px calc(28px + var(--safe-b)); }
+.admin-mode .wrap { max-width: 1000px; }
+
+/* Felső sáv */
+.top { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.top .in { max-width: 560px; margin: 0 auto; display: flex; align-items: center; gap: 10px; padding: 10px 16px; }
+.admin-mode .top .in { max-width: 1000px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 6px 10px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); font-size: .95rem; white-space: nowrap; }
+.chip svg { width: 18px; height: 18px; }
+.chip.streak svg { fill: var(--hot); } .chip.xp svg { fill: var(--sky); }
+.chip.off { opacity: .55; filter: grayscale(1); }
+.sp { flex: 1; }
+.iconbtn { border: 0; background: var(--surface); box-shadow: var(--shadow); width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; cursor: pointer; }
+.iconbtn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.iconbtn.on { background: var(--brand); color: var(--on-brand); }
+
+/* Kártyák, gombok */
+.card { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; cursor: pointer; font-weight: 700; font-size: 1.05rem; padding: 15px 18px; border-radius: 14px;
+  background: var(--brand); color: var(--on-brand); box-shadow: 0 4px 0 color-mix(in srgb, var(--brand) 70%, #000); transition: transform .08s, box-shadow .08s, opacity .2s; width: 100%; }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 color-mix(in srgb, var(--brand) 70%, #000); }
+.btn[disabled] { opacity: .45; pointer-events: none; }
+.btn.ghost { background: var(--surface); color: var(--ink); box-shadow: 0 3px 0 var(--line); border: 2px solid var(--line); }
+.btn.hot { background: var(--hot); color: #fff; box-shadow: 0 4px 0 color-mix(in srgb, var(--hot) 65%, #000); }
+.btn.ok { background: var(--ok); color: #fff; box-shadow: 0 4px 0 color-mix(in srgb, var(--ok) 65%, #000); }
+.btn.sm { font-size: .9rem; padding: 9px 12px; width: auto; border-radius: 11px; }
+h1 { font-size: 1.7rem; letter-spacing: -.02em; line-height: 1.1; margin: 6px 0 4px; }
+h2 { font-size: 1.15rem; margin: 26px 0 10px; }
+.muted { color: var(--muted); }
+.small { font-size: .88rem; }
+
+/* Kezdőlap */
+.hero { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; }
+.ring { width: 84px; height: 84px; position: relative; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 9; stroke-linecap: round; }
+.ring .bg { stroke: var(--track); } .ring .fg { stroke: var(--ok); transition: stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1); }
+.ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: .82rem; text-align: center; line-height: 1.1; }
+.lvlbar { height: 10px; background: var(--track); border-radius: 99px; overflow: hidden; margin-top: 8px; }
+.lvlbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--sky), var(--brand)); border-radius: 99px; transition: width 1s cubic-bezier(.2,.8,.2,1); }
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.mode { border: 0; text-align: left; cursor: pointer; background: var(--surface); box-shadow: var(--shadow); border-radius: 16px; padding: 14px; display: grid; gap: 4px; transition: transform .12s; position: relative; }
+.mode:active { transform: scale(.97); }
+.mode svg { width: 26px; height: 26px; stroke: var(--brand); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mode b { font-size: 1rem; } .mode span { font-size: .82rem; color: var(--muted); }
+.mode .badge { position: absolute; top: 10px; right: 10px; background: var(--hot); color: #fff; font-size: .75rem; font-weight: 700; border-radius: 99px; padding: 2px 8px; }
+
+/* Tanösvény */
+.topic { margin-top: 22px; }
+.topic-h { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--brand); color: var(--on-brand); }
+.topic-h b { font-size: 1.05rem; } .topic-h span { font-size: .82rem; opacity: .8; }
+.path { position: relative; padding: 10px 0 4px; }
+.node { --x: 0px; display: flex; flex-direction: column; align-items: center; margin: 14px auto; transform: translateX(var(--x)); width: 120px; }
+.node button { width: 74px; height: 70px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; background: var(--brand); color: var(--on-brand);
+  box-shadow: 0 6px 0 color-mix(in srgb, var(--brand) 65%, #000); transition: transform .1s; }
+.node button:active { transform: translateY(4px); box-shadow: 0 2px 0 color-mix(in srgb, var(--brand) 65%, #000); }
+.node button svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.node.locked button { background: var(--track); color: var(--muted); box-shadow: 0 6px 0 var(--line); cursor: default; }
+.node.done button { background: var(--ok); color: #fff; box-shadow: 0 6px 0 color-mix(in srgb, var(--ok) 60%, #000); }
+.node.next button { animation: pulse 1.8s infinite; }
+.node small { margin-top: 10px; font-size: .78rem; font-weight: 600; text-align: center; color: var(--muted); }
+.stars { display: flex; gap: 2px; margin-top: 4px; } .stars svg { width: 14px; height: 14px; fill: var(--track); } .stars svg.on { fill: var(--gold); }
+@keyframes pulse { 0%,100% { outline: 0 solid color-mix(in srgb, var(--brand) 35%, transparent); } 50% { outline: 10px solid color-mix(in srgb, var(--brand) 0%, transparent); } }
+
+/* Lecke */
+.lesson { min-height: calc(100vh - 70px); display: flex; flex-direction: column; }
+.prog { height: 14px; background: var(--track); border-radius: 99px; overflow: hidden; flex: 1; }
+.prog i { display: block; height: 100%; width: 0; background: var(--ok); border-radius: 99px; transition: width .5s cubic-bezier(.2,.8,.2,1); position: relative; }
+.prog i::after { content: ""; position: absolute; left: 8px; right: 8px; top: 3px; height: 3px; border-radius: 9px; background: rgba(255,255,255,.35); }
+.timer { height: 5px; background: var(--track); border-radius: 9px; overflow: hidden; margin-top: 8px; } .timer i { display: block; height: 100%; background: var(--hot); width: 100%; }
+.client { display: flex; gap: 12px; align-items: flex-end; margin: 22px 0 16px; }
+.ava { flex: none; width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; font-weight: 700; font-size: 1.2rem; color: #fff; background: var(--sky); position: relative; }
+.ava svg { width: 34px; height: 34px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
+.bubble { position: relative; background: var(--surface); border: 2px solid var(--line); border-radius: 18px 18px 18px 4px; padding: 12px 14px; font-size: 1.08rem; box-shadow: var(--shadow); }
+.bubble .who { display: block; font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+.bubble .say { border: 0; background: none; cursor: pointer; color: var(--sky); padding: 0; margin-left: 6px; vertical-align: middle; }
+.bubble .say svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+.me { margin: 10px 0 10px auto; max-width: 88%; background: var(--brand); color: var(--on-brand); border-radius: 18px 18px 4px 18px; padding: 12px 14px; }
+.chat { display: flex; flex-direction: column; }
+.typing span { display: inline-block; width: 7px; height: 7px; margin: 0 2px; border-radius: 50%; background: var(--muted); animation: dot 1s infinite; }
+.typing span:nth-child(2) { animation-delay: .15s; } .typing span:nth-child(3) { animation-delay: .3s; }
+@keyframes dot { 0%,80%,100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-4px); } }
+.task { font-weight: 700; margin: 4px 0 10px; }
+.opts { display: grid; gap: 10px; }
+.opt { text-align: left; border: 2px solid var(--line); background: var(--surface); border-radius: 14px; padding: 13px 14px; cursor: pointer; box-shadow: 0 3px 0 var(--line); transition: transform .08s, border-color .15s, background .15s; font-size: 1rem; }
+.opt:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+.opt.sel { border-color: var(--sky); background: color-mix(in srgb, var(--sky) 14%, var(--surface)); box-shadow: 0 3px 0 var(--sky); }
+.opt.right { border-color: var(--ok); background: var(--ok-bg); box-shadow: 0 3px 0 var(--ok); }
+.opt.wrong { border-color: var(--hot); background: var(--hot-bg); box-shadow: 0 3px 0 var(--hot); }
+.zone { min-height: 64px; border-bottom: 2px solid var(--line); padding: 8px 0; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
+.zone.ans { border-top: 2px solid var(--line); margin-bottom: 14px; min-height: 120px; }
+.piece { border: 2px solid var(--line); background: var(--surface); border-radius: 12px; padding: 9px 11px; cursor: grab; box-shadow: 0 3px 0 var(--line); font-size: .95rem; user-select: none; touch-action: none; transition: transform .15s; }
+.piece.ghost { opacity: .25; } .piece.drag { position: fixed; z-index: 100; pointer-events: none; transform: scale(1.04) rotate(-1deg); box-shadow: var(--shadow); }
+.piece.right { border-color: var(--ok); } .piece.wrong { border-color: var(--hot); }
+textarea, input[type=text], input[type=number], select { width: 100%; font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+textarea:focus, input:focus, select:focus { outline: 0; border-color: var(--sky); }
+textarea { min-height: 110px; resize: vertical; }
+.mic { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin: 10px 0; padding: 16px; border-radius: 16px; border: 2px dashed var(--sky); background: transparent; color: var(--ink); font-weight: 700; cursor: pointer; user-select: none; touch-action: none; }
+.mic svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; }
+.mic.rec { border-style: solid; border-color: var(--hot); background: var(--hot-bg); color: var(--hot); }
+.mic.rec svg { animation: beat 1s infinite; } @keyframes beat { 50% { transform: scale(1.25); } }
+.foot { margin-top: auto; padding-top: 16px; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 18px 16px calc(18px + var(--safe-b)); transform: translateY(105%); visibility: hidden; transition: transform .32s cubic-bezier(.2,.8,.2,1), visibility 0s .32s; }
+.sheet.show { transform: none; visibility: visible; transition: transform .32s cubic-bezier(.2,.8,.2,1); } .sheet .in { max-width: 560px; margin: 0 auto; }
+.sheet.good { background: var(--ok-bg); } .sheet.bad { background: var(--hot-bg); } .sheet.mid { background: color-mix(in srgb, var(--gold) 18%, var(--surface)); }
+.sheet h3 { margin: 0 0 6px; font-size: 1.25rem; } .sheet.good h3 { color: var(--ok); } .sheet.bad h3 { color: var(--hot); }
+.sheet p { margin: 0 0 8px; } .sheet .sample { background: var(--surface); border-radius: 12px; padding: 10px 12px; margin: 8px 0 14px; font-size: .95rem; }
+.sheet .sample b { display: block; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.shake { animation: shake .35s; } @keyframes shake { 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
+
+/* Eredmény */
+.result { text-align: center; padding-top: 24px; }
+.score { font-size: 4rem; font-weight: 700; letter-spacing: -.04em; line-height: 1; margin: 12px 0 4px; }
+.tiles3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; }
+.tiles3 div { border-radius: 14px; padding: 10px 6px; border: 2px solid var(--line); background: var(--surface); }
+.tiles3 b { display: block; font-size: 1.3rem; } .tiles3 span { font-size: .75rem; color: var(--muted); }
+.fb { text-align: left; margin-top: 12px; } .fb li { margin: 6px 0; } .fb ul { padding-left: 20px; margin: 6px 0; }
+.pop { animation: pop .5s cubic-bezier(.2,1.6,.4,1) both; } @keyframes pop { from { transform: scale(.4); opacity: 0; } }
+.rise { animation: rise .45s cubic-bezier(.2,.8,.2,1) both; } @keyframes rise { from { transform: translateY(16px); opacity: 0; } }
+.badges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.bdg { text-align: center; padding: 14px 6px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); }
+.bdg .ic { width: 52px; height: 52px; margin: 0 auto 6px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, var(--gold), var(--hot)); }
+.bdg .ic svg { width: 26px; height: 26px; fill: #fff; } .bdg.off { opacity: .4; } .bdg.off .ic { background: var(--track); }
+.bdg b { font-size: .82rem; display: block; } .bdg span { font-size: .72rem; color: var(--muted); }
+.rank { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--surface); margin-bottom: 8px; box-shadow: var(--shadow); }
+.rank .n { width: 28px; font-weight: 700; text-align: center; } .rank.me { outline: 2px solid var(--sky); } .rank .x { margin-left: auto; font-weight: 700; }
+.rank .av { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; color: #fff; font-weight: 700; background: var(--sky); }
+
+/* Belépés / zárolt */
+.center { min-height: 80vh; display: grid; place-items: center; text-align: center; }
+.center .card { max-width: 380px; }
+
+/* Ablak, értesítés, konfetti */
+.modal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: end center; background: rgba(0,20,40,.45); opacity: 0; pointer-events: none; transition: opacity .2s; }
+.modal.show { opacity: 1; pointer-events: auto; }
+.modal .box { width: 100%; max-width: 560px; background: var(--surface); border-radius: 22px 22px 0 0; padding: 20px 16px calc(20px + var(--safe-b)); max-height: 88vh; overflow: auto; transform: translateY(30px); transition: transform .25s; }
+.modal.show .box { transform: none; }
+.toast { position: fixed; left: 50%; top: 14px; z-index: 80; transform: translate(-50%, -80px); background: var(--brand); color: var(--on-brand); padding: 10px 16px; border-radius: 12px; font-weight: 600; transition: transform .3s; box-shadow: var(--shadow); max-width: 92vw; }
+.toast.show { transform: translate(-50%, 0); }
+#fx { position: fixed; inset: 0; pointer-events: none; z-index: 90; }
+.view { animation: vin .28s cubic-bezier(.2,.8,.2,1); } @keyframes vin { from { opacity: 0; transform: translateY(8px); } }
+
+/* Admin */
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin: 10px 0 14px; }
+.tabs button { border: 0; background: var(--surface); box-shadow: var(--shadow); padding: 9px 13px; border-radius: 11px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.tabs button.on { background: var(--brand); color: var(--on-brand); }
+.ed { display: grid; gap: 10px; margin-bottom: 12px; }
+.ed label { display: grid; gap: 4px; font-size: .82rem; font-weight: 600; color: var(--muted); }
+.ed .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ed .row3 { display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: end; }
+.ed textarea { min-height: 70px; }
+.optrow { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start; border: 1px dashed var(--line); padding: 8px; border-radius: 12px; }
+.optrow textarea { min-height: 44px; }
+.del { border: 0; background: none; color: var(--hot); cursor: pointer; font-weight: 700; }
+.savebar { position: sticky; bottom: 0; padding: 10px 0; background: linear-gradient(transparent, var(--bg) 30%); display: flex; gap: 8px; align-items: center; }
+.tbl { width: 100%; border-collapse: collapse; font-size: .9rem; } .tbl th, .tbl td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); } .tbl th { color: var(--muted); font-size: .78rem; }
+.switch { display: flex; align-items: center; gap: 12px; cursor: pointer; } .switch input { display: none; }
+.switch i { width: 52px; height: 30px; border-radius: 99px; background: var(--track); position: relative; transition: background .2s; flex: none; }
+.switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.switch input:checked + i { background: var(--ok); } .switch input:checked + i::after { transform: translateX(22px); }
+.pill { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--track); color: var(--muted); }
+.pill.hot { background: var(--hot-bg); color: var(--hot); } .pill.ok { background: var(--ok-bg); color: var(--ok); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="top" id="top" hidden><div class="in" id="topin"></div></div>
+<div class="wrap"><main id="view"></main></div>
+<div class="sheet" id="sheet"><div class="in" id="sheetin"></div></div>
+<div class="modal" id="modal"><div class="box" id="modalbox"></div></div>
+<div class="toast" id="toast"></div>
+<canvas id="fx"></canvas>
+
+<script>
+(function () {
+"use strict";
+
+/* ===================== Beállítások ===================== */
+var TEAM_API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
+var KK_SALT = "kk|";               // a tár azonosítója béta alatt: sha256(KK_SALT + teljesítmény-jelszó)
+var FBV = "https://www.gstatic.com/firebasejs/10.14.1/";
+
+/* ===================== Segédek ===================== */
+var $ = function (s, r) { return (r || document).querySelector(s); };
+var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function pad(n) { return (n < 10 ? "0" : "") + n; }
+function dstr(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+function today() { return dstr(new Date()); }
+function addDays(s, n) { var p = s.split("-"); var d = new Date(+p[0], +p[1] - 1, +p[2] + n); return dstr(d); }
+function weekStart() { var d = new Date(); var w = (d.getDay() + 6) % 7; d.setDate(d.getDate() - w); return dstr(d); }
+function uidOf(name) { return "u_" + String(name).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
+function rid(p) { return (p || "x") + Math.random().toString(36).slice(2, 8); }
+function pick(a) { return a && a.length ? a[Math.floor(Math.random() * a.length)] : ""; }
+function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function sha(s) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }); }
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+var LS = { get: function (k, d) { try { var v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+function ss(k) { try { return sessionStorage.getItem(k) || ""; } catch (e) { return ""; } }
+function initials(n) { return String(n || "?").split(/\s+/).map(function (w) { return w[0]; }).join("").slice(0, 2).toUpperCase(); }
+function hue(s) { var h = 0; s = String(s); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h; }
+function words(t) { return String(t).trim().split(/\s+/).filter(Boolean).length; }
+
+var IC = {
+  bolt: '<svg viewBox="0 0 24 24"><path d="M13.5 2 4 14h7l-1.5 8L20 10h-7z"/></svg>',
+  gem: '<svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z"/></svg>',
+  back: '<svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>',
+  close: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  sound: '<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
+  mute: '<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM17 9l5 6M22 9l-5 6"/></svg>',
+  mic: '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+  play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+  check: '<svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>',
+  lock: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  star: '<svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>',
+  cards: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="15" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v13"/></svg>',
+  chat: '<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+  repeat: '<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5"/></svg>',
+  trophy: '<svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>',
+  medal: '<svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="6"/><path d="M8 3l4 5 4-5"/></svg>',
+  gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>',
+  person: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>'
+};
+
+/* ===================== Állapot ===================== */
+var S = { space: "", admin: false, C: null, cfg: null, me: null, uid: "", voice: LS.get("kk_voice", false) };
+var DEF_CFG = { live: false, ai: "helyi", dailyGoal: 30, lessonLen: 3, quickLen: 6, quickSec: 20 };
+
+/* ===================== Példatartalom (szerkeszthető az admin felületen) ===================== */
+var DEFAULT_CONTENT = {
+  topics: [
+    { id: "t_penz", title: "Nincs rá pénzem", group: "kifogas", levels: [{ id: "l_penz1", title: "Alapok", client: "c_kedves" }, { id: "l_penz2", title: "Nehezebb ügyfél", client: "c_bizalmatlan" }] },
+    { id: "t_atgondol", title: "Majd átgondolom", group: "kifogas", levels: [{ id: "l_atg1", title: "Alapok", client: "c_kedves" }] },
+    { id: "t_vanmar", title: "Van már ilyenem", group: "kifogas", levels: [{ id: "l_van1", title: "Alapok", client: "c_siet" }] },
+    { id: "t_ajanlas", title: "Ajánláskérés", group: "ajanlas", levels: [{ id: "l_aj1", title: "Alapok", client: "c_kedves" }] }
+  ],
+  items: [
+    { id: "i1", level: "l_penz1", type: "mc", prompt: "Most nincs rá pénzem, majd később.",
+      options: [
+        { t: "Értem. Épp ezért érdemes most kis összeggel indulni, hogy később ne kelljen nagy. Mekkora havi összeg nem fájna?", ok: true, fb: "Elismeri az érzést, és kérdéssel viszi tovább." },
+        { t: "Pedig ez nagyon fontos lenne, gondolja át még egyszer.", ok: false, fb: "Nyomást gyakorol, de nem derül ki, mi a valódi akadály." },
+        { t: "Rendben, akkor majd jelentkezem.", ok: false, fb: "Itt feladtad: nem tudtad meg, mi áll a háttérben." }
+      ], sample: "Értem. Épp ezért érdemes most kis összeggel indulni, hogy később ne kelljen nagy. Mekkora havi összeg nem fájna?" },
+    { id: "i2", level: "l_penz1", type: "order", prompt: "Ennyit most nem tudok félretenni.",
+      parts: ["Teljesen érthető.", "Nézzük meg együtt, mennyi az, ami biztosan belefér.", "Akár havi 10 ezer forinttal is el lehet indulni.", "Ez kényelmes lenne Önnek?"],
+      sample: "Teljesen érthető. Nézzük meg együtt, mennyi az, ami biztosan belefér. Akár havi 10 ezer forinttal is el lehet indulni. Ez kényelmes lenne Önnek?" },
+    { id: "i3", level: "l_penz1", type: "open", prompt: "Most vettünk autót, minden pénzünk elment.",
+      sample: "Gratulálok az autóhoz! Teljesen érthető, hogy most szűkebb a keret. Pont ezért nézzük meg, mi az a kisebb összeg, amivel már most biztonságba tudjuk tenni a családot. Mennyi az, ami biztosan belefér?" },
+    { id: "i4", level: "l_penz2", type: "open", prompt: "Ezt mindenki mondja, aztán a végén csak a jutalék a lényeg.",
+      sample: "Jogos a kérdés, és értem a fenntartását. Ezért mutatom meg számokkal, mit jelent ez Önnek havonta, és Ön dönti el, belefér-e. Megnézzük együtt?" },
+    { id: "i5", level: "l_atg1", type: "mc", prompt: "Jó, majd átgondolom, és szólok.",
+      options: [
+        { t: "Persze. Mi az a pont, amin még gondolkodna? Lehet, hogy most együtt gyorsan tisztázni tudjuk.", ok: true, fb: "Kideríted a valódi kérdést, nem hagyod nyitva." },
+        { t: "Rendben, akkor várom a hívását.", ok: false, fb: "A labda az ügyfélnél maradt: ritkán hív vissza." },
+        { t: "Ne gondolkodjon túl sokat, ez jó ajánlat.", ok: false, fb: "Sürgetés: bizalmatlanságot kelt." }
+      ], sample: "Persze. Mi az a pont, amin még gondolkodna? Lehet, hogy most együtt gyorsan tisztázni tudjuk." },
+    { id: "i6", level: "l_atg1", type: "open", prompt: "Meg kell beszélnem a feleségemmel.",
+      sample: "Teljesen érthető, közös döntés. Mikor tudnánk úgy leülni, hogy ő is ott legyen? Kedd este vagy csütörtök délután jobb?" },
+    { id: "i7", level: "l_van1", type: "mc", prompt: "Nekem már van életbiztosításom.",
+      options: [
+        { t: "Nagyszerű! Mikor nézték át utoljára? Ha megnézzük együtt, kiderül, hogy a mostani élethelyzetének is megfelel-e.", ok: true, fb: "Elismered, és átvilágításra hívod." },
+        { t: "Az biztos rosszabb, mint amit én ajánlok.", ok: false, fb: "Lebecsülöd a döntését: védekezésre készteted." },
+        { t: "Akkor nem zavarom tovább.", ok: false, fb: "Kihagytad az átvilágítás lehetőségét." }
+      ], sample: "Nagyszerű! Mikor nézték át utoljára? Ha megnézzük együtt, kiderül, hogy a mostani élethelyzetének is megfelel-e." },
+    { id: "i8", level: "l_van1", type: "order", prompt: "Van már megtakarításom a banknál.",
+      parts: ["Ez nagyon jó alap.", "Tudja, mekkora rajta a valós hozam a költségek után?", "Ha megmutatja, tíz perc alatt összevetjük."],
+      sample: "Ez nagyon jó alap. Tudja, mekkora rajta a valós hozam a költségek után? Ha megmutatja, tíz perc alatt összevetjük." },
+    { id: "i9", level: "l_aj1", type: "open", prompt: "(A találkozó végén) Nem igazán jut eszembe senki, akit ajánlhatnék.",
+      sample: "Ahogy az elején megbeszéltük, a munkám ajánlásból működik. Gondoljon azokra, akik most költöznek, gyereket várnak, lakást vesznek vagy a nyugdíjon gondolkodnak. Ki jut eszébe? Megkérem, hogy előbb Ön szóljon nekik, hogy keresni fogom." },
+    { id: "i10", level: "l_aj1", type: "mc", prompt: "Majd szólok, ha valaki érdeklődik.",
+      options: [
+        { t: "Köszönöm! Az elején abban maradtunk, hogy ha hasznos volt, megosztja. Kiben van most változás: költözés, baba, lakásvásárlás?", ok: true, fb: "Megállapodásra utalsz, és konkrét élethelyzeteket hozol." },
+        { t: "Rendben, köszönöm, ha eszébe jut valaki, szóljon.", ok: false, fb: "Általános kérés: ebből szinte soha nem lesz ajánlás." },
+        { t: "Kérem, adjon meg legalább öt nevet.", ok: false, fb: "Túl erőszakos, nincs mögötte indoklás." }
+      ], sample: "Köszönöm! Az elején abban maradtunk, hogy ha hasznos volt, megosztja. Kiben van most változás: költözés, baba, lakásvásárlás?" }
+  ],
+  clients: [
+    { id: "c_kedves", name: "Kedves, de halogató", level: 1, persona: "Barátságos, egyetért, de mindig halasztana.",
+      pos: ["Igazából... ha így nézzük, akár most is megbeszélhetjük.", "Ez tényleg logikus. Mi lenne a következő lépés?"],
+      neg: ["Persze, persze, csak majd valamikor...", "Jó, jó, de most inkább még várnék."] },
+    { id: "c_siet", name: "Siető", level: 2, persona: "Türelmetlen, rövid válaszokat vár.",
+      pos: ["Jó, ez gyors volt. Mondja tovább.", "Rendben, ennyi belefér."],
+      neg: ["Nézze, nincs erre időm.", "Ezt röviden, kérem."] },
+    { id: "c_bizalmatlan", name: "Bizalmatlan", level: 3, persona: "Gyanakvó, a jutalékra gyanakszik, bizonyítékot kér.",
+      pos: ["Hm. Ez korrektnek hangzik.", "Rendben, ezt meg tudom nézni."],
+      neg: ["Ezt mindenki mondja.", "Honnan tudjam, hogy nem csak eladni akar?"] }
+  ],
+  criteria: [
+    { id: "k_emp", group: "kifogas", name: "Elismerte az ügyfél érzését", desc: "Kezdd elismeréssel: „Értem”, „Teljesen érthető”.", kw: ["értem", "érthető", "jogos", "megértem", "teljesen", "gratulál"] },
+    { id: "k_kerd", group: "kifogas", name: "Kérdéssel vitte tovább", desc: "Zárd nyitott kérdéssel, hogy az ügyfél beszéljen.", rule: "kerdes" },
+    { id: "k_konk", group: "kifogas", name: "Konkrét javaslatot tett", desc: "Mondj konkrét összeget, időpontot vagy lépést.", rule: "konkret", kw: ["havi", "forint", "ezer", "kedd", "szerda", "csütörtök", "péntek", "hétfő", "holnap", "jövő hét", "este", "délután", "perc"] },
+    { id: "k_tom", group: "kifogas", name: "Magabiztos és tömör", desc: "2–4 mondat, bizonytalankodás nélkül.", rule: "tomor" },
+    { id: "a_meg", group: "ajanlas", name: "Visszautalt a találkozó eleji megállapodásra", desc: "Hivatkozz arra, amiben az elején megállapodtatok.", kw: ["az elején", "megbeszéltük", "megállapod", "abban maradtunk", "ahogy mondtam"] },
+    { id: "a_elet", group: "ajanlas", name: "Konkrét élethelyzeteket hozott", desc: "Ne általánosan kérdezz: költözés, gyerek, lakásvásárlás, nyugdíj.", kw: ["költöz", "gyerek", "baba", "lakás", "nyugdíj", "esküvő", "új munka", "házas"] },
+    { id: "a_mel", group: "ajanlas", name: "Meleg megkeresést kért", desc: "Kérd meg, hogy előbb ő szóljon az ajánlottnak.", kw: ["előbb", "szóljon", "szólna", "szól neki", "jelez", "előre"] },
+    { id: "a_tom", group: "ajanlas", name: "Magabiztos és tömör", desc: "Röviden, határozottan kérd.", rule: "tomor" }
+  ]
+};
+
+/* ===================== Firestore ===================== */
+var FB = null;
+function fb() {
+  if (FB) return Promise.resolve(FB);
+  return fetch("firebase-config.json").then(function (r) { return r.json(); }).then(function (cfg) {
+    return Promise.all([import(FBV + "firebase-app.js"), import(FBV + "firebase-firestore.js")]).then(function (m) {
+      var app = m[0].initializeApp(cfg, "kk"), F = m[1], db;
+      try { db = F.initializeFirestore(app, { localCache: F.persistentLocalCache() }); } catch (e) { db = F.getFirestore(app); }
+      FB = { F: F, db: db }; return FB;
+    });
+  });
+}
+function dref(coll, id) { return FB.F.doc(FB.db, "perf", S.space, coll, id); }
+function getD(coll, id) { return fb().then(function () { return FB.F.getDoc(dref(coll, id)); }).then(function (s) { return s.exists() ? s.data() : null; }); }
+function setD(coll, id, data, merge) { return fb().then(function () { return FB.F.setDoc(dref(coll, id), data, merge ? { merge: true } : undefined); }); }
+function allUsers() { return fb().then(function () { return FB.F.getDocs(FB.F.collection(FB.db, "perf", S.space, "kk_users")); }).then(function (q) { var a = []; q.forEach(function (d) { var v = d.data(); v._id = d.id; a.push(v); }); return a; }); }
+
+/* ===================== Hozzáférés ===================== */
+function teamToken() { try { var t = localStorage.getItem("csk_token"); if (t) return t; } catch (e) {} var m = document.cookie.match(/(?:^|; )csk_token=([^;]*)/); return m ? decodeURIComponent(m[1]) : ""; }
+function resolveAccess() {
+  var adm = ss("csk_admin"), pw = ss("tj_pw");
+  if (adm && pw) return sha(KK_SALT + pw).then(function (h) { return { space: h, admin: true }; });
+  var t = teamToken(); if (!t) return Promise.resolve(null);
+  // Élesítés után: a csapat-háttér adja a tár azonosítóját, ha az admin kapcsoló be van kapcsolva.
+  return fetch(TEAM_API + "?action=kk_init&t=" + encodeURIComponent(t) + "&_=" + Date.now())
+    .then(function (r) { return r.json(); })
+    .then(function (d) { return d && d.ok && d.space ? { space: d.space, admin: false } : null; })
+    .catch(function () { return null; });
+}
+
+/* ===================== Hang: felolvasás (cserélhető) és beszédfelismerés ===================== */
+var TTS = {
+  // Később: provider = "pro" → a háttér (pl. kk_tts) ad hangfájlt; a felület változatlan marad.
+  provider: "browser",
+  voice: null,
+  init: function () {
+    if (!("speechSynthesis" in window)) return;
+    var pickV = function () { var v = speechSynthesis.getVoices().filter(function (x) { return /^hu/i.test(x.lang); }); TTS.voice = v[0] || null; };
+    pickV(); speechSynthesis.onvoiceschanged = pickV;
+  },
+  speak: function (text) {
+    if (!S.voice || !text) return Promise.resolve();
+    if (TTS.provider === "browser") {
+      if (!("speechSynthesis" in window)) return Promise.resolve();
+      return new Promise(function (res) {
+        speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance(text); u.lang = "hu-HU"; if (TTS.voice) u.voice = TTS.voice; u.rate = 1.02;
+        u.onend = u.onerror = function () { res(); }; speechSynthesis.speak(u);
+      });
+    }
+    return Promise.resolve();
+  },
+  stop: function () { try { speechSynthesis.cancel(); } catch (e) {} }
+};
+var STT = {
+  ok: !!(window.SpeechRecognition || window.webkitSpeechRecognition), rec: null,
+  start: function (onText, onEnd) {
+    var R = window.SpeechRecognition || window.webkitSpeechRecognition; if (!R) return false;
+    var r = new R(); r.lang = "hu-HU"; r.interimResults = true; r.continuous = true; var fin = "";
+    r.onresult = function (e) { var interim = ""; for (var i = e.resultIndex; i < e.results.length; i++) { if (e.results[i].isFinal) fin += e.results[i][0].transcript + " "; else interim += e.results[i][0].transcript; } onText((fin + interim).trim()); };
+    r.onend = function () { STT.rec = null; onEnd && onEnd(fin.trim()); };
+    r.onerror = function () {};
+    try { r.start(); STT.rec = r; return true; } catch (e) { return false; }
+  },
+  stop: function () { if (STT.rec) try { STT.rec.stop(); } catch (e) {} }
+};
+
+/* ===================== Visszajelzés: hang, rezgés, konfetti ===================== */
+var FXA = null;
+function tone(seq) {
+  try {
+    FXA = FXA || new (window.AudioContext || window.webkitAudioContext)();
+    var t = FXA.currentTime;
+    seq.forEach(function (n) {
+      var o = FXA.createOscillator(), g = FXA.createGain(); o.type = n[3] || "sine"; o.frequency.value = n[0];
+      g.gain.setValueAtTime(0.0001, t + n[1]); g.gain.exponentialRampToValueAtTime(0.18, t + n[1] + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + n[1] + n[2]);
+      o.connect(g); g.connect(FXA.destination); o.start(t + n[1]); o.stop(t + n[1] + n[2] + 0.05);
+    });
+  } catch (e) {}
+}
+var FX = {
+  good: function () { tone([[660, 0, .12], [880, .09, .18]]); vib(18); },
+  bad: function () { tone([[220, 0, .18, "triangle"], [180, .12, .22, "triangle"]]); vib([40, 50, 40]); },
+  tap: function () { vib(8); },
+  win: function () { tone([[523, 0, .14], [659, .12, .14], [784, .24, .14], [1046, .36, .35]]); vib([20, 40, 20, 40, 60]); confetti(); }
+};
+function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
+function confetti() {
+  var c = $("#fx"), x = c.getContext("2d"), W = c.width = innerWidth * devicePixelRatio, H = c.height = innerHeight * devicePixelRatio;
+  c.style.width = innerWidth + "px"; c.style.height = innerHeight + "px";
+  var cols = ["#003366", "#cc0066", "#00806f", "#6699cc", "#e0a100", "#ff99cc"], P = [];
+  for (var i = 0; i < 140; i++) P.push({ x: W / 2 + (Math.random() - .5) * W * .3, y: H * .35, vx: (Math.random() - .5) * 26, vy: -Math.random() * 30 - 8, r: (Math.random() * 6 + 4) * devicePixelRatio, c: cols[i % cols.length], a: Math.random() * 6, s: Math.random() * .3 - .15 });
+  var t0 = performance.now();
+  (function fr(t) {
+    x.clearRect(0, 0, W, H);
+    P.forEach(function (p) { p.vy += 1.1; p.vx *= .985; p.x += p.vx; p.y += p.vy; p.a += p.s; x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.fillStyle = p.c; x.fillRect(-p.r / 2, -p.r / 3, p.r, p.r * .66); x.restore(); });
+    if (t - t0 < 2600) requestAnimationFrame(fr); else x.clearRect(0, 0, W, H);
+  })(t0);
+}
+function toast(msg) { var t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove("show"); }, 2600); }
+function modal(html, onMount) { $("#modalbox").innerHTML = html; $("#modal").classList.add("show"); onMount && onMount($("#modalbox")); }
+function closeModal() { $("#modal").classList.remove("show"); }
+$("#modal").addEventListener("click", function (e) { if (e.target.id === "modal") closeModal(); });
+function countUp(el, to, ms) { var t0 = performance.now(); (function f(t) { var k = Math.min(1, (t - t0) / ms); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); })(t0); }
+
+/* ===================== Tartalom-segédek ===================== */
+function topicOf(levelId) { var r = null; S.C.topics.forEach(function (t) { t.levels.forEach(function (l) { if (l.id === levelId) r = t; }); }); return r; }
+function levelById(id) { var r = null; S.C.topics.forEach(function (t) { t.levels.forEach(function (l) { if (l.id === id) r = l; }); }); return r; }
+function itemsOf(levelId) { return S.C.items.filter(function (i) { return i.level === levelId; }); }
+function itemById(id) { return S.C.items.filter(function (i) { return i.id === id; })[0]; }
+function clientById(id) { return S.C.clients.filter(function (c) { return c.id === id; })[0] || S.C.clients[0] || { id: "", name: "Ügyfél", pos: ["Rendben."], neg: ["Hát, nem tudom."] }; }
+function critFor(item) {
+  if (item.criteria && item.criteria.length) return S.C.criteria.filter(function (c) { return item.criteria.indexOf(c.id) > -1; });
+  var t = topicOf(item.level), g = t && t.group || "kifogas";
+  return S.C.criteria.filter(function (c) { return c.group === g; });
+}
+function allLevels() { var a = []; S.C.topics.forEach(function (t) { t.levels.forEach(function (l) { a.push(l); }); }); return a; }
+function isDone(lid) { return !!(S.me.done[lid] && S.me.done[lid].stars > 0); }
+function isOpen(t, idx) { return idx === 0 || isDone(t.levels[idx - 1].id); }
+function nextLevel() {
+  for (var i = 0; i < S.C.topics.length; i++) { var t = S.C.topics[i]; for (var j = 0; j < t.levels.length; j++) if (isOpen(t, j) && !isDone(t.levels[j].id) && itemsOf(t.levels[j].id).length) return t.levels[j]; }
+  return null;
+}
+function unlockedItems() { var a = []; S.C.topics.forEach(function (t) { t.levels.forEach(function (l, j) { if (isOpen(t, j)) a = a.concat(itemsOf(l.id)); }); }); return a; }
+function dueItems() { var d = today(), w = S.me.weak || {}; return Object.keys(w).filter(function (k) { return w[k].due <= d && itemById(k); }).map(itemById); }
+
+/* ===================== AI adapter ===================== */
+/* Helyi (teszt) mód: kulcsszavas értékelés + ügyféltípusonkénti reakciók.
+   "gemini" mód: a csapat-háttér kk_ai művelete (Apps Script → Gemini Flash). Ha nem válaszol, a helyi mód lép életbe. */
+var AI = {
+  backend: function (payload) {
+    return fetch(TEAM_API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(Object.assign({ action: "kk_ai", s: S.space, t: teamToken() }, payload)) })
+      .then(function (r) { return r.json(); }).then(function (d) { if (!d || !d.ok) throw new Error("ai"); return d; });
+  },
+  // Egy válasz értékelése és az ügyfél reakciója. Vissza: { score, hits:[{id,name,ok,desc}], reply }
+  respond: function (item, client, answer, history) {
+    var local = AI.local(item, client, answer);
+    if (S.cfg.ai !== "gemini") return Promise.resolve(local);
+    return AI.backend({ task: "respond", item: { prompt: item.prompt, sample: item.sample }, client: { name: client.name, persona: client.persona }, criteria: critFor(item).map(function (c) { return { id: c.id, name: c.name, desc: c.desc }; }), answer: answer, history: history || [] })
+      .then(function (d) { return { score: d.score, hits: d.hits || local.hits, reply: d.reply || local.reply, tip: d.tip || "" }; })
+      .catch(function () { return local; });
+  },
+  local: function (item, client, answer) {
+    var s = String(answer || ""), low = s.toLowerCase(), cr = critFor(item);
+    var hits = cr.map(function (c) {
+      var ok;
+      if (c.rule === "kerdes") ok = /\?/.test(s) || /\b(mi|mennyi|hogyan|melyik|mikor|kinek|ki)\b/.test(low);
+      else if (c.rule === "tomor") { var w = words(s); ok = w >= 8 && w <= 70 && !/(talán|esetleg|ha nem gond|bocsánat|nem tudom)/.test(low); }
+      else if (c.rule === "konkret") ok = /\d/.test(s) || (c.kw || []).some(function (k) { return low.indexOf(k.toLowerCase()) > -1; });
+      else ok = (c.kw || []).some(function (k) { return low.indexOf(String(k).toLowerCase()) > -1; });
+      return { id: c.id, name: c.name, desc: c.desc, ok: !!ok };
+    });
+    var n = hits.filter(function (h) { return h.ok; }).length, score = hits.length ? Math.round(100 * n / hits.length) : (words(s) > 5 ? 70 : 30);
+    if (words(s) < 4) score = Math.min(score, 25);
+    return { score: score, hits: hits, reply: score >= 70 ? pick(client.pos) : pick(client.neg) };
+  }
+};
+
+/* ===================== Felhasználó ===================== */
+function blankUser(name) { return { name: name, xp: 0, lessons: 0, streak: 0, best: 0, lastDay: "", days: {}, done: {}, weak: {}, stats: {}, badges: [], reviews: 0, perfect: 0 }; }
+function saveMe() { S.me.upd = Date.now(); return setD("kk_users", S.uid, S.me).catch(function () { toast("Nem sikerült menteni, újrapróbálom később."); }); }
+function lvlOf(xp) { var l = Math.floor(Math.sqrt(xp / 40)) + 1, lo = 40 * Math.pow(l - 1, 2), hi = 40 * Math.pow(l, 2); return { l: l, p: (xp - lo) / (hi - lo) }; }
+function todayXp() { return S.me.days[today()] || 0; }
+function weekXp(u) { var ws = weekStart(), s = 0; Object.keys(u.days || {}).forEach(function (d) { if (d >= ws) s += u.days[d]; }); return s; }
+function liveStreak() { var d = S.me.lastDay; return d === today() || d === addDays(today(), -1) ? S.me.streak : 0; }
+
+var BADGES = [
+  { id: "elso", name: "Első lecke", d: "Teljesíts egy leckét", test: function (u) { return u.lessons >= 1; } },
+  { id: "s3", name: "3 napos sorozat", d: "Gyakorolj 3 napig egymás után", test: function (u) { return u.best >= 3; } },
+  { id: "s7", name: "Heti sorozat", d: "7 nap egymás után", test: function (u) { return u.best >= 7; } },
+  { id: "hibatlan", name: "Hibátlan", d: "100%-os lecke", test: function (u) { return u.perfect >= 1; } },
+  { id: "l10", name: "Kitartó", d: "10 lecke", test: function (u) { return u.lessons >= 10; } },
+  { id: "ism", name: "Visszatérő", d: "5 ismétlő lecke", test: function (u) { return u.reviews >= 5; } },
+  { id: "aj", name: "Ajánlás-mester", d: "Minden ajánláskérés szint kész", test: function (u) { var t = S.C.topics.filter(function (x) { return x.group === "ajanlas"; }); return t.length > 0 && t.every(function (x) { return x.levels.every(function (l) { return u.done[l.id] && u.done[l.id].stars > 0; }); }); } },
+  { id: "xp500", name: "500 XP", d: "Gyűjts 500 XP-t", test: function (u) { return u.xp >= 500; } }
+];
+
+/* ===================== Indulás ===================== */
+TTS.init();
+function boot() {
+  $("#view").innerHTML = '<div class="center"><div class="muted">Betöltés…</div></div>';
+  resolveAccess().then(function (acc) {
+    if (!acc) return locked();
+    S.space = acc.space; S.admin = acc.admin;
+    return Promise.all([getD("kk_content", "main"), getD("kk_content", "config")]).then(function (r) {
+      S.C = r[0]; S.cfg = Object.assign({}, DEF_CFG, r[1] || {});
+      if (!S.C && S.admin) { S.C = clone(DEFAULT_CONTENT); return setD("kk_content", "main", S.C); }
+    }).then(function () {
+      if (!S.C) return locked("Még nincs feltöltve tartalom.");
+      if (location.hash === "#admin") { if (!S.admin) return locked(); return Admin.open(); }
+      return who();
+    });
+  }).catch(function (e) { console.error(e); locked("Nem sikerült betölteni. Ellenőrizd a kapcsolatot."); });
+}
+function locked(msg) {
+  $("#top").hidden = true;
+  $("#view").innerHTML = '<div class="center view"><div class="card"><div class="ava" style="margin:0 auto 12px;background:var(--brand)">' + IC.lock.replace("<svg", '<svg style="stroke:var(--on-brand)"') + '</div><h1>Kifogáskezelő</h1><p class="muted">' + esc(msg || "Hamarosan érkezik a csapatnak. Addig a vezetői felületen tesztelünk.") + '</p></div></div>';
+}
+function who() {
+  var name = LS.get("kk_name", "");
+  if (name) return loadMe(name);
+  return allUsers().catch(function () { return []; }).then(function (us) {
+    $("#top").hidden = true;
+    $("#view").innerHTML = '<div class="center view"><div class="card" style="text-align:left;width:100%"><h1>Szia!</h1><p class="muted">Add meg a neved, így látod a haladásod és a heti ranglistát.</p>' +
+      '<input type="text" id="nm" list="nml" placeholder="Teljes név" autocomplete="name"><datalist id="nml">' + us.map(function (u) { return '<option value="' + esc(u.name) + '">'; }).join("") + '</datalist>' +
+      '<div style="height:12px"></div><button class="btn" id="nmok">Kezdjük</button></div></div>';
+    $("#nmok").onclick = function () { var v = $("#nm").value.trim(); if (v.length < 3) { $("#nm").classList.add("shake"); return; } LS.set("kk_name", v); loadMe(v); };
+  });
+}
+function loadMe(name) {
+  S.uid = uidOf(name);
+  return getD("kk_users", S.uid).then(function (u) {
+    S.me = Object.assign(blankUser(name), u || {}); S.me.name = S.me.name || name;
+    if (!u) saveMe();
+    Home.open();
+  });
+}
+
+/* ===================== Felső sáv ===================== */
+function topbar(kind, opts) {
+  $("#top").hidden = false; var h = "";
+  if (kind === "home") {
+    var st = liveStreak();
+    h = '<span class="chip streak' + (todayXp() ? "" : " off") + '" title="Napi sorozat">' + IC.bolt + st + '</span><span class="chip xp" title="XP">' + IC.gem + S.me.xp + '</span><span class="sp"></span>' +
+      '<button class="iconbtn' + (S.voice ? " on" : "") + '" id="tb-voice" title="Hangos mód">' + (S.voice ? IC.sound : IC.mute) + '</button>' +
+      (S.admin ? '<button class="iconbtn" id="tb-admin" title="Vezetői felület">' + IC.gear + '</button>' : "");
+  } else if (kind === "lesson") {
+    h = '<button class="iconbtn" id="tb-x" title="Kilépés">' + IC.close + '</button><div class="prog"><i id="prog"></i></div>' +
+      '<button class="iconbtn' + (S.voice ? " on" : "") + '" id="tb-voice" title="Hangos mód">' + (S.voice ? IC.sound : IC.mute) + '</button>';
+  } else {
+    h = '<button class="iconbtn" id="tb-back" title="Vissza">' + IC.back + '</button><b>' + esc(opts && opts.title || "") + '</b><span class="sp"></span>';
+  }
+  $("#topin").innerHTML = h;
+  var v = $("#tb-voice"); if (v) v.onclick = function () { S.voice = !S.voice; LS.set("kk_voice", S.voice); if (!S.voice) TTS.stop(); v.classList.toggle("on", S.voice); v.innerHTML = S.voice ? IC.sound : IC.mute; toast(S.voice ? "Hangos mód: a kifogásokat felolvasom, válaszolhatsz szóban." : "Írásos mód"); };
+  var a = $("#tb-admin"); if (a) a.onclick = function () { location.hash = "#admin"; Admin.open(); };
+  var b = $("#tb-back"); if (b) b.onclick = function () { Home.open(); };
+  var x = $("#tb-x"); if (x) x.onclick = function () { if (confirm("Biztosan kilépsz? A lecke haladása elvész.")) { TTS.stop(); STT.stop(); hideSheet(); Home.open(); } };
+}
+function view(html) { var v = $("#view"); v.innerHTML = '<div class="view">' + html + '</div>'; window.scrollTo(0, 0); return v; }
+
+/* ===================== Kezdőlap ===================== */
+var Home = {
+  open: function () {
+    document.body.classList.remove("admin-mode"); hideSheet(); topbar("home");
+    if (location.hash === "#admin") history.replaceState(null, "", location.pathname);
+    var goal = S.cfg.dailyGoal, tx = todayXp(), k = Math.min(1, tx / goal), L = lvlOf(S.me.xp), nx = nextLevel(), due = dueItems().length, C = 2 * Math.PI * 36;
+    var h = '<div class="hero"><div><div class="muted small">Szia, ' + esc(S.me.name.split(" ").slice(-1)[0]) + '!</div><h1>' + (tx >= goal ? "Mai cél teljesítve" : "Napi 5 perc gyakorlás") + '</h1>' +
+      '<div class="small muted">' + L.l + '. szint</div><div class="lvlbar"><i id="lvlb" style="width:0"></i></div></div>' +
+      '<div class="ring"><svg viewBox="0 0 84 84"><circle class="bg" cx="42" cy="42" r="36"/><circle class="fg" id="ringfg" cx="42" cy="42" r="36" stroke-dasharray="' + C + '" stroke-dashoffset="' + C + '"/></svg><b>' + tx + '/' + goal + '<br>XP</b></div></div>';
+    h += '<div style="height:14px"></div>' + (nx ? '<button class="btn" id="go">' + IC.play.replace("<svg", '<svg style="width:20px;height:20px;fill:currentColor"') + 'Folytatás: ' + esc(topicOf(nx.id).title) + ' · ' + esc(nx.title) + '</button>' : '<button class="btn ghost" id="go">Minden szint kész. Gyakorolj kártyákkal!</button>');
+    h += '<div class="modes">' +
+      '<button class="mode" data-m="quick">' + IC.cards + '<b>Gyors kártyák</b><span>Kifogások egymás után, időre</span></button>' +
+      '<button class="mode" data-m="role">' + IC.chat + '<b>Szerepjáték</b><span>Egy ügyfél, végig</span></button>' +
+      '<button class="mode" data-m="review">' + IC.repeat + '<b>Ismétlés</b><span>Ahol elakadtál</span>' + (due ? '<i class="badge">' + due + '</i>' : "") + '</button>' +
+      '<button class="mode" data-m="rank">' + IC.trophy + '<b>Heti ranglista</b><span>A csapat ezen a héten</span></button>' +
+      '</div><div class="modes" style="grid-template-columns:1fr"><button class="mode" data-m="badges">' + IC.medal + '<b>Jelvények</b><span>' + S.me.badges.length + ' / ' + BADGES.length + ' megszerezve</span></button></div>';
+    h += '<h2>Tanösvény</h2>';
+    var zz = [0, 46, 64, 46, 0, -46, -64, -46];
+    S.C.topics.forEach(function (t) {
+      var dn = t.levels.filter(function (l) { return isDone(l.id); }).length;
+      h += '<section class="topic"><div class="topic-h"><div><b>' + esc(t.title) + '</b><br><span>' + dn + ' / ' + t.levels.length + ' szint</span></div></div><div class="path">';
+      t.levels.forEach(function (l, j) {
+        var open = isOpen(t, j), done = isDone(l.id), st = done ? S.me.done[l.id].stars : 0, isNext = nx && nx.id === l.id, empty = !itemsOf(l.id).length;
+        h += '<div class="node ' + (done ? "done" : open ? "" : "locked") + (isNext ? " next" : "") + '" style="--x:' + zz[j % zz.length] + 'px"><button data-l="' + l.id + '"' + (open && !empty ? "" : " disabled") + ' aria-label="' + esc(l.title) + '">' + (done ? IC.check : open ? IC.star : IC.lock) + '</button>' +
+          (done ? '<div class="stars">' + [1, 2, 3].map(function (n) { return IC.star.replace("<svg", '<svg class="' + (n <= st ? "on" : "") + '"'); }).join("") + '</div>' : "") +
+          '<small>' + esc(l.title) + (empty ? " · üres" : "") + '</small></div>';
+      });
+      h += '</div></section>';
+    });
+    var v = view(h);
+    requestAnimationFrame(function () { setTimeout(function () { var r = $("#ringfg"); if (r) r.style.strokeDashoffset = C * (1 - k); var b = $("#lvlb"); if (b) b.style.width = Math.round(L.p * 100) + "%"; }, 60); });
+    $("#go").onclick = function () { FX.tap(); if (nx) Lesson.start({ kind: "level", level: nx.id }); else Lesson.start({ kind: "quick" }); };
+    $$("[data-l]", v).forEach(function (b) { b.onclick = function () { FX.tap(); Lesson.start({ kind: "level", level: b.getAttribute("data-l") }); }; });
+    $$("[data-m]", v).forEach(function (b) { b.onclick = function () { FX.tap(); var m = b.getAttribute("data-m");
+      if (m === "quick") Lesson.start({ kind: "quick" }); else if (m === "role") Role.pick(); else if (m === "review") { if (!dueItems().length) toast("Most nincs ismételnivaló. Szép munka!"); else Lesson.start({ kind: "review" }); }
+      else if (m === "rank") Rank.open(); else if (m === "badges") Badges.open(); }; });
+  }
+};
+
+/* ===================== Lecke-motor ===================== */
+/* opts.kind: level | quick | review | role ; opts.client (role) ; opts.topic (role) */
+var L = null;
+var Lesson = {
+  start: function (opts) {
+    var items, client;
+    if (opts.kind === "level") { items = shuffle(itemsOf(opts.level)).slice(0, Math.max(S.cfg.lessonLen, 2)); client = clientById(levelById(opts.level).client); }
+    else if (opts.kind === "quick") { var pool = unlockedItems().filter(function (i) { return i.type !== "open"; }); if (pool.length < 3) pool = unlockedItems(); items = shuffle(pool).slice(0, S.cfg.quickLen); }
+    else if (opts.kind === "review") { items = shuffle(dueItems()).slice(0, 5); }
+    else if (opts.kind === "role") { items = shuffle(S.C.items.filter(function (i) { var t = topicOf(i.level); return !opts.topic || (t && t.id === opts.topic); })).slice(0, 3); client = clientById(opts.client); }
+    if (!items || !items.length) { toast("Ehhez még nincs kifogás feltöltve."); return; }
+    L = { opts: opts, items: items, i: 0, res: [], client: client, history: [] };
+    topbar("lesson"); Lesson.show();
+  },
+  clientFor: function (item) { return L.client || clientById((levelById(item.level) || {}).client); },
+  show: function () {
+    hideSheet(); TTS.stop();
+    var it = L.items[L.i], cl = Lesson.clientFor(it), role = L.opts.kind === "role", type = role ? "open" : it.type;
+    $("#prog").style.width = Math.round(100 * L.i / L.items.length) + "%";
+    var h = '<div class="lesson">' + (L.opts.kind === "quick" ? '<div class="timer"><i id="tmr"></i></div>' : "");
+    h += '<div class="task">' + (type === "mc" ? "Mit válaszolsz?" : type === "order" ? "Rakd sorba a választ!" : role ? "Szerepjáték · " + esc(cl.name) + " ügyfél" : "Válaszolj saját szavaiddal!") + '</div>';
+    h += '<div class="chat" id="chat">' + clientBubble(cl, it.prompt) + '</div><div id="ex"></div><div class="foot" id="foot"></div></div>';
+    view(h);
+    var ex = $("#ex"), foot = $("#foot");
+    if (type === "mc") Ex.mc(it, ex, foot); else if (type === "order") Ex.order(it, ex, foot); else Ex.open(it, ex, foot);
+    TTS.speak(it.prompt);
+    if (L.opts.kind === "quick") Lesson.timer();
+  },
+  timer: function () {
+    var sec = S.cfg.quickSec, t0 = performance.now(), el = $("#tmr"), idx = L.i;
+    L.t0 = t0;
+    (function f(t) { if (!L || L.i !== idx || L.checked) return; var k = 1 - (t - t0) / (sec * 1000); if (el) el.style.width = Math.max(0, k * 100) + "%"; if (k <= 0) { Lesson.result(0, [], "Lejárt az idő.", null); return; } requestAnimationFrame(f); })(t0);
+  },
+  // Egy feladat eredménye → alsó lap
+  result: function (score, hits, fbText, reply) {
+    if (L.checked) return; L.checked = true;
+    var ft = $("#foot"); if (ft) ft.style.display = "none"; var ls = $(".lesson"); if (ls) ls.style.minHeight = "0";
+    var it = L.items[L.i], cl = Lesson.clientFor(it), good = score >= 70, mid = score >= 40 && !good;
+    var bonus = 0; if (L.opts.kind === "quick" && good && L.t0) { var used = (performance.now() - L.t0) / 1000; bonus = used < S.cfg.quickSec / 2 ? 2 : 0; }
+    L.res.push({ id: it.id, score: score, hits: hits || [], bonus: bonus });
+    (good ? FX.good : FX.bad)();
+    if (!good) { var ex = $("#ex"); ex && ex.classList.add("shake"); }
+    var showSample = score < 100 && it.sample;
+    var h = '<h3>' + (good ? pick(["Szép!", "Ez az!", "Pontosan!", "Így kell!"]) : mid ? "Majdnem!" : "Ezen még csiszolj") + (bonus ? ' <span class="pill ok">+' + bonus + ' gyorsasági XP</span>' : "") + '</h3>' +
+      (fbText ? '<p>' + esc(fbText) + '</p>' : "") +
+      (hits && hits.length ? '<p class="small">' + hits.map(function (x) { return '<span class="pill ' + (x.ok ? "ok" : "hot") + '">' + (x.ok ? "✓ " : "✗ ") + esc(x.name) + '</span>'; }).join(" ") + '</p>' : "") +
+      (showSample ? '<div class="sample"><b>Így is mondhatod</b>' + esc(it.sample) + '</div>' : "") +
+      '<button class="btn ' + (good ? "ok" : mid ? "" : "hot") + '" id="next">Tovább</button>';
+    showSheet(good ? "good" : mid ? "mid" : "bad", h);
+    if (reply) Lesson.reply(cl, reply);
+    $("#next").onclick = function () { FX.tap(); L.checked = false; L.i++; if (L.i < L.items.length) Lesson.show(); else Lesson.finish(); };
+  },
+  reply: function (cl, text) {
+    var chat = $("#chat"); if (!chat) return;
+    var d = document.createElement("div"); d.innerHTML = clientBubble(cl, "", true); chat.appendChild(d.firstChild);
+    setTimeout(function () { var last = chat.lastElementChild; if (last) last.outerHTML = clientBubble(cl, text); var nb = chat.lastElementChild; if (nb) { var sh = $("#sheet").offsetHeight, rb = nb.getBoundingClientRect().bottom; window.scrollBy({ top: rb - (innerHeight - sh) + 12, behavior: "smooth" }); } TTS.speak(text); }, 800);
+  },
+  finish: function () {
+    hideSheet(); TTS.stop();
+    var n = L.res.length, avg = Math.round(L.res.reduce(function (s, r) { return s + r.score; }, 0) / n), bonus = L.res.reduce(function (s, r) { return s + r.bonus; }, 0);
+    var xp = 10 + Math.round(avg / 10) + bonus + (avg === 100 ? 5 : 0), stars = avg >= 90 ? 3 : avg >= 70 ? 2 : avg >= 50 ? 1 : 0;
+    var u = S.me, d = today(), prevStreak = liveStreak(), oldBadges = u.badges.slice();
+    // XP, sorozat
+    u.xp += xp; u.days[d] = (u.days[d] || 0) + xp; u.lessons++;
+    if (u.lastDay !== d) { u.streak = u.lastDay === addDays(d, -1) ? u.streak + 1 : 1; u.lastDay = d; }
+    u.best = Math.max(u.best, u.streak); if (avg === 100) u.perfect++; if (L.opts.kind === "review") u.reviews++;
+    if (L.opts.kind === "level") { var lid = L.opts.level, cur = u.done[lid] || { stars: 0, best: 0 }; u.done[lid] = { stars: Math.max(cur.stars, stars), best: Math.max(cur.best, avg) }; }
+    // Okos ismétlés + statisztika
+    L.res.forEach(function (r) {
+      var s = u.stats[r.id] || { t: 0, s: 0 }; s.t++; s.s += r.score; u.stats[r.id] = s;
+      var w = u.weak[r.id];
+      if (r.score < 70) u.weak[r.id] = { n: (w ? w.n : 0) + 1, due: addDays(d, w ? 1 : 0) };
+      else if (w) { if (r.score >= 85 || w.n <= 1) delete u.weak[r.id]; else u.weak[r.id] = { n: w.n - 1, due: addDays(d, 3) }; }
+    });
+    // Elakadás nyoma (vezetői statisztikához)
+    BADGES.forEach(function (b) { if (u.badges.indexOf(b.id) < 0 && b.test(u)) u.badges.push(b.id); });
+    var newB = u.badges.filter(function (b) { return oldBadges.indexOf(b) < 0; });
+    saveMe();
+    // Visszajelzés összesítése
+    var good = {}, bad = {}; L.res.forEach(function (r) { r.hits.forEach(function (x) { (x.ok ? good : bad)[x.name] = x.desc || x.name; }); });
+    var worst = L.res.slice().sort(function (a, b) { return a.score - b.score; })[0], wi = itemById(worst.id);
+    var goalHit = todayXp() >= S.cfg.dailyGoal && todayXp() - xp < S.cfg.dailyGoal;
+    topbar("plain", { title: "" }); $("#tb-back").style.visibility = "hidden";
+    var h = '<div class="result"><div class="muted">' + (L.opts.kind === "role" ? "Szerepjáték vége" : L.opts.kind === "quick" ? "Gyors kártyák vége" : L.opts.kind === "review" ? "Ismétlés kész" : "Lecke kész") + '</div>' +
+      '<div class="score pop"><span id="sc">0</span>%</div>' +
+      '<div class="stars" style="justify-content:center;gap:6px">' + [1, 2, 3].map(function (k) { return IC.star.replace("<svg", '<svg class="pop ' + (k <= stars ? "on" : "") + '" style="width:30px;height:30px;animation-delay:' + (0.3 + k * .15) + 's"'); }).join("") + '</div>' +
+      '<div class="tiles3 rise" style="animation-delay:.4s"><div><b>+<span id="xpn">0</span></b><span>XP</span></div><div><b>' + IC.bolt.replace("<svg", '<svg style="width:18px;height:18px;fill:var(--hot);vertical-align:-3px"') + u.streak + '</b><span>napos sorozat</span></div><div><b>' + todayXp() + '/' + S.cfg.dailyGoal + '</b><span>mai cél</span></div></div>' +
+      (u.streak > prevStreak ? '<p class="rise" style="animation-delay:.6s"><span class="pill ok">Sorozat: ' + u.streak + ' nap!</span></p>' : "") +
+      (goalHit ? '<p class="rise" style="animation-delay:.7s"><span class="pill ok">Mai cél teljesítve</span></p>' : "") +
+      '<div class="card fb rise" style="animation-delay:.8s">' +
+      (Object.keys(good).length ? '<b>Ami jól ment</b><ul>' + Object.keys(good).map(function (k) { return "<li>" + esc(k) + "</li>"; }).join("") + '</ul>' : "") +
+      (Object.keys(bad).length ? '<b>Legközelebb erre figyelj</b><ul>' + Object.keys(bad).map(function (k) { return "<li>" + esc(bad[k]) + "</li>"; }).join("") + '</ul>' : "") +
+      (wi && worst.score < 100 && wi.sample ? '<b>Mondd inkább így</b><p class="small" style="margin:6px 0 0">„' + esc(wi.sample) + '”</p>' : (!Object.keys(bad).length ? '<b>Hibátlan kör!</b>' : "")) +
+      '</div>' +
+      (newB.length ? '<h2>Új jelvény</h2><div class="badges">' + newB.map(function (id) { var b = BADGES.filter(function (x) { return x.id === id; })[0]; return '<div class="bdg pop"><div class="ic">' + IC.medal.replace("<svg", '<svg style="fill:none;stroke:#fff;stroke-width:2"') + '</div><b>' + esc(b.name) + '</b></div>'; }).join("") + '</div>' : "") +
+      '<div style="height:16px"></div><button class="btn" id="done">Tovább</button></div>';
+    view(h); (avg >= 50 ? FX.win : FX.bad)();
+    countUp($("#sc"), avg, 900); countUp($("#xpn"), xp, 900);
+    $("#done").onclick = function () { L = null; Home.open(); };
+  }
+};
+function clientBubble(cl, text, typing) {
+  var hh = hue(cl.id || cl.name);
+  return '<div class="client rise"><div class="ava" style="background:hsl(' + hh + ' 45% 42%)">' + IC.person + '</div><div class="bubble"><span class="who">' + esc(cl.name || "Ügyfél") + '</span>' +
+    (typing ? '<span class="typing"><span></span><span></span><span></span></span>' : esc(text) + '<button class="say" data-t="' + esc(text) + '" aria-label="Felolvasás">' + IC.sound + '</button>') + '</div></div>';
+}
+function showSheet(cls, html) { var s = $("#sheet"); s.className = "sheet " + cls; $("#sheetin").innerHTML = html; requestAnimationFrame(function () { s.classList.add("show"); document.body.style.paddingBottom = s.offsetHeight + "px"; }); }
+function hideSheet() { var s = $("#sheet"); s.classList.remove("show"); document.body.style.paddingBottom = ""; }
+
+/* ===================== Feladattípusok ===================== */
+var Ex = {
+  mc: function (it, ex, foot) {
+    var opts = shuffle(it.options || []), sel = -1;
+    ex.innerHTML = '<div class="opts">' + opts.map(function (o, i) { return '<button class="opt" data-i="' + i + '">' + esc(o.t) + '</button>'; }).join("") + '</div>';
+    foot.innerHTML = '<button class="btn" id="chk" disabled>Ellenőrzés</button>';
+    $$(".opt", ex).forEach(function (b) { b.onclick = function () { if (L.checked) return; FX.tap(); $$(".opt", ex).forEach(function (x) { x.classList.remove("sel"); }); b.classList.add("sel"); sel = +b.getAttribute("data-i"); $("#chk").disabled = false; }; });
+    $("#chk").onclick = function () {
+      var o = opts[sel], cl = Lesson.clientFor(it);
+      $$(".opt", ex).forEach(function (x, i) { if (opts[i].ok) x.classList.add("right"); else if (i === sel) x.classList.add("wrong"); });
+      Lesson.result(o.ok ? 100 : 0, [], o.fb || "", o.ok ? pick(cl.pos) : pick(cl.neg));
+    };
+  },
+  order: function (it, ex, foot) {
+    var parts = (it.parts || []).map(function (t, i) { return { t: t, i: i }; }), pool = shuffle(parts), ans = [];
+    if (pool.length > 1 && pool.every(function (p, k) { return p.i === k; })) pool.reverse();
+    ex.innerHTML = '<div class="zone ans" id="ans" aria-label="Válaszod"></div><div class="zone" id="pool"></div><p class="small muted">Koppints a darabokra, vagy húzd őket a helyükre.</p>';
+    foot.innerHTML = '<button class="btn" id="chk" disabled>Ellenőrzés</button>';
+    function render() {
+      $("#ans").innerHTML = ans.map(function (p, k) { return '<span class="piece" data-z="a" data-k="' + k + '">' + esc(p.t) + '</span>'; }).join("");
+      $("#pool").innerHTML = pool.map(function (p, k) { return '<span class="piece" data-z="p" data-k="' + k + '">' + esc(p.t) + '</span>'; }).join("");
+      $("#chk").disabled = pool.length > 0;
+      $$(".piece", ex).forEach(bind);
+    }
+    function move(z, k, toIdx) {
+      if (L.checked) return; FX.tap();
+      var src = z === "a" ? ans : pool, p = src.splice(k, 1)[0];
+      if (toIdx == null) (z === "a" ? pool : ans).push(p); else ans.splice(Math.min(toIdx, ans.length), 0, p);
+      render();
+    }
+    // Húzás: mutatóeseményekkel (telefonon is). Rövid koppintás = áthelyezés a másik zónába.
+    function bind(el) {
+      el.addEventListener("pointerdown", function (e) {
+        if (L.checked) return;
+        var z = el.getAttribute("data-z"), k = +el.getAttribute("data-k"), sx = e.clientX, sy = e.clientY, ghost = null, moved = false;
+        el.setPointerCapture(e.pointerId);
+        function mv(ev) {
+          if (!moved && Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 8) return;
+          if (!moved) { moved = true; ghost = el.cloneNode(true); ghost.classList.add("drag"); document.body.appendChild(ghost); el.classList.add("ghost"); }
+          ghost.style.left = (ev.clientX - ghost.offsetWidth / 2) + "px"; ghost.style.top = (ev.clientY - ghost.offsetHeight / 2) + "px";
+        }
+        function up(ev) {
+          el.removeEventListener("pointermove", mv); el.removeEventListener("pointerup", up); el.removeEventListener("pointercancel", up);
+          if (!moved) { move(z, k); return; }
+          ghost.remove(); el.classList.remove("ghost");
+          var ar = $("#ans").getBoundingClientRect();
+          if (ev.clientY >= ar.top - 10 && ev.clientY <= ar.bottom + 10) {
+            var idx = ans.length; $$('#ans .piece').forEach(function (pe, j) { var r = pe.getBoundingClientRect(); if (ev.clientY < r.bottom && ev.clientX < r.left + r.width / 2 && idx === ans.length) idx = j; });
+            if (z === "a") { var p = ans.splice(k, 1)[0]; if (idx > k) idx--; ans.splice(idx, 0, p); FX.tap(); render(); } else move(z, k, idx);
+          } else if (z === "a") move(z, k);
+        }
+        el.addEventListener("pointermove", mv); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+      });
+    }
+    render();
+    $("#chk").onclick = function () {
+      var right = 0; $$("#ans .piece").forEach(function (pe, j) { var ok = ans[j].i === j; if (ok) right++; pe.classList.add(ok ? "right" : "wrong"); });
+      var sc = Math.round(100 * right / parts.length), cl = Lesson.clientFor(it);
+      Lesson.result(sc, [], sc === 100 ? "Pont jó sorrend: elismerés, javaslat, kérdés." : "A jó sorrend: elismerés → javaslat → kérdés.", sc >= 70 ? pick(cl.pos) : pick(cl.neg));
+    };
+  },
+  open: function (it, ex, foot) {
+    var role = L.opts.kind === "role";
+    ex.innerHTML = (STT.ok ? '<button class="mic" id="mic">' + IC.mic + '<span>Nyomd és beszélj</span></button>' : "") +
+      '<textarea id="ans" placeholder="' + (STT.ok ? "…vagy írd be a válaszod" : "Írd be a válaszod") + '"></textarea>';
+    foot.innerHTML = '<button class="btn" id="chk" disabled>' + (role ? "Elküldöm" : "Ellenőrzés") + '</button>';
+    var ta = $("#ans"); ta.oninput = function () { $("#chk").disabled = words(ta.value) < 2; };
+    if (!S.voice && !STT.ok) setTimeout(function () { ta.focus(); }, 300);
+    var mic = $("#mic");
+    if (mic) {
+      var base = "";
+      var startRec = function (e) { e.preventDefault(); if (L.checked || STT.rec) return; TTS.stop(); base = ta.value ? ta.value + " " : ""; mic.classList.add("rec"); mic.querySelector("span").textContent = "Hallgatlak… engedd el, ha kész"; vib(15);
+        if (!STT.start(function (t) { ta.value = base + t; ta.oninput(); }, function () { mic.classList.remove("rec"); mic.querySelector("span").textContent = "Nyomd és beszélj"; })) { mic.classList.remove("rec"); toast("A beszédfelismerés itt nem elérhető. Írd be a választ."); } };
+      var stopRec = function () { STT.stop(); };
+      mic.addEventListener("pointerdown", startRec); mic.addEventListener("pointerup", stopRec); mic.addEventListener("pointerleave", stopRec); mic.addEventListener("pointercancel", stopRec);
+    }
+    $("#chk").onclick = function () {
+      var a = ta.value.trim(), cl = Lesson.clientFor(it); if (!a) return;
+      $("#chk").disabled = true; ta.disabled = true; if (mic) mic.disabled = true;
+      var chat = $("#chat"), me = document.createElement("div"); me.className = "me rise"; me.textContent = a; chat.appendChild(me);
+      ex.style.display = "none";
+      AI.respond(it, cl, a, L.history).then(function (r) {
+        L.history.push({ client: it.prompt, me: a });
+        Lesson.result(r.score, r.hits, r.tip || "", r.reply);
+      });
+    };
+  }
+};
+
+/* ===================== Szerepjáték: ügyfél és téma választása ===================== */
+var Role = {
+  pick: function () {
+    var tps = S.C.topics.filter(function (t) { return t.levels.some(function (l) { return itemsOf(l.id).length; }); });
+    modal('<h2 style="margin-top:0">Szerepjáték</h2><p class="muted small">Válassz ügyféltípust és témát. A nehezebb ügyfél több XP-t ér.</p>' +
+      '<div class="ed"><label>Ügyfél<select id="rc">' + S.C.clients.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + ' · ' + "●".repeat(c.level || 1) + '</option>'; }).join("") + '</select></label>' +
+      '<label>Téma<select id="rt"><option value="">Vegyes</option>' + tps.map(function (t) { return '<option value="' + t.id + '">' + esc(t.title) + '</option>'; }).join("") + '</select></label></div>' +
+      '<button class="btn" id="rgo">Indulás</button>', function (b) {
+      $("#rgo", b).onclick = function () { var c = $("#rc", b).value, t = $("#rt", b).value; closeModal(); Lesson.start({ kind: "role", client: c, topic: t }); };
+    });
+  }
+};
+
+/* ===================== Ranglista, jelvények ===================== */
+var Rank = {
+  open: function () {
+    topbar("plain", { title: "Heti ranglista" });
+    view('<p class="muted">Betöltés…</p>');
+    allUsers().then(function (us) {
+      us.forEach(function (u) { u._w = weekXp(u); }); us.sort(function (a, b) { return b._w - a._w; });
+      view('<p class="muted small">Hétfőtől számolva. A hét végén újraindul.</p>' + us.map(function (u, i) {
+        return '<div class="rank rise' + (u._id === S.uid ? " me" : "") + '" style="animation-delay:' + i * .04 + 's"><span class="n">' + (i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1) + '</span><span class="av" style="background:hsl(' + hue(u.name) + ' 45% 42%)">' + esc(initials(u.name)) + '</span><b>' + esc(u.name) + '</b><span class="x">' + u._w + ' XP</span></div>';
+      }).join("") || '<p class="muted">Még senki nem gyakorolt ezen a héten.</p>');
+    }).catch(function () { view('<p class="muted">Nem sikerült betölteni.</p>'); });
+  }
+};
+var Badges = {
+  open: function () {
+    topbar("plain", { title: "Jelvények" });
+    view('<div class="badges">' + BADGES.map(function (b, i) { var on = S.me.badges.indexOf(b.id) > -1;
+      return '<div class="bdg rise' + (on ? "" : " off") + '" style="animation-delay:' + i * .04 + 's"><div class="ic">' + IC.medal.replace("<svg", '<svg style="fill:none;stroke:#fff;stroke-width:2"') + '</div><b>' + esc(b.name) + '</b><span>' + esc(b.d) + '</span></div>'; }).join("") + '</div>');
+  }
+};
+
+/* ===================== VEZETŐI FELÜLET ===================== */
+var Admin = {
+  tab: "tartalom", C: null, cfg: null, dirty: false,
+  open: function () {
+    document.body.classList.add("admin-mode"); hideSheet();
+    Admin.C = clone(S.C); Admin.cfg = clone(S.cfg); Admin.dirty = false;
+    $("#top").hidden = false;
+    $("#topin").innerHTML = '<b>Kifogáskezelő (béta) · vezetői felület</b><span class="sp"></span><button class="btn sm" id="ad-play">Gyakorló nézet</button>';
+    $("#ad-play").onclick = function () {
+      if (Admin.dirty && !confirm("Van mentetlen módosítás. Így is továbblépsz?")) return;
+      if (window.top !== window) { try { window.top.location.href = "kifogas.html"; return; } catch (e) {} }
+      history.replaceState(null, "", location.pathname); who();
+    };
+    Admin.render();
+  },
+  render: function () {
+    var tabs = [["tartalom", "Témák és szintek"], ["kifogas", "Kifogások"], ["ugyfel", "Ügyféltípusok"], ["szempont", "Értékelési szempontok"], ["stat", "Statisztika"], ["beall", "Beállítások"]];
+    var h = '<div class="tabs">' + tabs.map(function (t) { return '<button data-t="' + t[0] + '" class="' + (Admin.tab === t[0] ? "on" : "") + '">' + t[1] + '</button>'; }).join("") + '</div><div id="ad"></div>';
+    view(h);
+    $$(".tabs button").forEach(function (b) { b.onclick = function () { Admin.tab = b.getAttribute("data-t"); Admin.render(); }; });
+    Admin[Admin.tab]($("#ad"));
+    Admin.height();
+  },
+  height: function () { if (window.parent !== window) setTimeout(function () { parent.postMessage({ embh: document.documentElement.scrollHeight }, location.origin); }, 50); },
+  mark: function () { Admin.dirty = true; var s = $("#ad-save"); if (s) { s.disabled = false; s.textContent = "Mentés"; } },
+  savebar: function () { return '<div class="savebar"><button class="btn sm" id="ad-save"' + (Admin.dirty ? "" : " disabled") + '>' + (Admin.dirty ? "Mentés" : "Mentve") + '</button><span class="small muted">A munkatársi felület mentés után frissül.</span></div>'; },
+  bindSave: function (root) {
+    var b = $("#ad-save", root); if (!b) return;
+    b.onclick = function () {
+      b.disabled = true; b.textContent = "Mentés…";
+      Promise.all([setD("kk_content", "main", Admin.C), setD("kk_content", "config", Admin.cfg)]).then(function () { S.C = clone(Admin.C); S.cfg = clone(Admin.cfg); Admin.dirty = false; b.textContent = "Mentve"; toast("Mentve"); })
+        .catch(function () { b.disabled = false; b.textContent = "Mentés"; toast("Nem sikerült menteni."); });
+    };
+  },
+  // Általános mezőkötés: data-f="útvonal" (pl. topics.0.title), szövegdoboz soronként tömbbé: data-arr
+  bindFields: function (root) {
+    $$("[data-f]", root).forEach(function (el) {
+      el.addEventListener(el.type === "checkbox" || el.tagName === "SELECT" ? "change" : "input", function () {
+        var path = el.getAttribute("data-f").split("."), o = Admin, v;
+        if (el.type === "checkbox") v = el.checked; else if (el.type === "number") v = +el.value; else if (el.hasAttribute("data-arr")) v = el.value.split(/\n|,(?=\s)/).map(function (s) { return s.trim(); }).filter(Boolean); else v = el.value;
+        for (var i = 0; i < path.length - 1; i++) o = o[path[i]];
+        o[path[path.length - 1]] = v; Admin.mark();
+      });
+    });
+    Admin.bindSave(root);
+  },
+
+  tartalom: function (el) {
+    var C = Admin.C, cls = C.clients;
+    var h = '<p class="muted small">A témakörök a tanösvény szakaszai. A szintek sorban nyílnak: a következő az előző teljesítésével. Minden szinthez ügyféltípus tartozik: nehezebb szinthez nehezebb ügyfél.</p>';
+    C.topics.forEach(function (t, ti) {
+      h += '<div class="card ed"><div class="row"><label>Témakör<input type="text" data-f="C.topics.' + ti + '.title" value="' + esc(t.title) + '"></label><label>Értékelés típusa<select data-f="C.topics.' + ti + '.group"><option value="kifogas"' + (t.group === "kifogas" ? " selected" : "") + '>Kifogáskezelés</option><option value="ajanlas"' + (t.group === "ajanlas" ? " selected" : "") + '>Ajánláskérés</option></select></label></div>';
+      t.levels.forEach(function (l, li) {
+        h += '<div class="row3"><label>' + (li + 1) + '. szint<input type="text" data-f="C.topics.' + ti + '.levels.' + li + '.title" value="' + esc(l.title) + '"></label><label>Ügyfél<select data-f="C.topics.' + ti + '.levels.' + li + '.client">' + cls.map(function (c) { return '<option value="' + c.id + '"' + (c.id === l.client ? " selected" : "") + '>' + esc(c.name) + '</option>'; }).join("") + '</select></label><button class="del" data-dl="' + ti + '.' + li + '" title="Szint törlése">Törlés</button></div>' +
+          '<div class="small muted">' + itemsOf.call(null, l.id) .length + ' kifogás ehhez a szinthez</div>';
+      });
+      h += '<div style="display:flex;gap:8px"><button class="btn sm ghost" data-al="' + ti + '">+ Szint</button><span class="sp"></span><button class="del" data-dt="' + ti + '">Témakör törlése</button></div></div>';
+    });
+    h += '<button class="btn sm ghost" id="at">+ Új témakör</button>' + Admin.savebar();
+    el.innerHTML = h;
+    $$("[data-al]", el).forEach(function (b) { b.onclick = function () { var t = C.topics[+b.getAttribute("data-al")]; t.levels.push({ id: rid("l_"), title: (t.levels.length + 1) + ". szint", client: (cls[Math.min(t.levels.length, cls.length - 1)] || {}).id || "" }); Admin.mark(); Admin.tartalom(el); }; });
+    $$("[data-dl]", el).forEach(function (b) { b.onclick = function () { var p = b.getAttribute("data-dl").split("."), lv = C.topics[+p[0]].levels[+p[1]]; var n = C.items.filter(function (i) { return i.level === lv.id; }).length; if (!confirm("Törlöd a(z) „" + lv.title + "” szintet" + (n ? " és a hozzá tartozó " + n + " kifogást" : "") + "?")) return; C.items = C.items.filter(function (i) { return i.level !== lv.id; }); C.topics[+p[0]].levels.splice(+p[1], 1); Admin.mark(); Admin.tartalom(el); }; });
+    $$("[data-dt]", el).forEach(function (b) { b.onclick = function () { var t = C.topics[+b.getAttribute("data-dt")]; if (!confirm("Törlöd a(z) „" + t.title + "” témakört minden szintjével és kifogásával?")) return; var ids = t.levels.map(function (l) { return l.id; }); C.items = C.items.filter(function (i) { return ids.indexOf(i.level) < 0; }); C.topics.splice(+b.getAttribute("data-dt"), 1); Admin.mark(); Admin.tartalom(el); }; });
+    $("#at", el).onclick = function () { C.topics.push({ id: rid("t_"), title: "Új témakör", group: "kifogas", levels: [{ id: rid("l_"), title: "Alapok", client: (cls[0] || {}).id || "" }] }); Admin.mark(); Admin.tartalom(el); };
+    Admin.bindFields(el); Admin.height();
+  },
+
+  kifogas: function (el) {
+    var C = Admin.C, lv = [];
+    C.topics.forEach(function (t) { t.levels.forEach(function (l) { lv.push({ id: l.id, name: t.title + " · " + l.title, group: t.group }); }); });
+    var f = Admin.kfFilter || (lv[0] && lv[0].id) || "";
+    var h = '<div class="ed"><label>Szint<select id="kf">' + lv.map(function (l) { return '<option value="' + l.id + '"' + (l.id === f ? " selected" : "") + '>' + esc(l.name) + '</option>'; }).join("") + '</select></label></div>';
+    C.items.forEach(function (it, ii) {
+      if (it.level !== f) return;
+      h += '<div class="card ed"><div class="row"><label>Feladattípus<select data-f="C.items.' + ii + '.type" data-re="1"><option value="mc"' + (it.type === "mc" ? " selected" : "") + '>Feleletválasztós</option><option value="order"' + (it.type === "order" ? " selected" : "") + '>Sorbarakós (húzogatós)</option><option value="open"' + (it.type === "open" ? " selected" : "") + '>Szabad válasz (írás / mikrofon)</option></select></label>' +
+        '<label>Szint<select data-f="C.items.' + ii + '.level" data-re="1">' + lv.map(function (l) { return '<option value="' + l.id + '"' + (l.id === it.level ? " selected" : "") + '>' + esc(l.name) + '</option>'; }).join("") + '</select></label></div>' +
+        '<label>Az ügyfél kifogása<textarea data-f="C.items.' + ii + '.prompt">' + esc(it.prompt) + '</textarea></label>';
+      if (it.type === "mc") {
+        (it.options || []).forEach(function (o, oi) {
+          h += '<div class="optrow"><label class="switch" title="Helyes válasz"><input type="checkbox" data-f="C.items.' + ii + '.options.' + oi + '.ok"' + (o.ok ? " checked" : "") + '><i></i></label><div class="ed" style="margin:0"><label>' + (oi + 1) + '. válaszlehetőség<textarea data-f="C.items.' + ii + '.options.' + oi + '.t">' + esc(o.t) + '</textarea></label><label>Visszajelzés, ha ezt választja<input type="text" data-f="C.items.' + ii + '.options.' + oi + '.fb" value="' + esc(o.fb || "") + '"></label><button class="del" data-do="' + ii + '.' + oi + '" style="justify-self:start">Lehetőség törlése</button></div></div>';
+        });
+        h += '<button class="btn sm ghost" data-ao="' + ii + '" style="justify-self:start">+ Válaszlehetőség</button>';
+      } else if (it.type === "order") {
+        h += '<label>A válasz darabjai, helyes sorrendben (soronként egy)<textarea data-arr data-f="C.items.' + ii + '.parts">' + esc((it.parts || []).join("\n")) + '</textarea></label>';
+      } else {
+        var grp = (lv.filter(function (l) { return l.id === it.level; })[0] || {}).group || "kifogas";
+        h += '<div class="small muted">Értékelési szempontok (ha egyik sincs bejelölve, a témakör alapértelmezett szempontjai számítanak):</div><div style="display:flex;flex-wrap:wrap;gap:6px">' +
+          C.criteria.map(function (c) { var on = (it.criteria || []).indexOf(c.id) > -1; return '<label class="pill' + (on ? " ok" : "") + '" style="cursor:pointer"><input type="checkbox" data-cr="' + ii + '" value="' + c.id + '"' + (on ? " checked" : "") + ' style="display:none">' + esc(c.name) + (c.group !== grp ? " (" + (c.group === "ajanlas" ? "ajánlás" : "kifogás") + ")" : "") + '</label>'; }).join("") + '</div>';
+      }
+      h += '<label>Mintamondat (a lecke végén ezt javasolja)<textarea data-f="C.items.' + ii + '.sample">' + esc(it.sample || "") + '</textarea></label><button class="del" data-di="' + ii + '" style="justify-self:start">Kifogás törlése</button></div>';
+    });
+    h += '<button class="btn sm ghost" id="ai">+ Új kifogás ehhez a szinthez</button>' + Admin.savebar();
+    el.innerHTML = h;
+    $("#kf", el).onchange = function () { Admin.kfFilter = this.value; Admin.kifogas(el); };
+    $$("[data-re]", el).forEach(function (s) { s.addEventListener("change", function () { var ii = +s.getAttribute("data-f").split(".")[2], it = C.items[ii]; if (it.type === "mc" && !it.options) it.options = [{ t: "", ok: true, fb: "" }, { t: "", ok: false, fb: "" }]; if (it.type === "order" && !it.parts) it.parts = []; setTimeout(function () { Admin.kifogas(el); }, 0); }); });
+    $$("[data-ao]", el).forEach(function (b) { b.onclick = function () { var it = C.items[+b.getAttribute("data-ao")]; (it.options = it.options || []).push({ t: "", ok: false, fb: "" }); Admin.mark(); Admin.kifogas(el); }; });
+    $$("[data-do]", el).forEach(function (b) { b.onclick = function () { var p = b.getAttribute("data-do").split("."); C.items[+p[0]].options.splice(+p[1], 1); Admin.mark(); Admin.kifogas(el); }; });
+    $$("[data-di]", el).forEach(function (b) { b.onclick = function () { if (!confirm("Törlöd ezt a kifogást?")) return; C.items.splice(+b.getAttribute("data-di"), 1); Admin.mark(); Admin.kifogas(el); }; });
+    $$("[data-cr]", el).forEach(function (cb) { cb.onchange = function () { var it = C.items[+cb.getAttribute("data-cr")], a = it.criteria = it.criteria || []; var k = a.indexOf(cb.value); if (cb.checked && k < 0) a.push(cb.value); if (!cb.checked && k > -1) a.splice(k, 1); cb.parentNode.classList.toggle("ok", cb.checked); Admin.mark(); }; });
+    $("#ai", el).onclick = function () { if (!f) return toast("Előbb hozz létre szintet."); C.items.push({ id: rid("i"), level: f, type: "mc", prompt: "", options: [{ t: "", ok: true, fb: "" }, { t: "", ok: false, fb: "" }], sample: "" }); Admin.mark(); Admin.kifogas(el); };
+    Admin.bindFields(el); Admin.height();
+  },
+
+  ugyfel: function (el) {
+    var C = Admin.C, h = '<p class="muted small">Az ügyféltípus határozza meg, hogyan reagál az ügyfél. A „Jellem” mezőt később az AI kapja meg szerepleírásként; a jó és rossz reakciók a teszt (helyi) módban és tartaléknak kellenek.</p>';
+    C.clients.forEach(function (c, ci) {
+      h += '<div class="card ed"><div class="row"><label>Név<input type="text" data-f="C.clients.' + ci + '.name" value="' + esc(c.name) + '"></label><label>Nehézség (1–3)<input type="number" min="1" max="3" data-f="C.clients.' + ci + '.level" value="' + (c.level || 1) + '"></label></div>' +
+        '<label>Jellem (AI-nak)<textarea data-f="C.clients.' + ci + '.persona">' + esc(c.persona || "") + '</textarea></label>' +
+        '<div class="row"><label>Reakció jó válaszra (soronként)<textarea data-arr data-f="C.clients.' + ci + '.pos">' + esc((c.pos || []).join("\n")) + '</textarea></label><label>Reakció gyenge válaszra (soronként)<textarea data-arr data-f="C.clients.' + ci + '.neg">' + esc((c.neg || []).join("\n")) + '</textarea></label></div>' +
+        '<button class="del" data-dc="' + ci + '" style="justify-self:start">Ügyféltípus törlése</button></div>';
+    });
+    h += '<button class="btn sm ghost" id="ac">+ Új ügyféltípus</button>' + Admin.savebar();
+    el.innerHTML = h;
+    $$("[data-dc]", el).forEach(function (b) { b.onclick = function () { if (C.clients.length < 2) return toast("Legalább egy ügyféltípus kell."); if (!confirm("Törlöd?")) return; C.clients.splice(+b.getAttribute("data-dc"), 1); Admin.mark(); Admin.ugyfel(el); }; });
+    $("#ac", el).onclick = function () { C.clients.push({ id: rid("c_"), name: "Új ügyfél", level: 1, persona: "", pos: [], neg: [] }); Admin.mark(); Admin.ugyfel(el); };
+    Admin.bindFields(el); Admin.height();
+  },
+
+  szempont: function (el) {
+    var C = Admin.C, h = '<p class="muted small">Ezek alapján értékel a szabad válaszoknál. Teszt módban kulcsszavakat keres (vesszővel vagy soronként), az AI később a leírást kapja meg. Különleges szabályok: kérdés = kérdéssel zárt-e; tömör = 8–70 szó, bizonytalankodás nélkül; konkrét = szám vagy kulcsszó.</p>';
+    C.criteria.forEach(function (c, ci) {
+      h += '<div class="card ed"><div class="row"><label>Szempont<input type="text" data-f="C.criteria.' + ci + '.name" value="' + esc(c.name) + '"></label><label>Csoport<select data-f="C.criteria.' + ci + '.group"><option value="kifogas"' + (c.group === "kifogas" ? " selected" : "") + '>Kifogáskezelés</option><option value="ajanlas"' + (c.group === "ajanlas" ? " selected" : "") + '>Ajánláskérés</option></select></label></div>' +
+        '<label>Tanács, ha hiányzik<input type="text" data-f="C.criteria.' + ci + '.desc" value="' + esc(c.desc || "") + '"></label>' +
+        '<div class="row"><label>Kulcsszavak<textarea data-arr data-f="C.criteria.' + ci + '.kw">' + esc((c.kw || []).join("\n")) + '</textarea></label><label>Különleges szabály<select data-f="C.criteria.' + ci + '.rule"><option value="">Nincs (kulcsszó)</option>' + [["kerdes", "Kérdés"], ["tomor", "Tömör"], ["konkret", "Konkrét"]].map(function (r) { return '<option value="' + r[0] + '"' + (c.rule === r[0] ? " selected" : "") + '>' + r[1] + '</option>'; }).join("") + '</select></label></div>' +
+        '<button class="del" data-dk="' + ci + '" style="justify-self:start">Szempont törlése</button></div>';
+    });
+    h += '<button class="btn sm ghost" id="ak">+ Új szempont</button>' + Admin.savebar();
+    el.innerHTML = h;
+    $$("[data-dk]", el).forEach(function (b) { b.onclick = function () { if (!confirm("Törlöd?")) return; var id = C.criteria[+b.getAttribute("data-dk")].id; C.criteria.splice(+b.getAttribute("data-dk"), 1); C.items.forEach(function (i) { if (i.criteria) i.criteria = i.criteria.filter(function (x) { return x !== id; }); }); Admin.mark(); Admin.szempont(el); }; });
+    $("#ak", el).onclick = function () { C.criteria.push({ id: rid("k_"), group: "kifogas", name: "Új szempont", desc: "", kw: [] }); Admin.mark(); Admin.szempont(el); };
+    Admin.bindFields(el); Admin.height();
+  },
+
+  stat: function (el) {
+    el.innerHTML = '<p class="muted">Betöltés…</p>';
+    allUsers().then(function (us) {
+      var d7 = addDays(today(), -6);
+      us.sort(function (a, b) { return weekXp(b) - weekXp(a); });
+      var h = '<div class="card" style="overflow-x:auto"><table class="tbl"><tr><th>Munkatárs</th><th>Heti XP</th><th>Összes XP</th><th>Sorozat</th><th>Leckék</th><th>Átlag</th><th>Utoljára</th><th>Aktív napok (7)</th></tr>' +
+        us.map(function (u) {
+          var t = 0, s = 0; Object.keys(u.stats || {}).forEach(function (k) { t += u.stats[k].t; s += u.stats[k].s; });
+          var live = u.lastDay === today() || u.lastDay === addDays(today(), -1) ? u.streak : 0, act = Object.keys(u.days || {}).filter(function (d) { return d >= d7; }).length;
+          return '<tr><td><b>' + esc(u.name) + '</b></td><td>' + weekXp(u) + '</td><td>' + (u.xp || 0) + '</td><td>' + live + ' <span class="muted small">(max ' + (u.best || 0) + ')</span></td><td>' + (u.lessons || 0) + '</td><td>' + (t ? Math.round(s / t) + "%" : "–") + '</td><td>' + esc(u.lastDay || "–") + '</td><td>' + act + '</td></tr>';
+        }).join("") + '</table></div>';
+      // Elakadási pontok: kifogásonkénti átlag
+      var agg = {};
+      us.forEach(function (u) { Object.keys(u.stats || {}).forEach(function (k) { var a = agg[k] = agg[k] || { t: 0, s: 0, weak: [] }; a.t += u.stats[k].t; a.s += u.stats[k].s; if (u.weak && u.weak[k]) a.weak.push(u.name); }); });
+      var rows = Object.keys(agg).map(function (k) { return { k: k, avg: Math.round(agg[k].s / agg[k].t), t: agg[k].t, weak: agg[k].weak, it: itemById(k) }; }).filter(function (r) { return r.it; }).sort(function (a, b) { return a.avg - b.avg; });
+      h += '<h2>Hol akadnak el?</h2><div class="card" style="overflow-x:auto"><table class="tbl"><tr><th>Kifogás</th><th>Témakör</th><th>Átlag</th><th>Próbák</th><th>Akiknél ismétlésre vár</th></tr>' +
+        (rows.map(function (r) { return '<tr><td>' + esc(r.it.prompt) + '</td><td>' + esc((topicOf(r.it.level) || {}).title || "") + '</td><td><span class="pill ' + (r.avg < 60 ? "hot" : r.avg >= 85 ? "ok" : "") + '">' + r.avg + '%</span></td><td>' + r.t + '</td><td class="small">' + esc(r.weak.join(", ") || "–") + '</td></tr>'; }).join("") || '<tr><td colspan="5" class="muted">Még nincs adat.</td></tr>') + '</table></div>';
+      el.innerHTML = h; Admin.height();
+    }).catch(function () { el.innerHTML = '<p class="muted">Nem sikerült betölteni.</p>'; });
+  },
+
+  beall: function (el) {
+    var c = Admin.cfg;
+    el.innerHTML = '<div class="card ed"><label class="switch"><input type="checkbox" data-f="cfg.live"' + (c.live ? " checked" : "") + '><i></i><span><b>Élesítve a csapatnak</b><br><span class="small muted">Kikapcsolva csak itt, a vezetői felületen érhető el. Bekapcsolás és mentés után a munkatársak a saját belépésükkel nyithatják meg (kifogas.html).</span></span></label></div>' +
+      '<div class="card ed"><label>AI-szolgáltató<select data-f="cfg.ai"><option value="helyi"' + (c.ai !== "gemini" ? " selected" : "") + '>Helyi (teszt): kulcsszavas értékelés</option><option value="gemini"' + (c.ai === "gemini" ? " selected" : "") + '>Gemini Flash (a háttéren át, API-kulcs kell)</option></select></label><span class="small muted">Ha a Gemini nem válaszol, automatikusan a helyi értékelés fut.</span></div>' +
+      '<div class="card ed"><div class="row"><label>Napi cél (XP)<input type="number" min="10" data-f="cfg.dailyGoal" value="' + c.dailyGoal + '"></label><label>Kifogás / lecke<input type="number" min="2" max="6" data-f="cfg.lessonLen" value="' + c.lessonLen + '"></label></div><div class="row"><label>Gyors kártyák száma<input type="number" min="3" max="15" data-f="cfg.quickLen" value="' + c.quickLen + '"></label><label>Idő / kártya (mp)<input type="number" min="5" max="90" data-f="cfg.quickSec" value="' + c.quickSec + '"></label></div></div>' +
+      '<div class="card ed"><b>Tartalom mentése és betöltése</b><span class="small muted">A teljes tartalom JSON-ként kimásolható és visszatölthető (pl. ha máshol, akár Geminivel készíted elő a kifogásokat).</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm ghost" id="ex">Kimásolás</button><button class="btn sm ghost" id="im">Betöltés JSON-ból</button><button class="btn sm ghost" id="df">Példatartalom visszaállítása</button></div><textarea id="js" hidden style="min-height:200px;font-family:ui-monospace,monospace;font-size:.8rem"></textarea></div>' +
+      Admin.savebar();
+    $("#ex", el).onclick = function () { var t = $("#js", el); t.hidden = false; t.value = JSON.stringify(Admin.C, null, 2); t.select(); try { navigator.clipboard.writeText(t.value); toast("Vágólapra másolva"); } catch (e) {} Admin.height(); };
+    $("#im", el).onclick = function () { var t = $("#js", el); if (t.hidden || !t.value.trim()) { t.hidden = false; t.value = ""; t.placeholder = "Illeszd be a JSON-t, majd nyomd meg újra a Betöltést."; Admin.height(); return; }
+      try { var o = JSON.parse(t.value); if (!o.topics || !o.items || !o.clients || !o.criteria) throw 0; Admin.C = o; Admin.mark(); toast("Betöltve. Ne felejts el menteni."); } catch (e) { toast("Hibás JSON: topics, items, clients, criteria kell."); } };
+    $("#df", el).onclick = function () { if (!confirm("Felülírja a mostani tartalmat a példatartalommal (mentés után). Biztos?")) return; Admin.C = clone(DEFAULT_CONTENT); Admin.mark(); toast("Visszaállítva. Mentés után él."); };
+    Admin.bindFields(el); Admin.height();
+  }
+};
+// a szintkártyán a darabszám az admin másolatból számol
+itemsOf = function (lid) { var src = document.body.classList.contains("admin-mode") && Admin.C ? Admin.C : S.C; return src.items.filter(function (i) { return i.level === lid; }); };
+
+document.addEventListener("click", function (e) { var b = e.target.closest && e.target.closest(".say"); if (!b) return; var o = S.voice; S.voice = true; TTS.speak(b.getAttribute("data-t")).then(function () { S.voice = o; }); });
+window.addEventListener("beforeunload", function (e) { if (Admin.dirty) { e.preventDefault(); e.returnValue = ""; } });
+window.addEventListener("resize", function () { if (document.body.classList.contains("admin-mode")) Admin.height(); });
+boot();
+})();
+</script>
+</body>
+</html>
