@@ -49,33 +49,36 @@
   },
   {
    "m": 10,
-   "tema": "Pénzügyi tudatosság hónapja",
-   "uzenet": "Ismerd meg a pénzügyeid: ingyenes workshop",
-   "cel": "Új és meglévő ügyfelek, ismerősök",
-   "ajanlat": "Ingyenes pénzügyi workshop, tudatos költségvetés, vészhelyzeti tartalék",
-   "datumok": "Október 23. Nemzeti ünnep · Október 31. Takarékossági világnap",
-   "allapot": "terv",
-   "egyseg": "Eurós befektetések és bankszámlakampány"
+   "tema": "Euróban is gondolkodj",
+   "uzenet": "Ne csak forintban tartsd a megtakarításodat – és nézzük meg, mennyit fizetsz a bankodnak",
+   "cel": "Meglévő és új ügyfelek, 25–55 évesek, akiknek van havi félretehető összegük; aki 1–2 éve nem nézte át a bankszámláját",
+   "ajanlat": "Eurós befektetési lehetőségek bemutatása (devizában tartott megtakarítás, a forintkockázat megosztása), valamint bankszámla-átvilágítás: díjak, csomagok összehasonlítása és szükség esetén számlaváltás. Beszélgetésindító: „Tudod, mennyibe kerül egy évben a bankszámlád?”",
+   "datumok": "Október: a Pénzügyi tudatosság hónapja · a havi zárás a következő hónap első keddje (november 4., szerda)",
+   "allapot": "kesz",
+   "egyseg": "Eurós befektetések és bankszámlakampány",
+   "jegyzet": "A bankszámla-összehasonlítást mindig a friss kondíciós listákból készítsük."
   },
   {
    "m": 11,
-   "tema": "Tudatos vásárlás és év végi felkészülés",
-   "uzenet": "Mielőtt elkölted: tervezd meg az évet záró pénzügyeidet",
-   "cel": "Aktív munkavállalók, családok",
-   "ajanlat": "Adókedvezmények év végi ellenőrzése, kiadástervezés ünnepekre, megtakarítási célok",
-   "datumok": "November 26. Black Friday",
-   "allapot": "terv",
-   "egyseg": "Eurós befektetések és személybiztosítás"
+   "tema": "Biztonság euróban és a családnak",
+   "uzenet": "Az év vége előtt rakd rendbe: devizás megtakarítás és védelem a családnak",
+   "cel": "Családosok, 28–50 évesek, egy- vagy kétkeresős háztartások; az októberi eurós beszélgetések folytatása",
+   "ajanlat": "Az eurós befektetések folytatása (akik októberben érdeklődtek, azoknak ajánlattal visszamenni), mellé személybiztosítási igényfelmérés: élet-, baleset- és egészségbiztosítás, a meglévő szerződések átnézése. Beszélgetésindító: „Ha holnap kiesne a jövedelmed, meddig bírná a család?”",
+   "datumok": "Black Friday (november 27.) – jó alkalom a „mire költesz és mit védesz” beszélgetésre · a novemberi zárás december 1., kedd",
+   "allapot": "folyamatban",
+   "egyseg": "Eurós befektetések és személybiztosítás",
+   "jegyzet": ""
   },
   {
    "m": 12,
-   "tema": "Év végi adókedvezmények és hála",
-   "uzenet": "Az utolsó befizetési lehetőség, és köszönjük az évet",
-   "cel": "Minden ügyfél",
-   "ajanlat": "Év végi befizetések, adókedvezmények határideje, ügyfél-köszönő üzenet és ajándék",
-   "datumok": "December 24–26. Karácsony · December 31. az év végi befizetések határideje",
+   "tema": "Év végi rendrakás: védelem és TBSZ",
+   "uzenet": "Még idén nyisd meg: a TBSZ-nél a nyitás éve számít, így egy évvel hamarabb érsz célba",
+   "cel": "Minden ügyfél, akinek van szabad megtakarítása vagy év végi bónusza; a novemberi személybiztosítási beszélgetések folytatása",
+   "ajanlat": "TBSZ nyitása még december 31-ig: a nyitás éve a gyűjtőév, ezért az idén nyitott számla hamarabb ér el az adómentességig. Mellé a személybiztosítások lezárása, átnézése az év vége előtt. Beszélgetésindító: „Ha a karácsonyi bónuszból félreteszel, hova tegyük, hogy ne vigye el az adó?”",
+   "datumok": "December 31.: az utolsó nap, hogy a TBSZ gyűjtőéve 2026 legyen · a decemberi zárás 2027. január 5., kedd",
    "allapot": "terv",
-   "egyseg": "Személybiztosítás és TBSZ"
+   "egyseg": "Személybiztosítás és TBSZ",
+   "jegyzet": "Az ünnepek miatt a december rövidebb: az időpontokat már a hónap elején egyeztessük."
   }
  ]
 }

@@ -3,6 +3,7 @@
 /* Oldalsó menüsáv: ikonok + címek, összecsukható (összecsukva csak az ikon látszik) */
 (function () {
   var IC = {
+    naptar: '<rect x="3" y="5" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
     index: '<path d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
     negyedev: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
     verseny: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
@@ -19,7 +20,7 @@
     if (h.indexOf("negyedev") === 0) return IC.negyedev; if (h.indexOf("verseny") === 0) return IC.verseny;
     if (h.indexOf("csapatkassza") === 0) return IC.kassza; if (h.indexOf("elemzo") === 0) return IC.elemzo;
     if (h.indexOf("teljesitmeny") === 0) return IC.teljesitmeny; if (h.indexOf("vizsga") === 0) return IC.vizsga;
-    if (h.indexOf("index") === 0) return IC.index; if (/PPT/i.test(txt)) return IC.ppt; return IC.star;
+    if (h.indexOf("index") === 0) return IC.index; if (h.indexOf("kampanynaptar") === 0) return IC.naptar; if (/PPT/i.test(txt)) return IC.ppt; return IC.star;
   }
   function init() {
     var nav = document.querySelector(".topnav"), host = nav && nav.querySelector(".in"), ul = host && host.querySelector("ul");

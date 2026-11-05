@@ -133,6 +133,7 @@
   .upd { color: var(--muted); font-size: .8rem; margin-top: 22px; }
   .yt { display: inline-flex; gap: 4px; background: var(--card); border: 1px solid var(--track); border-radius: 999px; padding: 4px; margin: 0 0 18px; }
   .yt a { color: var(--muted); text-decoration: none; font-weight: 700; padding: 6px 16px; border-radius: 999px; }
+  .yt a.lock { opacity: .55; cursor: default; }
   .yt a.on { background: var(--accent); color: var(--on-accent); }
 </style>
 <style>
@@ -197,10 +198,15 @@
 (function () {
   var HO = ["Január","Február","Március","Április","Május","Június","Július","Augusztus","Szeptember","Október","November","December"];
   var ST = { terv: ["Terv", ""], folyamatban: ["Folyamatban", "f"], kesz: ["Kész", "k"], eltelt: ["Eltelt", "e"] };
-  var Y = +((location.search.match(/[?&]ev=(\d{4})/) || [])[1] || 2027); if (Y !== 2026 && Y !== 2027) Y = 2027;
+  // a 2027-es naptár még zárolt a munkatársaknak (az adminból előnézettel nyitható: ?ev=2027&elonezet=1)
+  var PREV = /[?&]elonezet=1/.test(location.search);
+  var Y = +((location.search.match(/[?&]ev=(\d{4})/) || [])[1] || 2026); if (Y !== 2026 && Y !== 2027) Y = 2026; if (Y === 2027 && !PREV) Y = 2026;
 
   var DOC = ["perf", "pub-kampany", "pub", "naptar-" + Y];
-  [].forEach.call(document.querySelectorAll(".yt a"), function (a) { if (+a.dataset.y === Y) a.classList.add("on"); });
+  [].forEach.call(document.querySelectorAll(".yt a"), function (a) {
+    if (+a.dataset.y === Y) a.classList.add("on");
+    if (+a.dataset.y === 2027) { if (PREV) a.href += "&elonezet=1"; else { a.removeAttribute("href"); a.setAttribute("aria-disabled", "true"); a.title = "Hamarosan"; a.textContent = "2027 🔒"; a.classList.add("lock"); } }
+  });
 
   function $(i) { return document.getElementById(i); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
@@ -303,6 +309,6 @@
 </script>
 <script>(function(){if(self===top)return;function s(){try{parent.postMessage({embh:document.documentElement.scrollHeight},location.origin)}catch(e){}}if(window.ResizeObserver)new ResizeObserver(s).observe(document.documentElement);window.addEventListener("load",s);setInterval(s,1200)})();</script>
 <script src="vizsga.js?v=2"></script>
-<script src="anim.js?v=29" defer></script>
+<script src="anim.js?v=30" defer></script>
 </body>
 </html>
