@@ -262,7 +262,7 @@
   .pg h3:first-of-type { margin-top: 0; }
   .pg label.f { display: block; font-weight: 600; font-size: .92rem; margin: 12px 0 0; }
   .pg label.f:first-of-type { margin-top: 0; }
-  .pg input[type=text], .pg input[type=date] { width: 100%; font: inherit; font-size: 1.05rem; padding: 12px 14px; margin-top: 4px; border-radius: 12px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  .pg input[type=text], .pg input[type=date], .pg select { width: 100%; font: inherit; font-size: 1.05rem; padding: 12px 14px; margin-top: 4px; border-radius: 12px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
   .pg input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
   .pg .chk { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border: 2px solid var(--track, #e5e5e5); border-radius: 12px; background: var(--bg); font-weight: 600; cursor: pointer; margin-top: 8px; }
   .pg .chk small { display: block; font-weight: 400; color: var(--muted); font-size: .82rem; }
@@ -294,17 +294,19 @@
 </div>
 <main class="pg" id="app" hidden>
   <h1>Tanácsadó PPT generátor</h1>
-  <p class="lead">Add meg az ügyfelet és az időpontot, jelöld ki a modulokat, és a program összeállítja belőlük a pénzügyi terv prezentációt (.pptx).</p>
+  <p class="lead">Add meg az ügyfelet és az időpontot, pipáld ki a diákat, és a program összeállítja belőlük a pénzügyi terv prezentációt (.pptx).</p>
   <form id="f" autocomplete="off">
     <div class="card">
       <label class="f">Ügyfél neve<input type="text" id="cl" required placeholder="pl. Kovács Anna és Kovács Péter"></label>
       <label class="f">A tanácsadás időpontja<input type="date" id="dt" required></label>
+      <label class="f">Elemző neve <small style="font-weight:400;color:var(--muted)">(nem kötelező)</small><input type="text" id="el" placeholder="pl. Csikós Máté"></label>
     </div>
     <div class="card">
-      <div class="row"><h2 style="margin:0">Modulok</h2><button type="button" class="lnk" id="all">Összes kijelölése</button></div>
-      <h3>Alapok</h3>
+      <div class="row"><h2 style="margin:0">Diák</h2><button type="button" class="lnk" id="all">Összes kijelölése</button></div>
+      <p class="pmsg" id="lmsg">A diák betöltése a sablonokból…</p>
+      <h3>Kezdő – Tanácsadás Sablon 2026</h3>
       <div id="m-alap"></div>
-      <h3>Haladó</h3>
+      <h3>Haladó – PPT generátor alap – halado</h3>
       <div id="m-halado"></div>
     </div>
     <button type="submit" class="primary" id="go" disabled>PPT létrehozása</button>
@@ -314,23 +316,8 @@
 
 <script>
 (function () {
-  var API = "https://script.google.com/macros/s/AKfycbyeBUhK2P5wGl9YbQKG_MSewVomcXoqL9mxP5NioW91kUEsMH8VSV165YuIUqV0C3nU/exec";
-  var MODS = [
-    ["alap", "ado", "Adókedvezmények és állami támogatások", "1 dia"],
-    ["alap", "ep", "Egészségpénztár", "9 dia"],
-    ["alap", "onseg", "Önsegélyező pénztár", "1 dia"],
-    ["alap", "bank", "Bankszámla", "3 dia"],
-    ["alap", "gepjarmu", "Gépjármű-biztosítás optimalizálása", "1 dia"],
-    ["alap", "szemely", "Személybiztosítás (Signal, Uniqa, baleset)", "6 dia"],
-    ["alap", "megtak", "Megtakarítások", "4 dia"],
-    ["halado", "nyugdij", "Nyugdíj-előtakarékossági formák", "1 dia"],
-    ["halado", "gyermek", "Gyermek-megtakarítási formák", "1 dia"],
-    ["halado", "lakas", "Lakás-megtakarítási formák", "1 dia"],
-    ["halado", "signal", "Signal Iduna csoport", "1 dia"],
-    ["halado", "befektetes", "Befektetés (TBSZ, exkluzív számla, Signal alapok)", "6 dia"],
-    ["halado", "tamogatas", "Támogatások – Otthon Start", "5 dia"],
-    ["halado", "hitel", "Hitel (annuitás, okos hitel)", "2 dia"]
-  ];
+  var API = "https://script.google.com/macros/s/AKfycbygX-UGh-nyoLF01LpUzBuD9c2X4Qc3c3bsa0w-DZGVVbnKkz9eMuoS2ykVGstfMPmxsA/exec";   // PPT generátor (Claude) – a két sablonból dolgozik
+  var SLIDES = [];
   /* ---- jelszó ---- */
   function sha(s) {
     return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function (b) {
@@ -338,7 +325,7 @@
     });
   }
   var PW = "", H = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2";
-  function openApp() { $("gate").hidden = true; $("app").hidden = false; }
+  function openApp() { $("gate").hidden = true; $("app").hidden = false; loadSlides(); }
   try { if (sessionStorage.getItem("ppt_ok") === H) { PW = sessionStorage.getItem("ppt_pw") || ""; openApp(); } } catch (e) {}
   $("gform").addEventListener("submit", function (ev) {
     ev.preventDefault();
@@ -350,15 +337,29 @@
 
   var MONTHS = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"];
   function $(i) { return document.getElementById(i); }
-  MODS.forEach(function (m) {
-    var l = document.createElement("label"); l.className = "chk";
-    var c = document.createElement("input"); c.type = "checkbox"; c.value = m[1]; c.className = "mod";
-    var s = document.createElement("span"); s.textContent = m[2];
-    var sm = document.createElement("small"); sm.textContent = m[3]; s.appendChild(sm);
-    l.appendChild(c); l.appendChild(s); $("m-" + m[0]).appendChild(l);
-  });
+  function loadSlides() {
+    if (SLIDES.length) return;
+    $("lmsg").textContent = "A diák betöltése a sablonokból… (első alkalommal fél percig is tarthat)";
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ list: 1, pw: PW }) })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error === "pw") { try { sessionStorage.removeItem("ppt_ok"); } catch (e) {} location.reload(); return; }
+        if (d.error || !d.slides) throw new Error(d.error || "üres válasz");
+        SLIDES = d.slides; $("lmsg").textContent = ""; $("lmsg").hidden = true;
+        var n = { k: 0, h: 0 };
+        SLIDES.forEach(function (sl, idx) {
+          n[sl.d]++;
+          var l = document.createElement("label"); l.className = "chk";
+          var c = document.createElement("input"); c.type = "checkbox"; c.value = idx; c.className = "mod";
+          var s = document.createElement("span"); s.textContent = n[sl.d] + ". " + (sl.label ? sl.label.charAt(0) + sl.label.slice(1).toLowerCase() : (sl.title || "(cím nélküli dia)"));
+          var sm = document.createElement("small"); sm.textContent = sl.label ? sl.title : ""; s.appendChild(sm);
+          l.appendChild(c); l.appendChild(s); $(sl.d === "k" ? "m-alap" : "m-halado").appendChild(l);
+        });
+      })
+      .catch(function (e) { $("lmsg").textContent = "A diák betöltése nem sikerült: " + e.message + ". Frissítsd az oldalt."; });
+  }
   var d = new Date(); $("dt").value = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
-  function sel() { return [].slice.call(document.querySelectorAll(".mod:checked")).map(function (x) { return x.value; }); }
+  function sel() { return [].slice.call(document.querySelectorAll(".mod:checked")).map(function (x) { var sl = SLIDES[+x.value]; return { d: sl.d, i: sl.i }; }); }
   function upd() { $("go").disabled = !sel().length; }
   document.addEventListener("change", function (e) { if (e.target.className === "mod") upd(); });
   $("all").addEventListener("click", function () {
@@ -372,11 +373,11 @@
     ev.preventDefault();
     var cl = $("cl").value.trim(), dt = $("dt").value, mods = sel();
     if (!cl || !dt) { msg("Add meg az ügyfél nevét és az időpontot.", "err"); return; }
-    if (!mods.length) { msg("Jelölj ki legalább egy modult.", "err"); return; }
+    if (!mods.length) { msg("Jelölj ki legalább egy diát.", "err"); return; }
     var b = $("go"); b.disabled = true; msg("A prezentáció készül… ez kb. fél percig tarthat.");
     var ctl = window.AbortController ? new AbortController() : null, tm = ctl ? setTimeout(function () { ctl.abort(); }, 120000) : 0;
     fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, signal: ctl ? ctl.signal : undefined,
-      body: JSON.stringify({ ppt: 1, pw: PW, t: token(), client: cl, date: huDate(dt), modules: mods }) })
+      body: JSON.stringify({ pick: mods, pw: PW, client: cl, date: huDate(dt), elemzo: $("el").value.trim() }) })
       .then(function (r) { return r.text(); })
       .then(function (txt) {
         clearTimeout(tm); var d; try { d = JSON.parse(txt); } catch (e) { throw new Error("A szerver válasza nem értelmezhető."); }
