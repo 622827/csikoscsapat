@@ -352,24 +352,37 @@
 
   var MONTHS = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"];
   function $(i) { return document.getElementById(i); }
+  var LK = "ppt_slides_v1";
   function loadSlides() {
     if (SLIDES.length) return;
-    $("lmsg").textContent = "A diák betöltése a sablonokból… (első alkalommal fél percig is tarthat)";
+    var c = null; try { c = JSON.parse(localStorage.getItem(LK) || "null"); } catch (e) {}
+    if (c && c.slides && c.slides.length) { SLIDES = c.slides; $("lmsg").hidden = true; render(); if (Date.now() - c.t < 86400000) return; }
+    else $("lmsg").textContent = "A diák betöltése a sablonokból… (első alkalommal fél percig is tarthat)";
     fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ list: 1, pw: PW }) })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (d.error === "pw") { try { sessionStorage.removeItem("ppt_ok"); } catch (e) {} location.reload(); return; }
         if (d.error || !d.slides) throw new Error(d.error || "üres válasz");
-        SLIDES = d.slides; $("lmsg").textContent = ""; $("lmsg").hidden = true;
-        render();
+        try { localStorage.setItem(LK, JSON.stringify({ t: Date.now(), slides: d.slides })); } catch (e) {}
+        var changed = JSON.stringify(d.slides) !== JSON.stringify(SLIDES);
+        SLIDES = d.slides; $("lmsg").hidden = true;
+        if (changed) render();
       })
-      .catch(function (e) { $("lmsg").textContent = "A diák betöltése nem sikerült: " + e.message + ". Frissítsd az oldalt."; });
+      .catch(function (e) { if (!SLIDES.length) $("lmsg").textContent = "A diák betöltése nem sikerült: " + e.message + ". Frissítsd az oldalt."; });
   }
-  var d = new Date(); $("dt").value = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
   /* ===== Témák (csoportok) – a diákat címke/cím alapján keresi a sablonokban ===== */
   function m(d, label, title) { return { d: d, label: label, title: title }; }
   var GROUPS = [
-    { id: "ado", name: "Adókedvezmény", parts: [m("k", "", "Optimalizálás, Költségcsökkentés és Támogatások"), m("k", "ADÓKEDVEZMÉNYEK"), m("k", "EGÉSZSÉGPÉNZTÁR"), m("k", "ÖNSEGÉLYEZŐ PÉNZTÁR")] },
+    { id: "ado", name: "Adókedvezmény", parts: [m("k", "", "Optimalizálás, Költségcsökkentés és Támogatások"), m("k", "ADÓKEDVEZMÉNYEK"), m("k", "EGÉSZSÉGPÉNZTÁR", "Hogyan működik?")], subs: [
+      { id: "epossz", name: "Egészségpénztár-összehasonlítás", parts: [m("k", "EGÉSZSÉGPÉNZTÁR", "Összehasonlítás")] },
+      { id: "gyogy", name: "Gyógyszertár, optika", parts: [m("k", "EGÉSZSÉGPÉNZTÁR", "Gyógyszertári és optikai termékek")] },
+      { id: "magan", name: "Magánorvos", parts: [m("k", "EGÉSZSÉGPÉNZTÁR", "Magánorvosi ellátás támogatása")] },
+      { id: "tappenz", name: "Táppénz", parts: [m("k", "EGÉSZSÉGPÉNZTÁR", "Táppénz-kiegészítés")] },
+      { id: "szul", name: "Születési támogatás", parts: [m("k", "EGÉSZSÉGPÉNZTÁR", "Születési támogatás igénybevétele")] },
+      { id: "csecsemo", name: "Csecsemőápolás", parts: [m("k", "EGÉSZSÉGPÉNZTÁR", "Csecsemőápolás")] },
+      { id: "gyermek", name: "Gyermekgondozás", parts: [m("k", "EGÉSZSÉGPÉNZTÁR", "Gyermekgondozás")] },
+      { id: "felso", name: "Felsőoktatás", parts: [m("k", "EGÉSZSÉGPÉNZTÁR", "Felsőoktatási költségek támogatása")] },
+      { id: "jelzalog", name: "Jelzáloghitel (önsegélyező pénztár)", parts: [m("k", "ÖNSEGÉLYEZŐ PÉNZTÁR")] } ] },
     { id: "kgfb", name: "Kötelező biztosítás", parts: [m("k", "GÉPJÁRMŰ")] },
     { id: "bank", name: "Bankszámla", parts: [m("k", "BANKSZÁMLA")] },
     { id: "szemely", name: "Személybiztosítás", parts: [m("k", "", "Biztonsági lépések"), m("k", "SZEMÉLYBIZTOSÍTÁS", "Védelmi fajták"), m("k", "SZEMÉLYBIZTOSÍTÁS", "Mibe kerül, ha baj van?")], ages: true },
