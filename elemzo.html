@@ -1409,6 +1409,66 @@ document.addEventListener("DOMContentLoaded", init);
   })();
 </script>
 <script>
+  (function () {
+    /* Vizsga- és képzési időpontok lenyíló (a Hasznos linkek mellett, balra) */
+    var host = document.querySelector(".topnav .in"); if (!host) return;
+    function e(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
+    var KEP = [
+      { t: "Biztosításközvetítői képzések", r: [
+        ["2026.11.04–11.07", "2026.12.07 online", "2026.11.18"],
+        ["2026.11.11–11.14", "2026.12.07 online", "2026.11.18"],
+        ["2026.11.18–11.21", "2026.12.10 tantermi", "2026.11.21"],
+        ["2026.12.09–12.12", "2027.01.21 tantermi", "2027.01.02"],
+        ["2026.12.16–12.19", "2027.01.21 tantermi", "2027.01.02"],
+        ["2027.01.06–01.09", "2027.01.28 tantermi", "2027.01.09"] ] },
+      { t: "Pénzügyi képzések", r: [
+        ["2026.11.09–11.11", "2026.12.07 online", "2026.11.18"],
+        ["2026.11.23–11.25", "2027.01.21 tantermi", "2027.01.02"],
+        ["2026.11.30–12.02", "2027.01.21 tantermi", "2027.01.02"],
+        ["2026.12.14–12.16", "2027.01.21 tantermi", "2027.01.02"] ] },
+      { t: "Tőkepiaci képzések", r: [
+        ["2026.11.16–11.18", "2026.12.07 online", "2026.11.18"] ] }
+    ];
+    var VIZSGA = [["2026.11.16", "online"], ["2026.11.19", "tantermi"], ["2026.12.07", "online"], ["2026.12.10", "tantermi"],
+                  ["2027.01.21", "tantermi"], ["2027.01.25", "online"], ["2027.01.28", "tantermi"]];
+    function d(s) { var p = s.slice(0, 10).split("."); return new Date(+p[0], +p[1] - 1, +p[2], 23, 59); }
+    function endOf(s) { var m = s.match(/(\d{4})\.(\d{2})\.(\d{2})–(\d{2})\.(\d{2})/); if (!m) return d(s); var y = +m[1]; if (+m[4] < +m[2]) y++; return new Date(y, +m[4] - 1, +m[5], 23, 59); }
+    var now = new Date();
+    var wrap = e("div", "zm dv vk"), btn = e("button"), panel = e("div", "panel");
+    btn.type = "button"; btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-haspopup", "true");
+    btn.appendChild(e("span", "vk-l", "Vizsgaidőpontok")); btn.appendChild(e("span", "vk-s", "Vizsga")); btn.appendChild(e("span", "", "▾"));
+    var st = e("style", "", ".zm.vk .vk-s{display:none}@media (max-width:640px){.zm.vk .vk-l{display:none}.zm.vk .vk-s{display:inline}.zm.vk + .zm{margin-left:6px}.zm.vk .panel{position:fixed;left:8px!important;right:8px!important;top:64px;width:auto!important}}"); document.head.appendChild(st);
+    panel.hidden = true; panel.style.maxHeight = "min(70vh, 560px)"; panel.style.overflowY = "auto"; 
+    function sec(title) { var h = e("h3", "", title); h.style.marginTop = "14px"; panel.appendChild(h); var ol = e("ol"); panel.appendChild(ol); return ol; }
+    KEP.forEach(function (k) {
+      var ol = sec(k.t), nextSet = false;
+      k.r.forEach(function (r) {
+        var li = e("li"), past = endOf(r[0]) < now;
+        li.appendChild(e("span", "m", r[0]));
+        li.appendChild(e("span", "d", "Vizsga: " + r[1] + " · jelentkezés: " + r[2]));
+        if (past) li.className = "past"; else if (!nextSet) { li.className = "next"; nextSet = true; }
+        ol.appendChild(li);
+      });
+    });
+    var ol = sec("Vizsganapok – 2026 vége, 2027 eleje"), nx = false;
+    VIZSGA.forEach(function (v) {
+      var li = e("li"), past = d(v[0]) < now;
+      li.appendChild(e("span", "m", v[0])); li.appendChild(e("span", "d", v[1] === "online" ? "Online vizsga" : "Tantermi vizsga"));
+      if (past) li.className = "past"; else if (!nx) { li.className = "next"; nx = true; }
+      ol.appendChild(li);
+    });
+    var note = e("p", "", "A halványak már lezajlottak. Forrás: OVB képzési naptár."); note.style.cssText = "margin:10px 0 2px;font-size:.8rem;color:var(--muted)";
+    panel.appendChild(note);
+    wrap.appendChild(btn); wrap.appendChild(panel);
+    var hl = null; host.querySelectorAll(".zm.dv").forEach(function (z) { if (!hl && /Hasznos linkek/.test(z.textContent)) hl = z; });
+    if (hl) host.insertBefore(wrap, hl); else { var z = host.querySelector(".zm"); if (z) host.insertBefore(wrap, z); else host.appendChild(wrap); }
+    function set(open) { panel.hidden = !open; btn.setAttribute("aria-expanded", open ? "true" : "false"); }
+    btn.addEventListener("click", function (ev) { ev.stopPropagation(); set(panel.hidden); });
+    document.addEventListener("click", function (ev) { if (!wrap.contains(ev.target)) set(false); });
+    document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") set(false); });
+  })();
+</script>
+<script>
 (function () {
   var tip = document.createElement("div"); tip.className = "ibtip"; tip.setAttribute("role", "tooltip"); document.body.appendChild(tip);
   var cur = null;
