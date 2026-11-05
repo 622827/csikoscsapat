@@ -600,7 +600,12 @@
     $("kp-lock").hidden = true;
     var sec = location.hash.replace("#", ""); if (!SECS[sec]) sec = "";
     $("kp-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; $("szamlak").hidden = sec !== "szamlak"; $("magan").hidden = sec !== "magan"; $("startbonusz").hidden = sec !== "startbonusz"; $("emb").hidden = !EMB[sec]; head(sec);
-    if (EMB[sec]) { var fr = $("emb-frame"); if (fr.getAttribute("data-s") !== sec) { fr.setAttribute("data-s", sec); fr.src = EMB[sec]; } }
+    if (EMB[sec]) { var fr = $("emb-frame"); if (fr.getAttribute("data-s") !== sec) {
+      // a PPT szerkesztő saját magán belül görget (így a diatár és a gombsor mindig látszik húzás közben)
+      var own = sec === "ppt", nf = fr.cloneNode(false); nf.removeAttribute("src");
+      nf.setAttribute("scrolling", own ? "yes" : "no"); nf.style.height = own ? "calc(100vh - 40px)" : "85vh";
+      nf.setAttribute("data-s", sec); nf.src = EMB[sec]; fr.parentNode.replaceChild(nf, fr);
+    } }
     if (sec) perfAuth();
     if (sec === "startbonusz" && !$("sb-frame").getAttribute("src")) $("sb-frame").src = "startbonusz-szerk.html";
     if (sec === "szamlak") szOpen();

@@ -50,6 +50,16 @@
   .gate { max-width: 360px; margin: 40px auto; background: var(--card); padding: 20px; border-radius: 16px; }
   .gate input { width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); margin: 8px 0; }
   .x { color: var(--hot); }
+  .cat-h, .sl, .zl, .opt, .grip, .tg, .sum { -webkit-user-select: none; user-select: none; }
+  .tg { font: inherit; border: 0; background: transparent; color: var(--ink); cursor: pointer; font-size: 1rem; width: 26px; padding: 2px; transition: transform .15s; }
+  .cat.closed .tg { transform: rotate(-90deg); }
+  .cat.closed .body { display: none; }
+  .sum { font-size: .78rem; color: var(--muted); white-space: nowrap; }
+  .mk { width: 6px; align-self: stretch; min-height: 60px; border-radius: 3px; background: var(--hot); flex: none; }
+  .cat.over-cat { border-color: var(--accent); }
+  .cat.closed.over-cat { background: color-mix(in srgb, var(--accent) 12%, var(--card)); }
+  body.emb { padding: 4px 2px 16px; }
+  body.emb .lead { display: none; }
 </style>
 </head>
 <body>
@@ -64,6 +74,8 @@
   <div class="bar">
     <button class="btn" type="button" id="addcat">+ Új kategória</button>
     <button class="btn" type="button" id="refresh" title="A sablonok újraolvasása (ha új dia került beléjük)">Diák frissítése</button>
+    <button class="btn" type="button" id="allopen">Mind kinyit</button>
+    <a class="btn" id="full" href="ppt-szerk.html" target="_blank" rel="noopener" hidden style="text-decoration:none">Megnyitás teljes oldalon ↗</a>
     <span class="sp"></span>
     <span class="msg" id="msg"></span>
     <button class="btn pri" type="button" id="save" disabled>Mentés</button>
@@ -74,10 +86,12 @@
   </div>
 </div>
 <img class="big" id="big" alt="">
+<script>(function(){if(self===top)return;document.body.classList.add("emb");document.getElementById("full").hidden=false})();</script>
 <script>
 (function () {
   var API = "https://script.google.com/macros/s/AKfycbygX-UGh-nyoLF01LpUzBuD9c2X4Qc3c3bsa0w-DZGVVbnKkz9eMuoS2ykVGstfMPmxsA/exec";
   var H = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2";
+  var OPEN = {};
   var PW = "", SLIDES = [], KEYS = [], BYKEY = {}, THUMBS = {}, CFG = { cats: [] }, DIRTY = false;
   function $(i) { return document.getElementById(i); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
@@ -134,7 +148,11 @@
     var used = {}; CFG.cats.forEach(function (g) { (g.fixed || []).forEach(function (k) { used[k] = 1; }); (g.subs || []).forEach(function (sg) { (sg.slides || []).forEach(function (k) { used[k] = 1; }); }); });
     var box = $("cats"); box.innerHTML = "";
     CFG.cats.forEach(function (g, gi) {
-      var c = el("div", "cat"); c.dataset.gi = gi;
+      var c = el("div", "cat" + (OPEN[g.id] ? "" : " closed")); c.dataset.gi = gi;
+      var tg = el("button", "tg", "▾"); tg.type = "button"; tg.title = "Kinyit / becsuk";
+      tg.onclick = function () { OPEN[g.id] = !OPEN[g.id]; c.classList.toggle("closed", !OPEN[g.id]); };
+      var nslides = (g.fixed || []).length; (g.subs || []).forEach(function (sg) { nslides += (sg.slides || []).length; });
+      var sum = el("span", "sum", nslides + " dia" + ((g.subs || []).length ? " · " + g.subs.length + " alkat." : ""));
       var h = el("div", "cat-h"), grip = el("span", "grip", "⠿"); grip.title = "Húzd a kategória áthelyezéséhez"; grip.draggable = true; grip.dataset.cat = gi;
       var nm = el("input", "nm"); nm.value = g.name; nm.addEventListener("input", function () { g.name = nm.value; dirty(); });
       var one = el("label", "opt"), cb = el("input"); cb.type = "checkbox"; cb.checked = !!g.single; cb.addEventListener("change", function () { g.single = cb.checked; dirty(); });
@@ -144,9 +162,10 @@
       up.onclick = function () { CFG.cats.splice(gi - 1, 0, CFG.cats.splice(gi, 1)[0]); dirty(); render(); };
       dn.onclick = function () { CFG.cats.splice(gi + 1, 0, CFG.cats.splice(gi, 1)[0]); dirty(); render(); };
       del.onclick = function () { if (!confirm("Törlöd a(z) „" + g.name + "” kategóriát? A diái a besorolatlanok közé kerülnek.")) return; CFG.cats.splice(gi, 1); dirty(); render(); };
-      h.appendChild(grip); h.appendChild(nm); h.appendChild(one); h.appendChild(up); h.appendChild(dn); h.appendChild(del); c.appendChild(h);
-      c.appendChild(el("p", "zl", "Fix diák (mindig bekerülnek)"));
-      g.fixed = g.fixed || []; c.appendChild(zone(g.fixed, "", "Húzd ide a mindig bekerülő diákat"));
+      h.appendChild(tg); h.appendChild(grip); h.appendChild(nm); h.appendChild(sum); h.appendChild(one); h.appendChild(up); h.appendChild(dn); h.appendChild(del); c.appendChild(h);
+      var body = el("div", "body"); c.appendChild(body);
+      body.appendChild(el("p", "zl", "Fix diák (mindig bekerülnek)"));
+      g.fixed = g.fixed || []; body.appendChild(zone(g.fixed, "", "Húzd ide a mindig bekerülő diákat"));
       (g.subs = g.subs || []).forEach(function (sg, si) {
         var s = el("div", "sub"), sh = el("div", "cat-h"), sn = el("input", "nm"); sn.value = sg.name;
         sn.addEventListener("input", function () { sg.name = sn.value; dirty(); });
@@ -157,42 +176,72 @@
         sx.onclick = function () { if (!confirm("Törlöd a(z) „" + sg.name + "” alkategóriát?")) return; g.subs.splice(si, 1); dirty(); render(); };
         sh.appendChild(el("span", "zl", "Alkategória")); sh.appendChild(sn); sh.appendChild(su); sh.appendChild(sd); sh.appendChild(sx); s.appendChild(sh);
         sg.slides = sg.slides || []; s.appendChild(zone(sg.slides, "", "Üres alkategória – a munkatársaknál „hamarosan” jelzéssel látszik"));
-        c.appendChild(s);
+        body.appendChild(s);
       });
       var add = el("button", "btn sm", "+ Alkategória"); add.type = "button"; add.style.marginTop = "8px";
-      add.onclick = function () { g.subs.push({ id: uid(), name: "Új alkategória", slides: [] }); dirty(); render(); };
-      c.appendChild(add); box.appendChild(c);
+      add.onclick = function () { OPEN[g.id] = true; g.subs.push({ id: uid(), name: "Új alkategória", slides: [] }); dirty(); render(); };
+      body.appendChild(add); box.appendChild(c);
     });
     var pool = $("pool"); pool.innerHTML = ""; pool._list = null;
     KEYS.forEach(function (k, i) { if (!used[k] && !auto(i)) { var c = card(k); if (c) pool.appendChild(c); } });
   }
-  $("addcat").addEventListener("click", function () { CFG.cats.push({ id: uid(), name: "Új kategória", fixed: [], subs: [] }); dirty(); render(); setTimeout(function () { var n = document.querySelectorAll(".cat .nm"); n = n[n.length - 1]; if (n) { n.scrollIntoView({ block: "center" }); n.select(); } }, 30); });
+  $("allopen").addEventListener("click", function () { var all = CFG.cats.every(function (g) { return OPEN[g.id]; }); CFG.cats.forEach(function (g) { OPEN[g.id] = !all; }); render(); this.textContent = all ? "Mind kinyit" : "Mind becsuk"; });
+  $("addcat").addEventListener("click", function () { var nid = uid(); OPEN[nid] = true; CFG.cats.push({ id: nid, name: "Új kategória", fixed: [], subs: [] }); dirty(); render(); setTimeout(function () { var n = document.querySelectorAll(".cat .nm"); n = n[n.length - 1]; if (n) { n.scrollIntoView({ block: "center" }); n.select(); } }, 30); });
 
-  /* ---- húzás ---- */
-  var drag = null, dragCat = null;
+  /* ---- húzás: jelölő mutatja a helyet, csak elengedéskor mozdul ---- */
+  var drag = null, dragCat = null, mk = el("div", "mk"), openT = null, openC = null;
+  function clearDrag() {
+    if (drag) drag.classList.remove("dragging"); drag = null; dragCat = null;
+    if (mk.parentNode) mk.parentNode.removeChild(mk); clearTimeout(openT); openC = null;
+    document.querySelectorAll(".over,.over-cat,.cat.dragging").forEach(function (z) { z.classList.remove("over"); z.classList.remove("over-cat"); z.classList.remove("dragging"); });
+  }
   document.addEventListener("dragstart", function (e) {
-    var s = e.target.closest && e.target.closest(".sl");
-    if (e.target.classList && e.target.classList.contains("grip")) { dragCat = +e.target.dataset.cat; e.dataTransfer.effectAllowed = "move"; e.target.closest(".cat").classList.add("dragging"); return; }
-    if (!s) return; drag = s; s.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", s.dataset.key); } catch (x) {}
     $("big").style.display = "none";
+    if (e.target.classList && e.target.classList.contains("grip")) { dragCat = +e.target.dataset.cat; e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", "cat"); } catch (x) {} e.target.closest(".cat").classList.add("dragging"); return; }
+    var s = e.target.closest && e.target.closest(".sl");
+    if (!s) return; drag = s; e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", s.dataset.key); } catch (x) {}
+    setTimeout(function () { if (drag) drag.classList.add("dragging"); }, 0);
   });
-  document.addEventListener("dragend", function () { if (drag) drag.classList.remove("dragging"); drag = null; dragCat = null; document.querySelectorAll(".over,.cat.dragging").forEach(function (z) { z.classList.remove("over"); z.classList.remove("dragging"); }); });
+  document.addEventListener("dragend", clearDrag);
   function before(z, x, y) {
     var items = [].slice.call(z.querySelectorAll(".sl:not(.dragging)"));
-    for (var i = 0; i < items.length; i++) { var r = items[i].getBoundingClientRect(); if (y < r.top + r.height / 2 && x < r.right || y < r.top) return items[i]; if (y <= r.bottom && x < r.left + r.width / 2) return items[i]; }
+    for (var i = 0; i < items.length; i++) { var r = items[i].getBoundingClientRect(); if (y < r.top) return items[i]; if (y <= r.bottom && x < r.left + r.width / 2) return items[i]; }
     return null;
   }
+  function tgt(e) { var t = e.target; return t && t.nodeType === 1 ? t : t && t.parentNode; }
   document.addEventListener("dragover", function (e) {
-    if (dragCat != null) { var c = e.target.closest && e.target.closest(".cat"); if (c) e.preventDefault(); return; }
-    var z = e.target.closest && e.target.closest(".zone"); if (!z || !drag) return;
-    e.preventDefault(); document.querySelectorAll(".zone.over").forEach(function (o) { if (o !== z) o.classList.remove("over"); }); z.classList.add("over");
-    var b = before(z, e.clientX, e.clientY); if (b) z.insertBefore(drag, b); else z.appendChild(drag);
+    var t = tgt(e); if (!t || !t.closest) return;
+    if (dragCat != null) { if (t.closest(".cat")) e.preventDefault(); return; }
+    if (!drag) return;
+    // becsukott kategória fölött: fél másodperc múlva kinyílik (oda is lehet ejteni)
+    var c = t.closest(".cat");
+    document.querySelectorAll(".over-cat").forEach(function (o) { if (o !== c) o.classList.remove("over-cat"); });
+    if (c && c.classList.contains("closed")) {
+      e.preventDefault(); c.classList.add("over-cat");
+      if (openC !== c) { openC = c; clearTimeout(openT); openT = setTimeout(function () { var g = CFG.cats[+c.dataset.gi]; if (g) OPEN[g.id] = true; c.classList.remove("closed"); }, 500); }
+      return;
+    }
+    if (!c) { openC = null; clearTimeout(openT); }
+    var z = t.closest(".zone"); if (!z) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = "move";
+    document.querySelectorAll(".zone.over").forEach(function (o) { if (o !== z) o.classList.remove("over"); }); z.classList.add("over");
+    var b = before(z, e.clientX, e.clientY);
+    if (b) { if (mk.parentNode !== z || mk.nextSibling !== b) z.insertBefore(mk, b); }
+    else if (z.lastChild !== mk) z.appendChild(mk);
   });
   document.addEventListener("drop", function (e) {
-    if (dragCat != null) { var c = e.target.closest && e.target.closest(".cat"); if (c) { e.preventDefault(); var to = +c.dataset.gi; if (to !== dragCat) { CFG.cats.splice(to, 0, CFG.cats.splice(dragCat, 1)[0]); dirty(); render(); } } return; }
-    var z = e.target.closest && e.target.closest(".zone"); if (!z || !drag) return; e.preventDefault();
+    var t = tgt(e); if (!t || !t.closest) return;
+    if (dragCat != null) { var c = t.closest(".cat"); if (c) { e.preventDefault(); var to = +c.dataset.gi, from = dragCat; if (to !== from) { CFG.cats.splice(to, 0, CFG.cats.splice(from, 1)[0]); dirty(); } } clearDrag(); render(); return; }
+    if (!drag) return; e.preventDefault();
+    var cl = t.closest(".cat.closed");
+    if (cl) { var g = CFG.cats[+cl.dataset.gi], k = drag.dataset.key; clearDrag(); if (g) { removeKey(k); g.fixed.push(k); OPEN[g.id] = true; dirty(); } render(); return; }
+    if (!mk.parentNode) { clearDrag(); return; }
+    mk.parentNode.insertBefore(drag, mk); clearDrag();
     sync(); dirty(); render();
   });
+  function removeKey(k) {
+    CFG.cats.forEach(function (g) { [g.fixed].concat((g.subs || []).map(function (sg) { return sg.slides; })).forEach(function (l) { if (!l) return; var i = l.indexOf(k); if (i >= 0) l.splice(i, 1); }); });
+  }
   // a DOM sorrendjéből újraépíti a beosztást
   function sync() {
     document.querySelectorAll("#cats .zone").forEach(function (z) { if (!z._list) return; z._list.length = 0; z.querySelectorAll(".sl").forEach(function (s) { z._list.push(s.dataset.key); }); });
