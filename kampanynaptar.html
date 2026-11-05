@@ -308,7 +308,8 @@
     if (x2.allapot === "eltelt") { c.appendChild(el("p", "mq", "Ez a hónap már eltelt.")); g.appendChild(c); if (d.upd) { var u0 = new Date(d.upd); if (!isNaN(u0)) $("upd").textContent = "Frissítve: " + u0.toLocaleString("hu-HU", { dateStyle: "medium", timeStyle: "short" }); } return; }
     // eredmény csempék: kampánytermékenként egy, plusz legnagyobb szerződés, összes egység, legjobb munkatárs, legtöbb szerződés
     var E = x2.ered || null;
-    if (E || x2.allapot === "kesz") {
+    var hasE = E && (((E.termek || []).some(function (t) { return t.c || t.v; })) || ["nagy", "egyseg", "legjobb", "legtobb"].some(function (k) { return E[k] && E[k].v; }));
+    if (hasE || x2.allapot === "kesz") {
       E = E || {}; var er = el("div", "er"); er.appendChild(el("b", "", "Eredmény")); var gr = el("div", "tiles");
       function tile(cim, v, a, cls) { var t = el("div", "tile" + (cls ? " " + cls : "") + (v ? "" : " empty")); t.appendChild(el("small", "", cim)); t.appendChild(el("strong", "", v || "Zárás folyamatban")); if (a) t.appendChild(el("span", "", a)); gr.appendChild(t); }
       (E.termek || []).forEach(function (t) { if (t.c || t.v) tile(t.c || "Termék", t.v, t.a, "pr"); });
@@ -327,15 +328,16 @@
     if (x2.cel) sec("Célcsoport", txt(x2.cel));
     if (x2.ajanlat) {
       // „Beszélgetésindító: …” külön kiemelve; a „1) … 2) …” pontokból lista
-      var a = x2.ajanlat, bi = "", mm = a.match(/\s*Beszélgetésindító:\s*(.+)$/);
-      if (mm) { bi = mm[1].trim(); a = a.slice(0, mm.index).trim(); }
-      var parts = a.split(/\s*(?:^|\s)\d\)\s+/).map(function (t) { return t.trim(); }).filter(Boolean), node;
+      var a = x2.ajanlat, bi = (x2.indito || "").trim(), mm = a.match(/\s*Beszélgetésindító:\s*(.+)$/);
+      if (mm) { if (!bi) bi = mm[1].trim(); a = a.slice(0, mm.index).trim(); }
+      var parts = (a.indexOf("\n") >= 0 ? a.split(/\n+/) : a.split(/\s*(?:^|\s)\d\)\s+/)).map(function (t) { return t.replace(/^\s*\d+[).]\s*/, "").trim(); }).filter(Boolean), node;
       if (parts.length > 1) { node = el("ol", "pts"); parts.forEach(function (t) { var li = el("li"); var m2 = t.match(/^([^:]{2,40}):\s*(.+)$/); if (m2) { li.appendChild(el("b", "", m2[1])); li.appendChild(txt(" – " + m2[2])); } else li.appendChild(txt(t)); node.appendChild(li); }); }
       else node = txt(a);
       sec("Leírás", node);
-      if (bi) { var q = el("div", "bi"); q.appendChild(el("b", "", "Beszélgetésindító")); q.appendChild(el("span", "", bi)); dl.appendChild(q); }
     }
-    if (x2.datumok) { var ul = el("ul", "dts"); x2.datumok.split(/\s*·\s*/).filter(Boolean).forEach(function (t) { var li = el("li"), m3 = t.match(/^([^:]{2,40}):\s*(.+)$/); if (m3) { li.appendChild(el("b", "", m3[1])); li.appendChild(txt(" " + m3[2])); } else li.appendChild(txt(t.charAt(0).toUpperCase() + t.slice(1))); ul.appendChild(li); }); sec("Fontos dátumok", ul); }
+    if (!x2.ajanlat && x2.indito) var bi = x2.indito.trim();
+    if (bi) { bi = bi.replace(/^[„"]+|[”"]+$/g, ""); var q = el("div", "bi"); q.appendChild(el("b", "", "Beszélgetésindító")); q.appendChild(el("span", "", "„" + bi + "”")); dl.appendChild(q); }
+    if (x2.datumok) { var ul = el("ul", "dts"); x2.datumok.split(/\s*·\s*|\n+/).filter(Boolean).forEach(function (t) { var li = el("li"), m3 = t.match(/^([^:]{2,40}):\s*(.+)$/); if (m3) { li.appendChild(el("b", "", m3[1])); li.appendChild(txt(" " + m3[2])); } else li.appendChild(txt(t.charAt(0).toUpperCase() + t.slice(1))); ul.appendChild(li); }); sec("Fontos dátumok", ul); }
     if (x2.jegyzet) sec("Megjegyzés", txt(x2.jegyzet));
     c.appendChild(dl); g.appendChild(c);
     if (d.upd) { var u = new Date(d.upd); if (!isNaN(u)) $("upd").textContent = "Frissítve: " + u.toLocaleString("hu-HU", { dateStyle: "medium", timeStyle: "short" }); }
