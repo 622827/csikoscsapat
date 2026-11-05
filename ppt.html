@@ -262,6 +262,26 @@
   .pg h3:first-of-type { margin-top: 0; }
   .pg label.f { display: block; font-weight: 600; font-size: .92rem; margin: 12px 0 0; }
   .pg label.f:first-of-type { margin-top: 0; }
+  .pg .dtw { display: block; font-weight: 600; font-size: .92rem; margin: 12px 0 0; position: relative; }
+  .pg .dtb { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; font: inherit; font-size: 1.05rem; font-weight: 500; text-align: left; padding: 12px 14px; margin-top: 4px; border-radius: 12px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .pg .dtb:hover, .pg .dtb[aria-expanded="true"] { border-color: var(--accent); }
+  .pg .dtb:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .pg .dtb svg { color: var(--accent); flex: none; }
+  .pg .cal { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; width: 320px; max-width: calc(100vw - 32px); background: var(--bg); color: var(--ink); border: 2px solid var(--accent); border-radius: 16px; box-shadow: 0 14px 40px rgba(0, 0, 0, .28); padding: 12px; font-weight: 500; }
+  .pg .cal[hidden] { display: none; }
+  .pg .cal-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .pg .cal-h b { font-size: 1rem; }
+  .pg .cal-h button, .pg .cal-f button { font: inherit; border: 0; background: transparent; color: var(--accent); cursor: pointer; border-radius: 10px; padding: 6px 10px; font-weight: 700; }
+  .pg .cal-h button { font-size: 1.2rem; line-height: 1; }
+  .pg .cal-h button:hover, .pg .cal-f button:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .pg .cal-g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+  .pg .cal-g .wd { font-size: .74rem; font-weight: 700; color: var(--muted); padding: 4px 0; text-transform: uppercase; }
+  .pg .cal-g button { font: inherit; font-size: .95rem; aspect-ratio: 1; border: 0; border-radius: 10px; background: transparent; color: var(--ink); cursor: pointer; }
+  .pg .cal-g button:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .pg .cal-g button.out { color: var(--muted); opacity: .5; }
+  .pg .cal-g button.today { box-shadow: inset 0 0 0 2px var(--accent); }
+  .pg .cal-g button.on { background: var(--accent); color: var(--on-accent); font-weight: 800; }
+  .pg .cal-f { display: flex; justify-content: flex-end; margin-top: 6px; }
   .pg input[type=text], .pg input[type=date], .pg select { width: 100%; font: inherit; font-size: 1.05rem; padding: 12px 14px; margin-top: 4px; border-radius: 12px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
   .pg input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
   .pg .chk { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border: 2px solid var(--track, #e5e5e5); border-radius: 12px; background: var(--bg); font-weight: 600; cursor: pointer; margin-top: 8px; }
@@ -316,7 +336,7 @@
   <form id="f" autocomplete="off">
     <div class="card">
       <label class="f">Ügyfél neve<input type="text" id="cl" required placeholder="pl. Kovács Anna és Kovács Péter"></label>
-      <label class="f">A tanácsadás időpontja<input type="date" id="dt" required></label>
+      <div class="f dtw">A tanácsadás időpontja<input type="hidden" id="dt"><button type="button" id="dtb" class="dtb" aria-haspopup="dialog" aria-expanded="false"><span id="dtt"></span><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div class="cal" id="cal" role="dialog" aria-label="Dátum választása" hidden></div></div>
       <label class="f">Elemző neve <small style="font-weight:400;color:var(--muted)">(nem kötelező)</small><input type="text" id="el" placeholder="pl. Csikós Máté"></label>
     </div>
     <div class="card">
@@ -362,7 +382,37 @@
       })
       .catch(function (e) { if (!SLIDES.length) $("lmsg").textContent = "A diák betöltése nem sikerült: " + e.message + ". Frissítsd az oldalt."; });
   }
-  var d = new Date(); $("dt").value = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  /* ---- dátumválasztó a honlap színeivel ---- */
+  function iso(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  var NAPOK = ["vasárnap", "hétfő", "kedd", "szerda", "csütörtök", "péntek", "szombat"], VIEW = null;
+  function setDate(d) { $("dt").value = iso(d); $("dtt").textContent = d.getFullYear() + ". " + MONTHS[d.getMonth()] + " " + d.getDate() + ". (" + NAPOK[d.getDay()] + ")"; }
+  function cur() { var p = $("dt").value.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function drawCal() {
+    var cal = $("cal"), y = VIEW.getFullYear(), m = VIEW.getMonth(), sel = $("dt").value, today = iso(new Date());
+    cal.innerHTML = "";
+    var h = el("div", "cal-h"), pv = el("button", "", "‹"), nx = el("button", "", "›");
+    pv.type = nx.type = "button"; pv.setAttribute("aria-label", "Előző hónap"); nx.setAttribute("aria-label", "Következő hónap");
+    pv.onclick = function () { VIEW = new Date(y, m - 1, 1); drawCal(); }; nx.onclick = function () { VIEW = new Date(y, m + 1, 1); drawCal(); };
+    h.appendChild(pv); h.appendChild(el("b", "", y + ". " + MONTHS[m])); h.appendChild(nx); cal.appendChild(h);
+    var g = el("div", "cal-g"); ["H", "K", "Sze", "Cs", "P", "Szo", "V"].forEach(function (w) { g.appendChild(el("span", "wd", w)); });
+    var start = new Date(y, m, 1 - ((new Date(y, m, 1).getDay() + 6) % 7));
+    for (var i = 0; i < 42; i++) {
+      var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), k = iso(d);
+      if (i === 35 && d.getMonth() !== m) break;
+      var b = el("button", (d.getMonth() !== m ? "out " : "") + (k === today ? "today " : "") + (k === sel ? "on" : ""), String(d.getDate()));
+      b.type = "button"; b.dataset.d = k; g.appendChild(b);
+    }
+    g.onclick = function (e) { var b = e.target.closest("button[data-d]"); if (!b) return; var p = b.dataset.d.split("-"); setDate(new Date(+p[0], +p[1] - 1, +p[2])); closeCal(); };
+    cal.appendChild(g);
+    var f = el("div", "cal-f"), tb = el("button", "", "Ma"); tb.type = "button"; tb.onclick = function () { setDate(new Date()); closeCal(); }; f.appendChild(tb); cal.appendChild(f);
+  }
+  function openCal() { VIEW = cur(); VIEW.setDate(1); drawCal(); $("cal").hidden = false; $("dtb").setAttribute("aria-expanded", "true"); }
+  function closeCal() { $("cal").hidden = true; $("dtb").setAttribute("aria-expanded", "false"); }
+  $("dtb").addEventListener("click", function () { if ($("cal").hidden) openCal(); else closeCal(); });
+  $("cal").addEventListener("click", function (e) { e.stopPropagation(); });
+  document.addEventListener("click", function (e) { if (!$("cal").hidden && !e.target.closest(".dtw")) closeCal(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("cal").hidden) { closeCal(); $("dtb").focus(); } });
+  setDate(new Date());
   /* ===== Témák (csoportok) – a diákat címke/cím alapján keresi a sablonokban ===== */
   /* a beosztást (kategóriák, alkategóriák) az adminban lehet húzogatni; a diákat kulcs azonosítja: sablon|címke|cím|sorszám */
   function keys() {
