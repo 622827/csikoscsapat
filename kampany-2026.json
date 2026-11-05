@@ -57,7 +57,36 @@
    "allapot": "kesz",
    "egyseg": "Eurós befektetések és bankszámlakampány",
    "jegyzet": "A Partner Prestige ajánlat lejárt (november 5.); az eurós megtakarítások novemberben is mennek tovább.",
-   "eredmeny": "10+ számla (UniCredit Partner Prestige)\n10+ eurós megtakarítás\nLegnagyobb szerződés: Kis Ádám – 180 000 Ft feletti havidíjas megtakarítás, 870 egység"
+   "ered": {
+    "termek": [
+     {
+      "c": "Bankszámla",
+      "v": "10+",
+      "a": "UniCredit Partner Prestige"
+     },
+     {
+      "c": "Eurós megtakarítás",
+      "v": "10+",
+      "a": "két prémium partner"
+     }
+    ],
+    "nagy": {
+     "v": "Kis Ádám",
+     "a": "180 000+ Ft havidíjas megtakarítás · 870 egység"
+    },
+    "egyseg": {
+     "v": "",
+     "a": ""
+    },
+    "legjobb": {
+     "v": "",
+     "a": ""
+    },
+    "legtobb": {
+     "v": "",
+     "a": ""
+    }
+   }
   },
   {
    "m": 11,

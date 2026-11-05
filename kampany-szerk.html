@@ -39,6 +39,16 @@
   .f label { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; }
   .f input, .f textarea, .f select { width: 100%; font: inherit; font-size: .95rem; color: var(--ink); background: var(--bg); border: 2px solid var(--track); border-radius: 10px; padding: 8px 10px; resize: none; overflow: hidden; }
   .f input:focus, .f textarea:focus, .f select:focus { outline: none; border-color: var(--accent); }
+  .ered { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--track); display: grid; gap: 6px; }
+  .ered > label { color: #4fe08f; font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; }
+  .eg2 { display: grid; gap: 6px; }
+  .et { display: grid; grid-template-columns: 1.1fr .7fr 1.4fr auto; gap: 6px; align-items: center; }
+  .et.fx { grid-template-columns: 1.1fr .7fr 1.4fr; } .et.fx > span { font-size: .85rem; font-weight: 700; color: var(--muted); }
+  .et input { width: 100%; font: inherit; font-size: .9rem; color: var(--ink); background: var(--bg); border: 2px solid var(--track); border-radius: 10px; padding: 6px 8px; }
+  .et input:focus { outline: none; border-color: var(--accent); }
+  .ex, .ea { font: inherit; cursor: pointer; border-radius: 999px; border: 1px solid var(--track); background: var(--bg); color: var(--ink); padding: 5px 10px; }
+  .ea { justify-self: start; font-weight: 700; font-size: .85rem; }
+  @media (max-width: 700px) { .et, .et.fx { grid-template-columns: 1fr; } }
   .ch .f { margin: 0; } .ch select { width: auto; }
   html.emb body { padding: 0 0 24px; } html.emb body::before { display: none; } html.emb h1, html.emb .lead { display: none; }
   .yt { display: inline-flex; gap: 4px; background: var(--card); border: 1px solid var(--track); border-radius: 999px; padding: 4px; margin: 0 0 18px; }
@@ -74,7 +84,7 @@
   }
   function defaults() { return fetch("kampany-" + Y + ".json", { cache: "no-cache" }).then(function (r) { return r.json(); }); }
 
-  var FIELDS = [["egyseg","Kampányegység","input"],["uzenet","Fő üzenet","input"],["cel","Célcsoport","area"],["ajanlat","Leírás","area"],["datumok","Fontos dátumok","area"],["jegyzet","Megjegyzés","area"],["eredmeny","Eredmény (lezárt hónapnál)","area"]];
+  var FIELDS = [["egyseg","Kampányegység","input"],["uzenet","Fő üzenet","input"],["cel","Célcsoport","area"],["ajanlat","Leírás","area"],["datumok","Fontos dátumok","area"],["jegyzet","Megjegyzés","area"]];
   var D = null, F = null, tm = 0;
   function tok() { try { return sessionStorage.getItem("csk_admin") || ""; } catch (e) { return ""; } }
   function status(t, ok) { var s = $("sv"); s.textContent = t; s.className = "sv" + (ok ? " ok" : ""); }
@@ -85,6 +95,29 @@
       D.upd = new Date().toISOString();
       F.F.setDoc(F.ref, D).then(function () { status("Mentve", true); }, function (e) { status("A mentés nem sikerült: " + e.message); });
     }, 700);
+  }
+  /* ---- Eredmény: csempék (kampánytermékek + fix csempék) ---- */
+  var FIX = [["nagy", "Legnagyobb szerződés", "pl. Kis Ádám", "pl. 180 000+ Ft/hó · 870 egység"], ["egyseg", "Összes egység", "pl. 4 200", "pl. a hónap összesen"],
+             ["legjobb", "Legjobb munkatárs", "név", "pl. 1 250 egység"], ["legtobb", "Legtöbb szerződés", "név", "pl. 9 szerződés"]];
+  function inp(ph, val, on) { var i = el("input"); i.placeholder = ph; i.value = val || ""; i.addEventListener("input", function () { on(i.value); save(); }); return i; }
+  function eredEl(x) {
+    var w = el("div", "ered"); w.appendChild(el("label", "", "Eredmény (lezárt hónapnál) – csempék"));
+    var E = x.ered = x.ered || {}; E.termek = E.termek || [];
+    var tl = el("div", "eg2");
+    function drawT() {
+      tl.textContent = "";
+      E.termek.forEach(function (t, i) {
+        var r = el("div", "et"); r.appendChild(inp("termék (pl. Bankszámla)", t.c, function (v) { t.c = v; })); r.appendChild(inp("eredmény (pl. 10+)", t.v, function (v) { t.v = v; })); r.appendChild(inp("megjegyzés (pl. UniCredit Partner Prestige)", t.a, function (v) { t.a = v; }));
+        var x2 = el("button", "ex", "✕"); x2.type = "button"; x2.title = "Csempe törlése"; x2.onclick = function () { E.termek.splice(i, 1); drawT(); save(); }; r.appendChild(x2); tl.appendChild(r);
+      });
+      var ad = el("button", "ea", "+ Kampánytermék csempe"); ad.type = "button"; ad.onclick = function () { E.termek.push({ c: "", v: "", a: "" }); drawT(); }; tl.appendChild(ad);
+    }
+    drawT(); w.appendChild(tl);
+    FIX.forEach(function (f) {
+      var o = E[f[0]] = E[f[0]] || {}, r = el("div", "et fx"); r.appendChild(el("span", "", f[1]));
+      r.appendChild(inp(f[2], o.v, function (v) { o.v = v; })); r.appendChild(inp(f[3], o.a, function (v) { o.a = v; })); w.appendChild(r);
+    });
+    return w;
   }
   function build() {
     var g = $("grid"); g.textContent = ""; g.id = "grid";
@@ -102,6 +135,7 @@
         inp.addEventListener("input", function () { x[f[0]] = inp.value; if (inp.tagName === "TEXTAREA") grow(inp); save(); });
         w.appendChild(lb); w.appendChild(inp); c.appendChild(w);
       });
+      c.appendChild(eredEl(x));
       g.appendChild(c);
     });
     Array.prototype.forEach.call(g.querySelectorAll("textarea"), grow);

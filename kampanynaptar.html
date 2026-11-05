@@ -124,9 +124,16 @@
   .wki i { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--accent); }
   .wki.now { border-color: var(--accent); } .wki.done { opacity: .75; }
   .wk { fill: var(--track); } .wk.on { fill: var(--accent); } .wk.now { fill: color-mix(in srgb, var(--accent) 35%, var(--track)); stroke: var(--accent); stroke-width: 2; }
-  .er { margin: 10px 0 4px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #4fe08f 14%, var(--bg)); border: 1px solid color-mix(in srgb, #4fe08f 55%, transparent); }
-  .er b { display: block; color: #4fe08f; font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
-  .ers { display: flex; flex-wrap: wrap; gap: 6px; } .ers span { background: var(--bg); border-radius: 10px; padding: 5px 12px; font-weight: 700; font-size: .95rem; } .ers i { color: var(--muted); }
+  .er { margin: 12px 0 6px; }
+  .er > b { display: block; color: #4fe08f; font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .tile { background: var(--bg); border: 1px solid var(--track); border-radius: 14px; padding: 10px 12px; display: grid; gap: 2px; align-content: start; }
+  .tile small { color: var(--muted); font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+  .tile strong { font-size: 1.35rem; line-height: 1.15; letter-spacing: -.01em; }
+  .tile span { color: var(--muted); font-size: .8rem; line-height: 1.3; }
+  .tile.pr { border-color: color-mix(in srgb, #4fe08f 55%, transparent); background: color-mix(in srgb, #4fe08f 10%, var(--bg)); }
+  .tile.pr strong { color: #4fe08f; font-size: 1.7rem; }
+  .tile.empty strong { color: var(--muted); opacity: .6; }
   .mq { margin: 6px 0 12px; font-size: 1.05rem; font-weight: 600; }
   dl { margin: 0; display: grid; gap: 10px; }
   dt { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; }
@@ -291,10 +298,15 @@
       it.appendChild(el("b", "", (i + 1) + ". hét")); it.appendChild(el("span", "", rd(w[0]) + " – " + rd(w[1]))); var bar = el("i"); bar.style.width = Math.round(f * 100) + "%"; it.appendChild(bar); wl.appendChild(it); });
     c.appendChild(wl);
     if (x2.allapot === "eltelt") { c.appendChild(el("p", "mq", "Ez a hónap már eltelt.")); g.appendChild(c); if (d.upd) { var u0 = new Date(d.upd); if (!isNaN(u0)) $("upd").textContent = "Frissítve: " + u0.toLocaleString("hu-HU", { dateStyle: "medium", timeStyle: "short" }); } return; }
-    // eredmény: a lezárt hónapoknál kiemelve
-    if (x2.eredmeny || x2.allapot === "kesz") { var er = el("div", "er"); er.appendChild(el("b", "", "Eredmény")); var ers = el("div", "ers");
-      (x2.eredmeny || "").split(/\n|;/).map(function (t) { return t.trim(); }).filter(Boolean).forEach(function (t) { ers.appendChild(el("span", "", t)); });
-      if (!ers.childNodes.length) ers.appendChild(el("i", "", "még nincs megadva")); er.appendChild(ers); c.appendChild(er); }
+    // eredmény csempék: kampánytermékenként egy, plusz legnagyobb szerződés, összes egység, legjobb munkatárs, legtöbb szerződés
+    var E = x2.ered || null;
+    if (E || x2.allapot === "kesz") {
+      E = E || {}; var er = el("div", "er"); er.appendChild(el("b", "", "Eredmény")); var gr = el("div", "tiles");
+      function tile(cim, v, a, cls) { var t = el("div", "tile" + (cls ? " " + cls : "") + (v ? "" : " empty")); t.appendChild(el("small", "", cim)); t.appendChild(el("strong", "", v || "–")); if (a) t.appendChild(el("span", "", a)); gr.appendChild(t); }
+      (E.termek || []).forEach(function (t) { if (t.c || t.v) tile(t.c || "Termék", t.v, t.a, "pr"); });
+      [["nagy", "Legnagyobb szerződés"], ["egyseg", "Összes egység"], ["legjobb", "Legjobb munkatárs"], ["legtobb", "Legtöbb szerződés"]].forEach(function (k) { var o = E[k[0]] || {}; tile(k[1], o.v, o.a); });
+      er.appendChild(gr); c.appendChild(er);
+    }
     var eg = el("p", "eg"); eg.appendChild(el("b", "", "Kampányegység:")); if (x2.egyseg) eg.appendChild(document.createTextNode(x2.egyseg)); else eg.appendChild(el("i", "", "még nincs megadva")); c.appendChild(eg);
     if (x2.uzenet) c.appendChild(el("p", "mq", "„" + x2.uzenet + "”"));
     var dl = el("dl");
