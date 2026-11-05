@@ -25,7 +25,7 @@
   var now = new Date();
   function e(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
   var css = ".zm.vk .vk-s{display:none}" +
-    ".zm.vk .panel.vkp{width:min(620px,calc(100vw - 16px));padding:0;overflow:hidden auto;max-height:min(78vh,720px)}" +
+    ".zm.vk .panel.vkp{width:min(620px,calc(100vw - 16px));padding:0;border:2px solid #5f8cc4;border-radius:14px;box-shadow:0 12px 32px rgba(0,30,70,.28),0 0 0 4px rgba(95,140,196,.15);overflow:hidden auto;max-height:min(78vh,720px)}" +
     ".vkp .vkb{margin:0 0 2px}.vkp .vkh{color:#fff;font-weight:800;font-size:1rem;padding:9px 14px;letter-spacing:.01em}" +
     ".vkp table{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}" +
     ".vkp th{text-align:left;font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:7px 14px 5px;border-bottom:2px solid var(--vkc)}" +
