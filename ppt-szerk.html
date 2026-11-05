@@ -51,7 +51,7 @@
   .gate input { width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); margin: 8px 0; }
   .x { color: var(--hot); }
   .cat-h, .sl, .zl, .opt, .grip, .tg, .sum { -webkit-user-select: none; user-select: none; }
-  .tg { font: inherit; border: 0; background: transparent; color: var(--ink); cursor: pointer; font-size: 1rem; width: 26px; padding: 2px; transition: transform .15s; }
+  .tg { font: inherit; border: 0; background: transparent; color: var(--ink); cursor: pointer; font-size: 1.25rem; width: 32px; padding: 2px; transition: transform .15s; }
   .cat.closed .tg { transform: rotate(-90deg); }
   .cat.closed .body { display: none; }
   .sum { font-size: .78rem; color: var(--muted); white-space: nowrap; }
@@ -75,7 +75,7 @@
     <button class="btn" type="button" id="addcat">+ Új kategória</button>
     <button class="btn" type="button" id="refresh" title="A sablonok újraolvasása (ha új dia került beléjük)">Diák frissítése</button>
     <button class="btn" type="button" id="allopen">Mind kinyit</button>
-    <a class="btn" id="full" href="ppt-szerk.html?v=2" target="_blank" rel="noopener" hidden style="text-decoration:none">Megnyitás teljes oldalon ↗</a>
+    <a class="btn" id="full" href="ppt-szerk.html?v=3" target="_blank" rel="noopener" hidden style="text-decoration:none">Megnyitás teljes oldalon ↗</a>
     <span class="sp"></span>
     <span class="msg" id="msg"></span>
     <button class="btn pri" type="button" id="save" disabled>Mentés</button>
@@ -150,7 +150,7 @@
     CFG.cats.forEach(function (g, gi) {
       var c = el("div", "cat" + (OPEN[g.id] ? "" : " closed")); c.dataset.gi = gi;
       var tg = el("button", "tg", "▾"); tg.type = "button"; tg.title = "Kinyit / becsuk";
-      tg.onclick = function () { OPEN[g.id] = !OPEN[g.id]; c.classList.toggle("closed", !OPEN[g.id]); };
+      tg.onclick = function (ev) { ev.stopPropagation(); OPEN[g.id] = !OPEN[g.id]; c.classList.toggle("closed", !OPEN[g.id]); };
       var nslides = (g.fixed || []).length; (g.subs || []).forEach(function (sg) { nslides += (sg.slides || []).length; });
       var sum = el("span", "sum", nslides + " dia" + ((g.subs || []).length ? " · " + g.subs.length + " alkat." : ""));
       var h = el("div", "cat-h"), grip = el("span", "grip", "⠿"); grip.title = "Húzd a kategória áthelyezéséhez"; grip.draggable = true; grip.dataset.cat = gi;
@@ -162,6 +162,8 @@
       up.onclick = function () { CFG.cats.splice(gi - 1, 0, CFG.cats.splice(gi, 1)[0]); dirty(); render(); };
       dn.onclick = function () { CFG.cats.splice(gi + 1, 0, CFG.cats.splice(gi, 1)[0]); dirty(); render(); };
       del.onclick = function () { if (!confirm("Törlöd a(z) „" + g.name + "” kategóriát? A diái a besorolatlanok közé kerülnek.")) return; CFG.cats.splice(gi, 1); dirty(); render(); };
+      h.style.cursor = "pointer"; h.title = "Kattints a kinyitáshoz / becsukáshoz";
+      h.addEventListener("click", function (ev) { if (ev.target.closest("input,button,label,.grip")) return; tg.onclick(ev); });
       h.appendChild(tg); h.appendChild(grip); h.appendChild(nm); h.appendChild(sum); h.appendChild(one); h.appendChild(up); h.appendChild(dn); h.appendChild(del); c.appendChild(h);
       var body = el("div", "body"); c.appendChild(body);
       body.appendChild(el("p", "zl", "Fix diák (mindig bekerülnek)"));
