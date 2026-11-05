@@ -50,7 +50,7 @@
 <body>
 <main>
   <h1>Kampánynaptár 2027</h1>
-  <p class="lead">Kattints egy hónapra a körön: megmutatja, miről szól a hónap, kinek, milyen ajánlattal és csatornán.</p>
+  <p class="lead">Kattints egy hónapra a körön: megmutatja, miről szól a hónap, kinek és milyen ajánlattal.</p>
   <div id="grid"><p class="msg">Betöltés…</p></div>
   <p class="upd" id="upd"></p>
 </main>
@@ -107,7 +107,7 @@
     var st = ST[x2.allapot] || ST.terv; h.appendChild(el("span", "badge " + st[1], st[0])); c.appendChild(h);
     if (x2.uzenet) c.appendChild(el("p", "mq", "„" + x2.uzenet + "”"));
     var dl = el("dl");
-    [["cel", "Célcsoport"], ["ajanlat", "Ajánlat, tartalom"], ["csatorna", "Csatornák"], ["datumok", "Fontos dátumok"], ["jegyzet", "Megjegyzés"]].forEach(function (f) {
+    [["cel", "Célcsoport"], ["ajanlat", "Leírás"], ["datumok", "Fontos dátumok"], ["jegyzet", "Megjegyzés"]].forEach(function (f) {
       if (!x2[f[0]]) return; var w = el("div"); w.appendChild(el("dt", "", f[1])); w.appendChild(el("dd", "", x2[f[0]])); dl.appendChild(w);
     });
     c.appendChild(dl); g.appendChild(c);

@@ -65,7 +65,7 @@
   }
   function defaults() { return fetch("kampany-2027.json").then(function (r) { return r.json(); }); }
 
-  var FIELDS = [["uzenet","Fő üzenet","input"],["cel","Célcsoport","area"],["ajanlat","Ajánlat, tartalom","area"],["csatorna","Csatornák","area"],["datumok","Fontos dátumok","area"],["jegyzet","Megjegyzés","area"]];
+  var FIELDS = [["uzenet","Fő üzenet","input"],["cel","Célcsoport","area"],["ajanlat","Leírás","area"],["datumok","Fontos dátumok","area"],["jegyzet","Megjegyzés","area"]];
   var D = null, F = null, tm = 0;
   function tok() { try { return sessionStorage.getItem("csk_admin") || ""; } catch (e) { return ""; } }
   function status(t, ok) { var s = $("sv"); s.textContent = t; s.className = "sv" + (ok ? " ok" : ""); }
