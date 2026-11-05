@@ -18,7 +18,7 @@
   h1 { font-size: clamp(2rem, 6vw, 2.8rem); letter-spacing: -.03em; line-height: 1; margin: 0 0 12px; }
   .lead { color: var(--muted); font-size: 1.05rem; margin: 0 0 22px; max-width: 70ch; }
   .msg { color: var(--muted); }
-  #grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+  #grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; max-width: 980px; }
   @media (max-width: 860px) { #grid { grid-template-columns: 1fr; } }
   .c { background: var(--card); border: 3px solid var(--track); border-radius: 18px; padding: 18px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
   .c.now { border-color: var(--accent); }
@@ -49,11 +49,20 @@
   .ex, .ea { font: inherit; cursor: pointer; border-radius: 999px; border: 1px solid var(--track); background: var(--bg); color: var(--ink); padding: 5px 10px; }
   .ea { justify-self: start; font-weight: 700; font-size: .85rem; }
   @media (max-width: 700px) { .et, .et.fx { grid-template-columns: 1fr; } }
+  .c { padding: 12px 16px; } .c.open { padding: 16px 18px 20px; border-color: var(--accent); }
+  .ch { align-items: center; } .mt { font: inherit; font-size: 1.1rem; border: 0; background: transparent; color: var(--ink); cursor: pointer; width: 30px; transition: transform .15s; flex: none; }
+  .c.open .mt { transform: rotate(90deg); }
+  .mb { display: none; } .c.open .mb { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; margin-top: 12px; }
+  @media (max-width: 760px) { .c.open .mb { grid-template-columns: 1fr; } }
+  .sc { background: var(--bg); border: 1px solid var(--track); border-radius: 14px; padding: 10px 12px 12px; } .sc.er { grid-column: 1 / -1; }
+  .sc h3 { margin: 0; font-size: .74rem; text-transform: uppercase; letter-spacing: .07em; color: #ff9a7a; } .sc.er h3 { color: #4fe08f; }
+  .sc .f { margin-top: 6px; } .sc .f input, .sc .f textarea { background: var(--card); }
+  .sc .ered { margin: 0; padding: 0; border: 0; } .sc .et input { background: var(--card); }
   .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 2px; padding: 4px; background: var(--bg); border: 1px solid var(--track); border-radius: 12px; }
   .tab { font: inherit; font-size: .8rem; font-weight: 700; border: 0; border-radius: 9px; padding: 6px 10px; background: transparent; color: var(--muted); cursor: pointer; }
   .tab:hover { color: var(--ink); } .tab.on { background: var(--accent); color: var(--on-accent); }
   .pnl { min-height: 90px; } .hint { color: var(--muted); font-size: .8rem; margin: 10px 0 0; }
-  .ch > div:first-child { flex: 1; min-width: 200px; }
+  .ch > div:not(.f) { flex: 1; min-width: 200px; }
   .ch .f { margin: 0; } .ch select { width: auto; }
   html.emb body { padding: 0 0 24px; } html.emb body::before { display: none; } html.emb h1, html.emb .lead { display: none; }
   .yt { display: inline-flex; gap: 4px; background: var(--card); border: 1px solid var(--track); border-radius: 999px; padding: 4px; margin: 0 0 18px; }
@@ -124,9 +133,10 @@
     });
     return w;
   }
-  var TABSEL = {};
+  // nyitott hónapok: alapból az aktuális naptári hónap (ha az ő éve látszik)
+  var OPENM = {}; (function () { var n = new Date(); if (n.getFullYear() === Y) OPENM[n.getMonth() + 1] = true; })();
   var TABS = [
-    ["alap", "Alapok", [["egyseg", "Kampányegység", "input", "pl. Eurós befektetések és személybiztosítás"], ["uzenet", "Fő üzenet", "area", "egy mondat, idézőjel nélkül"]], "A téma és az állapot fent, a kártya fejlécében szerkeszthető."],
+    ["alap", "Kampányegység és fő üzenet", [["egyseg", "Kampányegység", "input", "pl. Eurós befektetések és személybiztosítás"], ["uzenet", "Fő üzenet", "area", "egy mondat, idézőjel nélkül"]]],
     ["cel", "Célcsoport", [["cel", "Célcsoport", "area", "kiknek szól a hónap"]]],
     ["leiras", "Leírás", [["ajanlat", "Leírás", "area", "soronként egy pont, pl.\nEurós megtakarítások: …\nBankszámlakampány: …"]], "Ha több sort írsz, a munkatársi oldalon számozott pontokként jelenik meg. A „Cím: szöveg” alakú sorok eleje félkövér lesz."],
     ["indito", "Beszélgetésindító", [["indito", "Beszélgetésindító", "area", "pl. Tudod, mennyibe kerül egy évben a bankszámlád?"]], "Kiemelt dobozban jelenik meg a munkatársi oldalon."],
@@ -144,32 +154,32 @@
     D.months.forEach(migrate);
     var g = $("grid"); g.textContent = ""; g.id = "grid";
     D.months.forEach(function (x) {
-      var c = el("section", "c"), h = el("div", "ch"), left = el("div");
+      var c = el("section", "c" + (OPENM[x.m] ? " open" : "")), h = el("div", "ch"), left = el("div");
+      var tg = el("button", "mt", "▸"); tg.type = "button"; tg.title = "Hónap kinyitása / becsukása"; tg.setAttribute("aria-expanded", OPENM[x.m] ? "true" : "false");
+      tg.onclick = function () { OPENM[x.m] = !OPENM[x.m]; c.classList.toggle("open", !!OPENM[x.m]); tg.setAttribute("aria-expanded", OPENM[x.m] ? "true" : "false"); if (OPENM[x.m]) [].forEach.call(c.querySelectorAll("textarea"), grow); };
+      h.appendChild(tg);
       left.appendChild(el("small", "", HO[x.m - 1] + " " + D.year));
       var tema = el("div", "f"); var ti = el("input"); ti.value = x.tema || ""; ti.setAttribute("aria-label", "Havi téma"); ti.style.fontSize = "1.15rem"; ti.style.fontWeight = "700";
       ti.addEventListener("input", function () { x.tema = ti.value; save(); }); tema.appendChild(ti); left.appendChild(tema); h.appendChild(left);
       var sf = el("div", "f"), sel = el("select"); sel.setAttribute("aria-label", "Állapot");
       Object.keys(ST).forEach(function (k) { var o = el("option", "", ST[k][0]); o.value = k; sel.appendChild(o); }); sel.value = x.allapot || "terv";
       sel.addEventListener("change", function () { x.allapot = sel.value; save(); }); sf.appendChild(sel); h.appendChild(sf); c.appendChild(h);
-      // fülek: minden szekció külön szerkeszthető
-      var tb = el("div", "tabs"), pn = el("div", "pnl"), cur = TABSEL[x.m] || "alap";
+      // lenyitva minden szekció egyszerre látszik és szerkeszthető
+      var bd = el("div", "mb");
       TABS.forEach(function (t) {
-        var bt = el("button", "tab", t[1]); bt.type = "button"; bt.dataset.k = t[0]; if (t[0] === cur) bt.classList.add("on");
-        bt.onclick = function () { TABSEL[x.m] = t[0]; [].forEach.call(tb.children, function (z) { z.classList.toggle("on", z === bt); }); show(t); };
-        tb.appendChild(bt);
-      });
-      function show(t) {
-        pn.textContent = "";
-        if (t[0] === "ered") { pn.appendChild(eredEl(x)); return; }
-        if (t[3]) pn.appendChild(el("p", "hint", t[3]));
-        t[2].forEach(function (f) {
-          var w = el("div", "f"), lb = el("label", "", f[1]), inp = el(f[2] === "input" ? "input" : "textarea");
+        var sc = el("div", "sc" + (t[0] === "ered" ? " er" : "")); sc.appendChild(el("h3", "", t[1]));
+        if (t[3]) sc.appendChild(el("p", "hint", t[3]));
+        if (t[0] === "ered") { var ee = eredEl(x); ee.removeChild(ee.firstChild); sc.appendChild(ee); }
+        else t[2].forEach(function (f) {
+          var w = el("div", "f"), inp = el(f[2] === "input" ? "input" : "textarea");
+          if (t[2].length > 1 || f[1] !== t[1]) w.appendChild(el("label", "", f[1]));
           inp.value = x[f[0]] || ""; inp.setAttribute("aria-label", f[1]); if (f[3]) inp.placeholder = f[3]; if (f[2] !== "input") inp.rows = 2;
           inp.addEventListener("input", function () { x[f[0]] = inp.value; if (inp.tagName === "TEXTAREA") grow(inp); save(); });
-          w.appendChild(lb); w.appendChild(inp); pn.appendChild(w); if (inp.tagName === "TEXTAREA") setTimeout(function () { grow(inp); }, 0);
+          w.appendChild(inp); sc.appendChild(w);
         });
-      }
-      c.appendChild(tb); c.appendChild(pn); show(TABS.filter(function (t) { return t[0] === cur; })[0] || TABS[0]);
+        bd.appendChild(sc);
+      });
+      c.appendChild(bd);
       g.appendChild(c);
     });
     Array.prototype.forEach.call(g.querySelectorAll("textarea"), grow);
