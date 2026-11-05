@@ -74,7 +74,7 @@
   }
   function defaults() { return fetch("kampany-" + Y + ".json").then(function (r) { return r.json(); }); }
 
-  var FIELDS = [["egyseg","Kampányegység","input"],["uzenet","Fő üzenet","input"],["cel","Célcsoport","area"],["ajanlat","Leírás","area"],["datumok","Fontos dátumok","area"],["jegyzet","Megjegyzés","area"]];
+  var FIELDS = [["egyseg","Kampányegység","input"],["uzenet","Fő üzenet","input"],["cel","Célcsoport","area"],["ajanlat","Leírás","area"],["datumok","Fontos dátumok","area"],["jegyzet","Megjegyzés","area"],["eredmeny","Eredmény (lezárt hónapnál)","area"]];
   var D = null, F = null, tm = 0;
   function tok() { try { return sessionStorage.getItem("csk_admin") || ""; } catch (e) { return ""; } }
   function status(t, ok) { var s = $("sv"); s.textContent = t; s.className = "sv" + (ok ? " ok" : ""); }
