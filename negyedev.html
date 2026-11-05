@@ -607,7 +607,6 @@
     }
     renderTotals(total);
     animateNumber(total);
-    $("status").textContent = "";
   }
 
   function load() {
@@ -623,22 +622,25 @@
         if (d.error) throw new Error(d.error);
         if (!d.counter) throw new Error("a szkript még nem a legújabb verzió (nincs benne counter adat)");
         try { localStorage.setItem("nev_cache_v1", JSON.stringify({ t: Date.now(), d: d })); } catch (e) {}
-        applyData(d);
+        applyData(d); LAST = Date.now(); stamp();
       })
       .catch(function (e) {
         document.body.classList.remove("loading");
         if (timer) clearTimeout(timer);
-        if ($("basis").innerHTML) $("status").textContent = "";
+        if ($("basis").innerHTML) { $("status").textContent = "A frissítés most nem sikerült" + (e && e.message ? " (" + (e.name === "AbortError" ? "időtúllépés" : e.message) + ")" : "") + ", ezért a " + hm(LAST) + "-kor letöltött adat látszik. Fél perc múlva újrapróbálom."; clearTimeout(RETRY); RETRY = setTimeout(load, 30000); }
         if (!$("basis").innerHTML) $("status").textContent = "Az adatok betöltése most nem sikerült" + (e && e.message ? ": " + e.message : "") + ". Frissítsd az oldalt egy perc múlva.";
       });
   }
 
+  var LAST = 0, RETRY = 0;
+  function hm(t) { if (!t) return "korábban"; var d = new Date(t), n = new Date(); var s = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); return d.toDateString() === n.toDateString() ? "ma " + s : (d.getMonth() + 1) + "." + d.getDate() + ". " + s; }
+  function stamp() { $("status").textContent = "Frissítve: " + hm(LAST); }
   /* ---- Indulás ---- */
   renderTotals(0);
   /* gyorsítótár: az utoljára látott adat azonnal megjelenik, a friss betöltés közben frissül */
   try {
     var cc = JSON.parse(localStorage.getItem("nev_cache_v1") || "null");
-    if (cc && cc.d && cc.d.counter && Date.now() - cc.t < 7 * 86400000) { applyData(cc.d); $("status").textContent = "Frissítés…"; }
+    if (cc && cc.d && cc.d.counter && Date.now() - cc.t < 7 * 86400000) { applyData(cc.d); LAST = cc.t; $("status").textContent = "Frissítés… (a " + hm(cc.t) + "-kori adat látszik)"; }
   } catch (e) {}
   load();
   setInterval(load, 300000);
