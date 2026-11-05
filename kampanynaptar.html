@@ -124,7 +124,7 @@
   .wki b { display: block; font-size: .8rem; } .wki span { color: var(--muted); }
   .wki i { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--accent); }
   .wki.now { border-color: var(--accent); } .wki.done { opacity: .75; }
-  .wk { fill: var(--track); } .wk.on { fill: var(--accent); } .wk.now { fill: color-mix(in srgb, var(--accent) 35%, var(--track)); stroke: var(--accent); stroke-width: 2; }
+  .wk { fill: var(--track); } .wk.now { fill-opacity: .55; stroke-width: 2.5; }
   .er { margin: 12px 0 6px; }
   .er > b { display: block; color: #4fe08f; font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
   .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
@@ -275,7 +275,9 @@
         var cell = sv("path", { "class": "wk", d: "M" + o0 + " A" + WR1 + "," + WR1 + " 0 0 1 " + o1 + " L" + n1 + " A" + WR0 + "," + WR0 + " 0 0 0 " + n0 + " Z" });
         var tt = sv("title", {}); tt.textContent = HO[m - 1] + " " + (i + 1) + ". termelési hét: " + rd(w[0]) + " – " + rd(w[1]); cell.appendChild(tt); gg.appendChild(cell);
         // eltelt hét: teli rózsaszín; a folyó hét: rózsaszín keret, halványan kitöltve
-        if (f >= 1) cell.setAttribute("class", "wk on"); else if (f > 0) cell.setAttribute("class", "wk now");
+        // a gyűrű a hónap színét kapja: eltelt hét teli, a folyó hét keretes, a hátralévő halvány
+        var mc = COL[x.allapot] || COL.terv; cell.style.fill = mc;
+        if (f >= 1) cell.setAttribute("class", "wk on"); else if (f > 0) { cell.setAttribute("class", "wk now"); cell.style.stroke = mc; } else cell.style.fillOpacity = ".3";
       });
       // a feliratok a kitöltés fölé kerüljenek
       [].slice.call(gg.querySelectorAll("text")).forEach(function (t) { gg.appendChild(t); });
