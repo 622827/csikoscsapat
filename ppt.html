@@ -267,6 +267,22 @@
   .pg .chk { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border: 2px solid var(--track, #e5e5e5); border-radius: 12px; background: var(--bg); font-weight: 600; cursor: pointer; margin-top: 8px; }
   .pg .chk small { display: block; font-weight: 400; color: var(--muted); font-size: .82rem; }
   .pg .chk input { width: 22px; height: 22px; accent-color: var(--accent); flex: none; }
+  .pg .grp { border: 2px solid var(--track, #e5e5e5); border-radius: 14px; margin-top: 10px; overflow: hidden; transition: border-color .2s; }
+  .pg .grp:has(> .chk input:checked) { border-color: var(--accent); }
+  .pg .grp > .chk { border: 0; margin: 0; border-radius: 0; }
+  .pg .grp .subs { display: none; padding: 0 14px 12px 48px; }
+  .pg .grp:has(> .chk input:checked) .subs { display: block; animation: rowin .22s ease both; }
+  .pg .subs .chk { padding: 8px 12px; margin-top: 6px; font-weight: 500; }
+  .pg .subs .chk.dis { opacity: .45; cursor: not-allowed; }
+  .pg .subs .sublbl { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 10px 0 0; }
+  .pg .subs .ages { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .pg .subs .ages label { border: 2px solid var(--track, #e5e5e5); border-radius: 999px; padding: 6px 14px; cursor: pointer; font-weight: 600; }
+  .pg .subs .ages label:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .pg .subs .ages input { position: absolute; opacity: 0; pointer-events: none; }
+  .pg details.extra { margin-top: 14px; }
+  .pg details.extra summary { cursor: pointer; font-weight: 700; padding: 8px 0; }
+  .pg details.extra summary small { font-weight: 400; color: var(--muted); }
+  @keyframes rowin { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
   .pg .chk:has(input:checked) { border-color: var(--accent); }
   .pg .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .pg .lnk { background: none; border: 0; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0; }
@@ -294,7 +310,7 @@
 </div>
 <main class="pg" id="app" hidden>
   <h1>Tanácsadó PPT generátor</h1>
-  <p class="lead">Add meg az ügyfelet és az időpontot, pipáld ki a diákat, és a program összeállítja belőlük a pénzügyi terv prezentációt (.pptx).</p>
+  <p class="lead">Add meg az ügyfelet és az időpontot, válaszd ki a témákat, és a program összeállítja belőlük a pénzügyi terv prezentációt (.pptx).</p>
   <form id="f" autocomplete="off">
     <div class="card">
       <label class="f">Ügyfél neve<input type="text" id="cl" required placeholder="pl. Kovács Anna és Kovács Péter"></label>
@@ -302,12 +318,11 @@
       <label class="f">Elemző neve <small style="font-weight:400;color:var(--muted)">(nem kötelező)</small><input type="text" id="el" placeholder="pl. Csikós Máté"></label>
     </div>
     <div class="card">
-      <div class="row"><h2 style="margin:0">Diák</h2><button type="button" class="lnk" id="all">Összes kijelölése</button></div>
+      <div class="row"><h2 style="margin:0">Témák</h2><button type="button" class="lnk" id="all">Összes kijelölése</button></div>
       <p class="pmsg" id="lmsg">A diák betöltése a sablonokból…</p>
-      <h3>Kezdő – Tanácsadás Sablon 2026</h3>
-      <div id="m-alap"></div>
-      <h3>Haladó – PPT generátor alap – halado</h3>
-      <div id="m-halado"></div>
+      <div id="groups"></div>
+      <details class="extra" id="extra-w" hidden><summary>Egyéb diák <small>(egyenként)</small></summary><div id="extra"></div></details>
+      <p class="pmsg" style="margin-top:12px">A borító (ügyfél neve, dátum) és a záró dia mindig bekerül.</p>
     </div>
     <button type="submit" class="primary" id="go" disabled>PPT létrehozása</button>
     <p class="pmsg" id="msg" role="status"></p>
@@ -346,24 +361,104 @@
         if (d.error === "pw") { try { sessionStorage.removeItem("ppt_ok"); } catch (e) {} location.reload(); return; }
         if (d.error || !d.slides) throw new Error(d.error || "üres válasz");
         SLIDES = d.slides; $("lmsg").textContent = ""; $("lmsg").hidden = true;
-        var n = { k: 0, h: 0 };
-        SLIDES.forEach(function (sl, idx) {
-          n[sl.d]++;
-          var l = document.createElement("label"); l.className = "chk";
-          var c = document.createElement("input"); c.type = "checkbox"; c.value = idx; c.className = "mod";
-          var s = document.createElement("span"); s.textContent = n[sl.d] + ". " + (sl.label ? sl.label.charAt(0) + sl.label.slice(1).toLowerCase() : (sl.title || "(cím nélküli dia)"));
-          var sm = document.createElement("small"); sm.textContent = sl.label ? sl.title : ""; s.appendChild(sm);
-          l.appendChild(c); l.appendChild(s); $(sl.d === "k" ? "m-alap" : "m-halado").appendChild(l);
-        });
+        render();
       })
       .catch(function (e) { $("lmsg").textContent = "A diák betöltése nem sikerült: " + e.message + ". Frissítsd az oldalt."; });
   }
   var d = new Date(); $("dt").value = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
-  function sel() { return [].slice.call(document.querySelectorAll(".mod:checked")).map(function (x) { var sl = SLIDES[+x.value]; return { d: sl.d, i: sl.i }; }); }
+  /* ===== Témák (csoportok) – a diákat címke/cím alapján keresi a sablonokban ===== */
+  function m(d, label, title) { return { d: d, label: label, title: title }; }
+  var GROUPS = [
+    { id: "ado", name: "Adókedvezmény", parts: [m("k", "ADÓKEDVEZMÉNYEK")] },
+    { id: "kgfb", name: "Kötelező biztosítás", parts: [m("k", "GÉPJÁRMŰ")] },
+    { id: "bank", name: "Bankszámla", parts: [m("k", "BANKSZÁMLA")] },
+    { id: "szemely", name: "Személybiztosítás", parts: [m("k", "", "Biztonsági lépések"), m("k", "SZEMÉLYBIZTOSÍTÁS", "Védelmi fajták"), m("k", "SZEMÉLYBIZTOSÍTÁS", "Mibe kerül, ha baj van?")], ages: true },
+    { id: "megtak", name: "Megtakarítás", parts: [m("k", "", "Megtakarítások"), m("k", "MEGTAKARÍTÁS", "Megtakarítási formák")], subs: [
+      { id: "huf", name: "Forint", parts: [m("k", "MEGTAKARÍTÁS", "Három prémium termék")] },
+      { id: "eur", name: "Euró", parts: [] },
+      { id: "nyugdij", name: "Nyugdíj", parts: [m("k", "MEGTAKARÍTÁS", "Három prémium nyugdíjtermék")] } ] },
+    { id: "ingatlan", name: "Ingatlan cél", parts: [m("h", "", "Lakásvásárlás / Hitel")], subs: [
+      { id: "okos", name: "Okos hitel", parts: [m("h", "HITEL")] },
+      { id: "tam", name: "Támogatások", parts: [m("h", "TÁMOGATÁSOK")], label: "Támogatások" },
+      { id: "wekerle", name: "Wekerle+", parts: [], under: "tam" },
+      { id: "csok", name: "CSOK Plusz", parts: [], under: "tam" },
+      { id: "babavaro", name: "Babaváró", parts: [], under: "tam" },
+      { id: "otthon", name: "Otthon Start", parts: [m("h", "OTTHON START")], under: "tam" } ] }
+  ];
+  var USED = {};
+  function find(p) {
+    return SLIDES.map(function (sl, idx) { return idx; }).filter(function (idx) {
+      var sl = SLIDES[idx]; if (sl.d !== p.d) return false;
+      if (p.label !== undefined && p.label !== "" && sl.label !== p.label) return false;
+      if (p.label === "" && sl.label) return false;
+      if (p.title && sl.title !== p.title) return false;
+      return true;
+    });
+  }
+  function idxs(parts) { var r = []; (parts || []).forEach(function (p) { find(p).forEach(function (i) { if (r.indexOf(i) < 0) r.push(i); }); }); return r; }
+  function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
+  function chk(cls, val, txt, sub, dis) {
+    var l = el("label", "chk" + (dis ? " dis" : "")), c = el("input"); c.type = "checkbox"; c.className = cls; c.value = val; if (dis) c.disabled = true;
+    var s = el("span", "", txt); if (sub) s.appendChild(el("small", "", sub)); l.appendChild(c); l.appendChild(s); return l;
+  }
+  function cnt(n) { return n ? n + " dia" : "hamarosan – a sablonban még nincs dia"; }
+  function render() {
+    var box = $("groups"); box.innerHTML = ""; USED = {};
+    SLIDES.forEach(function (sl, i) { if (sl.d === "k" && (/PÉNZÜGYI TERV/.test(sl.label) || (!sl.label && !sl.title))) USED[i] = 1; });
+    GROUPS.forEach(function (g) {
+      var main = idxs(g.parts); main.forEach(function (i) { USED[i] = 1; });
+      var w = el("div", "grp"); w.appendChild(chk("g", g.id, g.name, cnt(main.length + (g.ages ? 1 : 0)), !main.length && !g.subs));
+      var subs = el("div", "subs");
+      if (g.ages) {
+        var ages = SLIDES.map(function (s, i) { return i; }).filter(function (i) { return SLIDES[i].age && SLIDES[i].label === "SZEMÉLYBIZTOSÍTÁS"; });
+        ages.forEach(function (i) { USED[i] = 1; });
+        subs.appendChild(el("p", "sublbl", "Az ügyfél korcsoportja"));
+        var ag = el("div", "ages");
+        ages.forEach(function (i, k) { var l = el("label"), r = el("input"); r.type = "radio"; r.name = "age-" + g.id; r.value = i; if (k === 1 || (ages.length < 2 && k === 0)) r.checked = true; l.appendChild(r); l.appendChild(document.createTextNode(SLIDES[i].age.replace("-", "–") + " év")); ag.appendChild(l); });
+        subs.appendChild(ag);
+      }
+      (g.subs || []).forEach(function (sg) {
+        var si = idxs(sg.parts); si.forEach(function (i) { USED[i] = 1; });
+        var c = chk("s", g.id + ":" + sg.id, sg.name, cnt(si.length), !si.length);
+        if (sg.under) c.style.marginLeft = "28px";
+        subs.appendChild(c);
+      });
+      if (subs.childNodes.length) w.appendChild(subs);
+      box.appendChild(w);
+    });
+    var ex = $("extra"), any = false; ex.innerHTML = "";
+    var n = { k: 0, h: 0 };
+    SLIDES.forEach(function (sl, i) {
+      n[sl.d]++; if (USED[i]) return; any = true;
+      ex.appendChild(chk("x", i, (sl.d === "k" ? "Kezdő " : "Haladó ") + n[sl.d] + ". " + (sl.label ? sl.label.charAt(0) + sl.label.slice(1).toLowerCase() : (sl.title || "(cím nélküli dia)")), sl.label ? sl.title : ""));
+    });
+    $("extra-w").hidden = !any;
+    upd();
+  }
+  function sel() {
+    var out = [], add = function (i) { if (i != null && out.indexOf(i) < 0) out.push(i); };
+    var cover = SLIDES.findIndex(function (s) { return s.d === "k" && /PÉNZÜGYI TERV/.test(s.label); });
+    var closing = -1; SLIDES.forEach(function (s, i) { if (s.d === "k" && !s.label && !s.title) closing = i; });
+    var body = [];
+    GROUPS.forEach(function (g) {
+      var on = document.querySelector('.g[value="' + g.id + '"]'); if (!on || !on.checked) return;
+      idxs(g.parts).forEach(function (i) { body.push(i); });
+      if (g.ages) { var r = document.querySelector('input[name="age-' + g.id + '"]:checked'); if (r) body.push(+r.value); }
+      (g.subs || []).forEach(function (sg) { var c = document.querySelector('.s[value="' + g.id + ":" + sg.id + '"]'); if (c && c.checked) idxs(sg.parts).forEach(function (i) { body.push(i); }); });
+    });
+    [].slice.call(document.querySelectorAll(".x:checked")).forEach(function (x) { body.push(+x.value); });
+    if (!body.length) return [];
+    if (cover > -1) add(cover); body.forEach(add); if (closing > -1) add(closing);
+    return out.map(function (i) { return { d: SLIDES[i].d, i: SLIDES[i].i }; });
+  }
   function upd() { $("go").disabled = !sel().length; }
-  document.addEventListener("change", function (e) { if (e.target.className === "mod") upd(); });
+  document.addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.classList && t.classList.contains("s") && t.checked) { var g = document.querySelector('.g[value="' + t.value.split(":")[0] + '"]'); if (g) g.checked = true; }
+    upd();
+  });
   $("all").addEventListener("click", function () {
-    var boxes = [].slice.call(document.querySelectorAll(".mod")), on = boxes.some(function (b) { return !b.checked; });
+    var boxes = [].slice.call(document.querySelectorAll(".g:not(:disabled), .s:not(:disabled)")), on = boxes.some(function (b) { return !b.checked; });
     boxes.forEach(function (b) { b.checked = on; }); $("all").textContent = on ? "Kijelölés törlése" : "Összes kijelölése"; upd();
   });
   function token() { try { var t = localStorage.getItem("csk_token"); if (t) return t; } catch (e) {} var m = document.cookie.match(/(?:^|; )csk_token=([^;]*)/); return m ? decodeURIComponent(m[1]) : ""; }
@@ -373,7 +468,7 @@
     ev.preventDefault();
     var cl = $("cl").value.trim(), dt = $("dt").value, mods = sel();
     if (!cl || !dt) { msg("Add meg az ügyfél nevét és az időpontot.", "err"); return; }
-    if (!mods.length) { msg("Jelölj ki legalább egy diát.", "err"); return; }
+    if (!mods.length) { msg("Jelölj ki legalább egy témát.", "err"); return; }
     var b = $("go"); b.disabled = true; msg("A prezentáció készül… ez kb. fél percig tarthat.");
     var ctl = window.AbortController ? new AbortController() : null, tm = ctl ? setTimeout(function () { ctl.abort(); }, 120000) : 0;
     fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, signal: ctl ? ctl.signal : undefined,
