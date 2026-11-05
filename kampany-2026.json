@@ -1,0 +1,81 @@
+{
+ "year": 2026,
+ "note": "Az adókedvezmények, határidők és szabályok változhatnak, a kampányok indítása előtt ellenőrizd a hatályos feltételeket.",
+ "months": [
+  {
+   "m": 1,
+   "tema": "Eltelt",
+   "allapot": "eltelt"
+  },
+  {
+   "m": 2,
+   "tema": "Eltelt",
+   "allapot": "eltelt"
+  },
+  {
+   "m": 3,
+   "tema": "Eltelt",
+   "allapot": "eltelt"
+  },
+  {
+   "m": 4,
+   "tema": "Eltelt",
+   "allapot": "eltelt"
+  },
+  {
+   "m": 5,
+   "tema": "Eltelt",
+   "allapot": "eltelt"
+  },
+  {
+   "m": 6,
+   "tema": "Eltelt",
+   "allapot": "eltelt"
+  },
+  {
+   "m": 7,
+   "tema": "Eltelt",
+   "allapot": "eltelt"
+  },
+  {
+   "m": 8,
+   "tema": "Eltelt",
+   "allapot": "eltelt"
+  },
+  {
+   "m": 9,
+   "tema": "Eltelt",
+   "allapot": "eltelt"
+  },
+  {
+   "m": 10,
+   "tema": "Pénzügyi tudatosság hónapja",
+   "uzenet": "Ismerd meg a pénzügyeid: ingyenes workshop",
+   "cel": "Új és meglévő ügyfelek, ismerősök",
+   "ajanlat": "Ingyenes pénzügyi workshop, tudatos költségvetés, vészhelyzeti tartalék",
+   "datumok": "Október 23. Nemzeti ünnep · Október 31. Takarékossági világnap",
+   "allapot": "terv",
+   "egyseg": ""
+  },
+  {
+   "m": 11,
+   "tema": "Tudatos vásárlás és év végi felkészülés",
+   "uzenet": "Mielőtt elkölted: tervezd meg az évet záró pénzügyeidet",
+   "cel": "Aktív munkavállalók, családok",
+   "ajanlat": "Adókedvezmények év végi ellenőrzése, kiadástervezés ünnepekre, megtakarítási célok",
+   "datumok": "November 26. Black Friday",
+   "allapot": "terv",
+   "egyseg": ""
+  },
+  {
+   "m": 12,
+   "tema": "Év végi adókedvezmények és hála",
+   "uzenet": "Az utolsó befizetési lehetőség, és köszönjük az évet",
+   "cel": "Minden ügyfél",
+   "ajanlat": "Év végi befizetések, adókedvezmények határideje, ügyfél-köszönő üzenet és ajándék",
+   "datumok": "December 24–26. Karácsony · December 31. az év végi befizetések határideje",
+   "allapot": "terv",
+   "egyseg": ""
+  }
+ ]
+}

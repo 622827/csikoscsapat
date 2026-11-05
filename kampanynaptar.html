@@ -22,9 +22,9 @@
   @media (max-width: 980px) { #grid { grid-template-columns: 1fr; } }
   #wheel { width: 100%; height: auto; max-width: 820px; margin: 0 auto; display: block; }
   .sg { cursor: pointer; outline: none; }
-  .sg path { stroke: var(--bg); stroke-width: 3; transition: filter .15s; }
-  .sg:hover path, .sg:focus path { filter: brightness(1.25); }
-  .sg.sel path { stroke: #fff; stroke-width: 4; }
+  .sg path.seg { stroke: var(--bg); stroke-width: 3; transition: filter .15s; }
+  .sg:hover path.seg, .sg:focus path.seg { filter: brightness(1.25); }
+  .sg.sel path.seg { stroke: #fff; stroke-width: 4; }
   .sg text { fill: #fff; font-weight: 700; pointer-events: none; font-family: inherit; }
   .sg .mn { font-size: 22px; } .sg .th { font-size: 12px; font-weight: 600; opacity: .9; }
   .sg.cur .mn { fill: var(--accent); }
@@ -39,27 +39,43 @@
   .ch small { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 700; font-size: .78rem; }
   .ch h2 { margin: 0; font-size: 1.35rem; letter-spacing: -.01em; }
   .badge { font-size: .75rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--track); color: var(--muted); white-space: nowrap; }
-  .badge.f { border-color: var(--accent); color: var(--accent); } .badge.k { border-color: #4fe08f; color: #4fe08f; }
+  .badge.f { border-color: var(--accent); color: var(--accent); } .badge.e { opacity: .7; } .badge.k { border-color: #4fe08f; color: #4fe08f; }
   .eg { margin: 8px 0 0; font-size: .95rem; } .eg b { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; margin-right: 6px; } .eg i { color: var(--muted); }
+  .wks { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 6px; margin: 8px 0 4px; }
+  .wki { position: relative; overflow: hidden; background: var(--bg); border: 1px solid var(--track); border-radius: 10px; padding: 6px 8px; font-size: .78rem; line-height: 1.3; }
+  .wki b { display: block; font-size: .8rem; } .wki span { color: var(--muted); }
+  .wki i { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--accent); }
+  .wki.now { border-color: var(--accent); } .wki.done { opacity: .75; }
+  .wk { fill: var(--track); } .wk.on { fill: var(--accent); }
+  .past { fill: #fff; opacity: .13; pointer-events: none; }
+  .wl { stroke: #fff; stroke-opacity: .22; stroke-width: 1.2; stroke-dasharray: 3 4; pointer-events: none; }
   .mq { margin: 6px 0 12px; font-size: 1.05rem; font-weight: 600; }
   dl { margin: 0; display: grid; gap: 10px; }
   dt { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; }
   dd { margin: 2px 0 0; font-size: .95rem; line-height: 1.4; }
   .upd { color: var(--muted); font-size: .8rem; margin-top: 22px; }
+  .yt { display: inline-flex; gap: 4px; background: var(--card); border: 1px solid var(--track); border-radius: 999px; padding: 4px; margin: 0 0 18px; }
+  .yt a { color: var(--muted); text-decoration: none; font-weight: 700; padding: 6px 16px; border-radius: 999px; }
+  .yt a.on { background: var(--accent); color: var(--on-accent); }
 </style>
 </head>
 <body>
 <main>
-  <h1>Kampánynaptár 2027</h1>
-  <p class="lead">Kattints egy hónapra a körön: megmutatja, miről szól a hónap, melyik kampányegység és kinek szól.</p>
+  <h1 id="h1">Kampánynaptár 2027</h1>
+  <nav class="yt" aria-label="Év"><a href="kampanynaptar.html?ev=2026" data-y="2026">2026</a><a href="kampanynaptar.html?ev=2027" data-y="2027">2027</a></nav>
+  <p class="lead">Kattints egy hónapra a körön: megmutatja, miről szól a hónap, melyik kampányegység és kinek szól. A külső gyűrű a termelési hetek (zárástól zárásig), ahogy telik az idő, kitöltődnek.</p>
   <div id="grid"><p class="msg">Betöltés…</p></div>
   <p class="upd" id="upd"></p>
 </main>
 <script>
 (function () {
   var HO = ["Január","Február","Március","Április","Május","Június","Július","Augusztus","Szeptember","Október","November","December"];
-  var ST = { terv: ["Terv", ""], folyamatban: ["Folyamatban", "f"], kesz: ["Kész", "k"] };
-  var DOC = ["perf", "pub-kampany", "pub", "naptar-2027"];
+  var ST = { terv: ["Terv", ""], folyamatban: ["Folyamatban", "f"], kesz: ["Kész", "k"], eltelt: ["Eltelt", "e"] };
+  var Y = +((location.search.match(/[?&]ev=(\d{4})/) || [])[1] || 2027); if (Y !== 2026 && Y !== 2027) Y = 2027;
+
+  var DOC = ["perf", "pub-kampany", "pub", "naptar-" + Y];
+  [].forEach.call(document.querySelectorAll(".yt a"), function (a) { if (+a.dataset.y === Y) a.classList.add("on"); });
+
   function $(i) { return document.getElementById(i); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
   function fb() {
@@ -68,10 +84,23 @@
       return Promise.all([import(V + "firebase-app.js"), import(V + "firebase-firestore.js")]).then(function (m) { var F = m[1]; return { F: F, ref: F.doc(F.getFirestore(m[0].initializeApp(cfg)), DOC[0], DOC[1], DOC[2], DOC[3]) }; });
     });
   }
-  function defaults() { return fetch("kampany-2027.json").then(function (r) { return r.json(); }); }
+  function defaults() { return fetch("kampany-" + Y + ".json").then(function (r) { return r.json(); }); }
 
   var SEL = 0, DATA = null, NS = "http://www.w3.org/2000/svg";
-  var COL = { terv: "#0c4d86", folyamatban: "#c2557f", kesz: "#2f9e6a" };
+  /* ---- termelési hetek: a termelési hónap a két zárás közötti idő (zárás = a következő hónap első keddje) ---- */
+  var ZNAP = { "2026-11": 4 };   // eltérő zárónap: "év-hónap" → nap
+  function closing(y, m0) { var d = new Date(y, m0, 1), k = new Date(y, m0, 1).getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2); return new Date(d.getFullYear(), d.getMonth(), ZNAP[k] || 1 + ((2 - d.getDay() + 7) % 7), 23, 59, 59); }
+  // az év m. termelési hónapja (1–12): az előző zárás utáni naptól a saját zárásáig, 4 vagy 5 hét
+  function weeks(y, m) {
+    var a = closing(y, m - 1), b = closing(y, m), s0 = new Date(a.getFullYear(), a.getMonth(), a.getDate() + 1);
+    var n = Math.max(4, Math.min(5, Math.round((b - s0) / 604800000))), out = [];
+    for (var i = 0; i < n; i++) { var ws = new Date(s0.getFullYear(), s0.getMonth(), s0.getDate() + 7 * i), we = i === n - 1 ? b : new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() + 6, 23, 59, 59); out.push([ws, we]); }
+    return out;
+  }
+  var RH = ["jan.", "febr.", "márc.", "ápr.", "máj.", "jún.", "júl.", "aug.", "szept.", "okt.", "nov.", "dec."];
+  function rd(d) { return RH[d.getMonth()] + " " + d.getDate() + "."; }
+  var COL = { terv: "#0c4d86", folyamatban: "#c2557f", kesz: "#2f9e6a", eltelt: "#34495f" };
+  $("h1").textContent = "Kampánynaptár " + Y; document.title = "Ügyfél-kampánynaptár " + Y;
   function sv(t, a) { var n = document.createElementNS(NS, t); for (var k in a) n.setAttribute(k, a[k]); return n; }
   function pt(r, deg) { var a = (deg - 90) * Math.PI / 180; return [300 + r * Math.cos(a), 300 + r * Math.sin(a)]; }
   function short(t, n) { t = t || ""; return t.length > n ? t.slice(0, n - 1).trim() + "…" : t; }
@@ -79,33 +108,58 @@
 
   function render(d) {
     DATA = d; var g = $("grid"); g.textContent = "";
-    var now = new Date(), cur = now.getFullYear() === (d.year || 2027) ? now.getMonth() + 1 : 0;
+    // az aktuális termelési hónap (a zárások szerint, nem a naptári hónap)
+    var now = new Date(), cur = 0; for (var cm = 1; cm <= 12; cm++) { var ww = weeks(d.year || Y, cm); if (now >= ww[0][0] && now <= ww[ww.length - 1][1]) cur = cm; }
     if (!SEL) SEL = cur || 1;
     var left = el("div"), svg = sv("svg", { id: "wheel", viewBox: "0 0 600 600", role: "group", "aria-label": "Kampánynaptár kördiagram" });
-    var R = 290, r = 140, M = {};
+    var R = 270, r = 140, WR0 = 277, WR1 = 296, M = {}, YR = d.year || Y, NOW = new Date();
     (d.months || []).forEach(function (x) { M[x.m] = x; });
     for (var m = 1; m <= 12; m++) {
       var x = M[m] || { m: m }, a0 = (m - 1) * 30 + .0, a1 = m * 30;
       var p0 = pt(R, a0), p1 = pt(R, a1), q1 = pt(r, a1), q0 = pt(r, a0);
       var gg = sv("g", { "class": "sg" + (m === SEL ? " sel" : "") + (m === cur ? " cur" : ""), tabindex: 0, role: "button", "aria-label": HO[m - 1] + ": " + (x.tema || "") });
-      gg.appendChild(sv("path", { d: "M" + p0 + " A" + R + "," + R + " 0 0 1 " + p1 + " L" + q1 + " A" + r + "," + r + " 0 0 0 " + q0 + " Z", fill: COL[x.allapot] || COL.terv }));
+      gg.appendChild(sv("path", { "class": "seg", d: "M" + p0 + " A" + R + "," + R + " 0 0 1 " + p1 + " L" + q1 + " A" + r + "," + r + " 0 0 0 " + q0 + " Z", fill: COL[x.allapot] || COL.terv }));
       var mid = pt((R + r) / 2, a0 + 15), t = sv("text", { x: mid[0], y: mid[1] - 18, "text-anchor": "middle", "class": "mn" }); t.textContent = HO[m - 1].slice(0, 3).toUpperCase(); gg.appendChild(t);
       wrap(short(x.tema, 44), 14).forEach(function (ln, i) { var u = sv("text", { x: mid[0], y: mid[1] + 2 + i * 14, "text-anchor": "middle", "class": "th" }); u.textContent = ln; gg.appendChild(u); });
+      // termelési hetek: külső gyűrű + halvány választóvonalak a cikkelyben; ami eltelt, kitöltődik
+      var W = weeks(YR, m), da = 30 / W.length;
+      W.forEach(function (w, i) {
+        var b0 = a0 + i * da, b1 = b0 + da, f = Math.max(0, Math.min(1, (NOW - w[0]) / (w[1] - w[0])));
+        var o0 = pt(WR1, b0 + .6), o1 = pt(WR1, b1 - .6), n1 = pt(WR0, b1 - .6), n0 = pt(WR0, b0 + .6);
+        var cell = sv("path", { "class": "wk", d: "M" + o0 + " A" + WR1 + "," + WR1 + " 0 0 1 " + o1 + " L" + n1 + " A" + WR0 + "," + WR0 + " 0 0 0 " + n0 + " Z" });
+        var tt = sv("title", {}); tt.textContent = HO[m - 1] + " " + (i + 1) + ". termelési hét: " + rd(w[0]) + " – " + rd(w[1]); cell.appendChild(tt); gg.appendChild(cell);
+        if (f > 0) {
+          var e1 = b0 + .6 + (da - 1.2) * f, p1 = pt(WR1, e1), q1b = pt(WR0, e1);
+          gg.appendChild(sv("path", { "class": "wk on", d: "M" + o0 + " A" + WR1 + "," + WR1 + " 0 0 1 " + p1 + " L" + q1b + " A" + WR0 + "," + WR0 + " 0 0 0 " + n0 + " Z" }));
+          var c0 = pt(R, b0), c1 = pt(R, b0 + da * f), k1 = pt(r, b0 + da * f), k0 = pt(r, b0);
+          gg.appendChild(sv("path", { "class": "past", d: "M" + c0 + " A" + R + "," + R + " 0 0 1 " + c1 + " L" + k1 + " A" + r + "," + r + " 0 0 0 " + k0 + " Z" }));
+        }
+        if (i) { var l0 = pt(r + 4, b0), l1 = pt(R - 4, b0); gg.appendChild(sv("line", { "class": "wl", x1: l0[0], y1: l0[1], x2: l1[0], y2: l1[1] })); }
+      });
+      // a feliratok a kitöltés fölé kerüljenek
+      [].slice.call(gg.querySelectorAll("text")).forEach(function (t) { gg.appendChild(t); });
       (function (mm) { gg.addEventListener("click", function () { SEL = mm; render(DATA); }); gg.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); SEL = mm; render(DATA); } }); })(m);
       svg.appendChild(gg);
     }
     var sx = M[SEL] || { m: SEL };
-    var c1 = sv("text", { x: 300, y: 268, "text-anchor": "middle", "class": "ct" }); c1.textContent = (d.year || 2027); svg.appendChild(c1);
+    var c1 = sv("text", { x: 300, y: 268, "text-anchor": "middle", "class": "ct" }); c1.textContent = (d.year || Y); svg.appendChild(c1);
     var c2 = sv("text", { x: 300, y: 302, "text-anchor": "middle", "class": "ct2" }); c2.textContent = HO[SEL - 1]; svg.appendChild(c2);
     wrap(sx.tema || "", 22).forEach(function (ln, i) { var u = sv("text", { x: 300, y: 330 + i * 18, "text-anchor": "middle", "class": "ct", style: "font-size:13px;text-transform:none;letter-spacing:0" }); u.textContent = ln; svg.appendChild(u); });
     left.appendChild(svg);
-    var lg = el("div", "lg"); [["terv", "Terv"], ["folyamatban", "Folyamatban"], ["kesz", "Kész"]].forEach(function (k) { var s = el("span"); var i = el("i"); i.style.background = COL[k[0]]; s.appendChild(i); s.appendChild(document.createTextNode(k[1])); lg.appendChild(s); });
+    var lg = el("div", "lg"); (Y === 2026 ? [["eltelt", "Eltelt"], ["terv", "Terv"], ["folyamatban", "Folyamatban"], ["kesz", "Kész"]] : [["terv", "Terv"], ["folyamatban", "Folyamatban"], ["kesz", "Kész"]]).forEach(function (k) { var s = el("span"); var i = el("i"); i.style.background = COL[k[0]]; s.appendChild(i); s.appendChild(document.createTextNode(k[1])); lg.appendChild(s); });
     left.appendChild(lg); g.appendChild(left);
 
     var x2 = sx, c = el("section", "c" + (x2.m === cur ? " now" : "")), h = el("div", "ch"), lf = el("div");
     c.id = "det";
-    lf.appendChild(el("small", "", HO[x2.m - 1] + " " + (d.year || 2027))); lf.appendChild(el("h2", "", x2.tema || "–")); h.appendChild(lf);
+    lf.appendChild(el("small", "", HO[x2.m - 1] + " " + (d.year || Y))); lf.appendChild(el("h2", "", x2.tema || "–")); h.appendChild(lf);
     var st = ST[x2.allapot] || ST.terv; h.appendChild(el("span", "badge " + st[1], st[0])); c.appendChild(h);
+    var WS = weeks(YR, x2.m), pm = el("p", "eg");
+    pm.appendChild(el("b", "", "Termelési hónap:")); pm.appendChild(document.createTextNode(rd(WS[0][0]) + " – " + rd(WS[WS.length - 1][1]) + " · " + WS.length + " hét"));
+    c.appendChild(pm);
+    var wl = el("div", "wks"); WS.forEach(function (w, i) { var f = Math.max(0, Math.min(1, (NOW - w[0]) / (w[1] - w[0]))), it = el("div", "wki" + (f >= 1 ? " done" : f > 0 ? " now" : ""));
+      it.appendChild(el("b", "", (i + 1) + ". hét")); it.appendChild(el("span", "", rd(w[0]) + " – " + rd(w[1]))); var bar = el("i"); bar.style.width = Math.round(f * 100) + "%"; it.appendChild(bar); wl.appendChild(it); });
+    c.appendChild(wl);
+    if (x2.allapot === "eltelt") { c.appendChild(el("p", "mq", "Ez a hónap már eltelt.")); g.appendChild(c); if (d.upd) { var u0 = new Date(d.upd); if (!isNaN(u0)) $("upd").textContent = "Frissítve: " + u0.toLocaleString("hu-HU", { dateStyle: "medium", timeStyle: "short" }); } return; }
     var eg = el("p", "eg"); eg.appendChild(el("b", "", "Kampányegység:")); if (x2.egyseg) eg.appendChild(document.createTextNode(x2.egyseg)); else eg.appendChild(el("i", "", "még nincs megadva")); c.appendChild(eg);
     if (x2.uzenet) c.appendChild(el("p", "mq", "„" + x2.uzenet + "”"));
     var dl = el("dl");

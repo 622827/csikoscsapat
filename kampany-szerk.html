@@ -41,20 +41,29 @@
   .f input:focus, .f textarea:focus, .f select:focus { outline: none; border-color: var(--accent); }
   .ch .f { margin: 0; } .ch select { width: auto; }
   html.emb body { padding: 0 0 24px; } html.emb body::before { display: none; } html.emb h1, html.emb .lead { display: none; }
+  .yt { display: inline-flex; gap: 4px; background: var(--card); border: 1px solid var(--track); border-radius: 999px; padding: 4px; margin: 0 0 18px; }
+  .yt a { color: var(--muted); text-decoration: none; font-weight: 700; padding: 6px 16px; border-radius: 999px; }
+  .yt a.on { background: var(--accent); color: var(--on-accent); }
 </style>
 <script>try{if(self!==top)document.documentElement.classList.add("emb")}catch(e){}</script>
 </head>
 <body>
 <main>
   <h1>Kampánynaptár szerkesztő</h1>
-  <div class="bar"><span class="sv" id="sv">Betöltés…</span><span>·</span><a href="kampanynaptar.html" target="_blank" rel="noopener">munkatársi nézet ↗</a></div>
+  <div class="bar"><span class="sv" id="sv">Betöltés…</span><span>·</span><a id="mv" href="kampanynaptar.html" target="_blank" rel="noopener">munkatársi nézet ↗</a></div>
+  <nav class="yt" aria-label="Év"><a href="kampany-szerk.html?ev=2026" data-y="2026">2026</a><a href="kampany-szerk.html?ev=2027" data-y="2027">2027</a></nav>
   <div id="grid"></div>
 </main>
 <script>
 (function () {
   var HO = ["Január","Február","Március","Április","Május","Június","Július","Augusztus","Szeptember","Október","November","December"];
-  var ST = { terv: ["Terv", ""], folyamatban: ["Folyamatban", "f"], kesz: ["Kész", "k"] };
-  var DOC = ["perf", "pub-kampany", "pub", "naptar-2027"];
+  var ST = { terv: ["Terv", ""], folyamatban: ["Folyamatban", "f"], kesz: ["Kész", "k"], eltelt: ["Eltelt", "e"] };
+  var Y = +((location.search.match(/[?&]ev=(\d{4})/) || [])[1] || 2027); if (Y !== 2026 && Y !== 2027) Y = 2027;
+
+  var DOC = ["perf", "pub-kampany", "pub", "naptar-" + Y];
+  [].forEach.call(document.querySelectorAll(".yt a"), function (a) { if (+a.dataset.y === Y) a.classList.add("on"); });
+  try { document.getElementById("mv").href = "kampanynaptar.html?ev=" + Y; } catch (e) {}
+
   function $(i) { return document.getElementById(i); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
   function fb() {
@@ -63,7 +72,7 @@
       return Promise.all([import(V + "firebase-app.js"), import(V + "firebase-firestore.js")]).then(function (m) { var F = m[1]; return { F: F, ref: F.doc(F.getFirestore(m[0].initializeApp(cfg)), DOC[0], DOC[1], DOC[2], DOC[3]) }; });
     });
   }
-  function defaults() { return fetch("kampany-2027.json").then(function (r) { return r.json(); }); }
+  function defaults() { return fetch("kampany-" + Y + ".json").then(function (r) { return r.json(); }); }
 
   var FIELDS = [["egyseg","Kampányegység","input"],["uzenet","Fő üzenet","input"],["cel","Célcsoport","area"],["ajanlat","Leírás","area"],["datumok","Fontos dátumok","area"],["jegyzet","Megjegyzés","area"]];
   var D = null, F = null, tm = 0;
