@@ -369,7 +369,7 @@
   /* ===== Témák (csoportok) – a diákat címke/cím alapján keresi a sablonokban ===== */
   function m(d, label, title) { return { d: d, label: label, title: title }; }
   var GROUPS = [
-    { id: "ado", name: "Adókedvezmény", parts: [m("k", "ADÓKEDVEZMÉNYEK")] },
+    { id: "ado", name: "Adókedvezmény", parts: [m("k", "", "Optimalizálás, Költségcsökkentés és Támogatások"), m("k", "ADÓKEDVEZMÉNYEK"), m("k", "EGÉSZSÉGPÉNZTÁR"), m("k", "ÖNSEGÉLYEZŐ PÉNZTÁR")] },
     { id: "kgfb", name: "Kötelező biztosítás", parts: [m("k", "GÉPJÁRMŰ")] },
     { id: "bank", name: "Bankszámla", parts: [m("k", "BANKSZÁMLA")] },
     { id: "szemely", name: "Személybiztosítás", parts: [m("k", "", "Biztonsági lépések"), m("k", "SZEMÉLYBIZTOSÍTÁS", "Védelmi fajták"), m("k", "SZEMÉLYBIZTOSÍTÁS", "Mibe kerül, ha baj van?")], ages: true },
