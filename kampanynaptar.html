@@ -101,7 +101,7 @@
   .sg { cursor: pointer; outline: none; }
   .sg path.seg { stroke: var(--bg); stroke-width: 3; transition: filter .15s; }
   .sg:hover path.seg, .sg:focus path.seg { filter: brightness(1.25); }
-  .sg.sel path.seg { stroke: #fff; stroke-width: 4; }
+  .selo { fill: none; stroke: #fff; stroke-width: 3; stroke-linejoin: round; pointer-events: none; }
   .sg text { fill: #fff; font-weight: 700; pointer-events: none; font-family: inherit; }
   .sg .mn { font-size: 22px; } .sg .th { font-size: 12px; font-weight: 600; opacity: .9; }
   .sg.cur .mn { fill: var(--accent); }
@@ -266,6 +266,9 @@
       (function (mm) { gg.addEventListener("click", function () { SEL = mm; render(DATA); }); gg.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); SEL = mm; render(DATA); } }); })(m);
       svg.appendChild(gg);
     }
+    // a kijelölés kerete: a cikkelyen belül, a többi fölé rajzolva, így nem lóg át a szomszédokra
+    (function () { var a0 = (SEL - 1) * 30 + .9, a1 = SEL * 30 - .9, Ro = R - 3, ri = r + 3, p0 = pt(Ro, a0), p1 = pt(Ro, a1), q1 = pt(ri, a1), q0 = pt(ri, a0);
+      svg.appendChild(sv("path", { "class": "selo", d: "M" + p0 + " A" + Ro + "," + Ro + " 0 0 1 " + p1 + " L" + q1 + " A" + ri + "," + ri + " 0 0 0 " + q0 + " Z" })); })();
     var sx = M[SEL] || { m: SEL };
     var c1 = sv("text", { x: 300, y: 268, "text-anchor": "middle", "class": "ct" }); c1.textContent = (d.year || Y); svg.appendChild(c1);
     var c2 = sv("text", { x: 300, y: 302, "text-anchor": "middle", "class": "ct2" }); c2.textContent = HO[SEL - 1]; svg.appendChild(c2);
