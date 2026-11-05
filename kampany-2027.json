@@ -4,13 +4,13 @@
  "months": [
   {
    "m": 1,
-   "tema": "Újévi pénzügyi rendrakás",
+   "tema": "Év eleji költségcsökkentés, támogatások és újdonságok",
    "uzenet": "Tiszta lappal indulj: nézzük át a pénzügyeidet egy óra alatt",
    "cel": "Meglévő ügyfelek, 25–45 évesek",
-   "ajanlat": "Ingyenes pénzügyi helyzetfelmérés, költségvetés, a meglévő szerződések és az indexálás áttekintése",
-   "csatorna": "Személyes üzenet, e-mail, közösségi média",
+   "ajanlat": "Év eleji költségcsökkentés: a havi kiadások és a bankszámladíjak átnézése, szükség esetén számlaváltás. Mellé az idei támogatások és az év eleji újdonságok (változó díjak, indexálás, új szabályok) áttekintése az ügyféllel.",
    "datumok": "Január eleje: éves díjváltozások és indexálás",
-   "allapot": "terv"
+   "allapot": "terv",
+   "egyseg": "Bankszámla"
   },
   {
    "m": 2,
@@ -18,7 +18,6 @@
    "uzenet": "Ha ketten terveztek, a pénzügyeiteket is érdemes együtt",
    "cel": "Párok, fiatal családok",
    "ajanlat": "Közös megtakarítási cél, lakáscél, családvédelmi biztosítás áttekintése",
-   "csatorna": "Személyes meghívó, közösségi média, e-mail",
    "datumok": "Február 14. Valentin-nap",
    "allapot": "terv"
   },
@@ -28,7 +27,6 @@
    "uzenet": "Mielőtt a bevallás elkészül: nézzük meg, mit hozhatsz ki belőle",
    "cel": "Aktív munkavállalók, vállalkozók",
    "ajanlat": "Adókedvezményes megtakarítások és nyugdíjcél áttekintése, a NAV bevallási tervezetének átnézése",
-   "csatorna": "E-mail, személyes üzenet, rövid videó",
    "datumok": "Március 8. Nőnap · Március 15. a NAV elkészíti az szja-tervezetet · Március 28. Húsvét",
    "allapot": "terv"
   },
@@ -38,7 +36,6 @@
    "uzenet": "Frissítsd a védelmet tavaszig: lakás, autó, egészség",
    "cel": "Lakástulajdonosok, autótulajdonosok",
    "ajanlat": "Lakás- és gépjármű-biztosítások felülvizsgálata, kármentes évek, díjak összehasonlítása",
-   "csatorna": "Telefonos megkeresés, e-mail, közösségi média",
    "datumok": "Április: kötvényfordulók felülvizsgálata",
    "allapot": "terv"
   },
@@ -48,7 +45,6 @@
    "uzenet": "Az utolsó lehetőség: bevallás és megtakarítási kedvezmények",
    "cel": "Ügyfelek, akik még nem rendezték a bevallásukat",
    "ajanlat": "Adókedvezmények és a családi pénzügyek rendezése, ajándék pénzügyi tervezés anyák napjára",
-   "csatorna": "E-mail, SMS, személyes üzenet",
    "datumok": "Május 2. Anyák napja · Május 20. az szja-bevallás határideje",
    "allapot": "terv"
   },
@@ -58,7 +54,6 @@
    "uzenet": "Nyaralj gondtalanul: utazási és egészségbiztosítás",
    "cel": "Utazó családok, fiatalok",
    "ajanlat": "Utazási biztosítás, egészségpénztár, gyerekmegtakarítás tanévzárás után",
-   "csatorna": "Közösségi média, e-mail, személyes üzenet",
    "datumok": "Június közepe: tanévzárás",
    "allapot": "terv"
   },
@@ -68,7 +63,6 @@
    "uzenet": "Félidőben vagyunk: igazítsuk a terved a célokhoz",
    "cel": "Meglévő ügyfelek",
    "ajanlat": "Féléves egyenleg, megtakarítási célok, szerződések karbantartása",
-   "csatorna": "Személyes egyeztetés, e-mail",
    "datumok": "Július: féléves ügyfélfelülvizsgálat",
    "allapot": "terv"
   },
@@ -78,7 +72,6 @@
    "uzenet": "A legjobb befektetés a gyereked jövője",
    "cel": "Szülők, nagyszülők",
    "ajanlat": "Gyermekmegtakarítás, tanulási cél, diák- és balesetbiztosítás",
-   "csatorna": "Közösségi média, e-mail, szülői csoportok",
    "datumok": "Augusztus 20. Nemzeti ünnep · Augusztus vége: tanévkezdés",
    "allapot": "terv"
   },
@@ -88,7 +81,6 @@
    "uzenet": "Mikor kezdd el a nyugdíjra gyűjtést? Most.",
    "cel": "30–50 évesek, vállalkozók",
    "ajanlat": "Nyugdíjcélú megtakarítás, életbiztosítás, jövedelempótlás",
-   "csatorna": "E-mail, rövid videó, személyes meghívó",
    "datumok": "Szeptember 1. Iskolakezdés",
    "allapot": "terv"
   },
@@ -98,7 +90,6 @@
    "uzenet": "Ismerd meg a pénzügyeid: ingyenes workshop",
    "cel": "Új és meglévő ügyfelek, ismerősök",
    "ajanlat": "Ingyenes pénzügyi workshop, tudatos költségvetés, vészhelyzeti tartalék",
-   "csatorna": "Esemény meghívó, közösségi média, e-mail",
    "datumok": "Október 23. Nemzeti ünnep · Október 31. Takarékossági világnap",
    "allapot": "terv"
   },
@@ -108,7 +99,6 @@
    "uzenet": "Mielőtt elkölted: tervezd meg az évet záró pénzügyeidet",
    "cel": "Aktív munkavállalók, családok",
    "ajanlat": "Adókedvezmények év végi ellenőrzése, kiadástervezés ünnepekre, megtakarítási célok",
-   "csatorna": "E-mail, közösségi média, személyes üzenet",
    "datumok": "November 26. Black Friday",
    "allapot": "terv"
   },
@@ -118,7 +108,6 @@
    "uzenet": "Az utolsó befizetési lehetőség, és köszönjük az évet",
    "cel": "Minden ügyfél",
    "ajanlat": "Év végi befizetések, adókedvezmények határideje, ügyfél-köszönő üzenet és ajándék",
-   "csatorna": "Személyes üzenet, e-mail, ünnepi lap",
    "datumok": "December 24–26. Karácsony · December 31. az év végi befizetések határideje",
    "allapot": "terv"
   }
