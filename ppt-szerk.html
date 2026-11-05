@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PPT kategóriák</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --bg: #ffffff; --ink: #003366; --muted: #336699; --accent: #003366; --on-accent: #fff; --track: #e5e5e5; --card: #f1f4f8; --hot: #cc0066; --ok: #0a7a5a; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #001f3d; --ink: #fff; --muted: #8fb3d9; --accent: #ff99cc; --on-accent: #001f3d; --track: #0b3a66; --card: #022a52; --hot: #ff99cc; --ok: #66ccaa; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Stag Sans", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; padding: 16px; }
+  h1 { margin: 0 0 4px; font-size: 1.5rem; }
+  .lead { margin: 0 0 14px; color: var(--muted); font-size: .92rem; }
+  .bar { position: sticky; top: 0; z-index: 5; background: var(--bg); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 0 10px; border-bottom: 1px solid var(--track); margin-bottom: 12px; }
+  .bar .sp { flex: 1; }
+  .btn { font: inherit; font-weight: 700; border: 2px solid var(--track); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+  .btn.pri { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .btn.sm { padding: 3px 10px; font-size: .8rem; }
+  .btn[disabled] { opacity: .45; cursor: default; }
+  .msg { font-size: .88rem; color: var(--muted); }
+  .msg.err { color: var(--hot); } .msg.ok { color: var(--ok); }
+  .lay { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .lay { grid-template-columns: 1fr; } }
+  .cat { background: var(--card); border-radius: 16px; padding: 12px; margin-bottom: 12px; border: 2px solid transparent; }
+  .cat.dragging { opacity: .5; }
+  .cat-h { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .cat-h .grip { cursor: grab; color: var(--muted); font-size: 1.1rem; user-select: none; }
+  .nm { font: inherit; font-weight: 800; font-size: 1.05rem; color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 4px 6px; min-width: 0; flex: 1; }
+  .nm:hover, .nm:focus { border-color: var(--track); background: var(--bg); outline: none; }
+  .sub .nm { font-size: .95rem; font-weight: 700; }
+  .opt { font-size: .82rem; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+  .zone { min-height: 74px; border: 2px dashed var(--track); border-radius: 12px; padding: 6px; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; transition: border-color .15s, background .15s; }
+  .zone.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .zone:empty::before { content: attr(data-empty); color: var(--muted); font-size: .8rem; margin: auto; }
+  .zl { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 10px 0 0; }
+  .sub { margin: 8px 0 0 18px; padding: 8px; border-left: 3px solid var(--track); }
+  .sub .zone { min-height: 62px; }
+  .sl { width: 128px; background: var(--bg); border: 2px solid var(--track); border-radius: 8px; padding: 3px; cursor: grab; font-size: .68rem; line-height: 1.2; position: relative; }
+  .sl:hover { border-color: var(--accent); }
+  .sl.dragging { opacity: .35; }
+  .sl img, .sl .ph { width: 100%; aspect-ratio: 16 / 9; display: block; border-radius: 4px; background: var(--track); object-fit: cover; }
+  .sl b { display: block; margin-top: 3px; font-size: .64rem; color: var(--muted); text-transform: uppercase; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .sl span { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .sl i { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,.6); color: #fff; font-style: normal; font-size: .62rem; padding: 1px 5px; border-radius: 6px; }
+  .pool { position: sticky; top: 60px; background: var(--card); border-radius: 16px; padding: 12px; max-height: calc(100vh - 80px); overflow: auto; }
+  .pool h2 { margin: 0 0 4px; font-size: 1rem; }
+  .pool .zone { min-height: 200px; }
+  .big { position: fixed; z-index: 50; pointer-events: none; width: 420px; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.35); display: none; }
+  .gate { max-width: 360px; margin: 40px auto; background: var(--card); padding: 20px; border-radius: 16px; }
+  .gate input { width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); margin: 8px 0; }
+  .x { color: var(--hot); }
+</style>
+</head>
+<body>
+<div class="gate" id="gate" hidden>
+  <h1>PPT kategóriák</h1>
+  <p class="lead">Add meg a PPT generátor jelszavát.</p>
+  <form id="gf"><input type="password" id="gpw" autocomplete="off"><button class="btn pri" type="submit">Belépés</button><p class="msg err" id="gerr"></p></form>
+</div>
+<div id="app" hidden>
+  <h1>PPT kategóriák</h1>
+  <p class="lead">Húzd a diákat a kategóriákba. A <b>fix</b> diák mindig bekerülnek, ha a munkatárs bepipálja a kategóriát; az <b>alkategóriák</b> külön választhatók. A borító és a záró dia automatikus. Nagyításhoz vidd az egeret a dia fölé.</p>
+  <div class="bar">
+    <button class="btn" type="button" id="addcat">+ Új kategória</button>
+    <button class="btn" type="button" id="refresh" title="A sablonok újraolvasása (ha új dia került beléjük)">Diák frissítése</button>
+    <span class="sp"></span>
+    <span class="msg" id="msg"></span>
+    <button class="btn pri" type="button" id="save" disabled>Mentés</button>
+  </div>
+  <div class="lay">
+    <div id="cats"></div>
+    <aside class="pool"><h2>Besorolatlan diák</h2><p class="msg">Ezek a munkatársaknál nem jelennek meg.</p><div class="zone" id="pool" data-zone="pool" data-empty="Minden dia be van sorolva"></div></aside>
+  </div>
+</div>
+<img class="big" id="big" alt="">
+<script>
+(function () {
+  var API = "https://script.google.com/macros/s/AKfycbygX-UGh-nyoLF01LpUzBuD9c2X4Qc3c3bsa0w-DZGVVbnKkz9eMuoS2ykVGstfMPmxsA/exec";
+  var H = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2";
+  var PW = "", SLIDES = [], KEYS = [], BYKEY = {}, THUMBS = {}, CFG = { cats: [] }, DIRTY = false;
+  function $(i) { return document.getElementById(i); }
+  function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
+  function msg(t, c) { $("msg").textContent = t || ""; $("msg").className = "msg" + (c ? " " + c : ""); }
+  function call(o) { o.pw = PW; return fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(o) }).then(function (r) { return r.json(); }); }
+  function sha(s) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }); }
+  function uid() { return Math.random().toString(36).slice(2, 8); }
+  function dirty() { DIRTY = true; $("save").disabled = false; msg("Nem mentett változások"); }
+  window.addEventListener("beforeunload", function (e) { if (DIRTY) { e.preventDefault(); e.returnValue = ""; } });
+
+  /* ---- belépés: az admin belépés már átadja a jelszót ---- */
+  try { if (sessionStorage.getItem("ppt_ok") === H) PW = sessionStorage.getItem("ppt_pw") || ""; } catch (e) {}
+  function start() { $("gate").hidden = true; $("app").hidden = false; load(false); }
+  if (PW) start(); else $("gate").hidden = false;
+  $("gf").addEventListener("submit", function (ev) {
+    ev.preventDefault(); var v = $("gpw").value.trim();
+    sha(v).then(function (h) { if (h !== H) { $("gerr").textContent = "Hibás jelszó."; return; } PW = v; try { sessionStorage.setItem("ppt_ok", H); sessionStorage.setItem("ppt_pw", v); } catch (e) {} start(); });
+  });
+
+  /* ---- betöltés ---- */
+  function load(fresh) {
+    msg("Diák betöltése…");
+    call({ list: 1, fresh: fresh ? 1 : 0 }).then(function (d) {
+      if (d.error) throw new Error(d.error);
+      SLIDES = d.slides || []; var cnt = {};
+      KEYS = SLIDES.map(function (sl) { var b = sl.d + "|" + sl.label + "|" + sl.title, n = cnt[b] || 0; cnt[b] = n + 1; return b + "|" + n; });
+      BYKEY = {}; KEYS.forEach(function (k, i) { BYKEY[k] = i; });
+      if (!DIRTY) CFG = d.cfg && d.cfg.cats ? d.cfg : { cats: [] };
+      render(); msg(fresh ? "Diák frissítve." : "");
+      msg("Diaképek betöltése…");
+      return call({ thumbs: 1, fresh: fresh ? 1 : 0 }).then(function (t) { if (t.thumbs) { THUMBS = t.thumbs; render(); } msg(DIRTY ? "Nem mentett változások" : ""); });
+    }).catch(function (e) { msg("Hiba: " + e.message, "err"); });
+  }
+  $("refresh").addEventListener("click", function () { load(true); });
+
+  /* ---- megjelenítés ---- */
+  function auto(i) { var s = SLIDES[i]; return s.d === "k" && (/PÉNZÜGYI TERV/.test(s.label) || (!s.label && !s.title)); }
+  function card(k) {
+    var i = BYKEY[k]; if (i == null) return null; var s = SLIDES[i];
+    var c = el("div", "sl"); c.draggable = true; c.dataset.key = k;
+    var th = THUMBS[s.d + ":" + s.pid];
+    if (th) { var im = el("img"); im.src = th; im.alt = ""; im.loading = "lazy"; c.appendChild(im); } else c.appendChild(el("div", "ph"));
+    c.appendChild(el("i", "", (s.d === "k" ? "K" : "H") + (s.i + 1)));
+    c.appendChild(el("b", "", s.label || " ")); c.appendChild(el("span", "", s.title || "(cím nélkül)"));
+    c.title = (s.d === "k" ? "Kezdő " : "Haladó ") + (s.i + 1) + ". dia – " + (s.label ? s.label + " – " : "") + s.title;
+    return c;
+  }
+  function zone(list, label, empty) {
+    var z = el("div", "zone"); z.dataset.empty = empty || "Húzd ide a diákat";
+    z._list = list; (list || []).forEach(function (k) { var c = card(k); if (c) z.appendChild(c); });
+    return z;
+  }
+  function render() {
+    var used = {}; CFG.cats.forEach(function (g) { (g.fixed || []).forEach(function (k) { used[k] = 1; }); (g.subs || []).forEach(function (sg) { (sg.slides || []).forEach(function (k) { used[k] = 1; }); }); });
+    var box = $("cats"); box.innerHTML = "";
+    CFG.cats.forEach(function (g, gi) {
+      var c = el("div", "cat"); c.dataset.gi = gi;
+      var h = el("div", "cat-h"), grip = el("span", "grip", "⠿"); grip.title = "Húzd a kategória áthelyezéséhez"; grip.draggable = true; grip.dataset.cat = gi;
+      var nm = el("input", "nm"); nm.value = g.name; nm.addEventListener("input", function () { g.name = nm.value; dirty(); });
+      var one = el("label", "opt"), cb = el("input"); cb.type = "checkbox"; cb.checked = !!g.single; cb.addEventListener("change", function () { g.single = cb.checked; dirty(); });
+      one.appendChild(cb); one.appendChild(document.createTextNode("az alkategóriákból csak egy választható"));
+      var up = el("button", "btn sm", "↑"), dn = el("button", "btn sm", "↓"), del = el("button", "btn sm x", "Törlés");
+      up.type = dn.type = del.type = "button"; up.disabled = gi === 0; dn.disabled = gi === CFG.cats.length - 1;
+      up.onclick = function () { CFG.cats.splice(gi - 1, 0, CFG.cats.splice(gi, 1)[0]); dirty(); render(); };
+      dn.onclick = function () { CFG.cats.splice(gi + 1, 0, CFG.cats.splice(gi, 1)[0]); dirty(); render(); };
+      del.onclick = function () { if (!confirm("Törlöd a(z) „" + g.name + "” kategóriát? A diái a besorolatlanok közé kerülnek.")) return; CFG.cats.splice(gi, 1); dirty(); render(); };
+      h.appendChild(grip); h.appendChild(nm); h.appendChild(one); h.appendChild(up); h.appendChild(dn); h.appendChild(del); c.appendChild(h);
+      c.appendChild(el("p", "zl", "Fix diák (mindig bekerülnek)"));
+      g.fixed = g.fixed || []; c.appendChild(zone(g.fixed, "", "Húzd ide a mindig bekerülő diákat"));
+      (g.subs = g.subs || []).forEach(function (sg, si) {
+        var s = el("div", "sub"), sh = el("div", "cat-h"), sn = el("input", "nm"); sn.value = sg.name;
+        sn.addEventListener("input", function () { sg.name = sn.value; dirty(); });
+        var su = el("button", "btn sm", "↑"), sd = el("button", "btn sm", "↓"), sx = el("button", "btn sm x", "Törlés"); su.type = sd.type = sx.type = "button";
+        su.disabled = si === 0; sd.disabled = si === g.subs.length - 1;
+        su.onclick = function () { g.subs.splice(si - 1, 0, g.subs.splice(si, 1)[0]); dirty(); render(); };
+        sd.onclick = function () { g.subs.splice(si + 1, 0, g.subs.splice(si, 1)[0]); dirty(); render(); };
+        sx.onclick = function () { if (!confirm("Törlöd a(z) „" + sg.name + "” alkategóriát?")) return; g.subs.splice(si, 1); dirty(); render(); };
+        sh.appendChild(el("span", "zl", "Alkategória")); sh.appendChild(sn); sh.appendChild(su); sh.appendChild(sd); sh.appendChild(sx); s.appendChild(sh);
+        sg.slides = sg.slides || []; s.appendChild(zone(sg.slides, "", "Üres alkategória – a munkatársaknál „hamarosan” jelzéssel látszik"));
+        c.appendChild(s);
+      });
+      var add = el("button", "btn sm", "+ Alkategória"); add.type = "button"; add.style.marginTop = "8px";
+      add.onclick = function () { g.subs.push({ id: uid(), name: "Új alkategória", slides: [] }); dirty(); render(); };
+      c.appendChild(add); box.appendChild(c);
+    });
+    var pool = $("pool"); pool.innerHTML = ""; pool._list = null;
+    KEYS.forEach(function (k, i) { if (!used[k] && !auto(i)) { var c = card(k); if (c) pool.appendChild(c); } });
+  }
+  $("addcat").addEventListener("click", function () { CFG.cats.push({ id: uid(), name: "Új kategória", fixed: [], subs: [] }); dirty(); render(); setTimeout(function () { var n = document.querySelectorAll(".cat .nm"); n = n[n.length - 1]; if (n) { n.scrollIntoView({ block: "center" }); n.select(); } }, 30); });
+
+  /* ---- húzás ---- */
+  var drag = null, dragCat = null;
+  document.addEventListener("dragstart", function (e) {
+    var s = e.target.closest && e.target.closest(".sl");
+    if (e.target.classList && e.target.classList.contains("grip")) { dragCat = +e.target.dataset.cat; e.dataTransfer.effectAllowed = "move"; e.target.closest(".cat").classList.add("dragging"); return; }
+    if (!s) return; drag = s; s.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", s.dataset.key); } catch (x) {}
+    $("big").style.display = "none";
+  });
+  document.addEventListener("dragend", function () { if (drag) drag.classList.remove("dragging"); drag = null; dragCat = null; document.querySelectorAll(".over,.cat.dragging").forEach(function (z) { z.classList.remove("over"); z.classList.remove("dragging"); }); });
+  function before(z, x, y) {
+    var items = [].slice.call(z.querySelectorAll(".sl:not(.dragging)"));
+    for (var i = 0; i < items.length; i++) { var r = items[i].getBoundingClientRect(); if (y < r.top + r.height / 2 && x < r.right || y < r.top) return items[i]; if (y <= r.bottom && x < r.left + r.width / 2) return items[i]; }
+    return null;
+  }
+  document.addEventListener("dragover", function (e) {
+    if (dragCat != null) { var c = e.target.closest && e.target.closest(".cat"); if (c) e.preventDefault(); return; }
+    var z = e.target.closest && e.target.closest(".zone"); if (!z || !drag) return;
+    e.preventDefault(); document.querySelectorAll(".zone.over").forEach(function (o) { if (o !== z) o.classList.remove("over"); }); z.classList.add("over");
+    var b = before(z, e.clientX, e.clientY); if (b) z.insertBefore(drag, b); else z.appendChild(drag);
+  });
+  document.addEventListener("drop", function (e) {
+    if (dragCat != null) { var c = e.target.closest && e.target.closest(".cat"); if (c) { e.preventDefault(); var to = +c.dataset.gi; if (to !== dragCat) { CFG.cats.splice(to, 0, CFG.cats.splice(dragCat, 1)[0]); dirty(); render(); } } return; }
+    var z = e.target.closest && e.target.closest(".zone"); if (!z || !drag) return; e.preventDefault();
+    sync(); dirty(); render();
+  });
+  // a DOM sorrendjéből újraépíti a beosztást
+  function sync() {
+    document.querySelectorAll("#cats .zone").forEach(function (z) { if (!z._list) return; z._list.length = 0; z.querySelectorAll(".sl").forEach(function (s) { z._list.push(s.dataset.key); }); });
+  }
+
+  /* ---- nagyítás ---- */
+  document.addEventListener("mousemove", function (e) {
+    var s = e.target.closest && e.target.closest(".sl"), big = $("big");
+    if (!s || drag) { big.style.display = "none"; return; }
+    var im = s.querySelector("img"); if (!im) { big.style.display = "none"; return; }
+    big.src = im.src; big.style.display = "block";
+    var x = e.clientX + 18, y = e.clientY + 18; if (x + 430 > innerWidth) x = e.clientX - 438; if (y + 250 > innerHeight) y = innerHeight - 250;
+    big.style.left = x + "px"; big.style.top = Math.max(8, y) + "px";
+  });
+
+  /* ---- mentés ---- */
+  $("save").addEventListener("click", function () {
+    sync(); var b = $("save"); b.disabled = true; msg("Mentés…");
+    call({ saveCfg: 1, cfg: CFG }).then(function (d) {
+      if (d.error) throw new Error(d.error);
+      DIRTY = false; msg("Elmentve – a munkatársi oldal a következő megnyitáskor már ezt mutatja.", "ok");
+      try { localStorage.removeItem("ppt_slides_v2"); } catch (e) {}
+    }).catch(function (e) { b.disabled = false; msg("Nem sikerült menteni: " + e.message, "err"); });
+  });
+})();
+</script>
+</body>
+</html>
