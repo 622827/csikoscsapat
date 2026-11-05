@@ -217,7 +217,7 @@
       return Promise.all([import(V + "firebase-app.js"), import(V + "firebase-firestore.js")]).then(function (m) { var F = m[1]; return { F: F, ref: F.doc(F.getFirestore(m[0].initializeApp(cfg)), DOC[0], DOC[1], DOC[2], DOC[3]) }; });
     });
   }
-  function defaults() { return fetch("kampany-" + Y + ".json").then(function (r) { return r.json(); }); }
+  function defaults() { return fetch("kampany-" + Y + ".json", { cache: "no-cache" }).then(function (r) { return r.json(); }); }
 
   var SEL = 0, DATA = null, NS = "http://www.w3.org/2000/svg";
   /* ---- termelési hetek: a termelési hónap a két zárás közötti idő (zárás = a következő hónap első keddje) ---- */
