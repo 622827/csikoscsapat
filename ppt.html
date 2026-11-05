@@ -301,7 +301,7 @@
   #gate button { width: 100%; margin-top: 12px; font: inherit; font-weight: 700; font-size: 1.05rem; padding: 14px; border: 0; border-radius: 12px; cursor: pointer; background: var(--accent); color: var(--on-accent); }
   #gate .gerr { color: var(--hot, #cc0066); min-height: 1.4em; margin: 10px 0 0; font-weight: 600; }
 </style>
-<div id="gate">
+<div id="gate" hidden>
   <form id="gform" autocomplete="off">
     <h1>Tanácsadó PPT generátor</h1>
     <p class="lead">Add meg a jelszót a belépéshez.</p>
@@ -335,22 +335,12 @@
 (function () {
   var API = "https://script.google.com/macros/s/AKfycbygX-UGh-nyoLF01LpUzBuD9c2X4Qc3c3bsa0w-DZGVVbnKkz9eMuoS2ykVGstfMPmxsA/exec";   // PPT generátor (Claude) – a két sablonból dolgozik
   var SLIDES = [];
-  /* ---- jelszó ---- */
-  function sha(s) {
-    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function (b) {
-      return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
-    });
-  }
-  var PW = "", H = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2";
+  /* ---- belépés: a portál bejelentkezése elég, külön jelszó nincs ---- */
+  var PW = "";
+  try { if (sessionStorage.getItem("ppt_ok")) PW = sessionStorage.getItem("ppt_pw") || ""; } catch (e) {}
+  function auth(o) { o.tok = token(); if (PW) o.pw = PW; return JSON.stringify(o); }
   function openApp() { $("gate").hidden = true; $("app").hidden = false; loadSlides(); }
-  try { if (sessionStorage.getItem("ppt_ok") === H) { PW = sessionStorage.getItem("ppt_pw") || ""; openApp(); } } catch (e) {}
-  $("gform").addEventListener("submit", function (ev) {
-    ev.preventDefault();
-    sha($("gpw").value.trim()).then(function (h) {
-      if (h === H) { PW = $("gpw").value.trim(); try { sessionStorage.setItem("ppt_ok", H); sessionStorage.setItem("ppt_pw", PW); } catch (e) {} $("gerr").textContent = ""; openApp(); }
-      else { $("gerr").textContent = "Hibás jelszó."; $("gpw").select(); }
-    });
-  });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", openApp); else setTimeout(openApp, 0);
 
   var MONTHS = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"];
   function $(i) { return document.getElementById(i); }
@@ -360,10 +350,10 @@
     var c = null; try { c = JSON.parse(localStorage.getItem(LK) || "null"); } catch (e) {}
     if (c && c.slides && c.slides.length) { SLIDES = c.slides; CFG = c.cfg || null; $("lmsg").hidden = true; render(); }
     else $("lmsg").textContent = "A diák betöltése a sablonokból… (első alkalommal fél percig is tarthat)";
-    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ list: 1, pw: PW }) })
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: auth({ list: 1 }) })
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (d.error === "pw") { try { sessionStorage.removeItem("ppt_ok"); } catch (e) {} location.reload(); return; }
+        if (d.error === "auth" || d.error === "pw") { try { localStorage.removeItem("csk_token"); } catch (e) {} location.reload(); return; }
         if (d.error || !d.slides) throw new Error(d.error || "üres válasz");
         try { localStorage.setItem(LK, JSON.stringify({ t: Date.now(), slides: d.slides, cfg: d.cfg || null })); } catch (e) {}
         var changed = JSON.stringify(d.slides) !== JSON.stringify(SLIDES) || JSON.stringify(d.cfg || null) !== JSON.stringify(CFG);
@@ -470,11 +460,10 @@
     var b = $("go"); b.disabled = true; msg("A prezentáció készül… ez kb. fél percig tarthat.");
     var ctl = window.AbortController ? new AbortController() : null, tm = ctl ? setTimeout(function () { ctl.abort(); }, 120000) : 0;
     fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, signal: ctl ? ctl.signal : undefined,
-      body: JSON.stringify({ pick: mods, pw: PW, client: cl, date: huDate(dt), elemzo: $("el").value.trim() }) })
+      body: auth({ pick: mods, client: cl, date: huDate(dt), elemzo: $("el").value.trim() }) })
       .then(function (r) { return r.text(); })
       .then(function (txt) {
         clearTimeout(tm); var d; try { d = JSON.parse(txt); } catch (e) { throw new Error("A szerver válasza nem értelmezhető."); }
-        if (d.error === "pw") { try { sessionStorage.removeItem("ppt_ok"); } catch (e) {} location.reload(); return; }
         if (d.error === "auth") { try { localStorage.removeItem("csk_token"); } catch (e) {} location.reload(); return; }
         if (d.error) throw new Error(d.error);
         var bin = atob(d.b64), n = bin.length, u = new Uint8Array(n); for (var i = 0; i < n; i++) u[i] = bin.charCodeAt(i);
