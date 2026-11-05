@@ -370,8 +370,9 @@
       })
       .catch(function (e) { if (!SLIDES.length) $("lmsg").textContent = "A diák betöltése nem sikerült: " + e.message + ". Frissítsd az oldalt."; });
   }
+  var d = new Date(); $("dt").value = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
   /* ===== Témák (csoportok) – a diákat címke/cím alapján keresi a sablonokban ===== */
-  function m(d, label, title) { return { d: d, label: label, title: title }; }
+  function m(d, label, title, nth) { return { d: d, label: label, title: title, nth: nth }; }
   var GROUPS = [
     { id: "ado", name: "Adókedvezmény", parts: [m("k", "", "Optimalizálás, Költségcsökkentés és Támogatások"), m("k", "ADÓKEDVEZMÉNYEK"), m("k", "EGÉSZSÉGPÉNZTÁR", "Hogyan működik?")], subs: [
       { id: "epossz", name: "Egészségpénztár-összehasonlítás", parts: [m("k", "EGÉSZSÉGPÉNZTÁR", "Összehasonlítás")] },
@@ -384,7 +385,9 @@
       { id: "felso", name: "Felsőoktatás", parts: [m("k", "EGÉSZSÉGPÉNZTÁR", "Felsőoktatási költségek támogatása")] },
       { id: "jelzalog", name: "Jelzáloghitel (önsegélyező pénztár)", parts: [m("k", "ÖNSEGÉLYEZŐ PÉNZTÁR")] } ] },
     { id: "kgfb", name: "Kötelező biztosítás", parts: [m("k", "GÉPJÁRMŰ")] },
-    { id: "bank", name: "Bankszámla", parts: [m("k", "BANKSZÁMLA")] },
+    { id: "bank", name: "Bankszámla", parts: [m("k", "BANKSZÁMLA", "Bankszámlát díjmentesen?", [0, 1])], subs: [
+      { id: "alap", name: "Alap számlacsomagok", parts: [m("k", "BANKSZÁMLA", "Bankszámlát díjmentesen?", [2])] },
+      { id: "premium", name: "Prémium számlacsomagok", parts: [m("k", "BANKSZÁMLA", "Bankszámlát díjmentesen? – prémium csomagok")] } ] },
     { id: "szemely", name: "Személybiztosítás", parts: [m("k", "", "Biztonsági lépések"), m("k", "SZEMÉLYBIZTOSÍTÁS", "Védelmi fajták"), m("k", "SZEMÉLYBIZTOSÍTÁS", "Mibe kerül, ha baj van?")], ages: true },
     { id: "megtak", name: "Megtakarítás", parts: [m("k", "", "Megtakarítások"), m("k", "MEGTAKARÍTÁS", "Megtakarítási formák")], subs: [
       { id: "huf", name: "Forint", parts: [m("k", "MEGTAKARÍTÁS", "Három prémium termék")] },
@@ -400,13 +403,14 @@
   ];
   var USED = {};
   function find(p) {
-    return SLIDES.map(function (sl, idx) { return idx; }).filter(function (idx) {
+    var r = SLIDES.map(function (sl, idx) { return idx; }).filter(function (idx) {
       var sl = SLIDES[idx]; if (sl.d !== p.d) return false;
       if (p.label !== undefined && p.label !== "" && sl.label !== p.label) return false;
       if (p.label === "" && sl.label) return false;
       if (p.title && sl.title !== p.title) return false;
       return true;
     });
+    return p.nth ? r.filter(function (x, k) { return p.nth.indexOf(k) > -1; }) : r;
   }
   function idxs(parts) { var r = []; (parts || []).forEach(function (p) { find(p).forEach(function (i) { if (r.indexOf(i) < 0) r.push(i); }); }); return r; }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
