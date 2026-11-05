@@ -104,7 +104,7 @@
   .selo { fill: none; stroke: #fff; stroke-width: 3; stroke-linejoin: round; pointer-events: none; }
   .sg text { fill: #fff; font-weight: 700; pointer-events: none; font-family: inherit; }
   .sg .mn { font-size: 22px; } .sg .th { font-size: 12px; font-weight: 600; opacity: .9; }
-  .sg.cur .mn { fill: var(--accent); }
+  .sg.cur .mn { fill: #fff; text-decoration: underline; }
   .ct { fill: var(--muted); font-size: 15px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-family: inherit; }
   .ct2 { fill: #fff; font-size: 22px; font-weight: 700; font-family: inherit; }
   .lg { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 10px; color: var(--muted); font-size: .8rem; }
@@ -239,7 +239,7 @@
   }
   var RH = ["jan.", "febr.", "márc.", "ápr.", "máj.", "jún.", "júl.", "aug.", "szept.", "okt.", "nov.", "dec."];
   function rd(d) { return RH[d.getMonth()] + " " + d.getDate() + "."; }
-  var COL = { terv: "#0e4f8b", folyamatban: "#1b6fbd", kesz: "#0a3961", eltelt: "#2a3b4e" };
+  var COL = { terv: "#1f6fd1", folyamatban: "#e0559a", kesz: "#1fa866", eltelt: "#2a3b4e" };
   $("h1").textContent = "Kampánynaptár " + Y; document.title = "Ügyfél-kampánynaptár " + Y;
   function sv(t, a) { var n = document.createElementNS(NS, t); for (var k in a) n.setAttribute(k, a[k]); return n; }
   function pt(r, deg) { var a = (deg - 90) * Math.PI / 180; return [300 + r * Math.cos(a), 300 + r * Math.sin(a)]; }
