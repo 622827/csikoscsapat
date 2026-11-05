@@ -36,6 +36,7 @@
   .zl { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 10px 0 0; }
   .sub { margin: 8px 0 0 18px; padding: 8px; border-left: 3px solid var(--track); }
   .sub .zone { min-height: 62px; }
+  .sub .sub { margin-left: 14px; border-left-color: color-mix(in srgb, var(--accent) 35%, var(--track)); }
   .sl { width: 128px; background: var(--bg); border: 2px solid var(--track); border-radius: 8px; padding: 3px; cursor: grab; font-size: .68rem; line-height: 1.2; position: relative; }
   .sl:hover { border-color: var(--accent); }
   .sl.dragging { opacity: .35; }
@@ -75,7 +76,7 @@
     <button class="btn" type="button" id="addcat">+ Új kategória</button>
     <button class="btn" type="button" id="refresh" title="A sablonok újraolvasása (ha új dia került beléjük)">Diák frissítése</button>
     <button class="btn" type="button" id="allopen">Mind kinyit</button>
-    <a class="btn" id="full" href="ppt-szerk.html?v=3" target="_blank" rel="noopener" hidden style="text-decoration:none">Megnyitás teljes oldalon ↗</a>
+    <a class="btn" id="full" href="ppt-szerk.html?v=4" target="_blank" rel="noopener" hidden style="text-decoration:none">Megnyitás teljes oldalon ↗</a>
     <span class="sp"></span>
     <span class="msg" id="msg"></span>
     <button class="btn pri" type="button" id="save" disabled>Mentés</button>
@@ -145,13 +146,13 @@
     return z;
   }
   function render() {
-    var used = {}; CFG.cats.forEach(function (g) { (g.fixed || []).forEach(function (k) { used[k] = 1; }); (g.subs || []).forEach(function (sg) { (sg.slides || []).forEach(function (k) { used[k] = 1; }); }); });
+    var used = {}; allLists().forEach(function (l) { l.forEach(function (k) { used[k] = 1; }); });
     var box = $("cats"); box.innerHTML = "";
     CFG.cats.forEach(function (g, gi) {
       var c = el("div", "cat" + (OPEN[g.id] ? "" : " closed")); c.dataset.gi = gi;
       var tg = el("button", "tg", "▾"); tg.type = "button"; tg.title = "Kinyit / becsuk";
       tg.onclick = function (ev) { ev.stopPropagation(); OPEN[g.id] = !OPEN[g.id]; c.classList.toggle("closed", !OPEN[g.id]); };
-      var nslides = (g.fixed || []).length; (g.subs || []).forEach(function (sg) { nslides += (sg.slides || []).length; });
+      var nslides = 0; allLists(g).forEach(function (l) { nslides += l.length; });
       var sum = el("span", "sum", nslides + " dia" + ((g.subs || []).length ? " · " + g.subs.length + " alkat." : ""));
       var h = el("div", "cat-h"), grip = el("span", "grip", "⠿"); grip.title = "Húzd a kategória áthelyezéséhez"; grip.draggable = true; grip.dataset.cat = gi;
       var nm = el("input", "nm"); nm.value = g.name; nm.addEventListener("input", function () { g.name = nm.value; dirty(); });
@@ -168,24 +169,38 @@
       var body = el("div", "body"); c.appendChild(body);
       body.appendChild(el("p", "zl", "Fix diák (mindig bekerülnek)"));
       g.fixed = g.fixed || []; body.appendChild(zone(g.fixed, "", "Húzd ide a mindig bekerülő diákat"));
-      (g.subs = g.subs || []).forEach(function (sg, si) {
-        var s = el("div", "sub"), sh = el("div", "cat-h"), sn = el("input", "nm"); sn.value = sg.name;
-        sn.addEventListener("input", function () { sg.name = sn.value; dirty(); });
-        var su = el("button", "btn sm", "↑"), sd = el("button", "btn sm", "↓"), sx = el("button", "btn sm x", "Törlés"); su.type = sd.type = sx.type = "button";
-        su.disabled = si === 0; sd.disabled = si === g.subs.length - 1;
-        su.onclick = function () { g.subs.splice(si - 1, 0, g.subs.splice(si, 1)[0]); dirty(); render(); };
-        sd.onclick = function () { g.subs.splice(si + 1, 0, g.subs.splice(si, 1)[0]); dirty(); render(); };
-        sx.onclick = function () { if (!confirm("Törlöd a(z) „" + sg.name + "” alkategóriát?")) return; g.subs.splice(si, 1); dirty(); render(); };
-        sh.appendChild(el("span", "zl", "Alkategória")); sh.appendChild(sn); sh.appendChild(su); sh.appendChild(sd); sh.appendChild(sx); s.appendChild(sh);
-        sg.slides = sg.slides || []; s.appendChild(zone(sg.slides, "", "Üres alkategória – a munkatársaknál „hamarosan” jelzéssel látszik"));
-        body.appendChild(s);
-      });
+      g.subs = g.subs || []; g.subs.forEach(function (sg, si) { body.appendChild(subEl(g, sg, si, 1, g.id)); });
       var add = el("button", "btn sm", "+ Alkategória"); add.type = "button"; add.style.marginTop = "8px";
       add.onclick = function () { OPEN[g.id] = true; g.subs.push({ id: uid(), name: "Új alkategória", slides: [] }); dirty(); render(); };
       body.appendChild(add); box.appendChild(c);
     });
     var pool = $("pool"); pool.innerHTML = ""; pool._list = null;
     KEYS.forEach(function (k, i) { if (!used[k] && !auto(i)) { var c = card(k); if (c) pool.appendChild(c); } });
+  }
+  /* alkategória – bármelyiknek lehet saját alkategóriája (legfeljebb 3 szintig) */
+  var DEPTH = 3;
+  function subEl(par, sg, si, depth, oid) {
+    var s = el("div", "sub"), sh = el("div", "cat-h"), sn = el("input", "nm"); sn.value = sg.name;
+    sn.addEventListener("input", function () { sg.name = sn.value; dirty(); });
+    var su = el("button", "btn sm", "↑"), sd = el("button", "btn sm", "↓"), sx = el("button", "btn sm x", "Törlés"); su.type = sd.type = sx.type = "button";
+    su.disabled = si === 0; sd.disabled = si === par.subs.length - 1;
+    su.onclick = function () { par.subs.splice(si - 1, 0, par.subs.splice(si, 1)[0]); dirty(); render(); };
+    sd.onclick = function () { par.subs.splice(si + 1, 0, par.subs.splice(si, 1)[0]); dirty(); render(); };
+    sx.onclick = function () { if (!confirm("Törlöd a(z) „" + sg.name + "” alkategóriát" + ((sg.subs || []).length ? " az alatta lévőkkel együtt" : "") + "? A diái a besorolatlanok közé kerülnek.")) return; par.subs.splice(si, 1); dirty(); render(); };
+    sh.appendChild(el("span", "zl", depth > 1 ? "Al-alkategória" : "Alkategória")); sh.appendChild(sn);
+    sg.subs = sg.subs || [];
+    if (sg.subs.length) { var one = el("label", "opt"), cb = el("input"); cb.type = "checkbox"; cb.checked = !!sg.single; cb.addEventListener("change", function () { sg.single = cb.checked; dirty(); }); one.appendChild(cb); one.appendChild(document.createTextNode("ezek közül csak egy")); sh.appendChild(one); }
+    sh.appendChild(su); sh.appendChild(sd); sh.appendChild(sx); s.appendChild(sh);
+    sg.slides = sg.slides || [];
+    s.appendChild(zone(sg.slides, "", sg.subs.length ? "Ide jönnek a mindig bekerülő diái (ha ezt választják)" : "Üres alkategória – a munkatársaknál „hamarosan” jelzéssel látszik"));
+    sg.subs.forEach(function (c, ci) { s.appendChild(subEl(sg, c, ci, depth + 1, oid)); });
+    if (depth < DEPTH) { var add = el("button", "btn sm", "+ Alkategória ezen belül"); add.type = "button"; add.style.marginTop = "6px"; add.onclick = function () { OPEN[oid] = true; sg.subs.push({ id: uid(), name: "Új alkategória", slides: [] }); dirty(); render(); }; s.appendChild(add); }
+    return s;
+  }
+  // minden dialista (fix + összes alkategória, minden szinten)
+  function allLists(g) {
+    var out = []; function walk(n) { (n.subs || []).forEach(function (c) { if (c.slides) out.push(c.slides); walk(c); }); }
+    (g ? [g] : CFG.cats).forEach(function (x) { if (x.fixed) out.push(x.fixed); walk(x); }); return out;
   }
   $("allopen").addEventListener("click", function () { var all = CFG.cats.every(function (g) { return OPEN[g.id]; }); CFG.cats.forEach(function (g) { OPEN[g.id] = !all; }); render(); this.textContent = all ? "Mind kinyit" : "Mind becsuk"; });
   $("addcat").addEventListener("click", function () { var nid = uid(); OPEN[nid] = true; CFG.cats.push({ id: nid, name: "Új kategória", fixed: [], subs: [] }); dirty(); render(); setTimeout(function () { var n = document.querySelectorAll(".cat .nm"); n = n[n.length - 1]; if (n) { n.scrollIntoView({ block: "center" }); n.select(); } }, 30); });
@@ -242,7 +257,7 @@
     sync(); dirty(); render();
   });
   function removeKey(k) {
-    CFG.cats.forEach(function (g) { [g.fixed].concat((g.subs || []).map(function (sg) { return sg.slides; })).forEach(function (l) { if (!l) return; var i = l.indexOf(k); if (i >= 0) l.splice(i, 1); }); });
+    allLists().forEach(function (l) { var i = l.indexOf(k); if (i >= 0) l.splice(i, 1); });
   }
   // a DOM sorrendjéből újraépíti a beosztást
   function sync() {

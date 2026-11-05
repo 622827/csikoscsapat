@@ -271,7 +271,9 @@
   .pg .grp:has(> .chk input:checked) { border-color: var(--accent); }
   .pg .grp > .chk { border: 0; margin: 0; border-radius: 0; }
   .pg .grp .subs { display: none; padding: 0 14px 12px 48px; }
-  .pg .grp:has(> .chk input:checked) .subs { display: block; animation: rowin .22s ease both; }
+  .pg .subs .subs { display: block; padding: 0 0 6px 34px; }
+  .pg .subs .subs[hidden] { display: none; }
+  .pg .grp:has(> .chk input:checked) > .subs { display: block; animation: rowin .22s ease both; }
   .pg .subs .chk { padding: 8px 12px; margin-top: 6px; font-weight: 500; }
   .pg .subs .chk.dis { opacity: .45; cursor: not-allowed; }
   .pg .subs .sublbl { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 10px 0 0; }
@@ -390,20 +392,48 @@
     var box = $("groups"); box.innerHTML = "";
     if (!cats().length) { box.appendChild(el("p", "pmsg", "Még nincsenek kategóriák beállítva (Admin → PPT).")); }
     cats().forEach(function (g) {
-      var main = ix(g.fixed), w = el("div", "grp"), anySub = (g.subs || []).some(function (sg) { return ix(sg.slides).length; });
+      var main = ix(g.fixed), w = el("div", "grp"), anySub = (g.subs || []).some(function (sg) { return tot(sg); });
       w.appendChild(chk("g", g.id, g.name, main.length ? cnt(main.length) + (g.subs && g.subs.length ? " + választható" : "") : (anySub ? "választható diák" : cnt(0)), !main.length && !anySub));
-      var subs = el("div", "subs");
-      if (g.single) {
-        var ag = el("div", "ages"), first = true;
-        (g.subs || []).forEach(function (sg) { var n = ix(sg.slides).length; if (!n) return; var l = el("label"), r = el("input"); r.type = "radio"; r.name = "one-" + g.id; r.value = sg.id; if (first) { r.checked = true; first = false; } l.appendChild(r); l.appendChild(document.createTextNode(sg.name)); ag.appendChild(l); });
-        if (ag.childNodes.length) { subs.appendChild(el("p", "sublbl", "Válassz egyet")); subs.appendChild(ag); }
-      } else (g.subs || []).forEach(function (sg) { var n = ix(sg.slides).length; subs.appendChild(chk("s", g.id + ":" + sg.id, sg.name, cnt(n), !n)); });
+      var subs = subsBox(g, g.id);
       if (subs.childNodes.length) w.appendChild(subs);
       box.appendChild(w);
     });
     $("extra-w").hidden = true;
     upd();
   }
+  // diák száma egy (al)kategóriában, az alatta lévőkkel együtt
+  function tot(n) { var t = ix(n.fixed || n.slides).length; (n.subs || []).forEach(function (c) { t += tot(c); }); return t; }
+  // alkategóriák doboza; bármelyik alkategóriának lehet saját alkategóriája
+  function subsBox(node, path) {
+    var subs = el("div", "subs"), list = node.subs || [];
+    if (node.single) {
+      var ag = el("div", "ages"), first = true, nest = [];
+      list.forEach(function (sg) {
+        if (!tot(sg)) return; var l = el("label"), r = el("input"); r.type = "radio"; r.name = "one-" + path; r.value = sg.id; if (first) { r.checked = true; first = false; }
+        l.appendChild(r); l.appendChild(document.createTextNode(sg.name)); ag.appendChild(l);
+        if ((sg.subs || []).length) { var nb = subsBox(sg, path + ":" + sg.id); if (nb.childNodes.length) { nb.dataset.ctl = "r|" + path + "|" + sg.id; nest.push(nb); } }
+      });
+      if (ag.childNodes.length) { subs.appendChild(el("p", "sublbl", "Válassz egyet")); subs.appendChild(ag); nest.forEach(function (n) { subs.appendChild(n); }); }
+    } else list.forEach(function (sg) {
+      var n = tot(sg), p = path + ":" + sg.id, wr = el("div", "si"); wr.appendChild(chk("s", p, sg.name, cnt(n), !n));
+      if (n && (sg.subs || []).length) { var nb = subsBox(sg, p); if (nb.childNodes.length) { nb.dataset.ctl = "c|" + p; wr.appendChild(nb); } }
+      subs.appendChild(wr);
+    });
+    return subs;
+  }
+  function q(s) { return document.querySelector(s); }
+  function radio(path, id) { return q('input[name="one-' + path + '"][value="' + id + '"]'); }
+  // a beágyazott alkategóriák csak akkor látszanak, ha a szülőjük be van jelölve
+  function vis() {
+    document.querySelectorAll("[data-ctl]").forEach(function (b) { var p = b.dataset.ctl.split("|"), c = p[0] === "c" ? q('.s[value="' + p[1] + '"]') : radio(p[1], p[2]); b.hidden = !(c && c.checked); });
+  }
+  function walkSel(node, path, body) {
+    (node.subs || []).forEach(function (sg) {
+      var p = path + ":" + sg.id, c = node.single ? radio(path, sg.id) : q('.s[value="' + p + '"]');
+      if (c && c.checked) { ix(sg.slides).forEach(function (i) { body.push(i); }); walkSel(sg, p, body); }
+    });
+  }
+  function anc(path) { var parts = path.split(":"), g = q('.g[value="' + parts[0] + '"]'); if (g) g.checked = true; for (var k = 2; k < parts.length; k++) { var c = q('.s[value="' + parts.slice(0, k).join(":") + '"]'); if (c) c.checked = true; } }
   function sel() {
     var out = [], add = function (i) { if (i != null && out.indexOf(i) < 0) out.push(i); };
     var cover = SLIDES.findIndex(function (s) { return s.d === "k" && /PÉNZÜGYI TERV/.test(s.label); });
@@ -412,19 +442,17 @@
     cats().forEach(function (g) {
       var on = document.querySelector('.g[value="' + g.id + '"]'); if (!on || !on.checked) return;
       ix(g.fixed).forEach(function (i) { body.push(i); });
-      (g.subs || []).forEach(function (sg) {
-        var c = g.single ? document.querySelector('input[name="one-' + g.id + '"][value="' + sg.id + '"]') : document.querySelector('.s[value="' + g.id + ":" + sg.id + '"]');
-        if (c && c.checked) ix(sg.slides).forEach(function (i) { body.push(i); });
-      });
+      walkSel(g, g.id, body);
     });
     if (!body.length) return [];
     if (cover > -1) add(cover); body.forEach(add); if (closing > -1) add(closing);
     return out.map(function (i) { return { d: SLIDES[i].d, i: SLIDES[i].i }; });
   }
-  function upd() { $("go").disabled = !sel().length; }
+  function upd() { vis(); $("go").disabled = !sel().length; }
   document.addEventListener("change", function (e) {
     var t = e.target;
-    if (t.classList && t.classList.contains("s") && t.checked) { var g = document.querySelector('.g[value="' + t.value.split(":")[0] + '"]'); if (g) g.checked = true; }
+    if (t.classList && t.classList.contains("s") && t.checked) anc(t.value);
+    if (t.type === "radio" && t.name.indexOf("one-") === 0 && t.checked) anc(t.name.slice(4) + ":x");
     upd();
   });
   $("all").addEventListener("click", function () {
