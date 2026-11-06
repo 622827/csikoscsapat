@@ -161,7 +161,10 @@
       try { localStorage.setItem("ppt_szerk_cache_v1", JSON.stringify({ slides: d.slides, cfg: d.cfg })); } catch (e) {}
       if (!same || !had) render();
       msg("Diaképek frissítése…");
-      return call({ thumbs: 1, fresh: fresh ? 1 : 0 }).then(function (t) {
+      var have = ""; try { have = localStorage.getItem("ppt_szerk_thumbs_stamp") || ""; } catch (e) {}
+      return call({ thumbs: 1, fresh: fresh ? 1 : 0, have: Object.keys(THUMBS).length ? have : "" }).then(function (t) {
+        if (t.stamp) try { localStorage.setItem("ppt_szerk_thumbs_stamp", t.stamp); } catch (e) {}
+        loadBigs();
         if (t.thumbs) {
           var ch = JSON.stringify(t.thumbs).length !== JSON.stringify(THUMBS).length || Object.keys(t.thumbs).some(function (k) { return THUMBS[k] !== t.thumbs[k]; });
           THUMBS = t.thumbs; try { localStorage.setItem("ppt_szerk_thumbs_v1", JSON.stringify(t.thumbs)); } catch (e) {}
@@ -320,6 +323,8 @@
     LBC.textContent = (sl.d === "k" ? "Kezdő " : "Haladó ") + (sl.i + 1) + ". dia" + (sl.label ? " – " + sl.label : "") + (sl.title ? " – " + sl.title : "");
     LB.hidden = false; document.body.style.overflow = "hidden";
     setTimeout(function () { lbPrefetch(card); }, 50);
+    var du = BIGURL[key];
+    if (du) { LBI.src = small || ""; LBI.classList.add("lo"); var im = new Image(); im.onload = function () { if (CUR === card) { LBI.src = du; LBI.classList.remove("lo"); } }; im.onerror = function () { delete BIGURL[key]; BIGT = 0; if (CUR === card) lbShow(card); }; im.src = du; return; }
     if (BIG[key]) { LBI.src = BIG[key]; LBI.classList.remove("lo"); return; }
     LBI.src = small || ""; LBI.classList.add("lo");
     if (BIG[key] === 0) { var w = setInterval(function () { if (CUR !== card) return clearInterval(w); if (BIG[key]) { clearInterval(w); LBI.src = BIG[key]; LBI.classList.remove("lo"); } else if (BIG[key] === undefined) clearInterval(w); }, 150); return; }
@@ -330,10 +335,18 @@
   function lbPrefetch(card) {
     var l = lbList(), i = l.indexOf(card); [i + 1, i - 1, i + 2].forEach(function (j) {
       var c = l[(j + l.length) % l.length]; if (!c) return; var sl = SLIDES[BYKEY[c.dataset.key]]; if (!sl) return; var key = sl.d + ":" + sl.pid;
+      if (BIGURL[key]) { (new Image()).src = BIGURL[key]; return; }
       if (BIG[key] || BIG[key] === 0) return; BIG[key] = 0;
       call({ big: { d: sl.d, pid: sl.pid } }).then(function (r) { if (r && r.img) BIG[key] = r.img; else delete BIG[key]; }).catch(function () { delete BIG[key]; });
     });
   }
+  // a nagy képek közvetlen címei (kb. 25 percig érvényesek) – a böngésző a Google-tól tölti, a szerveren nem megy át
+  var BIGURL = {}, BIGT = 0;
+  function loadBigs() {
+    if (Date.now() - BIGT < 20 * 60000) return; BIGT = Date.now();
+    call({ bigs: 1 }).then(function (r) { if (r && r.urls) BIGURL = r.urls; else BIGT = 0; }).catch(function () { BIGT = 0; });
+  }
+  function urlOf(card) { var sl = SLIDES[BYKEY[card.dataset.key]]; return sl && BIGURL[sl.d + ":" + sl.pid]; }
   function lbClose() { LB.hidden = true; document.body.style.overflow = ""; CUR = null; }
   function lbStep(n) { var l = lbList(), i = l.indexOf(CUR); if (i < 0) return; var j = (i + n + l.length) % l.length; lbShow(l[j]); }
   document.addEventListener("click", function (e) { var c = e.target.closest && e.target.closest(".sl"); if (c && !drag) lbShow(c); });
