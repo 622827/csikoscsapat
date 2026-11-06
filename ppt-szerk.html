@@ -47,6 +47,16 @@
   .pool { position: sticky; top: 60px; background: var(--card); border-radius: 16px; padding: 12px; max-height: calc(100vh - 80px); overflow: auto; }
   .pool h2 { margin: 0 0 4px; font-size: 1rem; }
   .pool .zone { min-height: 200px; }
+  .lb { position: fixed; inset: 0; z-index: 100; background: rgba(0, 10, 25, .82); display: flex; align-items: center; justify-content: center; padding: 24px 64px; }
+  .lb[hidden] { display: none; }
+  .lb figure { margin: 0; max-width: min(1400px, 100%); display: grid; gap: 10px; justify-items: center; }
+  .lb img { width: min(1300px, calc(100vw - 140px), calc((100vh - 110px) * 16 / 9)); height: auto; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.5); background: #fff; transition: filter .2s; }
+  .lb img.lo { filter: blur(3px); }
+  .lb figcaption { color: #fff; font-weight: 700; text-align: center; font-size: .95rem; }
+  .lbx { position: absolute; top: 14px; right: 18px; font: inherit; font-size: 1.3rem; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.14); color: #fff; cursor: pointer; }
+  .lbnav { position: absolute; top: 50%; transform: translateY(-50%); font: inherit; font-size: 2rem; width: 48px; height: 64px; border-radius: 14px; border: 0; background: rgba(255,255,255,.12); color: #fff; cursor: pointer; }
+  .lbp { left: 10px; } .lbn { right: 10px; } .lbx:hover, .lbnav:hover { background: rgba(255,255,255,.25); }
+  .sl { cursor: zoom-in; }
   .big { position: fixed; z-index: 50; pointer-events: none; width: 420px; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.35); display: none; }
   .gate { max-width: 360px; margin: 40px auto; background: var(--card); padding: 20px; border-radius: 16px; }
   .gate input { width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); margin: 8px 0; }
@@ -81,7 +91,7 @@
 </div>
 <div id="app" hidden>
   <h1>PPT kategóriák</h1>
-  <p class="lead">Húzd a diákat a kategóriákba. A <b>fix</b> diák mindig bekerülnek, ha a munkatárs bepipálja a kategóriát; az <b>alkategóriák</b> külön választhatók. A borító és a záró dia automatikus. Nagyításhoz vidd az egeret a dia fölé.</p>
+  <p class="lead">Húzd a diákat a kategóriákba. A <b>fix</b> diák mindig bekerülnek, ha a munkatárs bepipálja a kategóriát; az <b>alkategóriák</b> külön választhatók. A borító és a záró dia automatikus. Nagyításhoz kattints a diára.</p>
   <div class="bar">
     <button class="btn" type="button" id="addcat">+ Új kategória</button>
     <button class="btn" type="button" id="refresh" title="A sablonok újraolvasása (ha új dia került beléjük)">Diák frissítése</button>
@@ -96,7 +106,12 @@
     <aside class="pool"><h2>Besorolatlan diák</h2><p class="msg">Ezek a munkatársaknál nem jelennek meg.</p><div class="zone" id="pool" data-zone="pool" data-empty="Minden dia be van sorolva"></div></aside>
   </div>
 </div>
-<img class="big" id="big" alt="">
+<div class="lb" id="lb" hidden role="dialog" aria-label="Dia nagyítva">
+  <button class="lbx" id="lbx" type="button" aria-label="Bezárás">✕</button>
+  <button class="lbnav lbp" id="lbp" type="button" aria-label="Előző dia">‹</button>
+  <figure><img id="lbimg" alt=""><figcaption id="lbcap"></figcaption></figure>
+  <button class="lbnav lbn" id="lbn" type="button" aria-label="Következő dia">›</button>
+</div>
 <script>(function(){if(self===top)return;document.body.classList.add("emb");document.getElementById("full").hidden=false})();</script>
 <script>
 (function () {
@@ -225,7 +240,7 @@
     document.querySelectorAll(".over,.over-cat,.cat.dragging").forEach(function (z) { z.classList.remove("over"); z.classList.remove("over-cat"); z.classList.remove("dragging"); });
   }
   document.addEventListener("dragstart", function (e) {
-    $("big").style.display = "none";
+
     if (e.target.classList && e.target.classList.contains("grip")) { dragCat = +e.target.dataset.cat; e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", "cat"); } catch (x) {} e.target.closest(".cat").classList.add("dragging"); return; }
     var s = e.target.closest && e.target.closest(".sl");
     if (!s) return; drag = s; e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", s.dataset.key); } catch (x) {}
@@ -276,15 +291,24 @@
     document.querySelectorAll("#cats .zone").forEach(function (z) { if (!z._list) return; z._list.length = 0; z.querySelectorAll(".sl").forEach(function (s) { z._list.push(s.dataset.key); }); });
   }
 
-  /* ---- nagyítás ---- */
-  document.addEventListener("mousemove", function (e) {
-    var s = e.target.closest && e.target.closest(".sl"), big = $("big");
-    if (!s || drag) { big.style.display = "none"; return; }
-    var im = s.querySelector("img"); if (!im) { big.style.display = "none"; return; }
-    big.src = im.src; big.style.display = "block";
-    var x = e.clientX + 18, y = e.clientY + 18; if (x + 430 > innerWidth) x = e.clientX - 438; if (y + 250 > innerHeight) y = innerHeight - 250;
-    big.style.left = x + "px"; big.style.top = Math.max(8, y) + "px";
-  });
+  /* ---- nagyítás: kattintásra felugró ablak, éles (nagy felbontású) képpel ---- */
+  var BIG = {}, LB = $("lb"), LBI = $("lbimg"), LBC = $("lbcap"), CUR = null;
+  function lbList() { return [].slice.call(document.querySelectorAll(".sl")); }
+  function lbShow(card) {
+    CUR = card; var k = card.dataset.key, i = BYKEY[k], sl = SLIDES[i]; if (!sl) return;
+    var key = sl.d + ":" + sl.pid, small = THUMBS[key];
+    LBC.textContent = (sl.d === "k" ? "Kezdő " : "Haladó ") + (sl.i + 1) + ". dia" + (sl.label ? " – " + sl.label : "") + (sl.title ? " – " + sl.title : "");
+    LB.hidden = false; document.body.style.overflow = "hidden";
+    if (BIG[key]) { LBI.src = BIG[key]; LBI.classList.remove("lo"); return; }
+    LBI.src = small || ""; LBI.classList.add("lo");
+    call({ big: { d: sl.d, pid: sl.pid } }).then(function (r) { if (r && r.img) { BIG[key] = r.img; if (CUR === card) { LBI.src = r.img; LBI.classList.remove("lo"); } } }).catch(function () {});
+  }
+  function lbClose() { LB.hidden = true; document.body.style.overflow = ""; CUR = null; }
+  function lbStep(n) { var l = lbList(), i = l.indexOf(CUR); if (i < 0) return; var j = (i + n + l.length) % l.length; lbShow(l[j]); }
+  document.addEventListener("click", function (e) { var c = e.target.closest && e.target.closest(".sl"); if (c && !drag) lbShow(c); });
+  LB.addEventListener("click", function (e) { if (e.target === LB || e.target.id === "lbx") lbClose(); });
+  $("lbp").onclick = function (e) { e.stopPropagation(); lbStep(-1); }; $("lbn").onclick = function (e) { e.stopPropagation(); lbStep(1); };
+  document.addEventListener("keydown", function (e) { if (LB.hidden) return; if (e.key === "Escape") lbClose(); else if (e.key === "ArrowLeft") lbStep(-1); else if (e.key === "ArrowRight") lbStep(1); });
 
   /* ---- mentés ---- */
   $("save").addEventListener("click", function () {
