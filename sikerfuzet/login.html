@@ -1,6 +1,19 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
+<script>
+// csikoscsapat.hu: egyszeri takarítás – a régi (bejelentkezős) változat tárolt fájljait törli, majd újratölt
+(function(){ try {
+  if (localStorage.getItem('sf_csk_reset') === '2') return;
+  localStorage.setItem('sf_csk_reset', '2'); localStorage.setItem('sf_belepve', '1');
+  var p = [];
+  if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) p.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+  if (window.caches && caches.keys) p.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+  document.documentElement.style.background = '#0f1724';
+  Promise.all(p).then(function () { location.replace('index.html?r=' + Date.now()); }, function () { location.replace('index.html?r=' + Date.now()); });
+  window.stop && window.stop();
+} catch (e) {} })();
+</script>
 <script>location.replace("index.html" + location.search);</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
