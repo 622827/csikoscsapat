@@ -3,7 +3,7 @@
 //   Így a frissítés ugyanúgy azonnal megjön (az index.html build-ellenőrzése is működik), de térerő nélkül is megnyílik.
 // - Statikus fájlok (js, képek, ikonok, betűk, CDN-könyvtárak): gyorsítótárból azonnal, háttérben frissítve.
 // - Firebase / Google API hívásokat nem érinti.
-const VER = 'sf-v2';
+const VER = 'sf-v3-csk';
 const STATIKUS = /\.(?:js|css|png|jpe?g|webp|svg|gif|ico|woff2?|ttf|json)$/i;
 const CDN = /^https:\/\/(?:cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com|unpkg\.com)\//;
 

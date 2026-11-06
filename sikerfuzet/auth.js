@@ -16,7 +16,7 @@ import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/
 // A ?v= a böngésző-gyorsítótár miatt kell: enélkül egy config-változás
 // (pl. a googleClientId ki-/bekapcsolása) nem ér el a már betöltött
 // gépekre. Az index.html/login.html auth.js?v= értékével EGYÜTT léptesd.
-import { firebaseConfig, isConfigured, googleClientId } from "./firebase-config.js?v=34";
+import { firebaseConfig, isConfigured, googleClientId } from "./firebase-config.js?v=35";
 
 export { isConfigured };
 
