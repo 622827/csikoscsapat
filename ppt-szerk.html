@@ -137,18 +137,38 @@
     sha(v).then(function (h) { if (h !== H) { $("gerr").textContent = "Hibás jelszó."; return; } PW = v; try { sessionStorage.setItem("ppt_ok", H); sessionStorage.setItem("ppt_pw", v); } catch (e) {} start(); });
   });
 
-  /* ---- betöltés ---- */
+  /* ---- betöltés: az utoljára látott állapot azonnal, a friss a háttérből ---- */
+  function setSlides(sl) {
+    SLIDES = sl || []; var cnt = {};
+    KEYS = SLIDES.map(function (x) { var b = x.d + "|" + x.label + "|" + x.title, n = cnt[b] || 0; cnt[b] = n + 1; return b + "|" + n; });
+    BYKEY = {}; KEYS.forEach(function (k, i) { BYKEY[k] = i; });
+  }
+  function fromCache() {
+    if (window.__pptCached) return; window.__pptCached = true;
+    try { var c = JSON.parse(localStorage.getItem("ppt_szerk_cache_v1") || "null"); if (c && c.slides) { setSlides(c.slides); if (c.cfg && c.cfg.cats) CFG = c.cfg; } } catch (e) {}
+    try { var t = JSON.parse(localStorage.getItem("ppt_szerk_thumbs_v1") || "null"); if (t) THUMBS = t; } catch (e) {}
+  }
   function load(fresh) {
-    msg("Diák betöltése…");
+    fromCache();
+    var had = SLIDES.length > 0;
+    if (had && !fresh) render();
+    msg(had && !fresh ? "Frissítés a háttérben…" : "Diák betöltése…");
     call({ list: 1, fresh: fresh ? 1 : 0 }).then(function (d) {
       if (d.error) throw new Error(d.error);
-      SLIDES = d.slides || []; var cnt = {};
-      KEYS = SLIDES.map(function (sl) { var b = sl.d + "|" + sl.label + "|" + sl.title, n = cnt[b] || 0; cnt[b] = n + 1; return b + "|" + n; });
-      BYKEY = {}; KEYS.forEach(function (k, i) { BYKEY[k] = i; });
+      var same = JSON.stringify(d.slides) === JSON.stringify(SLIDES) && (DIRTY || JSON.stringify(d.cfg) === JSON.stringify(CFG));
+      setSlides(d.slides);
       if (!DIRTY) CFG = d.cfg && d.cfg.cats ? d.cfg : { cats: [] };
-      render(); msg(fresh ? "Diák frissítve." : "");
-      msg("Diaképek betöltése…");
-      return call({ thumbs: 1, fresh: fresh ? 1 : 0 }).then(function (t) { if (t.thumbs) { THUMBS = t.thumbs; render(); } msg(DIRTY ? "Nem mentett változások" : ""); });
+      try { localStorage.setItem("ppt_szerk_cache_v1", JSON.stringify({ slides: d.slides, cfg: d.cfg })); } catch (e) {}
+      if (!same || !had) render();
+      msg("Diaképek frissítése…");
+      return call({ thumbs: 1, fresh: fresh ? 1 : 0 }).then(function (t) {
+        if (t.thumbs) {
+          var ch = JSON.stringify(t.thumbs).length !== JSON.stringify(THUMBS).length || Object.keys(t.thumbs).some(function (k) { return THUMBS[k] !== t.thumbs[k]; });
+          THUMBS = t.thumbs; try { localStorage.setItem("ppt_szerk_thumbs_v1", JSON.stringify(t.thumbs)); } catch (e) {}
+          if (ch) render();
+        }
+        msg(DIRTY ? "Nem mentett változások" : (fresh ? "Diák frissítve." : ""));
+      });
     }).catch(function (e) { msg("Hiba: " + e.message, "err"); });
   }
   $("refresh").addEventListener("click", function () { load(true); });
@@ -205,7 +225,7 @@
     KEYS.forEach(function (k, i) { if (!used[k] && !auto(i)) { var c = card(k); if (c) pool.appendChild(c); } });
   }
   /* alkategória – bármelyiknek lehet saját alkategóriája (legfeljebb 3 szintig) */
-  var DEPTH = 3;
+
   function subEl(par, sg, si, depth, oid) {
     var s = el("div", "sub"), sh = el("div", "cat-h"), sn = el("input", "nm"); sn.value = sg.name;
     sn.addEventListener("input", function () { sg.name = sn.value; dirty(); });
@@ -221,7 +241,7 @@
     sg.slides = sg.slides || [];
     s.appendChild(zone(sg.slides, "", sg.subs.length ? "Ide jönnek a mindig bekerülő diái (ha ezt választják)" : "Üres alkategória – a munkatársaknál „hamarosan” jelzéssel látszik"));
     sg.subs.forEach(function (c, ci) { s.appendChild(subEl(sg, c, ci, depth + 1, oid)); });
-    if (depth < DEPTH) { var add = el("button", "btn sm", "+ Alkategória ezen belül"); add.type = "button"; add.style.marginTop = "6px"; add.onclick = function () { OPEN[oid] = true; sg.subs.push({ id: uid(), name: "Új alkategória", slides: [] }); dirty(); render(); }; s.appendChild(add); }
+    if (depth < 3) { var add = el("button", "btn sm", "+ Alkategória ezen belül"); add.type = "button"; add.style.marginTop = "6px"; add.onclick = function () { OPEN[oid] = true; sg.subs.push({ id: uid(), name: "Új alkategória", slides: [] }); dirty(); render(); }; s.appendChild(add); }
     return s;
   }
   // minden dialista (fix + összes alkategória, minden szinten)
@@ -299,9 +319,20 @@
     var key = sl.d + ":" + sl.pid, small = THUMBS[key];
     LBC.textContent = (sl.d === "k" ? "Kezdő " : "Haladó ") + (sl.i + 1) + ". dia" + (sl.label ? " – " + sl.label : "") + (sl.title ? " – " + sl.title : "");
     LB.hidden = false; document.body.style.overflow = "hidden";
+    setTimeout(function () { lbPrefetch(card); }, 50);
     if (BIG[key]) { LBI.src = BIG[key]; LBI.classList.remove("lo"); return; }
     LBI.src = small || ""; LBI.classList.add("lo");
-    call({ big: { d: sl.d, pid: sl.pid } }).then(function (r) { if (r && r.img) { BIG[key] = r.img; if (CUR === card) { LBI.src = r.img; LBI.classList.remove("lo"); } } }).catch(function () {});
+    if (BIG[key] === 0) { var w = setInterval(function () { if (CUR !== card) return clearInterval(w); if (BIG[key]) { clearInterval(w); LBI.src = BIG[key]; LBI.classList.remove("lo"); } else if (BIG[key] === undefined) clearInterval(w); }, 150); return; }
+    BIG[key] = 0;
+    call({ big: { d: sl.d, pid: sl.pid } }).then(function (r) { if (r && r.img) { BIG[key] = r.img; if (CUR === card) { LBI.src = r.img; LBI.classList.remove("lo"); } } else delete BIG[key]; }).catch(function () { delete BIG[key]; });
+  }
+  // a szomszédos diák éles képe előre, hogy lapozáskor ne kelljen várni
+  function lbPrefetch(card) {
+    var l = lbList(), i = l.indexOf(card); [i + 1, i - 1, i + 2].forEach(function (j) {
+      var c = l[(j + l.length) % l.length]; if (!c) return; var sl = SLIDES[BYKEY[c.dataset.key]]; if (!sl) return; var key = sl.d + ":" + sl.pid;
+      if (BIG[key] || BIG[key] === 0) return; BIG[key] = 0;
+      call({ big: { d: sl.d, pid: sl.pid } }).then(function (r) { if (r && r.img) BIG[key] = r.img; else delete BIG[key]; }).catch(function () { delete BIG[key]; });
+    });
   }
   function lbClose() { LB.hidden = true; document.body.style.overflow = ""; CUR = null; }
   function lbStep(n) { var l = lbList(), i = l.indexOf(CUR); if (i < 0) return; var j = (i + n + l.length) % l.length; lbShow(l[j]); }
@@ -316,7 +347,7 @@
     call({ saveCfg: 1, cfg: CFG }).then(function (d) {
       if (d.error) throw new Error(d.error);
       DIRTY = false; msg("Elmentve – a munkatársi oldal a következő megnyitáskor már ezt mutatja.", "ok");
-      try { localStorage.removeItem("ppt_slides_v2"); } catch (e) {}
+      try { localStorage.removeItem("ppt_slides_v2"); localStorage.setItem("ppt_szerk_cache_v1", JSON.stringify({ slides: SLIDES, cfg: CFG })); } catch (e) {}
     }).catch(function (e) { b.disabled = false; msg("Nem sikerült menteni: " + e.message, "err"); });
   });
 })();
