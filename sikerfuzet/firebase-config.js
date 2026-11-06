@@ -4,7 +4,7 @@
 //  Ezek az értékek PUBLIKUSAK (kliensoldali azonosítók) – nyugodtan a repóban.
 // ============================================================================
 export const firebaseConfig = {
-    apiKey: "AIzaSyDeZxEJpjZlzUBOboPpUzHZxPmMgk7L6vU",
+    apiKey: "PLACEHOLDER-csikoscsapat",   // csikoscsapat.hu: bejelentkezés és felhő nélkül, az adatok a böngészőben maradnak
     authDomain: "finovate-sol-sikerfuzet.firebaseapp.com",
     projectId: "finovate-sol-sikerfuzet",
     storageBucket: "finovate-sol-sikerfuzet.firebasestorage.app",
@@ -29,7 +29,7 @@ export const firebaseConfig = {
 // csatlakozással működik tovább (hasAutoConnect() → false).
 // Kikapcsoláshoz elég üres sztringre állítani – akkor minden a gombos
 // csatlakozással működik tovább (hasAutoConnect() → false).
-export const googleClientId = "494203637099-ubemgvvoh7u30kjna03kqgc2p8tdibmv.apps.googleusercontent.com";
+export const googleClientId = "";
 
 // Igaz, ha már valós config van beállítva (nem placeholder).
 export const isConfigured = !String(firebaseConfig.apiKey).includes("PLACEHOLDER");

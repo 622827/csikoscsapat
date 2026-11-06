@@ -20,7 +20,8 @@
     // rajzolódik: rögtön a login jön, a ?app=… megmarad. A jelzőt az auth.js állítja.
     (function(){
         try { localStorage.setItem('sf_proba', '1'); localStorage.removeItem('sf_proba');
-            if(localStorage.getItem('sf_belepve') !== '1'){ document.documentElement.style.background = '#0f1724'; location.replace('login.html' + location.search); }
+            // csikoscsapat.hu: bejelentkezés nélkül fut
+            localStorage.setItem('sf_belepve', '1');
         } catch(e){}
     })();
     </script>
