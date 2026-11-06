@@ -278,7 +278,8 @@
   .fill.units .sp.csk { background: var(--csk); } .fill.units .sp.frk { background: var(--frk); }
   .outl { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; display: flex; pointer-events: none; }
   .outl span { flex: none; } .outl .gap { background: none; }
-  .outl .csk, .outl .frk { opacity: .3; }
+  .outl .csk, .outl .frk { opacity: .3; pointer-events: auto; }
+  #time-bar, #bar, .team .bar { cursor: default; }
   .outl span { height: 100%; transition: width .8s ease; }
   .outl .csk { background: var(--csk); } .outl .frk { background: var(--frk); }
   .team .head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-weight: 700; }
@@ -449,6 +450,9 @@
   $("time-scale").insertAdjacentHTML("beforeend", ticks);
   $("time-bar").setAttribute("aria-valuenow", Math.round(elapsed * 100));
   $("time-fill").style.width = (elapsed * 100) + "%";
+  (function () { var tot = Math.round(span / 86400000), el = Math.min(tot, Math.max(0, Math.round((now - qStart) / 86400000)));
+    $("time-fill").setAttribute("data-t", "Eltelt: " + el + " nap / " + tot + " nap (" + Math.round(elapsed * 100) + "%)");
+    $("time-bar").setAttribute("data-t", "Hátravan: " + daysLeft + " nap (" + (100 - Math.round(elapsed * 100)) + "%)"); })();
 
   $("marker").style.left = commitPct + "%";
   $("tag-commit").style.left = commitPct + "%";
@@ -470,6 +474,13 @@
     if (tc + tf > 0) { $("fill").style.background = "none"; $("sp-csk").style.width = (tc / (tc + tf) * 100) + "%"; $("sp-frk").style.width = (tf / (tc + tf) * 100) + "%"; }
     else { $("fill").style.background = ""; $("sp-csk").style.width = "0"; $("sp-frk").style.width = "0"; }
     $("bar").setAttribute("aria-valuenow", Math.round(pct));
+    // felugró címkék a sávokon
+    $("fill").setAttribute("data-t", "Összesen: " + nf.format(total) + " " + LABEL + " (a cél " + Math.round(pct) + "%-a)");
+    $("sp-csk").setAttribute("data-t", "Csikós csapat: " + nf.format(tc) + " " + LABEL);
+    $("sp-frk").setAttribute("data-t", "Farkas csapat: " + nf.format(tf) + " " + LABEL);
+    $("ol-csk").setAttribute("data-t", "Csikós csapat kilátás (még nincs leadva): " + nf.format(oc) + " " + LABEL);
+    $("ol-frk").setAttribute("data-t", "Farkas csapat kilátás (még nincs leadva): " + nf.format(of) + " " + LABEL);
+    $("bar").setAttribute("data-t", leftGoal > 0 ? "A célig hátravan: " + nf.format(leftGoal) + " " + LABEL + (leftCommit > 0 ? " · a vállalásig: " + nf.format(leftCommit) + " " + LABEL : "") : "A cél teljesítve");
 
     $("line-commit").innerHTML = leftCommit > 0
       ? "<span>A vállalásig hátravan:</span> <b>" + nf.format(leftCommit) + " " + LABEL + "</b>"
@@ -520,7 +531,7 @@
       any = true;
       var max = Math.max(x.goal, x.outlook, x.done, 1);
       el.innerHTML = '<div class="head"><span class="nm">' + d[1] + '</span><span class="val">' + nf.format(x.done) + ' / ' + nf.format(x.goal) + ' ' + LABEL + '</span></div>' +
-        '<div class="bar"><div class="seg out" style="width:' + Math.min(100, x.outlook / max * 100) + '%"></div><div class="seg" style="width:' + Math.min(100, x.done / max * 100) + '%"></div></div>' +
+        '<div class="bar" data-t="' + d[1] + ' célja: ' + nf.format(x.goal) + ' ' + LABEL + ' · hiányzik: ' + nf.format(x.missing) + '"><div class="seg out" style="width:' + Math.min(100, x.outlook / max * 100) + '%" data-t="Kilátás: ' + nf.format(x.outlook) + ' ' + LABEL + '"></div><div class="seg" style="width:' + Math.min(100, x.done / max * 100) + '%" data-t="Teljesítve: ' + nf.format(x.done) + ' ' + LABEL + '"></div></div>' +
         '<div class="sub">Kilátás: ' + nf.format(x.outlook) + ' · Hiányzik a célból: ' + nf.format(x.missing) + '</div>';
     });
     $("teams").hidden = !any;
