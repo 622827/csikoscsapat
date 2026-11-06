@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Sikerfüzet → Erfolgsjournal",
+  "version": "1.7.1",
+  "description": "A Sikerfüzet Havi tervének számait beírja az Erfolgsjournalba (Havi képlet, heti Cél és Van).",
+  "icons": {
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://erfolgsjournal.app/*"
+      ],
+      "js": [
+        "korai.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://erfolgsjournal.app/*"
+      ],
+      "js": [
+        "ej.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://finovate-sol.github.io/sikerfuzet/*",
+        "https://finovate-sol-sikerfuzet.web.app/*"
+      ],
+      "js": [
+        "jelzo.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
+}

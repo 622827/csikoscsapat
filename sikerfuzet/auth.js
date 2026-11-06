@@ -1,0 +1,1038 @@
+// ============================================================================
+//  AUTH MODUL – Google-belépés + email-allowlist (Firebase)
+//  Közös modul a login.html és az index.html számára.
+// ============================================================================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import {
+    getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import {
+    initializeFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, collection, query, where, serverTimestamp, increment
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import {
+    getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-functions.js";
+// A ?v= a böngésző-gyorsítótár miatt kell: enélkül egy config-változás
+// (pl. a googleClientId ki-/bekapcsolása) nem ér el a már betöltött
+// gépekre. Az index.html/login.html auth.js?v= értékével EGYÜTT léptesd.
+import { firebaseConfig, isConfigured, googleClientId } from "./firebase-config.js?v=34";
+
+export { isConfigured };
+
+// A naptárhoz szükséges jogosultság: események olvasása ÉS létrehozása.
+const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+// A PG modulhoz: Google Tasks (feladatlisták olvasása/írása).
+const TASKS_SCOPE = "https://www.googleapis.com/auth/tasks";
+// A naptár-átfedéshez: a fiók naptárainak listája (csak olvasás). Külön,
+// gombnyomásra kérjük (connectCalendarList), és csak utána kerül be a néma
+// token-kérésekbe – különben a még meg nem adott jog miatt elbukna.
+const CALLIST_SCOPE = "https://www.googleapis.com/auth/calendar.calendarlist.readonly";
+function hasCalListGrant() { try { return localStorage.getItem("sf_gcal_lista") === "1"; } catch (e) { return false; } }
+// Ebbe a kollekcióba kerülnek a belépni jogosult emailek (doc-id = email).
+const ALLOWLIST = "allowed_users";
+// Admin (info-időpontok beállítása)
+const ADMIN_EMAIL = "szecsimark@gmail.com";
+export function isAdmin(user){ return !!user && String(user.email||"").toLowerCase() === ADMIN_EMAIL; }
+
+// Megosztott app-konfiguráció (config/app dokumentum)
+export async function getAppConfig(){
+    if(!isConfigured || !db) return {};
+    try { const snap = await getDoc(doc(db, "config", "app")); return snap.exists() ? (snap.data() || {}) : {}; }
+    catch(e){ console.warn("config olvasás sikertelen:", e); return {}; }
+}
+// Közös (csapatszintű) dokumentumok a config gyűjteményben – pl. a Tudásbázis és a
+// prezentáció-sablonok: mindenki olvassa, csak az admin írja (lásd firestore.rules).
+// Hiba esetén dob – a hívó dönti el, hogy a helyi másolattal megy-e tovább.
+export async function getConfigDoc(id){
+    if(!isConfigured || !db) return null;
+    const snap = await getDoc(doc(db, "config", id));
+    return snap.exists() ? (snap.data() || null) : null;
+}
+export async function saveConfigDoc(id, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "config", id), data);
+}
+export async function saveInfoDates(dates){
+    return saveAppConfig({ infoDates: dates });
+}
+export async function saveAppConfig(obj){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "config", "app"), obj, { merge: true });
+}
+
+export async function getAllowedUsers(){
+    if(!isConfigured || !db) return [];
+    try {
+        const snap = await getDocs(collection(db, ALLOWLIST));
+        return snap.docs.map(d => d.id);
+    } catch(e){ console.error("Felhasználók olvasása sikertelen:", e); return []; }
+}
+export async function addAllowedUser(email){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, ALLOWLIST, email.toLowerCase().trim()), { added: serverTimestamp() });
+}
+export async function removeAllowedUser(email){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await deleteDoc(doc(db, ALLOWLIST, email.toLowerCase().trim()));
+}
+
+// Személyes (nem megosztott) struktúra-rajz – structures/{uid} dokumentum.
+// Mindenkinek a saját fiókjához tartozik; vezetői "ránézés" esetén a
+// megtekintett munkatárs uid-jával dolgozik az index.html.
+// FONTOS: olvasási hiba esetén DOBUNK, nem null-t adunk vissza. A null itt azt
+// jelenti, hogy tényleg nincs még rajz. Ha a jogosultsági/hálózati hibát is
+// null-ra fordítanánk, a hívó üres fával indulna, és az első szerkesztés
+// felülírná a felhőben lévő valódi struktúrát (a saveStructure teljes
+// dokumentumot ír, nem merge-el).
+export async function getStructure(uid){
+    if(!isConfigured || !db || !uid) return null;
+    const snap = await getDoc(doc(db, "structures", uid));
+    return snap.exists() ? (snap.data().tree || null) : null;
+}
+export async function saveStructure(uid, tree){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "structures", uid), { tree });
+}
+
+// Személyes "Karrier-létra" adatok (dátumok + teljesített szintek) –
+// karrier_letra/{uid} dokumentum. Ugyanúgy személyes, mint a Struktúra-rajz,
+// és korábban CSAK localStorage-ban élt egy közös (nem munkatárs-specifikus)
+// kulcs alatt, ami megosztott gépen/böngészőben munkatársak között összekeveredett.
+// Ugyanaz a szabály, mint a getStructure()-nél: hiba esetén dobunk, mert a
+// saveKarrierLetra is teljes dokumentumot ír.
+export async function getKarrierLetra(uid){
+    if(!isConfigured || !db || !uid) return null;
+    const snap = await getDoc(doc(db, "karrier_letra", uid));
+    return snap.exists() ? (snap.data() || null) : null;
+}
+export async function saveKarrierLetra(uid, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "karrier_letra", uid), data);
+}
+
+// Megosztott "Ki lesz a következő" adatok, negyedévenként – kov_quarters/{year}_Q{q}
+export async function getKovQuarter(key){
+    if(!isConfigured || !db) return null;
+    try { const snap = await getDoc(doc(db, "kov_quarters", key)); return snap.exists() ? (snap.data() || null) : null; }
+    catch(e){ console.warn("Ki lesz következő olvasás sikertelen:", e); return null; }
+}
+export async function saveKovQuarter(key, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "kov_quarters", key), data, { merge: true });
+}
+
+// Munkatársak napi/heti tevékenység-számlálói (pl. "10 perces füzet", "2 órás füzet")
+// – így a vezető is láthatja, ki mennyi időt töltött el ténylegesen a füzettel.
+export async function saveActivityTimer(key, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "activity_timers", key), data, { merge: true });
+}
+
+// Napi aktivitás (Tudásbázis és Control → Control): havonta egy dokumentum
+// activity_timers/{uid}_nap_{YYYY-MM} = { napok: { 'YYYY-MM-DD': { p10, p2, ossz } } } (másodperc).
+// Növeléssel írjuk, így több eszköz egyszerre is számolhat, nem írják felül egymást.
+export async function addActivityNap(uid, name, ho, nap, d){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    const n = {}; for(const k of ["p10", "p2", "ossz"]) if(d[k] > 0) n[k] = increment(Math.round(d[k]));
+    if(!Object.keys(n).length) return;
+    await setDoc(doc(db, "activity_timers", `${uid}_nap_${ho}`), { uid, name: name || "", col: "nap", period: ho, napok: { [nap]: n }, updatedAt: Date.now() }, { merge: true });
+}
+export async function getActivityTimer(key){
+    if(!isConfigured || !db) return null;
+    try { const snap = await getDoc(doc(db, "activity_timers", key)); return snap.exists() ? (snap.data() || null) : null; }
+    catch(e){ console.warn("Aktivitás olvasása sikertelen:", e); return null; }
+}
+
+// Megosztott csapat-ügyféllista – collection "clients". Minden dokumentum egy
+// ügyfél; a munkatárs csak a saját (ownerUid) ügyfeleit látja, a vezető/admin
+// mindet – ezt a szűrést az index.html végzi a lekért teljes listán.
+export async function getClients(){
+    if(!isConfigured || !db) return [];
+    try {
+        const snap = await getDocs(collection(db, "clients"));
+        window.sfClientsError = "";
+        return snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+    } catch(e){
+        // A hibát ki is írjuk a felületre: enélkül a sikertelen olvasás pont
+        // úgy néz ki, mintha nem lenne egy ügyfél sem.
+        window.sfClientsError = String((e && e.message) || e);
+        console.warn("Ügyféllista olvasása sikertelen:", e);
+        return [];
+    }
+}
+export async function addClient(data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    const ref = await addDoc(collection(db, "clients"), data);
+    return ref.id;
+}
+export async function saveClient(id, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "clients", id), data, { merge: true });
+}
+export async function deleteClient(id){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await deleteDoc(doc(db, "clients", id));
+}
+
+// Megosztott hozzáférés-térkép: ki kinek a beosztottja, hozzáférés-vezérlés
+// szempontjából – az Admin "Hozzáférés" fülén állítható be, teljesen
+// függetlenül a Struktúra (org-chart) rajztól, ami mostantól csak egy
+// vizuális tervező modul. Alak: config/access dokumentum = { [uid]: "felettes uid" }
+// (hiányzó kulcs / üres string = nincs felettese).
+export async function getAccessMap(){
+    if(!isConfigured || !db) return {};
+    try { const snap = await getDoc(doc(db, "config", "access")); return snap.exists() ? (snap.data() || {}) : {}; }
+    catch(e){ console.warn("Hozzáférés-térkép olvasása sikertelen:", e); return {}; }
+}
+export async function saveAccessMap(map){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "config", "access"), map);
+}
+// Egy uid összes láncolt (közvetlen + közvetett) beosztottja a hozzáférés-térkép alapján.
+export function getSubordinateUids(uid, accessMap){
+    const result = new Set();
+    let changed = true;
+    while(changed){
+        changed = false;
+        Object.keys(accessMap || {}).forEach(u => {
+            if(result.has(u)) return;
+            const mgr = accessMap[u];
+            if(mgr && (mgr === uid || result.has(mgr))){ result.add(u); changed = true; }
+        });
+    }
+    return result;
+}
+// Egy felhasználó akkor "vezető", ha a hozzáférés-térkép szerint van legalább
+// egy (közvetlen vagy közvetett) beosztottja. Az admin mindig vezetőnek számít.
+export function isLeaderByAccess(user, accessMap){
+    if(!user) return false;
+    if(isAdmin(user)) return true;
+    if(!user.uid) return false;
+    return getSubordinateUids(user.uid, accessMap).size > 0;
+}
+
+// Munkatárs saját Havi terve, hónaponként – havi_terv/{uid}_{year}_{month}.
+// Vezető "ránézés" (view-as) esetén a megtekintett munkatárs uid-jával
+// dolgozik az index.html, így ugyanazt az adatot látja/szerkesztheti.
+export async function getHaviTerv(key){
+    if(!isConfigured || !db) return null;
+    try { const snap = await getDoc(doc(db, "havi_terv", key)); return snap.exists() ? (snap.data() || null) : null; }
+    catch(e){ console.warn("Havi terv olvasása sikertelen:", e); return null; }
+}
+export async function saveHaviTerv(key, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "havi_terv", key), data, { merge: true });
+}
+// Munkatárs saját Éves terve, évenként – eves_terv/{uid}_{year}
+export async function getEvesTerv(key){
+    if(!isConfigured || !db) return null;
+    try { const snap = await getDoc(doc(db, "eves_terv", key)); return snap.exists() ? (snap.data() || null) : null; }
+    catch(e){ console.warn("Éves terv olvasása sikertelen:", e); return null; }
+}
+export async function saveEvesTerv(key, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "eves_terv", key), data, { merge: true });
+}
+// Munkatárs személyes pénzügyi terve – penzugyek/{uid}. Egy dokumentumban
+// minden év (havi sorok + évnyitó vagyon) és az évekre szóló 5 éves terv,
+// mert együtt is csak néhány száz szám.
+export async function getPenzugyek(uid){
+    if(!isConfigured || !db) return null;
+    try { const snap = await getDoc(doc(db, "penzugyek", uid)); return snap.exists() ? (snap.data() || null) : null; }
+    catch(e){ console.warn("Pénzügyek olvasása sikertelen:", e); return null; }
+}
+// Szigorú változat: hibánál DOB, nem null-t ad. Ahol a betöltött adatot
+// utána vissza is mentjük, ott a "nem sikerült olvasni" és a "még nincs
+// adat" nem keverhető össze – az előbbi után a mentés felülírná a szervert.
+export async function getPenzugyekStrict(uid){
+    if(!isConfigured || !db) return null;
+    const snap = await getDoc(doc(db, "penzugyek", uid));
+    return snap.exists() ? (snap.data() || null) : null;
+}
+export async function savePenzugyek(uid, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "penzugyek", uid), data, { merge: true });
+}
+
+// Tételes költés- és bevétel-napló – pz_tranz/{uid}_{kulcs}.
+//
+// Miért KÜLÖN gyűjtemény, és miért HAVONTA külön dokumentum?
+//  · A penzugyek/{uid} dokumentumot a felettes is látja (canAccess). A havi
+//    ÖSSZEG még üzleti adat, a tételes költés viszont magánügy – ez a
+//    gyűjtemény ezért szigorúan a gazdájáé, mint a jegyzetek.
+//  · Havi bontásban egy dokumentum pár tucat kB, így a mentés gyors marad.
+//    Egyetlen éves dokumentum pár ezer tétellel a Firestore 1 MB-os
+//    korlátjához közelítene, és minden apró módosítás az egészet újraírná.
+// A kulcs "{uid}_{2026-09}" vagy "{uid}_katalogus" alakú – a szabály az
+// első szelet alapján dönt, ahogy a havi_terv-nél is.
+export async function getPzTranz(uid, kulcs){
+    if(!isConfigured || !db) return null;
+    try { const snap = await getDoc(doc(db, "pz_tranz", uid + "_" + kulcs)); return snap.exists() ? (snap.data() || null) : null; }
+    catch(e){ console.warn("Költésnapló olvasása sikertelen:", e); return null; }
+}
+// Mint a getPzTranz, de olvasási hibánál KIVÉTELT dob (nem null-t): így meg lehet
+// különböztetni a "nincs ilyen dokumentum" esetet a "nem sikerült lehozni"-tól.
+export async function getPzTranzStrict(uid, kulcs){
+    if(!isConfigured || !db) return null;
+    const snap = await getDoc(doc(db, "pz_tranz", uid + "_" + kulcs));
+    return snap.exists() ? (snap.data() || null) : null;
+}
+export async function savePzTranz(uid, kulcs, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "pz_tranz", uid + "_" + kulcs), data);
+}
+
+// Edzésnapló – edzes/{uid}_{kulcs}. A kulcs "torzs" (az előre definiált
+// edzések, vagyis a sablonok) vagy egy év ("2026": a napokra tervezett és
+// teljesített edzések). Évente egy dokumentum: egy év pár száz tétel, jóval a
+// Firestore 1 MB-os korlátja alatt. SZIGORÚAN a gazdájáé, mint a költésnapló.
+// Az olvasás hibánál KIVÉTELT dob (nem null-t), hogy az app ne írja felül egy
+// üres dokumentummal a szerveren lévő adatot, amit csak nem sikerült lehozni.
+export async function getEdzesStrict(uid, kulcs){
+    if(!isConfigured || !db) return null;
+    const snap = await getDoc(doc(db, "edzes", uid + "_" + kulcs));
+    return snap.exists() ? (snap.data() || null) : null;
+}
+export async function saveEdzes(uid, kulcs, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "edzes", uid + "_" + kulcs), data);
+}
+
+// A Strava-függvények hívása (functions/index.js: stravaCsatol, stravaSzinkron,
+// stravaLevalaszt). A belépést a Firebase maga küldi; a Strava-tokent csak a
+// szerver látja. Hibánál a függvény magyar üzenete jön vissza.
+export async function stravaHivas(nev, adat){
+    if(!isConfigured || !functions) throw new Error("A Firebase nincs beállítva.");
+    try {
+        const r = await httpsCallable(functions, nev, { timeout: 60000 })(adat || {});
+        return r.data;
+    } catch(e){
+        // A Firebase ugyanazt a szűkszavú "internal"-t adja, ha a függvény nincs
+        // kitelepítve, nem érhető el, vagy kitelepítve van, de belül elszállt –
+        // a pontos ok ilyenkor a függvénynaplóban (functions:log) látszik.
+        if(e && e.code === "functions/not-found")
+            throw new Error("A Strava-szerver még nincs kitelepítve (firebase deploy --only functions).");
+        if(e && e.code === "functions/internal" && /^internal$/i.test(e.message || ""))
+            throw new Error(`A Strava-szerver (${nev}) nem válaszolt rendesen: vagy még nincs kitelepítve, vagy belül hibára futott – a pontos ok a függvénynaplóban látszik.`);
+        throw e;
+    }
+}
+
+// Munkatárs személyes céljai – celok/{uid}. Egy dokumentumban a vízió, a
+// célok listája és az életterület-önértékelések; együtt is csak néhány kB.
+// Privát: a gazdája, a felettesei és az admin éri el (ugyanaz, mint a
+// pénzügyeknél) – a vezető a "ránézés" váltóval nézi meg.
+// Privát adatok – privat/{uid}_{kulcs}: a nem szakmai célok ("celok") és a
+// célok borítóképei ("kep_…"). Csak a gazdája éri el (firestore.rules).
+// A "Strict" olvasás hibánál dob, hogy a hívó meg tudja különböztetni a
+// "még nincs adat"-ot a "nem sikerült elolvasni"-tól – különben egy
+// átmeneti hiba után üres listát mentenénk a meglévő célok helyére.
+export async function getPrivatStrict(uid, kulcs){
+    if(!isConfigured || !db) return null;
+    const snap = await getDoc(doc(db, "privat", uid + "_" + kulcs));
+    return snap.exists() ? (snap.data() || null) : null;
+}
+export async function savePrivat(uid, kulcs, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "privat", uid + "_" + kulcs), data);
+}
+export async function deletePrivat(uid, kulcs){
+    if(!isConfigured || !db) return;
+    await deleteDoc(doc(db, "privat", uid + "_" + kulcs));
+}
+
+export async function getCelok(uid){
+    if(!isConfigured || !db || !uid) return null;
+    try { const snap = await getDoc(doc(db, "celok", uid)); return snap.exists() ? (snap.data() || null) : null; }
+    catch(e){ console.warn("Célok olvasása sikertelen:", e); return null; }
+}
+export async function saveCelok(uid, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "celok", uid), data, { merge: true });
+}
+
+// ===================== ÖNISMERET (régi hely) =====================
+// Az Önismeret átkerült a Tükörbe: privat/{uid}_onismeret. A régi onismeret/{uid}
+// dokumentumot (a felettes és az admin is olvashatta) csak az átköltöztetés olvassa,
+// majd törli. Hibánál dobunk, hogy egy elnyelt olvasási hiba ne tűnjön üres adatnak.
+export async function getOnismeret(uid){
+    if(!isConfigured || !db || !uid) return null;
+    const snap = await getDoc(doc(db, "onismeret", uid));
+    return snap.exists() ? (snap.data() || null) : null;
+}
+export async function deleteOnismeret(uid){
+    if(!isConfigured || !db || !uid) return;
+    await deleteDoc(doc(db, "onismeret", uid));
+}
+
+// ===================== FELADATOK PLUSZ MEZŐI =====================
+// A Google Tasks nem tud prioritást tárolni, a határidőnél pedig levágja az
+// órát – ezért a prioritás, az időpont és a hosszabb jegyzet ide kerül, a
+// feladat azonosítójához kötve. Szigorúan személyes: a Google Tasks is az,
+// ezért a vezető sem látja (nincs canAccess, csak a saját uid).
+export async function getTaskMeta(uid){
+    if(!isConfigured || !db || !uid) return {};
+    try { const snap = await getDoc(doc(db, "task_meta", uid)); return snap.exists() ? (snap.data() || {}) : {}; }
+    catch(e){ console.warn("Feladat-mezők olvasása sikertelen:", e); return {}; }
+}
+export async function saveTaskMeta(uid, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "task_meta", uid), data, { merge: true });
+}
+
+// ===================== JEGYZETEK =====================
+// Magánjegyzet: szigorúan a gazdájáé (lásd firestore.rules – ott se felettes,
+// se admin nem fér hozzá). A listázás EZÉRT szűr ownerUid-ra: szűretlen
+// lekérdezést a szabály egészében elutasítana.
+export async function getNotes(uid){
+    if(!isConfigured || !db || !uid) return [];
+    try {
+        const snap = await getDocs(query(collection(db, "notes"), where("ownerUid", "==", uid)));
+        window.sfNotesError = "";
+        return snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+    } catch(e){
+        // A hibát KI IS ÍRJUK a felületre (lásd renderJegyzetek): enélkül a
+        // sikertelen olvasás pont úgy néz ki, mintha nem lenne egyetlen
+        // jegyzet sem – és az ember a saját szövegét keresi hiába.
+        window.sfNotesError = String((e && e.message) || e);
+        console.warn("Jegyzetek olvasása sikertelen:", e);
+        return [];
+    }
+}
+export async function addNote(data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    const ref = await addDoc(collection(db, "notes"), data);
+    return ref.id;
+}
+export async function saveNote(id, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "notes", id), data, { merge: true });
+}
+export async function deleteNote(id){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await deleteDoc(doc(db, "notes", id));
+}
+// A jegyzet-képek a FIRESTORE-ban, képenként külön dokumentumban.
+//
+// Miért nem a Storage-ban? Mert az fizetős csomagot (Blaze) igényel, a projekt
+// pedig a Spark csomagon van – emiatt nem működött a célfal képfeltöltése sem.
+// A Firestore viszont itt is elérhető. Cserébe két korlátot tartani kell:
+// egy dokumentum legfeljebb 1 MB, és a base64 ~33%-kal hizlal, ezért a képet
+// feltöltés előtt zsugorítjuk (lásd jgImageToDoc).
+//
+// Külön dokumentumban vannak, nem a jegyzetben: így a lista betöltése nem
+// rángatja be az összes képet, csak az, amelyik tényleg látszik.
+export async function addNoteImage(data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    const ref = await addDoc(collection(db, "note_images"), data);
+    return ref.id;
+}
+export async function getNoteImage(id){
+    if(!isConfigured || !db || !id) return null;
+    const snap = await getDoc(doc(db, "note_images", id));
+    return snap.exists() ? Object.assign({ id: snap.id }, snap.data()) : null;
+}
+export async function deleteNoteImageDoc(id){
+    if(!isConfigured || !db || !id) return;
+    try { await deleteDoc(doc(db, "note_images", id)); }
+    catch(e){ console.warn("Jegyzet-kép törlése sikertelen:", e); }
+}
+
+// --- Pénzügyek: tranzakciókhoz csatolt számlák / blokkok (kép vagy PDF) ---
+// Ugyanúgy, mint a jegyzet-képek: dokumentumonként egy fájl base64-ben
+// (legfeljebb ~1 MB), a tétel csak az azonosítóját tárolja.
+export async function addPzSzamla(data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    const ref = await addDoc(collection(db, "pz_szamlak"), data);
+    return ref.id;
+}
+export async function getPzSzamla(id){
+    if(!isConfigured || !db || !id) return null;
+    const snap = await getDoc(doc(db, "pz_szamlak", id));
+    return snap.exists() ? Object.assign({ id: snap.id }, snap.data()) : null;
+}
+export async function deletePzSzamla(id){
+    if(!isConfigured || !db || !id) return;
+    try { await deleteDoc(doc(db, "pz_szamlak", id)); }
+    catch(e){ console.warn("Számla törlése sikertelen:", e); }
+}
+
+// A Storage-alapú változat megmarad arra az esetre, ha egyszer mégis Blaze
+// csomagra váltanál – a célfal ugyanezt használja.
+export async function uploadNoteImage(uid, blob, name){
+    if(!isConfigured || !storage) throw new Error("A Firebase nincs beállítva.");
+    if(!uid) throw new Error("Hiányzik a felhasználó azonosítója.");
+    const ext = (String(name||"kep").match(/\.([a-z0-9]{1,5})$/i) || [,"png"])[1].toLowerCase();
+    const path = `jegyzet/${uid}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const r = storageRef(storage, path);
+    await uploadBytes(r, blob, { contentType: blob.type || "image/png" });
+    return { path, url: await getDownloadURL(r) };
+}
+export async function deleteNoteImage(path){
+    if(!isConfigured || !storage || !path) return;
+    try { await deleteObject(storageRef(storage, path)); }
+    catch(e){ console.warn("A jegyzet-kép törlése sikertelen:", e); }
+}
+
+// ===================== PG MODUL =====================
+// Két, szándékosan külön kollekció, mert más a láthatóságuk:
+//
+//  • pg/{id}       – a PG alkalom maga (napirend + a vezető jegyzete). Ez a
+//                    VEZETŐÉ: a munkatárs nem látja, mit írt fel róla.
+//  • pg_akcio/{id} – az alkalom kimenete, az akcióterv. Ez KÖZÖS: a vezető
+//                    írja, a munkatárs olvassa és pipálja, és innen teszi ki
+//                    a saját Google Tasks-ába (a Tasks fiókonként privát,
+//                    ezért a vezető nem hozhat létre benne feladatot).
+//
+// A kettéválasztás miatt a "csak az akciótervet kapja meg" szabály egyetlen
+// Firestore-szabállyal kikényszeríthető a pg kollekcióra, anélkül hogy az
+// akciótervek is elzáródnának.
+// FONTOS: szűrt lekérdezés, nem a teljes kollekció. A Firestore-szabály nem
+// szűr, csak enged vagy tilt: egy szűretlen listázást egy "csak a sajátodat
+// láthatod" szabály egészében elutasítana. A leaderUid szűrő pontosan azt
+// hozza, amit a PG oldal használ – a saját Személyes PG-idet és a saját
+// Csendes PG-idet (ott a leaderUid is te vagy).
+export async function getPGs(uid){
+    if(!isConfigured || !db || !uid) return [];
+    try {
+        const snap = await getDocs(query(collection(db, "pg"), where("leaderUid", "==", uid)));
+        return snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+    } catch(e){ console.warn("PG alkalmak olvasása sikertelen:", e); return []; }
+}
+export async function addPG(data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    const ref = await addDoc(collection(db, "pg"), data);
+    return ref.id;
+}
+export async function savePG(id, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "pg", id), data, { merge: true });
+}
+export async function deletePG(id){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await deleteDoc(doc(db, "pg", id));
+}
+// Két szűrt lekérdezés uniója: a rám bízott akciótervek (mtUid) és az általam
+// kiadottak (leaderUid). Ugyanaz az ok, mint a getPGs()-nél – mindkét ágnak
+// megvan a maga szabály-ága, így egyik lekérdezés sem kér többet, mint amennyit
+// látni szabad.
+export async function getAkciok(uid){
+    if(!isConfigured || !db || !uid) return [];
+    try {
+        const [mine, given] = await Promise.all([
+            getDocs(query(collection(db, "pg_akcio"), where("mtUid", "==", uid))),
+            getDocs(query(collection(db, "pg_akcio"), where("leaderUid", "==", uid))),
+        ]);
+        const byId = new Map();
+        [...mine.docs, ...given.docs].forEach(d => byId.set(d.id, Object.assign({ id: d.id }, d.data())));
+        return [...byId.values()];
+    } catch(e){ console.warn("Akciótervek olvasása sikertelen:", e); return []; }
+}
+export async function addAkcio(data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    const ref = await addDoc(collection(db, "pg_akcio"), data);
+    return ref.id;
+}
+export async function saveAkcio(id, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "pg_akcio", id), data, { merge: true });
+}
+export async function deleteAkcio(id){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await deleteDoc(doc(db, "pg_akcio", id));
+}
+
+// BEDOLGOZÁS – bedolgozas/{mtUid}: egy új munkatárs bedolgozása (Starter PG →
+// PG 1–4 → Lezárás): az aktuális lépés, a kipipált napirendi pontok, az
+// alkalmak dátuma, a kiadott házi feladatok (pg_akcio id-k) és a jegyzetek.
+// A vezető-lánc és az admin írja, a munkatárs csak olvassa (firestore.rules).
+// A program sablonja a config/bedolgozas dokumentum (csak az admin írja).
+export async function getBedolgozas(mtUid){
+    if(!isConfigured || !db || !mtUid) return null;
+    const s = await getDoc(doc(db, "bedolgozas", mtUid));
+    return s.exists() ? { id: s.id, ...s.data() } : null;
+}
+export async function saveBedolgozas(mtUid, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "bedolgozas", mtUid), data);
+}
+export async function deleteBedolgozas(mtUid){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await deleteDoc(doc(db, "bedolgozas", mtUid));
+}
+// A vezetői jegyzetek külön: bedolgozas_v/{mtUid} – a vezető-lánc és az admin
+// éri el, maga a munkatárs NEM (mint a PG-jegyzetet).
+export async function getBedVezetoi(mtUid){
+    if(!isConfigured || !db || !mtUid) return null;
+    const s = await getDoc(doc(db, "bedolgozas_v", mtUid));
+    return s.exists() ? s.data() : null;
+}
+export async function saveBedVezetoi(mtUid, data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "bedolgozas_v", mtUid), data);
+}
+export async function getBedSablon(){
+    if(!isConfigured || !db) return null;
+    const s = await getDoc(doc(db, "config", "bedolgozas"));
+    return s.exists() ? s.data() : null;
+}
+export async function saveBedSablon(data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "config", "bedolgozas"), data);
+}
+
+// Belépett munkatársak (employees/{uid}) – a loginWithGoogle() hozza létre/
+// frissíti minden belépéskor. Az Admin "Csapat szerepkörök" fülének ez a
+// forrása (valódi, bejelentkezett fiókok, névvel).
+export async function getEmployees(){
+    if(!isConfigured || !db) return [];
+    try {
+        const snap = await getDocs(collection(db, "employees"));
+        // A Google-ből jövő nevet (name) minden belépés felülírja; az admin által
+        // beállított név (nevKezi – pl. becenév vagy javított név) ezért külön mezőben
+        // van, és ha van, az app mindenhol azt használja.
+        return snap.docs.map(d => { const x = Object.assign({ uid: d.id }, d.data());
+            if(x.nevKezi){ x.googleName = x.name || ""; x.name = x.nevKezi; } return x; });
+    } catch(e){ console.warn("Munkatársak olvasása sikertelen:", e); return []; }
+}
+// Admin: a munkatárs megjelenített neve (üres = vissza a Google-névre).
+export async function saveEmployeeName(uid, nev){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    await setDoc(doc(db, "employees", uid), { nevKezi: String(nev || "").trim() }, { merge: true });
+}
+
+let app, auth, db, storage, functions;
+if (isConfigured) {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    // Néhány hálózat/hirdetésblokkoló megszakítja a Firestore alapértelmezett
+    // streamelt (WebChannel) kapcsolatát ("RPC Write stream ... transport
+    // errored"), ami miatt egy-egy felhasználónál csendben elhasalnak az
+    // írások. Az automatikus long-polling DETEKTÁLÁS (experimentalAutoDetectLongPolling)
+    // egy heurisztika, ami nem minden hálózat/blokkoló kombinációnál ismeri fel
+    // helyesen, hogy long-pollingra váltson – ezért itt a biztosabb, mindig
+    // long-pollingot használó módot kényszerítjük ki (kicsit nagyobb
+    // késleltetés árán, de nem hasal el csendben az írás/olvasás).
+    db = initializeFirestore(app, { experimentalForceLongPolling: true });
+    storage = getStorage(app);
+    // A Strava-összekötés függvényei (functions/index.js) – abban a régióban,
+    // ahová ki vannak telepítve.
+    functions = getFunctions(app, "europe-west1");
+}
+export { auth, db, storage };
+
+// ============ CÉLFAL KÉPEK – RÉGI, STORAGE-OS ÚT (nem használt) ============
+// A képek a celfal/{uid}/{fájlnév} útvonalra mentek, a celok dokumentum pedig
+// csak a letöltési URL-t és az útvonalat tárolta. EZ NEM MŰKÖDÖTT: a Firebase
+// Storage Blaze (fizetős) csomagot igényel, a projekt pedig Spark csomagon van.
+// A helyette használt Firestore-os út lentebb van (addCelImage).
+//
+// A függvény azért marad itt, mert a RÉGI, még Storage-ba került képek törlése
+// ezen keresztül megy (a célfal bejegyzésen path mező van url-lel), és mert
+// egy esetleges Blaze-váltás után egy lépésben visszakapcsolható.
+export async function uploadCelKep(uid, file){
+    if(!isConfigured || !storage) throw new Error("A Firebase nincs beállítva.");
+    if(!uid) throw new Error("Hiányzik a felhasználó azonosítója.");
+    const ext = (String(file.name||"kep").match(/\.([a-z0-9]{1,5})$/i) || [,"jpg"])[1].toLowerCase();
+    const path = `celfal/${uid}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const r = storageRef(storage, path);
+    await uploadBytes(r, file, { contentType: file.type || "image/jpeg" });
+    return { path, url: await getDownloadURL(r) };
+}
+export async function deleteCelKep(path){
+    if(!isConfigured || !storage || !path) return;
+    try { await deleteObject(storageRef(storage, path)); }
+    catch(e){ console.warn("A célfal-kép törlése sikertelen:", e); }
+}
+
+// ===================== CÉLFAL KÉPEK (Firestore) =====================
+// A ténylegesen használt változat. A fenti Storage-os út elvben szebb lenne
+// (nincs méretkorlát, nem terheli a Firestore-t), de a Storage BLAZE (fizetős)
+// csomagot igényel – emiatt a célfal feltöltés évekig néma hibával hasalt el.
+// A Firestore a Spark csomagon is megy, cserébe egy dokumentum legfeljebb
+// 1 MB, ezért a képet a kliens zsugorítja (lásd sfKepToB64 az index.html-ben).
+//
+// Külön kollekció, nem a celok dokumentumban: a célok minden betöltéskor
+// lejönnek, a képeket viszont csak akkor akarjuk lehozni, amikor látszanak.
+//
+// LÁTHATÓSÁG: a jegyzet-képekkel ellentétben itt a felettes és az admin is
+// olvashat, mert a célfal a vezetői "ránézés" része – ugyanaz a canAccess(),
+// ami a celok dokumentumot is védi.
+export async function addCelImage(data){
+    if(!isConfigured || !db) throw new Error("A Firebase nincs beállítva.");
+    const ref = await addDoc(collection(db, "cel_images"), data);
+    return ref.id;
+}
+export async function getCelImage(id){
+    if(!isConfigured || !db || !id) return null;
+    const snap = await getDoc(doc(db, "cel_images", id));
+    return snap.exists() ? Object.assign({ id: snap.id }, snap.data()) : null;
+}
+export async function deleteCelImageDoc(id){
+    if(!isConfigured || !db || !id) return;
+    try { await deleteDoc(doc(db, "cel_images", id)); }
+    catch(e){ console.warn("Célfal-kép törlése sikertelen:", e); }
+}
+
+// --- Segéd: benne van-e az email az allowlistben? ---
+// FONTOS: egy átmeneti hálózati/kapcsolati hiba (pl. a Firestore streamelt
+// kapcsolata megszakad – a konzolban "RPC Write/Listen stream ... transport
+// errored" – lásd experimentalForceLongPolling fentebb, ez a hiba enélkül is
+// jelentkezhet) NEM ugyanaz, mint amikor a dokumentum ténylegesen nem
+// létezik. Korábban mindkettő "nincs hozzáférés" eredményt adott, ami egy
+// pillanatnyi hálózati akadozásnál is kiléptette (és jogosulatlannak
+// mutatta) az egyébként engedélyezett felhasználót. Most egy rövid
+// újrapróbálkozás után is hiba esetén a hívó külön ("hálózati hiba") jelzést
+// kap, nem hamis "nincs a listán" választ.
+async function isEmailAllowed(email, attempt) {
+    if (!email) return false;
+    try {
+        const snap = await getDoc(doc(db, ALLOWLIST, email.toLowerCase()));
+        return snap.exists();
+    } catch (e) {
+        if (!attempt){
+            await new Promise(r => setTimeout(r, 900));
+            return isEmailAllowed(email, 1);
+        }
+        console.error("Allowlist ellenőrzés sikertelen (hálózati hiba):", e);
+        const err = new Error("Nem sikerült ellenőrizni a hozzáférést a hálózati kapcsolat miatt. Próbáld újra.");
+        err.isNetworkError = true;
+        throw err;
+    }
+}
+
+// --- Belépés Google-fiókkal (login oldalról hívva) ---
+// Sikeres és engedélyezett belépés esetén a dashboardra irányít.
+export async function loginWithGoogle() {
+    if (!isConfigured) throw new Error("A Firebase még nincs beállítva (firebase-config.js).");
+
+    // A bejelentkezés CSAK a naptár-jogot kéri – így akkor is működik,
+    // ha a Google-projektben a Tasks API/scope még nincs engedélyezve.
+    // A Tasks jogot a PG modul kéri külön (reconnectCalendar → incremental).
+    const provider = new GoogleAuthProvider();
+    provider.addScope(CALENDAR_SCOPE);
+    // Ha a naptárlista olvasását korábban már engedélyezte, a belépés tokenje is
+    // kapja meg – különben belépés után csak a fő naptár látszik (a lista lekérése
+    // jog nélkül elbukik). Az include_granted_scopes a már megadott jogokat is
+    // beleteszi a tokenbe, új engedélyt nem kér.
+    if (hasCalListGrant()) provider.addScope(CALLIST_SCOPE);
+    provider.setCustomParameters({ prompt: "select_account", include_granted_scopes: "true" });
+
+    const result = await signInWithPopup(auth, provider);
+    const email = result.user.email;
+
+    // Allowlist ellenőrzés – ha nincs benne, azonnal kiléptetjük.
+    const allowed = await isEmailAllowed(email);
+    if (!allowed) {
+        await signOut(auth);
+        throw new Error("Ehhez az e-mail címhez (" + email + ") nincs hozzáférés. Kérd az adminisztrátortól a felvételt.");
+    }
+
+    // A Google OAuth access token a Calendar API híváshoz (session-re eltesszük).
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    if (credential && credential.accessToken) {
+        tokMent(credential.accessToken);
+    }
+
+    // A munkatárs profil létrehozása/frissítése – lásd ensureEmployeeProfile
+    // lentebb: itt ÉS minden további oldalbetöltésnél (requireAuth) is fut,
+    // hogy egy elakadt írás ne maradjon véglegesen elmentetlen.
+    await ensureEmployeeProfile(result.user);
+
+    return result.user;
+}
+
+// Munkatárs profil (employees/{uid}) létrehozása/frissítése. Ugyanaz a
+// hálózati hiba (lásd isEmailAllowed fenti megjegyzése) korábban itt is
+// előfordulhatott: a mentés csendben elmaradt, és mivel ez a hívás régen
+// KIZÁRÓLAG a Google-popupos bejelentkezéskor futott le, egy meglévő
+// munkamenettel visszatérő felhasználónál (requireAuth → onAuthStateChanged,
+// nincs újabb popup) soha többé nem próbálkozott újra – az illető ettől
+// függetlenül simán be tudott lépni és használni az appot, csak a profilja
+// (és így pl. az Admin "Hozzáférés" listája) nem jött létre. Most egy rövid
+// újrapróbálkozás után is hiba esetén csak figyelmeztet, nem dob hibát –
+// ez az írás sosem akadályozhatja a bejelentkezést/appot.
+async function ensureEmployeeProfile(user, attempt) {
+    if (!user || !user.uid) return;
+    try {
+        await setDoc(doc(db, "employees", user.uid), {
+            email: user.email || "",
+            name: user.displayName || "",
+            photoURL: user.photoURL || "",
+            lastLogin: serverTimestamp()
+        }, { merge: true });
+    } catch (e) {
+        if (!attempt){
+            await new Promise(r => setTimeout(r, 900));
+            return ensureEmployeeProfile(user, 1);
+        }
+        console.warn("Munkatárs-profil mentés sikertelen (hálózati hiba), később újra próbálkozik:", e);
+    }
+}
+
+// --- A session-re eltárolt Google naptár access token ---
+// Tartósan (localStorage) a lejárati idővel együtt, hogy az app bezárása és
+// újranyitása után ne kelljen újra csatlakozni, amíg a token érvényes (~1 óra).
+const TOK_KULCS = "sf_gcal_tok";
+function tokMent(t, mp) {
+    if (!t) return;
+    const lejar = Date.now() + Math.max(300, (Number(mp) || 3600) - 120) * 1000;
+    try { localStorage.setItem(TOK_KULCS, JSON.stringify({ t, lejar })); } catch (e) {}
+    try { sessionStorage.setItem("sf_gcal_token", t); } catch (e) {}
+}
+function tokTorol() {
+    try { localStorage.removeItem(TOK_KULCS); } catch (e) {}
+    try { sessionStorage.removeItem("sf_gcal_token"); } catch (e) {}
+}
+export function getCalendarToken() {
+    try { const x = JSON.parse(localStorage.getItem(TOK_KULCS) || "null"); if (x && x.t && x.lejar > Date.now()) return x.t; } catch (e) {}
+    try { return sessionStorage.getItem("sf_gcal_token"); } catch (e) { return null; }
+}
+
+// --- NÉMA (automatikus) csatlakozás a Google-hoz ---------------------------
+// A Firebase popupos bejelentkezése felhasználói kattintást igényel, ezért
+// azzal nem lehet automatikusan tokent szerezni; a hozzáférés ráadásul kb. egy
+// óra után lejár. A Google Identity Services token-kliense viszont prompt:""
+// mellett ablak nélkül ad új tokent, HA a fiók a jogot már egyszer megadta.
+// Ha nincs beállítva googleClientId (vagy bármi hibára fut), null jön vissza –
+// ilyenkor marad a régi, gombos csatlakozás.
+let gisReady = null;
+function loadGis() {
+    if (gisReady) return gisReady;
+    gisReady = new Promise((resolve, reject) => {
+        if (window.google && window.google.accounts && window.google.accounts.oauth2) return resolve();
+        const sc = document.createElement("script");
+        sc.src = "https://accounts.google.com/gsi/client";
+        sc.async = true; sc.defer = true;
+        sc.onload = () => resolve();
+        sc.onerror = () => reject(new Error("A Google Identity Services nem tölthető be."));
+        document.head.appendChild(sc);
+    });
+    return gisReady;
+}
+export function hasAutoConnect() { return !!googleClientId || !!functions; }
+
+// --- TARTÓS kapcsolat a szerveren át (functions/index.js: gcalCsatol, gcalToken) ---
+// Egyszer kell összekötni (kód → a szerver refresh tokenre cseréli és eltárolja),
+// utána minden betöltéskor ablak nélkül jön a friss access token – telefonon is.
+// Amíg a függvények nincsenek kitelepítve, a régi (felugró ablakos) út marad.
+const GCAL_SCOPE_KULCS = "sf_gcal_scope";
+let srvNincs = false;   // a függvények nincsenek kitelepítve (ebben a munkamenetben)
+let srvUres = false;    // a szerveren nincs tárolt kapcsolat ehhez a fiókhoz
+let srvFut = null;
+const nincsKitelepitve = e => e && (e.code === "functions/not-found" || (e.code === "functions/internal" && /^internal$/i.test(e.message || "")));
+async function gcalHiv(nev, adat) { return (await httpsCallable(functions, nev, { timeout: 30000 })(adat || {})).data; }
+function scopeMent(sc) {
+    if (!sc) return;
+    try {
+        localStorage.setItem(GCAL_SCOPE_KULCS, sc);
+        if (sc.includes(CALLIST_SCOPE)) localStorage.setItem("sf_gcal_lista", "1");
+    } catch (e) {}
+}
+const vanScope = sc => { try { return (localStorage.getItem(GCAL_SCOPE_KULCS) || "").includes(sc); } catch (e) { return false; } };
+export async function serverCalendarToken() {
+    if (!isConfigured || !functions || srvNincs || srvUres) return null;
+    if (srvFut) return srvFut;
+    srvFut = (async () => {
+        try {
+            const r = await gcalHiv("gcalToken");
+            if (r && r.access_token) { tokMent(r.access_token, r.expires_in); scopeMent(r.scope); return r.access_token; }
+            if (r && r.nincs) srvUres = true;
+            return null;
+        } catch (e) {
+            if (nincsKitelepitve(e)) srvNincs = true;
+            console.warn("A naptár-token lekérése a szerverről nem sikerült:", e);
+            return null;
+        } finally { setTimeout(() => { srvFut = null; }, 0); }
+    })();
+    return srvFut;
+}
+// Egyszeri összekötés: a Google Identity Services kódot ad (felugró ablak –
+// gombnyomásra hívjuk), a szerver ebből tartós kapcsolatot csinál. Egyben kéri a
+// naptár, a Google Tasks és a naptárlista jogát, hogy később ne kelljen újra.
+// null: a szerveres út nem elérhető (a hívó a régi módszerre vált).
+async function kodosOsszekotes() {
+    if (!googleClientId || !functions || srvNincs) return null;
+    await loadGis();
+    const user = auth && auth.currentUser;
+    const code = await new Promise((resolve, reject) => {
+        const client = window.google.accounts.oauth2.initCodeClient({
+            client_id: googleClientId,
+            scope: [CALENDAR_SCOPE, TASKS_SCOPE, CALLIST_SCOPE].join(" "),
+            ux_mode: "popup",
+            include_granted_scopes: true,
+            login_hint: (user && user.email) || "",
+            callback: r => r && r.code ? resolve(r.code) : reject(new Error((r && (r.error_description || r.error)) || "Az összekötés megszakadt.")),
+            error_callback: e => reject(new Error(e && e.type === "popup_closed" ? "Az összekötő ablakot bezártad." : ((e && (e.message || e.type)) || "Az összekötés megszakadt.")))
+        });
+        client.requestCode();
+    });
+    try {
+        const r = await gcalHiv("gcalCsatol", { code });
+        srvUres = false;
+        tokMent(r.access_token, r.expires_in); scopeMent(r.scope);
+        return r.access_token;
+    } catch (e) {
+        if (nincsKitelepitve(e)) { srvNincs = true; return null; }
+        if (/tartós hozzáférést/.test(e.message || ""))
+            throw new Error(e.message + " Ha újra előjön: a Google-fiókodban (myaccount.google.com → Biztonság → Harmadik féltől származó alkalmazások) vedd el a Sikerfüzet hozzáférését, és kösd össze újra.");
+        throw e;
+    }
+}
+// Leválasztás: a szerveren (és a Google-nél) is visszavonja a tartós kapcsolatot.
+export async function disconnectCalendar() {
+    if (isConfigured && functions && !srvNincs) await gcalHiv("gcalLevalaszt");
+    srvUres = true; tokTorol();
+    try { localStorage.removeItem(GCAL_SCOPE_KULCS); localStorage.removeItem("sf_gcal_lista"); } catch (e) {}
+}
+// Admin: a hozzáférés elvételekor a munkatárs tárolt naptár-kapcsolata is törlődik.
+export async function gcalTorolEmail(email) {
+    if (!isConfigured || !functions || srvNincs) return;
+    try { await gcalHiv("gcalTorolEmail", { email }); }
+    catch (e) { if (nincsKitelepitve(e)) srvNincs = true; else console.warn("A naptár-kapcsolat törlése nem sikerült:", e); }
+}
+// A GIS-t előre betöltjük, hogy az összekötő gombnál a felugró ablak még a kattintáshoz tartozzon.
+if (googleClientId && typeof window !== "undefined") setTimeout(() => { loadGis().catch(() => {}); }, 1500);
+
+export async function silentCalendarToken() {
+    const srv = await serverCalendarToken();
+    if (srv) return srv;
+    if (functions && !srvNincs) return null;   // a szerveres út él, csak még nincs összekötve
+    if (!googleClientId) return null;
+    try { await loadGis(); } catch (e) { return null; }
+    const user = auth && auth.currentUser;
+    return new Promise(resolve => {
+        let done = false;
+        const finish = tok => { if (done) return; done = true; resolve(tok || null); };
+        // Ha a Google se nem válaszol, se nem hibázik, ne akadjon meg az app.
+        setTimeout(() => finish(null), 8000);
+        try {
+            const client = window.google.accounts.oauth2.initTokenClient({
+                client_id: googleClientId,
+                scope: CALENDAR_SCOPE + " " + TASKS_SCOPE + (hasCalListGrant() ? " " + CALLIST_SCOPE : ""),
+                prompt: "",                       // néma: csak már megadott jognál
+                login_hint: (user && user.email) || "",
+                callback: resp => {
+                    if (resp && resp.access_token) {
+                        tokMent(resp.access_token, resp.expires_in);
+                        finish(resp.access_token);
+                    } else finish(null);
+                },
+                error_callback: () => finish(null)
+            });
+            client.requestAccessToken();
+        } catch (e) { finish(null); }
+    });
+}
+
+// --- Naptár újra-összekötése (friss access token kérése popup-pal) ---
+export async function reconnectCalendar() {
+    if (!isConfigured || !auth) throw new Error("A Firebase nincs beállítva.");
+    const srv = await serverCalendarToken(); if (srv) return srv;
+    const kod = await kodosOsszekotes(); if (kod) return kod;
+    const provider = new GoogleAuthProvider();
+    provider.addScope(CALENDAR_SCOPE);
+    if (hasCalListGrant()) provider.addScope(CALLIST_SCOPE);
+    provider.setCustomParameters({ include_granted_scopes: "true" });
+    const result = await signInWithPopup(auth, provider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    const token = credential && credential.accessToken;
+    if (token) { tokMent(token); }
+    return token;
+}
+
+// --- PG modul: Google Tasks jog kérése (naptár + tasks, inkrementális) ---
+// Külön a naptártól, hogy a naptár működjön akkor is, ha a Tasks API nincs
+// engedélyezve. A visszakapott token a naptárra ÉS a Tasks-ra is érvényes.
+export async function connectTasks() {
+    if (!isConfigured || !auth) throw new Error("A Firebase nincs beállítva.");
+    if (vanScope(TASKS_SCOPE)) { const srv = await serverCalendarToken(); if (srv) return srv; }
+    const kod = await kodosOsszekotes(); if (kod) return kod;
+    const provider = new GoogleAuthProvider();
+    provider.addScope(CALENDAR_SCOPE);
+    provider.addScope(TASKS_SCOPE);
+    provider.setCustomParameters({ include_granted_scopes: "true" });
+    const result = await signInWithPopup(auth, provider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    const token = credential && credential.accessToken;
+    if (token) { tokMent(token); }
+    return token;
+}
+
+// --- Naptárlista jog kérése (az összes Google-naptár megjelenítéséhez) ---
+export async function connectCalendarList() {
+    if (!isConfigured || !auth) throw new Error("A Firebase nincs beállítva.");
+    if (vanScope(CALLIST_SCOPE)) { const srv = await serverCalendarToken(); if (srv) return srv; }
+    const kod = await kodosOsszekotes(); if (kod) return kod;
+    const provider = new GoogleAuthProvider();
+    provider.addScope(CALENDAR_SCOPE);
+    provider.addScope(CALLIST_SCOPE);
+    provider.setCustomParameters({ include_granted_scopes: "true" });
+    const result = await signInWithPopup(auth, provider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    const token = credential && credential.accessToken;
+    if (token) {
+        tokMent(token);
+        try { localStorage.setItem("sf_gcal_lista", "1"); } catch (e) {}
+    }
+    return token;
+}
+
+// --- Kilépés ---
+// Belépés-jelző (localStorage): az index.html már a fejlécben ebből dönti el, hogy
+// egyáltalán kirajzolja-e az appot, vagy rögtön a belépésre küld – így kijelentkezve
+// nem villan fel a naptár / a SZEM indulóképernyője a login előtt.
+const belepJel = be => { try { be ? localStorage.setItem("sf_belepve", "1") : localStorage.removeItem("sf_belepve"); } catch (e) {} };
+// a ?app=… (Sikerfüzet / SZEM) megmarad a login és az app közti oda-vissza úton
+const appKer = () => { try { const q = new URLSearchParams(location.search); q.delete("denied"); const s = q.toString(); return s ? "?" + s : ""; } catch (e) { return ""; } };
+export async function logout() {
+    belepJel(false);
+    tokTorol();
+    if (isConfigured && auth) await signOut(auth);
+    window.location.href = "login.html";
+}
+
+// --- Védelem a dashboardon: nincs (engedélyezett) belépés → login oldal ---
+// onReady(user) callback fut le, ha van érvényes, engedélyezett felhasználó.
+export function requireAuth(onReady) {
+    if (!isConfigured) {
+        // Amíg a Firebase nincs beállítva, a demó szabadon nyitva marad.
+        console.warn("Firebase nincs beállítva – a védelem inaktív (demó mód).");
+        if (onReady) onReady(null);
+        return;
+    }
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) { belepJel(false); window.location.replace("login.html" + appKer()); return; }
+        let allowed;
+        try { allowed = await isEmailAllowed(user.email); }
+        catch (e) {
+            // Hálózati hiba a jogosultság-ellenőrzésnél – ez NEM jelenti azt,
+            // hogy nincs hozzáférés. Kiléptetés/redirect helyett egyszerű
+            // újratöltés próbálja meg a kapcsolatot, az oldal a helyén marad.
+            console.warn("Hozzáférés-ellenőrzés sikertelen (hálózati hiba), újratöltés próbálkozik:", e);
+            setTimeout(() => window.location.reload(), 2000);
+            return;
+        }
+        if (!allowed) { belepJel(false); await signOut(auth); window.location.replace("login.html?denied=1"); return; }
+        belepJel(true);
+        // Minden érvényes munkamenetnél (nemcsak a Google-popupos belépéskor)
+        // – lásd ensureEmployeeProfile megjegyzését. Szándékosan nincs await
+        // előtte: ne késleltesse az app betöltését, a hibáját már kezeli.
+        ensureEmployeeProfile(user);
+        if (onReady) onReady(user);
+    });
+}
+
+// --- Login oldalon: ha már be van lépve és engedélyezett, tovább a dashboardra ---
+export function redirectIfLoggedIn() {
+    if (!isConfigured || !auth) return;
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) return;
+        try { if (await isEmailAllowed(user.email)){ belepJel(true); window.location.replace("index.html" + appKer()); } }
+        catch (e) {
+            // Hálózati hiba – maradjon a login oldalon, a gomb újra megnyomható.
+            console.warn("Hozzáférés-ellenőrzés sikertelen (hálózati hiba):", e);
+        }
+    });
+}

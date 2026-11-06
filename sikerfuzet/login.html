@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+    <!-- Telefonon nem lehet belenagyítani: az iOS Safari a user-scalable=no-t figyelmen kívül hagyja,
+         ezért a csippentés és a dupla koppintás nagyítását itt is letiltjuk. -->
+    <style>html { touch-action:pan-x pan-y; -webkit-text-size-adjust:100%; text-size-adjust:100%; }</style>
+    <script>
+    (function(){
+        var tilt = function(e){ e.preventDefault(); };
+        document.addEventListener('gesturestart', tilt, { passive:false });
+        document.addEventListener('gesturechange', tilt, { passive:false });
+        document.addEventListener('touchmove', function(e){ if(e.touches && e.touches.length > 1) e.preventDefault(); }, { passive:false });
+    })();
+    </script>
+    <title>Belépés – Sikerfüzet</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icons/lepcso/icon.svg?v=17">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/lepcso/icon-32.png?v=17">
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/lepcso/icon-16.png?v=17">
+    <link rel="apple-touch-icon" href="icons/lepcso/icon-180.png?v=17">
+    <script>
+    // ===== APP-IKON =====
+    // Kétféle ikont viselhet az app; hogy melyiket, azt az Admin → Ikon fülön
+    // lehet átállítani, és a config/app dokumentum appIcon mezőjében él, hogy
+    // mindenkinél ugyanaz legyen. A fej-hivatkozásoknak viszont már az első
+    // festés előtt helyesnek kell lenniük – különben a böngészőfülön felvillan
+    // a régi ikon –, a config pedig csak a bejelentkezés után érkezik meg.
+    // Ezért a választást localStorage-ben is tartjuk, és innen alkalmazzuk
+    // azonnal; a felhőből érkező érték aztán felülírja, ha közben változott.
+    // A login.html ugyanezt a szkriptet viseli: ott Firestore-olvasás nincs,
+    // így a helyi másolat az egyetlen forrás.
+    window.SF_ICONS = { 'lepcso':'Lépcső', 'lepcso-feher':'Lépcső – fehér' };
+    window.SF_ICON_DEFAULT = 'lepcso';
+    window.sfApplyIconLinks = function(key){
+        if(!window.SF_ICONS[key]) key = window.SF_ICON_DEFAULT;
+        var base = 'icons/' + key + '/', v = '?v=17';
+        var set = function(sel, href){ var el = document.querySelector(sel); if(el) el.setAttribute('href', href); };
+        // A manifestet nem lehet menet közben összerakni (a böngészők csak
+        // valódi, azonos eredetű fájlt fogadnak el), ezért variánsonként
+        // külön fájl áll készen, és csak a hivatkozást cseréljük.
+        set('link[rel="manifest"]', key === window.SF_ICON_DEFAULT ? 'manifest.json' : 'manifest-' + key + '.json');
+        set('link[rel="icon"][type="image/svg+xml"]', base + 'icon.svg' + v);
+        set('link[rel="icon"][sizes="32x32"]', base + 'icon-32.png' + v);
+        set('link[rel="icon"][sizes="16x16"]', base + 'icon-16.png' + v);
+        set('link[rel="apple-touch-icon"]', base + 'icon-180.png' + v);
+        try { localStorage.setItem('sf_app_icon', JSON.stringify(key)); } catch(e){}
+        var li = document.getElementById('loginIk'); if(li) li.src = base + 'icon-192.png' + v;
+        return key;
+    };
+    (function(){
+        var k = null;
+        try { k = JSON.parse(localStorage.getItem('sf_app_icon') || 'null'); } catch(e){}
+        if(k && k !== window.SF_ICON_DEFAULT) window.sfApplyIconLinks(k);
+    })();
+    </script>
+    <meta name="theme-color" content="#0f1724">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Sikerfüzet">
+    <style>
+        :root {
+            /* az app-ikonok színei: éjkék alap, acél rajz */
+            --navy:#16243a; --navy-dark:#0f1724; --blue:#1f5fd0; --blue-light:#e8f0fc; --bg:#f0f3f7;
+            --text:#1c2b45; --muted:#6b7a90; --border:#e2e8f0; --red:#dc2626; --amber:#b45309; --green:#16a34a;
+        }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        html, body { height:100%; }
+        html { background:#0f1724; }
+        body {
+            font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color:var(--text); min-height:100vh; display:flex; align-items:center; justify-content:center;
+            background:linear-gradient(160deg, #0f1724 0%, #22324a 100%);
+            padding:20px;
+        }
+        .login-card {
+            position:relative; z-index:1; background:#fff; width:100%; max-width:400px; border-radius:22px;
+            padding:44px 34px 34px; box-shadow:0 24px 60px rgba(5,20,42,.45); text-align:center;
+        }
+        .login-icon {
+            width:76px; height:76px; border-radius:18px; margin:0 auto 18px; overflow:hidden;
+            box-shadow:0 10px 24px rgba(15,23,36,.28);
+        }
+        .login-icon img { width:100%; height:100%; display:block; }
+        .logo { font-size:24px; font-weight:800; color:var(--navy); letter-spacing:.3px; }
+        .tagline { color:var(--muted); font-size:12.5px; margin-top:4px; }
+        .divider-line { height:1px; background:var(--border); margin:24px 0; }
+        .greeting { font-size:18px; font-weight:800; color:var(--navy); margin-bottom:6px; }
+        .sub { color:var(--muted); font-size:12px; margin-bottom:24px; }
+        .google-btn {
+            width:100%; display:flex; align-items:center; justify-content:center; gap:11px;
+            padding:13px 16px; border:1px solid var(--border); border-radius:11px; background:#fff;
+            font-size:14px; font-weight:600; color:var(--text); cursor:pointer; transition:background .15s, box-shadow .15s, border-color .15s;
+        }
+        .google-btn:hover { background:#f7f9fc; box-shadow:0 4px 12px rgba(15,47,95,.1); border-color:#d5deea; }
+        .google-btn:disabled { opacity:.55; cursor:not-allowed; }
+        .google-btn svg { width:20px; height:20px; }
+        .msg { margin-top:18px; font-size:12px; border-radius:9px; padding:11px 14px; text-align:left; display:none; }
+        .msg.error { background:#fdeaea; color:var(--red); display:block; }
+        .msg.warn  { background:#fef3e2; color:var(--amber); display:block; }
+        .msg.info  { background:var(--blue-light); color:var(--navy); display:block; }
+        .foot { margin-top:26px; font-size:11px; color:var(--muted); }
+        .spinner { width:18px; height:18px; border:2px solid rgba(255,255,255,.4); border-top-color:var(--blue);
+            border-radius:50%; animation:spin .7s linear infinite; display:inline-block; vertical-align:middle; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="login-icon"><img id="loginIk" src="icons/lepcso/icon-192.png?v=17" alt=""></div>
+        <div class="logo">Sikerfüzet</div>
+        <div class="tagline">Tervezd. Kövesd. Valósítsd meg.</div>
+        <div class="divider-line"></div>
+        <h1 class="greeting" id="greeting">Szia!</h1>
+        <p class="sub">Lépj be a Google-fiókoddal a folytatáshoz.</p>
+
+        <button class="google-btn" id="googleBtn">
+            <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            <span id="googleBtnLabel">Belépés Google-fiókkal</span>
+        </button>
+
+        <div class="msg" id="msg"></div>
+
+        <div class="foot">© 2025 Sikerfüzet · Csak engedélyezett munkatársak léphetnek be.</div>
+    </div>
+    <script>
+    // A Szem appból (privát rész) érkezve a belépő is Szem arcot visel.
+    // a Sikerfüzet választott ikonja (a fejléc-szkript még a doboz előtt fut)
+    try { var sk = JSON.parse(localStorage.getItem('sf_app_icon') || 'null'); if(window.SF_ICONS[sk]) document.getElementById('loginIk').src = 'icons/' + sk + '/icon-192.png?v=17'; } catch(e){}
+    (function(){
+        var t = null, k = 'monolit';
+        try {
+            if(localStorage.getItem('sf_elet_icon_v') !== '3'){ localStorage.removeItem('sf_elet_icon'); localStorage.removeItem('sf_app_icon'); localStorage.setItem('sf_elet_icon_v', '3'); }
+            t = JSON.parse(localStorage.getItem('sf_ter') || 'null'); var x = JSON.parse(localStorage.getItem('sf_elet_icon') || 'null'); if(x === 'monolit-feher') k = x;
+        } catch(e){}
+        var app = new URLSearchParams(location.search).get('app');
+        if(app === 'elet') t = 'priv'; else if(app === 'siker') t = 'ovb';
+        if(t !== 'priv') return;
+        var b = 'icons/' + k + '/', set = function(sel, a, v){ var el = document.querySelector(sel); if(el) el.setAttribute(a, v); };
+        set('link[rel="manifest"]', 'href', 'manifest-' + k + '.json');
+        set('link[rel="icon"][type="image/svg+xml"]', 'href', b + 'icon.svg?v=3');
+        set('link[rel="icon"][sizes="32x32"]', 'href', b + 'icon-32.png?v=3');
+        set('link[rel="icon"][sizes="16x16"]', 'href', b + 'icon-16.png?v=3');
+        set('link[rel="apple-touch-icon"]', 'href', b + 'icon-180.png?v=3');
+        set('meta[name="apple-mobile-web-app-title"]', 'content', 'SZEM');
+        document.title = 'Belépés – SZEM';
+
+        var l = document.querySelector('.logo'); if(l) l.textContent = 'SZEM';
+        var tg = document.querySelector('.tagline'); if(tg) tg.textContent = 'Személyes Élet-Menedzsment';
+        var f = document.querySelector('.foot'); if(f) f.textContent = '© 2025 SZEM';
+        var ik = document.getElementById('loginIk'); if(ik) ik.src = b + 'icon-192.png?v=3';
+    })();
+    </script>
+
+    <script type="module">
+        import { loginWithGoogle, redirectIfLoggedIn, isConfigured } from "./auth.js?v=87";
+
+        const btn = document.getElementById("googleBtn");
+        const label = document.getElementById("googleBtnLabel");
+        const msg = document.getElementById("msg");
+        const greetingEl = document.getElementById("greeting");
+
+        function showMsg(text, type){ msg.className = "msg " + type; msg.textContent = text; }
+
+        // Napszaknak megfelelő üdvözlés
+        (function(){
+            const h = new Date().getHours();
+            const text = h < 5 ? "Szia!" : h < 10 ? "Jó reggelt!" : h < 18 ? "Szép napot!" : h < 23 ? "Jó estét!" : "Szia!";
+            greetingEl.textContent = text;
+        })();
+
+        // "denied=1" query paraméter → hozzáférés megtagadva üzenet
+        if (new URLSearchParams(location.search).get("denied")) {
+            showMsg("Ehhez az e-mail címhez nincs hozzáférés. Kérd az adminisztrátortól a felvételt.", "error");
+        }
+
+        if (!isConfigured) {
+            showMsg("A Firebase beállítás még folyamatban van – a belépés hamarosan aktív lesz.", "warn");
+        } else {
+            redirectIfLoggedIn();
+        }
+
+        btn.addEventListener("click", async () => {
+            btn.disabled = true;
+            const original = label.textContent;
+            label.innerHTML = '<span class="spinner"></span>';
+            msg.className = "msg";
+            try {
+                await loginWithGoogle();
+                window.location.href = "index.html";
+            } catch (e) {
+                showMsg(e.message || "A belépés nem sikerült. Próbáld újra.", "error");
+                btn.disabled = false;
+                label.textContent = original;
+            }
+        });
+    </script>
+</body>
+</html>
