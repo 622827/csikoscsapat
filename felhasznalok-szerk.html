@@ -32,6 +32,10 @@
     <div class="c">
       <table><thead><tr><th>E-mail</th><th>Név</th><th>Pozíció</th><th>Vezetőjelölti modul</th><th>Asszisztensi jogosultság</th><th></th></tr></thead><tbody id="ub"></tbody></table>
       <form class="add" id="af"><input type="email" id="ae" placeholder="gmail cím" required><input id="an" placeholder="Név"><select id="ar"></select><select id="am"></select><label class="cb"><input type="checkbox" id="aa">Asszisztens</label><button>Hozzáad</button></form>
+      <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--muted)">Tömeges felvétel (több sor egyszerre)</summary>
+        <p class="h" style="margin:8px 0">Soronként: <b>e-mail; név; pozíció</b> (pozíció: Gyakornok, Reprezentáns, Vezetőjelölt, GST, BL; opcionálisan 4. mező: modul 1–3, 5. mező: asszisztens)</p>
+        <textarea id="bulk" rows="6" style="width:100%;font:inherit;padding:8px;border-radius:8px;border:1px solid #3a6a9a;background:#00264b;color:#fff"></textarea>
+        <button type="button" id="bulkgo" style="margin-top:8px">Mind felvétele</button></details>
       <div class="st" id="us"></div>
     </div>
     <h2>Oldalak hozzáférése</h2>
@@ -78,6 +82,19 @@
     }
     $("af").onsubmit = e => { e.preventDefault(); const em = $("ae").value.trim().toLowerCase(); if (!em) return;
       Fs.setDoc(Fs.doc(db, "users", em), { name: $("an").value.trim(), role: $("ar").value, modul: $("ar").value === "vezetojelolt" ? +$("am").value : 0, asszisztens: $("aa").checked }).then(() => { $("ae").value = ""; $("an").value = ""; $("aa").checked = false; say("us", "Hozzáadva."); loadUsers(); }, e2 => say("us", "Hiba: " + e2.message, 1)); };
+    $("bulkgo").onclick = async () => {
+      const norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]/g, "");
+      const map = {}; Object.keys(ROLES).forEach(k => { map[norm(ROLES[k])] = k; }); map.gts = "gst";
+      let n = 0, bad = [];
+      for (const line of $("bulk").value.split("\n")) {
+        const p = line.split(/[;\t,]/).map(x => x.trim()); if (!p[0]) continue;
+        const em = p[0].toLowerCase(); const role = map[norm(p[2])] === "admin" ? null : (map[norm(p[2])] || "gyakornok");
+        if (!/^[a-z0-9._+-]+@[a-z0-9.-]+$/.test(em) || !role) { bad.push(p[0]); continue; }
+        const modul = role === "vezetojelolt" ? Math.min(3, +p[3] || 0) : 0, ass = /^(1|igen|i|x|true)$/i.test(p[4] || "");
+        try { await Fs.setDoc(Fs.doc(db, "users", em), { name: p[1] || "", role, modul, asszisztens: ass }); n++; } catch (e) { bad.push(p[0]); }
+      }
+      $("bulk").value = ""; say("us", n + " felhasználó felvéve." + (bad.length ? " Hibás sor: " + bad.join(", ") : ""), bad.length > 0); loadUsers();
+    };
     await loadUsers().catch(e => say("us", "Hiba: " + e.message, 1));
 
     let acc = {...(C.access || {})}, t = null;
@@ -96,6 +113,6 @@
   }
   if (self !== top) { document.documentElement.classList.add("emb"); const s = () => { try { parent.postMessage({ embh: document.documentElement.scrollHeight }, location.origin); } catch (e) {} }; new ResizeObserver(s).observe(document.documentElement); setInterval(s, 1200); }
 </script>
-<script src="anim.js?v=35" defer></script>
+<script src="anim.js?v=36" defer></script>
 </body>
 </html>
