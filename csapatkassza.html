@@ -572,9 +572,18 @@
   function field(label, input) { var l = el("label", "", label); l.appendChild(input); fields.appendChild(l); return input; }
   function inp(type, val, attrs) { var i = el("input"); i.type = type; i.value = val === 0 ? "0" : (val || ""); Object.keys(attrs || {}).forEach(function (k) { i.setAttribute(k, attrs[k]); }); return i; }
   function sel(opts, val) { var s = el("select"); opts.forEach(function (o) { var op = el("option", "", o[1]); op.value = o[0]; s.appendChild(op); }); s.value = val; return s; }
+  // Az adminba ágyazva az ablak oda ugorjon, ahol a képernyő éppen áll (ne a hosszú keret közepére)
+  function placeDlg() {
+    try {
+      if (self === top || !window.frameElement) return;
+      var fr = window.frameElement.getBoundingClientRect(), ph = window.parent.innerHeight, st = dlg.style;
+      st.top = (Math.max(0, -fr.top) + 80) + "px"; st.bottom = "auto"; st.margin = "0 auto"; st.maxHeight = Math.max(260, ph - 110) + "px"; st.overflowY = "auto";
+    } catch (e) {}
+  }
   function open(title, build, fn) {
     $("dlg-title").textContent = title; $("dlg-ok").textContent = "Mentés"; dlg.classList.remove("wide"); fields.textContent = ""; $("dlg-err").textContent = ""; build(); submitFn = fn;
     if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+    placeDlg();
     var f = fields.querySelector("input,select"); if (f) setTimeout(function () { f.focus(); }, 30);
   }
   function close() { if (dlg.close) dlg.close(); else dlg.removeAttribute("open"); }
