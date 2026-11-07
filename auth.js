@@ -51,7 +51,8 @@ function css() {
   const s = document.createElement("style"); s.id = "csk-auth-css";
   s.textContent = `
   html.csk-prelock body > *:not(#csk-lock) { visibility: hidden !important; }
-  .csk-u { margin-left: auto; display: flex; align-items: center; gap: 8px; list-style: none; }
+  .csk-u { margin-left: auto; flex: none; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  @media (max-width: 640px) { .csk-u small { display: none; } }
   .csk-u button, #csk-lock button { font: inherit; font-weight: 700; cursor: pointer; border-radius: 999px; padding: 7px 14px; border: 1px solid currentColor; background: transparent; color: inherit; }
   .csk-u small { opacity: .75; font-weight: 600; }
   .csk-u .csk-b { background: #003b95; border-color: #003b95; color: #fff; }
@@ -68,9 +69,9 @@ function render() {
   document.documentElement.classList.remove("csk-prelock");
   if (!top_) return;
   css();
-  const ul = document.querySelector(".topnav ul");
-  if (ul && !ul.querySelector(".csk-u")) {
-    const li = document.createElement("li"); li.className = "csk-u"; ul.appendChild(li);
+  const inn = document.querySelector(".topnav .in");
+  if (inn && !inn.querySelector(".csk-u")) {
+    const li = document.createElement("div"); li.className = "csk-u"; inn.appendChild(li);
   }
   const li = document.querySelector(".csk-u");
   if (li) {

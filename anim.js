@@ -244,5 +244,5 @@
       var st=document.createElement("style");st.textContent="html.csk-prelock body > *:not(#csk-lock){visibility:hidden!important}";document.head.appendChild(st);document.documentElement.classList.add("csk-prelock");
     }
   }catch(e){}
-  var s=document.createElement("script");s.type="module";s.src="auth.js?v=1";document.head.appendChild(s);
+  var s=document.createElement("script");s.type="module";s.src="auth.js?v=2";document.head.appendChild(s);
 })();
