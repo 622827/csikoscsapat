@@ -33,6 +33,7 @@
 (function () {
   var API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
   var K = "csk_token", tok = "", root = document.documentElement, of = window.fetch.bind(window);
+  var PUB = true; /* a főoldal nyilvános: jelszókapu nélkül is megnyílik, a védett adatok csak belépve töltődnek be */
   function ckGet() { var m = document.cookie.match(/(?:^|; )csk_token=([^;]*)/); return m ? decodeURIComponent(m[1]) : ""; }
   function ckSet(v) {
     var h = location.hostname.replace(/^www\./, ""), dom = /^[\d.]+$|^localhost$/.test(h) || !h ? "" : "; domain=." + h;
@@ -41,7 +42,7 @@
   try { tok = localStorage.getItem(K) || ""; } catch (e) {}
   if (!tok) tok = ckGet();
   if (tok) { try { localStorage.setItem(K, tok); } catch (e) {} ckSet(tok); }
-  if (!tok) root.classList.add("csklock");
+  if (!tok && !PUB) root.classList.add("csklock");
 
   window.fetch = function (u, o) {
     var s = typeof u === "string" ? u : (u && u.url) || "";
@@ -54,6 +55,7 @@
   };
 
   function lock() {
+    if (PUB) return;
     try { localStorage.removeItem(K); } catch (e) {} ckSet("");
     tok = ""; root.classList.add("csklock"); build();
   }
@@ -79,7 +81,7 @@
         .catch(function () { er.textContent = "Nem sikerült csatlakozni, próbáld újra."; btn.disabled = false; });
     });
   }
-  if (!tok) build();
+  if (!tok && !PUB) build();
 })();
 </script>
 <link rel="icon" type="image/png" sizes="32x32" href="ikon/favicon-32.png" media="(prefers-color-scheme: light)">
