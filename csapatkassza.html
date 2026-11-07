@@ -290,7 +290,7 @@
   :root[data-theme="dark"] .pv.tel { background: #ff8fc0; color: #4a0026; }
 
   .ftable { overflow-x: auto; }
-  .fbal { grid-template-columns: minmax(170px,1.4fr) 110px 84px 84px 90px 96px 96px 46px 96px !important; min-width: 936px; gap: 4px 8px; }
+  .fbal { grid-template-columns: minmax(170px,1.4fr) 110px 84px 78px 84px 90px 96px 96px 46px 96px !important; min-width: 1020px; gap: 4px 8px; }
   .fbal .ph { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
   .fbal .act { display: flex; gap: 4px; justify-content: flex-end; flex-direction: column; align-items: stretch; }
   .fbal .act button { font: inherit; font-size: .8rem; font-weight: 600; border: 1px solid var(--track); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 4px 10px; cursor: pointer; white-space: nowrap; }
@@ -857,7 +857,7 @@
     if (!rows.length) { host.appendChild(el("p", "empty", "Még nincs sor ezen a lapon.")); return; }
     if (!order.length) { host.appendChild(el("p", "empty", FLATE ? "Nincs tartozó. 🎉" : "Nincs találat.")); return; }
     var h = el("div", "fbal h hd");
-    ["Név · telefonszám", "Csomag", "Havi díj", "Tartozás", "Összesen", "Befizetve", "Egyenleg", "Fizetve", ""].forEach(function (c, i) { h.appendChild(el("span", i >= 2 && i <= 6 ? "num" : "", c)); });
+    ["Név · telefonszám", "Csomag", "Havi díj", "Forgalmi", "Tartozás", "Összesen", "Befizetve", "Egyenleg", "Fizetve", ""].forEach(function (c, i) { h.appendChild(el("span", i >= 2 && i <= 7 ? "num" : "", c)); });
     host.appendChild(h);
     function pill(x) { var pv = FPROV[x.fl]; if (!pv) return null; var pe = el("span", "pv " + (pv === "One" ? "one" : "tel"), x.fl === "ONE" ? "One" : x.fl); pe.title = pv; pe.style.marginLeft = "6px"; return pe; }
     function devFlag(x) { if (!(x.kesz > 0)) return null; var d = el("span", "pv dev", "Készülék"); d.title = "Készülékrészlet: " + ft(x.kesz) + "/hó"; return d; }
@@ -867,8 +867,9 @@
       var df0 = devFlag(x); if (df0) nb.appendChild(df0);
       n.appendChild(nb); n.appendChild(el("small", "", [x.kesz ? "készülék " + ft(x.kesz) : "", x.megj].filter(Boolean).join(" · "))); r.appendChild(n);
       r.appendChild(el("span", "", [x.csomag, x.net].filter(Boolean).join(" · ") || "–"));
-      var hav = x.hav, hv = el("span", "num", hav ? ft(hav) : "–"); if (x.kedv > 0) { var kd0 = el("small", "", "− kedv. " + ft(x.kedv)); kd0.style.color = "#1f9d55"; hv.appendChild(kd0); } if (x.forg > 0) { var fs0 = el("small", "", "+ forgalmi " + ft(x.forg)); fs0.style.color = "var(--frk)"; hv.appendChild(fs0); } if (x.kesz > 0) { var ks0 = el("small", "", "+ készülék " + ft(x.kesz)); ks0.style.color = "#1f9d55"; hv.appendChild(ks0); } hv.title = [x.alap ? "díj " + ft(x.alap) : "", x.admin ? "admin " + ft(x.admin) : "", x.kedv ? "egyedi kedvezmény −" + ft(x.kedv) : "", x.forg ? "forgalmi " + ft(x.forg) : "", x.kesz ? "készülék " + ft(x.kesz) : ""].filter(Boolean).join(" · ");
+      var hav = x.hav, hv = el("span", "num", hav ? ft(hav) : "–"); if (x.kedv > 0) { var kd0 = el("small", "", "− kedv. " + ft(x.kedv)); kd0.style.color = "#1f9d55"; hv.appendChild(kd0); } if (x.kesz > 0) { var ks0 = el("small", "", "+ készülék " + ft(x.kesz)); ks0.style.color = "#1f9d55"; hv.appendChild(ks0); } hv.title = [x.alap ? "díj " + ft(x.alap) : "", x.admin ? "admin " + ft(x.admin) : "", x.kedv ? "egyedi kedvezmény −" + ft(x.kedv) : "", x.forg ? "forgalmi " + ft(x.forg) : "", x.kesz ? "készülék " + ft(x.kesz) : ""].filter(Boolean).join(" · ");
       r.appendChild(hv);
+      r.appendChild(el("span", "num", x.forg > 0 ? ft(x.forg) : "–"));
       r.appendChild(el("span", "num", x.tart ? ft(x.tart) : "–")); r.appendChild(el("span", "num", ft(x.ossz)));
       var bf = el("span", "num", x.bef ? ft(x.bef) : "–"); if (x.datum) bf.appendChild(el("small", "", fhd(x.datum))); r.appendChild(bf);
       r.appendChild(egCell(x.egy));
@@ -893,7 +894,7 @@
       r.appendChild(n);
       var cs = []; rs.forEach(function (x) { var c = [x.csomag, x.net].filter(Boolean).join(" · "); if (c && cs.indexOf(c) < 0) cs.push(c); });
       r.appendChild(el("span", "", rs.length > 1 ? rs.length + " tétel" : (cs[0] || "–")));
-      var hs = el("span", "num", sum.hav ? ft(sum.hav) : "–"); if (sum.forg > 0) { var fs1 = el("small", "", "+ forgalmi " + ft(sum.forg)); fs1.style.color = "var(--frk)"; hs.appendChild(fs1); } if (sum.kesz > 0) { var ks1 = el("small", "", "+ készülék " + ft(sum.kesz)); ks1.style.color = "#1f9d55"; hs.appendChild(ks1); } r.appendChild(hs); r.appendChild(el("span", "num", sum.tart ? ft(sum.tart) : "–")); r.appendChild(el("span", "num", ft(sum.ossz)));
+      var hs = el("span", "num", sum.hav ? ft(sum.hav) : "–"); if (sum.kesz > 0) { var ks1 = el("small", "", "+ készülék " + ft(sum.kesz)); ks1.style.color = "#1f9d55"; hs.appendChild(ks1); } r.appendChild(hs); r.appendChild(el("span", "num", sum.forg > 0 ? ft(sum.forg) : "–")); r.appendChild(el("span", "num", sum.tart ? ft(sum.tart) : "–")); r.appendChild(el("span", "num", ft(sum.ossz)));
       r.appendChild(el("span", "num", sum.bef ? ft(sum.bef) : "–")); r.appendChild(egCell(sum.egy));
       var fz = el("span", "fz"); if (allPaid) fz.textContent = "✓"; r.appendChild(fz);
       var ac = el("div", "act"), tg = el("button", "tg", open ? "Becsuk ▴" : "Részletek ▾"); tg.type = "button"; tg.setAttribute("aria-expanded", open ? "true" : "false");
