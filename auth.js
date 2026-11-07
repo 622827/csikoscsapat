@@ -1,8 +1,9 @@
 /* Google-belépés + fehérlista + szintek (Firebase Auth + Firestore users/config) */
 const V = "https://www.gstatic.com/firebasejs/10.14.1/";
 const ADMIN = "csikos.mate.ovb@gmail.com";
-const ROLES = { admin: "Admin", bl: "BL", gts: "GTS", vezetojelolt: "Vezetőjelölt", reprezentans: "Reprezentáns", gyakornok: "Gyakornok", asszisztens: "Asszisztens" };
-const CSK = window.CSK = { ROLES, ADMIN, user: null, role: null, name: "", denied: "", ready: null };
+const ROLES = { admin: "Admin", bl: "BL", gts: "GTS", vezetojelolt: "Vezetőjelölt", reprezentans: "Reprezentáns", gyakornok: "Gyakornok" };
+const MODULES = { 1: "Modul I", 2: "Modul II", 3: "Modul III" };
+const CSK = window.CSK = { ROLES, MODULES, ADMIN, user: null, role: null, modul: 0, asszisztens: false, tags: [], name: "", denied: "", ready: null };
 const top_ = self === top;
 const page = (location.pathname.split("/").pop() || "index.html");
 const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
@@ -21,16 +22,16 @@ CSK.ready = (async function () {
   CSK.access = acc; ls.set("csk_acc", JSON.stringify(acc));
 
   await new Promise(res => Au.onAuthStateChanged(auth, async u => {
-    CSK.user = null; CSK.role = null; CSK.name = "";
+    CSK.user = null; CSK.role = null; CSK.name = ""; CSK.modul = 0; CSK.asszisztens = false; CSK.tags = [];
     if (u && u.email) {
       const em = u.email.toLowerCase();
       let d = null;
       try { const s = await Fs.getDoc(Fs.doc(db, "users", em)); if (s.exists()) d = s.data(); } catch (e) {}
       if (em === ADMIN) { CSK.user = em; CSK.role = "admin"; CSK.name = (d && d.name) || u.displayName || "Csikós Máté"; }
-      else if (d && ROLES[d.role]) { CSK.user = em; CSK.role = d.role; CSK.name = d.name || u.displayName || em; }
+      else if (d && ROLES[d.role]) { CSK.user = em; CSK.role = d.role; CSK.name = d.name || u.displayName || em; CSK.asszisztens = !!d.asszisztens; CSK.modul = d.role === "vezetojelolt" && MODULES[d.modul] ? +d.modul : 0; }
       else { CSK.denied = em; await Au.signOut(auth); }
     }
-    if (CSK.role) ls.set("csk_role", CSK.role); else ls.del("csk_role");
+    if (CSK.role) { CSK.tags = [CSK.role].concat(CSK.modul ? ["vj" + CSK.modul] : [], CSK.asszisztens ? ["asszisztens"] : []); ls.set("csk_tags", JSON.stringify(CSK.tags)); } else ls.del("csk_tags");
     res();
   }));
   render();
@@ -42,7 +43,7 @@ function allowed(rule, role) {
   if (!rule || rule === "public") return true;
   if (!role) return false;
   if (role === "admin" || rule === "any") return true;
-  return Array.isArray(rule) && rule.indexOf(role) >= 0;
+  return Array.isArray(rule) && CSK.tags.some(t => rule.indexOf(t) >= 0);
 }
 CSK.allowed = allowed;
 
@@ -77,7 +78,7 @@ function render() {
   if (li) {
     li.textContent = "";
     if (CSK.role) {
-      const sp = document.createElement("span"); sp.innerHTML = ""; const n = document.createElement("small"); n.textContent = (CSK.name.split(" ")[0] || CSK.user) + " · " + ROLES[CSK.role];
+      const sp = document.createElement("span"); sp.innerHTML = ""; const n = document.createElement("small"); n.textContent = (CSK.name.split(" ")[0] || CSK.user) + " · " + ROLES[CSK.role] + (CSK.modul ? " (" + MODULES[CSK.modul] + ")" : "") + (CSK.asszisztens ? " + Asszisztens" : "");
       const b = document.createElement("button"); b.type = "button"; b.textContent = "Kilépés"; b.onclick = () => CSK.signOut().then(() => location.reload());
       li.appendChild(n); li.appendChild(b);
     } else {
@@ -99,7 +100,7 @@ function lock(needLogin) {
   const box = document.createElement("div"); box.className = "box";
   box.innerHTML = "<h2></h2><p></p>";
   box.querySelector("h2").textContent = needLogin ? "Belépés szükséges" : "Ehhez az oldalhoz nincs jogosultságod";
-  box.querySelector("p").textContent = needLogin ? "Lépj be a Google-fiókoddal. Csak a listán szereplő munkatársak léphetnek be." : "A te szinted (" + ROLES[CSK.role] + ") ehhez az oldalhoz nem ad hozzáférést.";
+  box.querySelector("p").textContent = needLogin ? "Lépj be a Google-fiókoddal. Csak a listán szereplő munkatársak léphetnek be." : "A te pozíciód (" + ROLES[CSK.role] + (CSK.modul ? ", " + MODULES[CSK.modul] : "") + (CSK.asszisztens ? ", asszisztens" : "") + ") ehhez az oldalhoz nem ad hozzáférést.";
   if (needLogin) { const b = document.createElement("button"); b.type = "button"; b.textContent = "Belépés Google-fiókkal"; b.onclick = () => CSK.signIn().then(() => location.reload()).catch(e => toast("A belépés nem sikerült: " + (e && e.code || e))); box.appendChild(b); }
   const a = document.createElement("a"); a.href = "index.html"; a.textContent = "← Vissza a főoldalra"; if (page !== "index.html") box.appendChild(a);
   d.appendChild(box); document.body.appendChild(d);

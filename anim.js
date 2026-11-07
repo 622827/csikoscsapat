@@ -239,10 +239,10 @@
 /* Belépés (Google) – csak betöltés, a logika az auth.js-ben */
 (function(){
   try{
-    var k=(location.pathname.split("/").pop()||"index.html"),a=JSON.parse(localStorage.getItem("csk_acc")||"{}"),r=a[k],u=localStorage.getItem("csk_role");
-    if(self===top&&r&&r!=="public"&&!(u&&(u==="admin"||r==="any"||(typeof r!=="string"&&r.indexOf(u)>=0)))){
+    var k=(location.pathname.split("/").pop()||"index.html"),a=JSON.parse(localStorage.getItem("csk_acc")||"{}"),r=a[k],u=JSON.parse(localStorage.getItem("csk_tags")||"[]");
+    if(self===top&&r&&r!=="public"&&!(u.length&&(u[0]==="admin"||r==="any"||(typeof r!=="string"&&u.some(function(t){return r.indexOf(t)>=0}))))){
       var st=document.createElement("style");st.textContent="html.csk-prelock body > *:not(#csk-lock){visibility:hidden!important}";document.head.appendChild(st);document.documentElement.classList.add("csk-prelock");
     }
   }catch(e){}
-  var s=document.createElement("script");s.type="module";s.src="auth.js?v=2";document.head.appendChild(s);
+  var s=document.createElement("script");s.type="module";s.src="auth.js?v=3";document.head.appendChild(s);
 })();
