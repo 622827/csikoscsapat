@@ -30,7 +30,7 @@
     <h2>Engedélyezett felhasználók</h2>
     <p class="h">Csak a listán szereplő Gmail-címmel lehet belépeni. A pozíció, a vezetőjelölti modul és az asszisztensi jogosultság mondja meg, mit lát az illető.</p>
     <div class="c">
-      <table><thead><tr><th>E-mail</th><th>Név</th><th>Pozíció</th><th>Vezetőjelölti modul</th><th>Asszisztensi jogosultság</th><th></th></tr></thead><tbody id="ub"></tbody></table>
+      <table><thead><tr><th>E-mail</th><th>Név</th><th>Pozíció</th><th>Modul (reprezentánstól)</th><th>Asszisztensi jogosultság</th><th></th></tr></thead><tbody id="ub"></tbody></table>
       <form class="add" id="af"><input type="email" id="ae" placeholder="gmail cím" required><input id="an" placeholder="Név"><select id="ar"></select><select id="am"></select><label class="cb"><input type="checkbox" id="aa">Asszisztens</label><button>Hozzáad</button></form>
       <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--muted)">Tömeges felvétel (több sor egyszerre)</summary>
         <p class="h" style="margin:8px 0">Soronként: <b>e-mail; név; pozíció</b> (pozíció: Gyakornok, Reprezentáns, Vezetőjelölt, GST, BL; opcionálisan 4. mező: modul 1–3, 5. mező: asszisztens)</p>
@@ -51,13 +51,13 @@
   else {
     $("app").hidden = false;
     const { db, Fs, ROLES } = C;
-    const MODS = C.MODULES;
+    const MODS = C.MODULES; const MODROLE = r => r === "reprezentans" || r === "vezetojelolt";
     const ROLE_KEYS = Object.keys(ROLES).filter(k => k !== "admin");
-    const TAGS = [["gyakornok","Gyakornok"],["reprezentans","Reprezentáns"],["vezetojelolt","Vezetőjelölt (bármely modul)"],["vj1","Vezetőjelölt – Modul I"],["vj2","Vezetőjelölt – Modul II"],["vj3","Vezetőjelölt – Modul III"],["gts","GST"],["bl","BL"],["asszisztens","Asszisztens"]];
+    const TAGS = [["gyakornok","Gyakornok"],["reprezentans","Reprezentáns"],["vezetojelolt","Vezetőjelölt (bármely modul)"],["vj1","Modul I (reprezentánstól)"],["vj2","Modul II (reprezentánstól)"],["vj3","Modul III (reprezentánstól)"],["gts","GST"],["bl","BL"],["asszisztens","Asszisztens"]];
     const PAGES = [["index.html","Főoldal"],["negyedev.html","Negyedéves cél"],["verseny.html","Versenyek és utazások"],["elemzo.html","Elemző füzet"],["teljesitmeny-uj.html","Teljesítmény (Start bónusz)"],["vizsga.html","Vizsga gyakorló"],["kampanynaptar.html","Kampánynaptár"],["kifogas.html","Kifogáskezelő"],["ppt.html","PPT generátor"]];
     const sel = $("ar"); ROLE_KEYS.forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = ROLES[k]; sel.appendChild(o); });
     const msel = $("am"); [["0","– nincs modul –"],["1","Modul I"],["2","Modul II"],["3","Modul III"]].forEach(([v,l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; msel.appendChild(o); });
-    const syncAdd = () => { msel.style.display = sel.value === "vezetojelolt" ? "" : "none"; if (sel.value !== "vezetojelolt") msel.value = "0"; }; sel.onchange = syncAdd; syncAdd();
+    const syncAdd = () => { msel.style.display = MODROLE(sel.value) ? "" : "none"; if (!MODROLE(sel.value)) msel.value = "0"; }; sel.onchange = syncAdd; syncAdd();
     const say = (id, t, e) => { const n = $(id); n.textContent = t; n.className = "st" + (e ? " err" : ""); };
     async function loadUsers() {
       const s = await Fs.getDocs(Fs.collection(db, "users")); const rows = []; s.forEach(d => rows.push({ id: d.id, ...d.data() }));
@@ -67,13 +67,13 @@
         const tr = document.createElement("tr");
         const td = (t) => { const c = document.createElement("td"); if (t !== undefined) c.textContent = t; tr.appendChild(c); return c; };
         td(u.id); const nc = td(); const ni = document.createElement("input"); ni.value = u.name || ""; ni.placeholder = "Név"; ni.style.width = "100%"; nc.appendChild(ni);
-        const save = (o) => Fs.setDoc(Fs.doc(db, "users", u.id), { name: ni.value.trim(), role: o.role, modul: o.role === "vezetojelolt" ? +o.modul || 0 : 0, asszisztens: !!o.asszisztens }).then(() => say("us", "Mentve."), e => say("us", "Hiba: " + e.message, 1));
+        const save = (o) => Fs.setDoc(Fs.doc(db, "users", u.id), { name: ni.value.trim(), role: o.role, modul: MODROLE(o.role) ? +o.modul || 0 : 0, asszisztens: !!o.asszisztens }).then(() => say("us", "Mentve."), e => say("us", "Hiba: " + e.message, 1));
         const cur = { role: ROLES[u.role] ? u.role : "gyakornok", modul: u.modul || 0, asszisztens: !!u.asszisztens };
         const sc = td(); const rs = sel.cloneNode(true); rs.value = cur.role; sc.appendChild(rs);
         const mc = td(); const ms = msel.cloneNode(true); ms.value = String(cur.modul); mc.appendChild(ms);
         const ac = td(); const ai = document.createElement("input"); ai.type = "checkbox"; ai.checked = cur.asszisztens; ac.appendChild(ai);
         ni.onchange = () => { u.name = ni.value.trim(); save(cur); };
-        const sh = () => { ms.style.display = rs.value === "vezetojelolt" ? "" : "none"; }; sh();
+        const sh = () => { ms.style.display = MODROLE(rs.value) ? "" : "none"; }; sh();
         rs.onchange = () => { cur.role = rs.value; sh(); save(cur); }; ms.onchange = () => { cur.modul = +ms.value; save(cur); }; ai.onchange = () => { cur.asszisztens = ai.checked; save(cur); };
         const dc = td(); const b = document.createElement("button"); b.className = "s"; b.textContent = "Töröl"; b.onclick = () => { if (confirm(u.id + " törlése a listáról?")) Fs.deleteDoc(Fs.doc(db, "users", u.id)).then(loadUsers, e => say("us", "Hiba: " + e.message, 1)); }; dc.appendChild(b);
         tb.appendChild(tr);
@@ -81,7 +81,7 @@
       if (!rows.length) say("us", "A lista még üres. A saját címed (admin) mindig beléphet.");
     }
     $("af").onsubmit = e => { e.preventDefault(); const em = $("ae").value.trim().toLowerCase(); if (!em) return;
-      Fs.setDoc(Fs.doc(db, "users", em), { name: $("an").value.trim(), role: $("ar").value, modul: $("ar").value === "vezetojelolt" ? +$("am").value : 0, asszisztens: $("aa").checked }).then(() => { $("ae").value = ""; $("an").value = ""; $("aa").checked = false; say("us", "Hozzáadva."); loadUsers(); }, e2 => say("us", "Hiba: " + e2.message, 1)); };
+      Fs.setDoc(Fs.doc(db, "users", em), { name: $("an").value.trim(), role: $("ar").value, modul: MODROLE($("ar").value) ? +$("am").value : 0, asszisztens: $("aa").checked }).then(() => { $("ae").value = ""; $("an").value = ""; $("aa").checked = false; say("us", "Hozzáadva."); loadUsers(); }, e2 => say("us", "Hiba: " + e2.message, 1)); };
     $("bulkgo").onclick = async () => {
       const norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]/g, "");
       const map = {}; Object.keys(ROLES).forEach(k => { map[norm(ROLES[k])] = k; }); map.gts = "gst";
@@ -90,7 +90,7 @@
         const p = line.split(/[;\t,]/).map(x => x.trim()); if (!p[0]) continue;
         const em = p[0].toLowerCase(); const role = map[norm(p[2])] === "admin" ? null : (map[norm(p[2])] || "gyakornok");
         if (!/^[a-z0-9._+-]+@[a-z0-9.-]+$/.test(em) || !role) { bad.push(p[0]); continue; }
-        const modul = role === "vezetojelolt" ? Math.min(3, +p[3] || 0) : 0, ass = /^(1|igen|i|x|true)$/i.test(p[4] || "");
+        const modul = MODROLE(role) ? Math.min(3, +p[3] || 0) : 0, ass = /^(1|igen|i|x|true)$/i.test(p[4] || "");
         try { await Fs.setDoc(Fs.doc(db, "users", em), { name: p[1] || "", role, modul, asszisztens: ass }); n++; } catch (e) { bad.push(p[0]); }
       }
       $("bulk").value = ""; say("us", n + " felhasználó felvéve." + (bad.length ? " Hibás sor: " + bad.join(", ") : ""), bad.length > 0); loadUsers();
@@ -113,6 +113,6 @@
   }
   if (self !== top) { document.documentElement.classList.add("emb"); const s = () => { try { parent.postMessage({ embh: document.documentElement.scrollHeight }, location.origin); } catch (e) {} }; new ResizeObserver(s).observe(document.documentElement); setInterval(s, 1200); }
 </script>
-<script src="anim.js?v=36" defer></script>
+<script src="anim.js?v=37" defer></script>
 </body>
 </html>

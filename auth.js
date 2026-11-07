@@ -28,7 +28,7 @@ CSK.ready = (async function () {
       let d = null;
       try { const s = await Fs.getDoc(Fs.doc(db, "users", em)); if (s.exists()) d = s.data(); } catch (e) {}
       if (em === ADMIN) { CSK.user = em; CSK.role = "admin"; CSK.name = (d && d.name) || u.displayName || "Csikós Máté"; }
-      else if (d && ROLES[d.role]) { CSK.user = em; CSK.role = d.role; CSK.name = d.name || u.displayName || em; CSK.asszisztens = !!d.asszisztens; CSK.modul = d.role === "vezetojelolt" && MODULES[d.modul] ? +d.modul : 0; }
+      else if (d && ROLES[d.role]) { CSK.user = em; CSK.role = d.role; CSK.name = d.name || u.displayName || em; CSK.asszisztens = !!d.asszisztens; CSK.modul = (d.role === "vezetojelolt" || d.role === "reprezentans") && MODULES[d.modul] ? +d.modul : 0; }
       else { CSK.denied = em; await Au.signOut(auth); }
     }
     if (CSK.role) { CSK.tags = [CSK.role].concat(CSK.modul ? ["vj" + CSK.modul] : [], CSK.asszisztens ? ["asszisztens"] : []); ls.set("csk_tags", JSON.stringify(CSK.tags)); } else ls.del("csk_tags");
