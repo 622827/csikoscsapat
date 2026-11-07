@@ -62,12 +62,13 @@
       rows.forEach(u => {
         const tr = document.createElement("tr");
         const td = (t) => { const c = document.createElement("td"); if (t !== undefined) c.textContent = t; tr.appendChild(c); return c; };
-        td(u.id); td(u.name || "");
-        const save = (o) => Fs.setDoc(Fs.doc(db, "users", u.id), { name: u.name || "", role: o.role, modul: o.role === "vezetojelolt" ? +o.modul || 0 : 0, asszisztens: !!o.asszisztens }).then(() => say("us", "Mentve."), e => say("us", "Hiba: " + e.message, 1));
+        td(u.id); const nc = td(); const ni = document.createElement("input"); ni.value = u.name || ""; ni.placeholder = "Név"; ni.style.width = "100%"; nc.appendChild(ni);
+        const save = (o) => Fs.setDoc(Fs.doc(db, "users", u.id), { name: ni.value.trim(), role: o.role, modul: o.role === "vezetojelolt" ? +o.modul || 0 : 0, asszisztens: !!o.asszisztens }).then(() => say("us", "Mentve."), e => say("us", "Hiba: " + e.message, 1));
         const cur = { role: ROLES[u.role] ? u.role : "gyakornok", modul: u.modul || 0, asszisztens: !!u.asszisztens };
         const sc = td(); const rs = sel.cloneNode(true); rs.value = cur.role; sc.appendChild(rs);
         const mc = td(); const ms = msel.cloneNode(true); ms.value = String(cur.modul); mc.appendChild(ms);
         const ac = td(); const ai = document.createElement("input"); ai.type = "checkbox"; ai.checked = cur.asszisztens; ac.appendChild(ai);
+        ni.onchange = () => { u.name = ni.value.trim(); save(cur); };
         const sh = () => { ms.style.display = rs.value === "vezetojelolt" ? "" : "none"; }; sh();
         rs.onchange = () => { cur.role = rs.value; sh(); save(cur); }; ms.onchange = () => { cur.modul = +ms.value; save(cur); }; ai.onchange = () => { cur.asszisztens = ai.checked; save(cur); };
         const dc = td(); const b = document.createElement("button"); b.className = "s"; b.textContent = "Töröl"; b.onclick = () => { if (confirm(u.id + " törlése a listáról?")) Fs.deleteDoc(Fs.doc(db, "users", u.id)).then(loadUsers, e => say("us", "Hiba: " + e.message, 1)); }; dc.appendChild(b);
@@ -95,6 +96,6 @@
   }
   if (self !== top) { document.documentElement.classList.add("emb"); const s = () => { try { parent.postMessage({ embh: document.documentElement.scrollHeight }, location.origin); } catch (e) {} }; new ResizeObserver(s).observe(document.documentElement); setInterval(s, 1200); }
 </script>
-<script src="anim.js?v=34" defer></script>
+<script src="anim.js?v=35" defer></script>
 </body>
 </html>
