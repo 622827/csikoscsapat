@@ -6,7 +6,8 @@
       return request.auth != null && request.auth.token.email != null && (
         csk_email() == 'csikos.mate.ovb@gmail.com' ||
         (exists(/databases/$(database)/documents/users/$(csk_email())) &&
-         get(/databases/$(database)/documents/users/$(csk_email())).data.role == 'admin'));
+         (get(/databases/$(database)/documents/users/$(csk_email())).data.role == 'admin' ||
+          get(/databases/$(database)/documents/users/$(csk_email())).data.get('admin', false) == true)));
     }
     match /users/{u} {
       allow read: if request.auth != null && request.auth.token.email != null && (csk_email() == u || csk_admin());

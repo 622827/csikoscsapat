@@ -3,7 +3,7 @@ const V = "https://www.gstatic.com/firebasejs/10.14.1/";
 const ADMIN = "csikos.mate.ovb@gmail.com";
 const ROLES = { admin: "Admin", bl: "BL", gts: "GST", vezetojelolt: "Vezetőjelölt", reprezentans: "Reprezentáns", gyakornok: "Gyakornok", asszisztens: "Asszisztens" };
 const MODULES = { 1: "Modul I", 2: "Modul II", 3: "Modul III" };
-const CSK = window.CSK = { ROLES, MODULES, ADMIN, user: null, role: null, modul: 0, asszisztens: false, tags: [], name: "", denied: "", ready: null };
+const CSK = window.CSK = { ROLES, MODULES, ADMIN, user: null, role: null, modul: 0, asszisztens: false, isAdmin: false, tags: [], name: "", denied: "", ready: null };
 const top_ = self === top;
 const page = (location.pathname.split("/").pop() || "index.html");
 const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
@@ -22,16 +22,16 @@ CSK.ready = (async function () {
   CSK.access = acc; ls.set("csk_acc", JSON.stringify(acc));
 
   await new Promise(res => Au.onAuthStateChanged(auth, async u => {
-    CSK.user = null; CSK.role = null; CSK.name = ""; CSK.modul = 0; CSK.asszisztens = false; CSK.tags = [];
+    CSK.user = null; CSK.role = null; CSK.name = ""; CSK.modul = 0; CSK.asszisztens = false; CSK.isAdmin = false; CSK.tags = [];
     if (u && u.email) {
       const em = u.email.toLowerCase();
       let d = null;
       try { const s = await Fs.getDoc(Fs.doc(db, "users", em)); if (s.exists()) d = s.data(); } catch (e) {}
-      if (em === ADMIN) { CSK.user = em; CSK.role = "admin"; CSK.name = (d && d.name) || u.displayName || "Csikós Máté"; }
-      else if (d && ROLES[d.role]) { CSK.user = em; CSK.role = d.role; CSK.name = d.name || u.displayName || em; CSK.asszisztens = !!d.asszisztens; CSK.modul = (d.role === "vezetojelolt" || d.role === "reprezentans") && MODULES[d.modul] ? +d.modul : 0; }
+      if (em === ADMIN) { CSK.isAdmin = true; CSK.user = em; CSK.role = "admin"; CSK.name = (d && d.name) || u.displayName || "Csikós Máté"; }
+      else if (d && ROLES[d.role]) { CSK.user = em; CSK.role = d.role; CSK.name = d.name || u.displayName || em; CSK.asszisztens = !!d.asszisztens; CSK.isAdmin = d.admin === true; CSK.modul = (d.role === "vezetojelolt" || d.role === "reprezentans") && MODULES[d.modul] ? +d.modul : 0; }
       else { CSK.denied = em; await Au.signOut(auth); }
     }
-    if (CSK.role) { CSK.tags = [CSK.role].concat(CSK.modul ? ["vj" + CSK.modul] : [], CSK.asszisztens && CSK.role !== "asszisztens" ? ["asszisztens"] : []); ls.set("csk_tags", JSON.stringify(CSK.tags)); } else ls.del("csk_tags");
+    if (CSK.role) { CSK.tags = (CSK.isAdmin ? ["admin"] : []).concat([CSK.role],CSK.modul ? ["vj" + CSK.modul] : [], CSK.asszisztens && CSK.role !== "asszisztens" ? ["asszisztens"] : []); ls.set("csk_tags", JSON.stringify(CSK.tags)); } else ls.del("csk_tags");
     res();
   }));
   render();
@@ -42,7 +42,7 @@ CSK.ready = (async function () {
 function allowed(rule, role) {
   if (!rule || rule === "public") return true;
   if (!role) return false;
-  if (role === "admin" || rule === "any") return true;
+  if (role === "admin" || CSK.isAdmin || rule === "any") return true;
   return Array.isArray(rule) && CSK.tags.some(t => rule.indexOf(t) >= 0);
 }
 CSK.allowed = allowed;
@@ -78,7 +78,7 @@ function render() {
   if (li) {
     li.textContent = "";
     if (CSK.role) {
-      const sp = document.createElement("span"); sp.innerHTML = ""; const n = document.createElement("small"); n.textContent = (CSK.name.split(" ")[0] || CSK.user) + " · " + ROLES[CSK.role] + (CSK.modul ? " (" + MODULES[CSK.modul] + ")" : "") + (CSK.asszisztens && CSK.role !== "asszisztens" ? " + Asszisztens" : "");
+      const sp = document.createElement("span"); sp.innerHTML = ""; const n = document.createElement("small"); n.textContent = (CSK.name.split(" ")[0] || CSK.user) + " · " + ROLES[CSK.role] + (CSK.modul ? " (" + MODULES[CSK.modul] + ")" : "") + (CSK.asszisztens && CSK.role !== "asszisztens" ? " + Asszisztens" : "") + (CSK.isAdmin && CSK.role !== "admin" ? " + Admin" : "");
       const b = document.createElement("button"); b.type = "button"; b.textContent = "Kilépés"; b.onclick = () => CSK.signOut().then(() => location.reload());
       li.appendChild(n); li.appendChild(b);
     } else {
