@@ -299,6 +299,7 @@
   
   .fbal .nm b { display: block; overflow-wrap: anywhere; } .fbal .nm small { color: var(--muted); display: block; } .fbal .fz input { width: 20px; height: 20px; accent-color: var(--csk); } .fbal.rowpaid { opacity: .75; }
   .fbal.hd { font-size: .85rem; }
+  .fbal .frs { display: block; font-size: .72rem; margin-top: 2px; } .fbal .frs.ok { color: #1f9d55; } .fbal .frs.prev { color: #c98a00; } .fbal .frs.old { color: var(--muted); }
   .fgrp { border-bottom: 1px solid var(--track); } .fgrp .fbal { border-bottom: 0; }
   .fbal.sum { padding: 9px 0; } .fbal.sum:hover { background: color-mix(in srgb, var(--track) 45%, transparent); }
   .fbal.sub { background: color-mix(in srgb, var(--track) 35%, transparent); padding: 8px 0 8px 14px; font-size: .94rem; border-left: 3px solid var(--track); }
@@ -653,11 +654,11 @@
     ["alap", "admin", "kedv", "forg", "kesz", "tart", "bef"].forEach(function (k) { r[k] = fnum(r[k]); });
     r.hav = Math.max(0, r.alap + r.admin - r.kedv);   // havi díj = csomagdíj + admin − egyedi kedvezmény
     r.ossz = r.hav + r.forg + r.kesz + r.tart; r.egy = r.ossz - r.bef; r.fiz = !!r.fiz;
-    ["nev", "tel", "csomag", "net", "megj", "datum", "szerz", "huseg", "gazda"].forEach(function (k) { r[k] = r[k] == null ? "" : String(r[k]); });
+    ["nev", "tel", "csomag", "net", "megj", "datum", "szerz", "huseg", "gazda", "frissitve"].forEach(function (k) { r[k] = r[k] == null ? "" : String(r[k]); });
     r.chk = r.id; return r;
   }
   function fclean(r) {
-    var o = {}; ["fl", "nev", "tel", "csomag", "net", "megj", "datum", "szerz", "huseg", "gazda"].forEach(function (k) { o[k] = r[k] == null ? "" : String(r[k]); });
+    var o = {}; ["fl", "nev", "tel", "csomag", "net", "megj", "datum", "szerz", "huseg", "gazda", "frissitve"].forEach(function (k) { o[k] = r[k] == null ? "" : String(r[k]); });
     ["alap", "admin", "kedv", "forg", "kesz", "tart", "bef"].forEach(function (k) { o[k] = fnum(r[k]); }); o.fiz = !!r.fiz; return o;
   }
   function fcol(name) { return FST.F.collection(FST.db, "perf", fid(), name); }
@@ -891,6 +892,13 @@
     function pill(x) { var pv = FPROV[x.fl]; if (!pv) return null; var pe = el("span", "pv " + (pv === "One" ? "one" : "tel"), x.fl === "ONE" ? "One" : x.fl); pe.title = pv; pe.style.marginLeft = "6px"; return pe; }
     function devFlag(x) { if (!(x.kesz > 0)) return null; var d = el("span", "pv dev", "Készülék"); d.title = "Készülékrészlet: " + ft(x.kesz) + "/hó"; return d; }
     function egCell(egy) { var e = el("span", "eg " + (egy > 0 ? "debt" : egy < 0 ? "plus" : ""), egy === 0 ? "rendben" : ft(Math.abs(egy))); if (egy) e.appendChild(el("small", "", egy > 0 ? "tartozás" : "többlet")); return e; }
+    function frTag(d) {
+      var e = el("small", "frs"), t = new Date(), cm = t.getFullYear() * 12 + t.getMonth();
+      if (!d) { e.textContent = "📄 számla szerint: még nincs jelölve"; e.className = "frs old"; return e; }
+      var p = String(d).split("-"), dm = (+p[0]) * 12 + (+p[1] - 1), diff = cm - dm;
+      e.textContent = "📄 számla szerint: " + String(d).replace(/-/g, ". ") + "." + (diff <= 0 ? " · e-havi" : diff === 1 ? " · múlt havi" : " · " + diff + " hónapos");
+      e.className = "frs " + (diff <= 0 ? "ok" : diff === 1 ? "prev" : "old"); return e;
+    }
     function remBtn(g, names, egy) {
       var rb = el("button", "", "Emlékeztető"); rb.type = "button"; rb.title = "Emlékeztető üzenet másolása";
       rb.addEventListener("click", function (e) {
@@ -904,7 +912,7 @@
     function subRow(x, single, g) {
       var r = el("div", "fbal " + (single ? "sum" : "sub") + (x.fiz ? " rowpaid" : "")), n = el("div", "nm"), nb = el("b", "", (x._dev ? "📱 " : "") + (x.nev || "–")), pe = x._dev ? null : pill(x); if (pe) nb.appendChild(pe);
       var df0 = devFlag(x); if (df0) nb.appendChild(df0); if (x._dev && !df0) { var dv0 = el("span", "pv dev", "Készülék"); nb.appendChild(dv0); }
-      n.appendChild(nb); n.appendChild(el("small", "", [single ? ftel(x.tel) : "", x.kesz ? "készülék " + ft(x.kesz) : "", x.megj].filter(Boolean).join(" · "))); r.appendChild(n);
+      n.appendChild(nb); n.appendChild(el("small", "", [single ? ftel(x.tel) : "", x.kesz ? "készülék " + ft(x.kesz) : "", x.megj].filter(Boolean).join(" · "))); n.appendChild(frTag(x.frissitve)); r.appendChild(n);
       r.appendChild(el("span", "", [x.csomag, x.net].filter(Boolean).join(" · ") || "–"));
       var hav = x.hav, hv = el("span", "num", hav ? ft(hav) : "–"); if (x.kedv > 0) { var kd0 = el("small", "", "− kedv. " + ft(x.kedv)); kd0.style.color = "#1f9d55"; hv.appendChild(kd0); } if (x.kesz > 0) { var ks0 = el("small", "", "+ készülék " + ft(x.kesz)); ks0.style.color = "#1f9d55"; hv.appendChild(ks0); } hv.title = [x.alap ? "díj " + ft(x.alap) : "", x.admin ? "admin " + ft(x.admin) : "", x.kedv ? "egyedi kedvezmény −" + ft(x.kedv) : "", x.forg ? "forgalmi " + ft(x.forg) : "", x.kesz ? "készülék " + ft(x.kesz) : ""].filter(Boolean).join(" · ");
       r.appendChild(hv);
@@ -931,6 +939,9 @@
       nb.appendChild(document.createTextNode(names[0] || "–")); rs.forEach(function (x) { if (x._dev) return; var pe = pill(x); if (pe) nb.appendChild(pe); });
       for (var di = 0; di < rs.length; di++) if (rs[di].kesz > 0) { nb.appendChild(devFlag(rs[di])); break; }
       n.appendChild(nb); n.appendChild(el("small", "", [ftel(g.tel), names.length > 1 ? names.slice(1).join(" / ") : ""].filter(Boolean).join(" · ")));
+      var oldest = ""; rs.forEach(function (x) { if (!x.frissitve) oldest = oldest || ""; });
+      var dts = rs.map(function (x) { return x.frissitve || ""; }), mn = dts.some(function (d) { return !d; }) ? "" : dts.sort()[0];
+      n.appendChild(frTag(mn));
       r.appendChild(n);
       var cs = []; rs.forEach(function (x) { var c = [x.csomag, x.net].filter(Boolean).join(" · "); if (c && cs.indexOf(c) < 0) cs.push(c); });
       r.appendChild(el("span", "", rs.length > 1 ? rs.length + " tétel" : (cs[0] || "–")));
@@ -1087,7 +1098,7 @@
       ri.style.flex = "1"; rw.appendChild(rbtn("−", -1, "Eggyel kevesebb részlet")); rw.appendChild(ri); rw.appendChild(rbtn("+", 1, "Eggyel több részlet"));
       field("Hátralévő készülékrészletek (db)", rw); f.rest = ri;
       f.tart = field("Tartozás – előző hónapról (Ft)", inp("text", x.tart || "", { inputmode: "numeric" }));
-      f.szerz = field("Szerződéskötés", inp("date", x.szerz || "")); f.huseg = field("Hűség lejárta", inp("date", x.huseg || ""));
+      f.fris = field("Számla alapján frissítve (dátum)", inp("date", x.frissitve || "")); f.szerz = field("Szerződéskötés", inp("date", x.szerz || "")); f.huseg = field("Hűség lejárta", inp("date", x.huseg || ""));
       f.bef = field("Befizetve összesen (Ft)", inp("text", x.bef || "", { inputmode: "numeric" })); f.datum = field("Befizetés dátuma", inp("date", x.datum || ""));
       if (!tfc) f.megj = field("Megjegyzés", inp("text", x.megj || ""));
       var cl = el("label", "chk"); f.fiz = inp("checkbox"); f.fiz.checked = !!x.fiz; cl.appendChild(f.fiz); cl.appendChild(document.createTextNode("Fizetve")); fields.appendChild(cl);
@@ -1103,7 +1114,7 @@
         if (!(num(f.kesz.value || 0) > 0)) return Promise.reject(new Error("Válassz csomagot a listából (a Csomagok gombbal vihetsz fel újat). Készüléknél a csomag nem kötelező: add meg a készülék díját."));
         var dn = f.dev.value.trim(); f.net.value = (dn === String(x.csomag || "").trim()) ? (x.net || "") : ""; f.csomag.value = dn;
       }
-      var row = { id: x.id || "", chk: x.id ? fkey(x) : "", fl: f.fl.value, nev: nv, tel: tl, gazda: f.gazda.value.trim(), csomag: f.csomag.value.trim(), net: f.net.value.trim(), szerz: f.szerz.value, huseg: f.huseg.value, datum: f.datum.value, fiz: f.fiz.checked, megj: (f.megj ? f.megj.value : (x.megj || "")).replace(/\s*·?\s*még\s+\d+\s+részlet/ig, "").trim() };
+      var row = { id: x.id || "", chk: x.id ? fkey(x) : "", fl: f.fl.value, nev: nv, tel: tl, gazda: f.gazda.value.trim(), frissitve: f.fris.value, csomag: f.csomag.value.trim(), net: f.net.value.trim(), szerz: f.szerz.value, huseg: f.huseg.value, datum: f.datum.value, fiz: f.fiz.checked, megj: (f.megj ? f.megj.value : (x.megj || "")).replace(/\s*·?\s*még\s+\d+\s+részlet/ig, "").trim() };
       var rn = parseInt(f.rest.value, 10); if (rn > 0) row.megj = (row.megj ? row.megj + " · " : "") + "még " + rn + " részlet";
       ["alap", "admin", "kedv", "forg", "tart", "kesz", "bef"].forEach(function (k) { var v = f[k].value.trim(); row[k] = v === "" ? "" : num(v); });
       for (var k in { alap: 1, admin: 1, kedv: 1, forg: 1, tart: 1, kesz: 1, bef: 1 }) if (row[k] !== "" && !isFinite(row[k])) return Promise.reject(new Error("Az összegek számok legyenek."));
