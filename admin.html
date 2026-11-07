@@ -1592,7 +1592,10 @@
         return szDrive(f, szolg, ho);
       }).then(function (dv) {
         if (dv === "skip") return "skip";
-        if (dv) return F.setDoc(F.doc(szCol("sz_files")), { name: f.name, size: f.size, type: f.type || "", szolg: kiv ? szolg + " – " + bank : szolg, ho: ho, n: 0, drive: dv.url, folder: dv.folder || "", up: new Date().toISOString(), st: "uj" });
+        if (dv) return F.setDoc(F.doc(szCol("sz_files")), { name: f.name, size: f.size, type: f.type || "", szolg: kiv ? szolg + " – " + bank : szolg, ho: ho, n: 0, drive: dv.url, folder: dv.folder || "", up: new Date().toISOString(), st: "uj" }).then(function () {
+          // A TFC-s telefonszámla automatikusan a TFC könyvelési anyagba is kerül (a BB-s és a One-os nem).
+          if (szolg === "Flotta – Telekom TFC") return F.setDoc(F.doc(szCol("sz_files")), { name: f.name, size: f.size, type: f.type || "", szolg: "TFC könyvelés", ho: ho, n: 0, drive: dv.url, folder: dv.folder || "", up: new Date().toISOString(), st: "uj", megj: "TFC-s telefonszámla – automatikusan könyvelésre küldve" });
+        });
         return f.arrayBuffer().then(function (buf) {
         var u8 = new Uint8Array(buf), ref = F.doc(szCol("sz_files")), n = Math.ceil(u8.length / SZCH) || 1, jobs = [];
         for (var i = 0; i < n; i++) jobs.push(F.setDoc(F.doc(szCol("sz_chunks"), ref.id + "_" + i), { f: ref.id, i: i, d: F.Bytes.fromUint8Array(u8.subarray(i * SZCH, (i + 1) * SZCH)) }));
