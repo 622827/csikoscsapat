@@ -891,10 +891,20 @@
     function pill(x) { var pv = FPROV[x.fl]; if (!pv) return null; var pe = el("span", "pv " + (pv === "One" ? "one" : "tel"), x.fl === "ONE" ? "One" : x.fl); pe.title = pv; pe.style.marginLeft = "6px"; return pe; }
     function devFlag(x) { if (!(x.kesz > 0)) return null; var d = el("span", "pv dev", "Készülék"); d.title = "Készülékrészlet: " + ft(x.kesz) + "/hó"; return d; }
     function egCell(egy) { var e = el("span", "eg " + (egy > 0 ? "debt" : egy < 0 ? "plus" : ""), egy === 0 ? "rendben" : ft(Math.abs(egy))); if (egy) e.appendChild(el("small", "", egy > 0 ? "tartozás" : "többlet")); return e; }
-    function subRow(x) {
-      var r = el("div", "fbal sub" + (x.fiz ? " rowpaid" : "")), n = el("div", "nm"), nb = el("b", "", (x._dev ? "📱 " : "") + (x.nev || "–")), pe = x._dev ? null : pill(x); if (pe) nb.appendChild(pe);
+    function remBtn(g, names, egy) {
+      var rb = el("button", "", "Emlékeztető"); rb.type = "button"; rb.title = "Emlékeztető üzenet másolása";
+      rb.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var fn = (names[0] || "").split(" ").pop(), msg = "Szia" + (fn ? " " + fn : "") + "! Kedves emlékeztető: a(z) " + ftel(g.tel) + " telefonszám flotta-tartozása jelenleg " + ft(egy) + ". Kérlek rendezd az átutalással. A pontos összeg és az utalási adatok itt érhetők el: " + new URL("flotta-fizetes.html", location.href).href + " Köszönöm!";
+        function ok() { toast("Emlékeztető másolva a vágólapra."); }
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(msg).then(ok, function () { prompt("Másold ki:", msg); }); else prompt("Másold ki:", msg);
+      });
+      return rb;
+    }
+    function subRow(x, single, g) {
+      var r = el("div", "fbal " + (single ? "sum" : "sub") + (x.fiz ? " rowpaid" : "")), n = el("div", "nm"), nb = el("b", "", (x._dev ? "📱 " : "") + (x.nev || "–")), pe = x._dev ? null : pill(x); if (pe) nb.appendChild(pe);
       var df0 = devFlag(x); if (df0) nb.appendChild(df0); if (x._dev && !df0) { var dv0 = el("span", "pv dev", "Készülék"); nb.appendChild(dv0); }
-      n.appendChild(nb); n.appendChild(el("small", "", [x.kesz ? "készülék " + ft(x.kesz) : "", x.megj].filter(Boolean).join(" · "))); r.appendChild(n);
+      n.appendChild(nb); n.appendChild(el("small", "", [single ? ftel(x.tel) : "", x.kesz ? "készülék " + ft(x.kesz) : "", x.megj].filter(Boolean).join(" · "))); r.appendChild(n);
       r.appendChild(el("span", "", [x.csomag, x.net].filter(Boolean).join(" · ") || "–"));
       var hav = x.hav, hv = el("span", "num", hav ? ft(hav) : "–"); if (x.kedv > 0) { var kd0 = el("small", "", "− kedv. " + ft(x.kedv)); kd0.style.color = "#1f9d55"; hv.appendChild(kd0); } if (x.kesz > 0) { var ks0 = el("small", "", "+ készülék " + ft(x.kesz)); ks0.style.color = "#1f9d55"; hv.appendChild(ks0); } hv.title = [x.alap ? "díj " + ft(x.alap) : "", x.admin ? "admin " + ft(x.admin) : "", x.kedv ? "egyedi kedvezmény −" + ft(x.kedv) : "", x.forg ? "forgalmi " + ft(x.forg) : "", x.kesz ? "készülék " + ft(x.kesz) : ""].filter(Boolean).join(" · ");
       r.appendChild(hv);
@@ -905,13 +915,14 @@
       var fz = el("span", "fz"), cb = el("input"); cb.type = "checkbox"; cb.checked = x.fiz; cb.title = "Fizetve";
       cb.addEventListener("change", function () { fact({ op: "fiz", id: x.id, chk: fkey(x), fiz: cb.checked }, cb.checked ? "Fizetettnek jelölve." : "Visszavonva."); });
       fz.appendChild(cb); r.appendChild(fz);
-      var ac = el("div", "act");
+      var ac = el("div", "act"); if (single && x.egy > 0) ac.appendChild(remBtn(g, [x.nev || ""], x.egy));
       [["+ Befizetés", "pay", function () { fpay(x); }], ["Szerkeszt", "", function () { fform(x); }]].forEach(function (c) {
         var bt = el("button", c[1], c[0]); bt.type = "button"; bt.addEventListener("click", c[2]); ac.appendChild(bt);
       });
       r.appendChild(ac); return r;
     }
     order.forEach(function (g) {
+      if (g.rows.length === 1) { var w1 = el("div", "fgrp"); w1.appendChild(subRow(g.rows[0], true, g)); host.appendChild(w1); return; }
       var rs = g.rows, open = !!FOPEN[g.key] || (!!qq && rs.length > 0 && false), sum = { hav: 0, tart: 0, ossz: 0, bef: 0, egy: 0, kesz: 0, forg: 0 }, allPaid = true;
       rs.forEach(function (x) { sum.hav += x.hav; sum.forg += x.forg || 0; sum.tart += x.tart; sum.ossz += x.ossz; sum.bef += x.bef; sum.egy += x.egy; sum.kesz += x.kesz || 0; if (!x.fiz) allPaid = false; });
       var wrap = el("div", "fgrp" + (open ? " open" : ""));
@@ -929,16 +940,7 @@
       var ac = el("div", "act"), tg = el("button", "tg", open ? "Becsuk ▴" : "Részletek ▾"); tg.type = "button"; tg.setAttribute("aria-expanded", open ? "true" : "false");
       function toggle() { FOPEN[g.key] = !FOPEN[g.key]; renderF(); }
       tg.addEventListener("click", function (e) { e.stopPropagation(); toggle(); }); r.addEventListener("click", toggle); r.style.cursor = "pointer";
-      if (sum.egy > 0) {
-        var rb = el("button", "", "Emlékeztető"); rb.type = "button"; rb.title = "Emlékeztető üzenet másolása";
-        rb.addEventListener("click", function (e) {
-          e.stopPropagation();
-          var fn = (names[0] || "").split(" ").pop(), msg = "Szia" + (fn ? " " + fn : "") + "! Kedves emlékeztető: a(z) " + ftel(g.tel) + " telefonszám flotta-tartozása jelenleg " + ft(sum.egy) + ". Kérlek rendezd az átutalással. A pontos összeg és az utalási adatok itt érhetők el: " + new URL("flotta-fizetes.html", location.href).href + " Köszönöm!";
-          function ok() { toast("Emlékeztető másolva a vágólapra."); }
-          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(msg).then(ok, function () { prompt("Másold ki:", msg); }); else prompt("Másold ki:", msg);
-        });
-        ac.appendChild(rb);
-      }
+      if (sum.egy > 0) ac.appendChild(remBtn(g, names, sum.egy));
       ac.appendChild(tg); r.appendChild(ac); wrap.appendChild(r);
       if (open) rs.forEach(function (x) { wrap.appendChild(subRow(x)); });
       host.appendChild(wrap);
