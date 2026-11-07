@@ -6,17 +6,20 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Felhasználók és jogosultságok</title>
 <style>
-  :root { --bg:#001f3d; --ink:#fff; --muted:#99bbdd; --accent:#ff99cc; --track:#00305a; --card:#003366; color-scheme: dark; }
+  :root { --bg:#ffffff; --ink:#003366; --muted:#336699; --accent:#003366; --on-accent:#ffffff; --track:#e5e5e5; --card:#f0f3f7; --line:#c3cadb; --inp:#ffffff; --bd:#9aa3b8; --pub:#0b7a4a; --pubb:#dff3e8; --any:#1b5fc1; --anyb:#dce9fb; --rol:#6a2db0; --rolb:#ece1fa; --lk:#8a5a00; --lkb:#fbeccb; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#001f3d; --ink:#ffffff; --muted:#99bbdd; --accent:#ff99cc; --on-accent:#001f3d; --track:#00305a; --card:#003366; --line:#2b5686; --inp:var(--inp); --bd:var(--bd); --pub:#5bd69b; --pubb:#123a2a; --any:#7fb0ff; --anyb:#172f58; --rol:#c29bff; --rolb:#2b1f48; --lk:#f2b84b; --lkb:#46330c; color-scheme: dark; } }
+  :root[data-theme="dark"] { --bg:#001f3d; --ink:#ffffff; --muted:#99bbdd; --accent:#ff99cc; --on-accent:#001f3d; --track:#00305a; --card:#003366; --line:#2b5686; --inp:var(--inp); --bd:var(--bd); --pub:#5bd69b; --pubb:#123a2a; --any:#7fb0ff; --anyb:#172f58; --rol:#c29bff; --rolb:#2b1f48; --lk:#f2b84b; --lkb:#46330c; color-scheme: dark; }
+  html.emb, html.emb body { background: transparent !important; } html.emb body::before { display: none !important; }
   * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font-family:"Instrument Sans",system-ui,sans-serif; padding:24px 16px 40px; }
+  body { margin:0; background:var(--bg); color:var(--ink);  font-family:"Instrument Sans",system-ui,sans-serif; padding:24px 16px 40px; }
   html.emb body { padding-top:6px; }
   main { max-width:1100px; margin:0 auto; }
   h2 { font-size:1.25rem; margin:26px 0 6px; } p.h { color:var(--muted); margin:0 0 14px; font-size:.95rem; }
-  .c { background:var(--card); border:3px solid var(--track); border-radius:16px; padding:16px; }
+  .c { background:var(--card); border:3px solid var(--line); border-radius:16px; padding:16px; }
   table { width:100%; border-collapse:collapse; } th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--track); font-size:.95rem; vertical-align:middle; }
   th { color:var(--muted); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; }
-  input, select, button { font:inherit; padding:8px 10px; border-radius:8px; border:1px solid #3a6a9a; background:#00264b; color:#fff; }
-  button { cursor:pointer; font-weight:700; background:var(--accent); color:#001f3d; border:0; } button.s { background:#00305a; color:#fff; font-weight:600; }
+  input, select, button { font:inherit; padding:8px 10px; border-radius:8px; border:1px solid var(--bd); background:var(--inp); color:var(--ink); }
+  button { cursor:pointer; font-weight:700; background:var(--accent); color:var(--on-accent); border:0; } button.s { background:#00305a; color:var(--ink); font-weight:600; }
   .add { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; } .add input[type=email] { flex:1; min-width:220px; }
   .st { color:var(--muted); font-size:.85rem; margin-top:8px; min-height:1.2em; } .err { color:#ff8da1; }
   label.cb { display:inline-flex; align-items:center; gap:5px; margin:2px 10px 2px 0; font-size:.88rem; white-space:nowrap; } label.cb input { padding:0; }
@@ -34,7 +37,7 @@
       <form class="add" id="af"><input type="email" id="ae" placeholder="gmail cím" required><input id="an" placeholder="Név"><select id="ar"></select><select id="am"></select><label class="cb"><input type="checkbox" id="aa">Asszisztens</label><label class="cb"><input type="checkbox" id="aad">Admin</label><button>Hozzáad</button></form>
       <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--muted)">Tömeges felvétel (több sor egyszerre)</summary>
         <p class="h" style="margin:8px 0">Soronként: <b>e-mail; név; pozíció</b> (pozíció: Gyakornok, Reprezentáns, Vezetőjelölt, GST, BL; opcionálisan 4. mező: modul 1–3, 5. mező: asszisztens)</p>
-        <textarea id="bulk" rows="6" style="width:100%;font:inherit;padding:8px;border-radius:8px;border:1px solid #3a6a9a;background:#00264b;color:#fff"></textarea>
+        <textarea id="bulk" rows="6" style="width:100%;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--bd);background:var(--inp);color:var(--ink)"></textarea>
         <button type="button" id="bulkgo" style="margin-top:8px">Mind felvétele</button></details>
       <div class="st" id="us"></div>
     </div>
