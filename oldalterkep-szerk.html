@@ -193,6 +193,22 @@
   }
   if (self !== top) { document.documentElement.classList.add("emb"); const s = () => { try { parent.postMessage({ embh: document.documentElement.scrollHeight }, location.origin); } catch (e) {} }; new ResizeObserver(s).observe(document.documentElement); setInterval(s, 1200); }
 </script>
-<script src="anim.js?v=44" defer></script>
+<script src="anim.js?v=44" defer>
+    /* Húzás közben a lap görgetése (a beágyazó admin oldalé is) */
+    (function () {
+      let ty = null, tm = null;
+      const win = () => { try { if (window.frameElement) return window.parent; } catch (e) {} return window; };
+      const topY = () => { let y = ty; try { if (window.frameElement) y += window.frameElement.getBoundingClientRect().top; } catch (e) {} return y; };
+      function tick() {
+        if (ty == null) return; const w = win(), h = w.innerHeight, y = topY(), TOP = 150, BOT = 90; let d = 0;
+        if (y < TOP) d = -Math.min(28, 6 + (TOP - y) / 4); else if (y > h - BOT) d = Math.min(28, 6 + (y - (h - BOT)) / 4);
+        if (d) w.scrollBy(0, d);
+      }
+      document.addEventListener("dragstart", () => { if (!tm) tm = setInterval(tick, 16); });
+      document.addEventListener("dragover", e => { ty = e.clientY; });
+      const stop = () => { clearInterval(tm); tm = null; ty = null; };
+      document.addEventListener("dragend", stop); document.addEventListener("drop", stop);
+    })();
+</script>
 </body>
 </html>
