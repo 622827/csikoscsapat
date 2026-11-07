@@ -92,7 +92,7 @@
       ["kam","Kampánynaptár","kampanynaptar.html","menu"],["ppt","Tanácsadó PPT generátor","ppt.html","menu"],["vj","Vezetőjelölti","","menu","locked"],
       ["onodi","Ónodi csapat","onodicsapat.html","out"],["onodih","Ónodi Start bónusz haladás","onodi-haladas.html","out"],["csikh","Csikós Start bónusz haladás","csikos-haladas.html","out"],
       ["felber","Felber csapat","felbercsapat.html","out"],["ceg","Cégbemutató","cegbemutato-nomenu.html","out"],["flotta","Telefonszámla – mennyit fizetek?","flotta-fizetes.html","out"],
-      ["web","Webshop","webshop.html","out"],["telr","Teljesítmény (régi)","teljesitmeny.html","out"] ];
+      ["web","Webshop","webshop.html","out"],["telr","Aktivitás","teljesitmeny.html","out"] ];
     const ADMIN_TILES = [["Vezetői eszközök","Felhasználók · Oldaltérkép · Start bónusz · Kampánynaptár · Asszisztensi feladatok · Elemzések utáni teendők · Kifogáskezelő · PPT kategóriák · Webshop"],["Pénzügyi","Csapatkassza · Iroda kassza (külön kassza jelszóval)"],["Könyvelés","TSC · Számlák · OVB flotta · Magánköltségvetés"]];
     $("admro").innerHTML = ADMIN_TILES.map(t => `<div class="row"><div class="nm"><b></b><code></code></div><div class="tags"><span class="chip">admin jelszó</span></div></div>`).join("");
     [...$("admro").querySelectorAll(".row")].forEach((r, i) => { r.querySelector("b").textContent = ADMIN_TILES[i][0]; r.querySelector("code").textContent = ADMIN_TILES[i][1]; });
