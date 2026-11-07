@@ -69,8 +69,8 @@
         td(u.id); const nc = td(); const ni = document.createElement("input"); ni.value = u.name || ""; ni.placeholder = "Név"; ni.style.width = "100%"; nc.appendChild(ni);
         const save = (o) => Fs.setDoc(Fs.doc(db, "users", u.id), { name: ni.value.trim(), role: o.role, modul: MODROLE(o.role) ? +o.modul || 0 : 0, asszisztens: !!o.asszisztens }).then(() => say("us", "Mentve."), e => say("us", "Hiba: " + e.message, 1));
         const cur = { role: ROLES[u.role] ? u.role : "gyakornok", modul: u.modul || 0, asszisztens: !!u.asszisztens };
-        const sc = td(); const rs = sel.cloneNode(true); rs.value = cur.role; sc.appendChild(rs);
-        const mc = td(); const ms = msel.cloneNode(true); ms.value = String(cur.modul); mc.appendChild(ms);
+        const sc = td(); const rs = sel.cloneNode(true); rs.removeAttribute("id"); rs.value = cur.role; sc.appendChild(rs);
+        const mc = td(); const ms = msel.cloneNode(true); ms.removeAttribute("id"); ms.value = String(cur.modul); mc.appendChild(ms);
         const ac = td(); const ai = document.createElement("input"); ai.type = "checkbox"; ai.checked = cur.asszisztens; ac.appendChild(ai);
         ni.onchange = () => { u.name = ni.value.trim(); save(cur); };
         const sh = () => { ms.style.display = MODROLE(rs.value) ? "" : "none"; }; sh();
@@ -113,6 +113,6 @@
   }
   if (self !== top) { document.documentElement.classList.add("emb"); const s = () => { try { parent.postMessage({ embh: document.documentElement.scrollHeight }, location.origin); } catch (e) {} }; new ResizeObserver(s).observe(document.documentElement); setInterval(s, 1200); }
 </script>
-<script src="anim.js?v=38" defer></script>
+<script src="anim.js?v=39" defer></script>
 </body>
 </html>
