@@ -43,6 +43,7 @@
     if (window.__cskMap) {
       var curF = (location.pathname.split("/").pop() || "index.html"); ul.textContent = "";
       window.__cskKids("menu").forEach(function (it) {
+        if (it.menu === "hidden") return;
         var li = document.createElement("li"), an = document.createElement("a"), lk = it.menu === "locked";
         an.textContent = it.title + (lk ? " 🔒" : "");
         if (!lk) { an.setAttribute("href", it.href || ("#g-" + it.id)); if (it.href && it.href === curF) an.setAttribute("aria-current", "page"); }
@@ -118,7 +119,7 @@
 /* Almenü: a lefelé nyíllal jelölt menüpontra kattintva lenyílnak az aloldalak */
 (function () {
   var SUB = { "verseny.html": [["Erdélyi Incentive", "verseny.html#erdely"], ["Téli Incentive", "verseny.html#teli"], ["2026 Lengyelország karácsony", "verseny.html#lengyel"]]};
-  if (window.__cskMap) { SUB = {}; window.__cskKids("menu").forEach(function (it) { var ch = window.__cskKids(it.id); if (ch.length && it.menu !== "locked") SUB[it.href || ("#g-" + it.id)] = ch.map(function (c) { return [c.title, c.href || "#"]; }); }); }
+  if (window.__cskMap) { SUB = {}; window.__cskKids("menu").forEach(function (it) { var ch = window.__cskKids(it.id); if (ch.length && it.menu !== "locked" && it.menu !== "hidden") SUB[it.href || ("#g-" + it.id)] = ch.filter(function (c) { return c.menu !== "hidden"; }).map(function (c) { return [c.title, c.href || "#"]; }); }); }
   function init() {
     var nav = document.querySelector(".topnav"); if (!nav) return;
     var st = document.createElement("style");
