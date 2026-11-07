@@ -1,7 +1,7 @@
 /* Google-belépés + fehérlista + szintek (Firebase Auth + Firestore users/config) */
 const V = "https://www.gstatic.com/firebasejs/10.14.1/";
 const ADMIN = "csikos.mate.ovb@gmail.com";
-const ROLES = { admin: "Admin", bl: "BL", gts: "GST", vezetojelolt: "Vezetőjelölt", reprezentans: "Reprezentáns", gyakornok: "Gyakornok", asszisztens: "Asszisztens" };
+const ROLES = { bl: "BL", gts: "GST", vezetojelolt: "Vezetőjelölt", reprezentans: "Reprezentáns", gyakornok: "Gyakornok", asszisztens: "Asszisztens" };
 const MODULES = { 1: "Modul I", 2: "Modul II", 3: "Modul III" };
 const CSK = window.CSK = { ROLES, MODULES, ADMIN, user: null, role: null, modul: 0, asszisztens: false, isAdmin: false, tags: [], name: "", denied: "", ready: null };
 const top_ = self === top;
@@ -27,7 +27,7 @@ CSK.ready = (async function () {
       const em = u.email.toLowerCase();
       let d = null;
       try { const s = await Fs.getDoc(Fs.doc(db, "users", em)); if (s.exists()) d = s.data(); } catch (e) {}
-      if (em === ADMIN) { CSK.isAdmin = true; CSK.user = em; CSK.role = "admin"; CSK.name = (d && d.name) || u.displayName || "Csikós Máté"; }
+      if (em === ADMIN) { CSK.isAdmin = true; CSK.user = em; CSK.role = d && ROLES[d.role] ? d.role : "bl"; CSK.modul = d && (d.role === "vezetojelolt" || d.role === "reprezentans") && MODULES[d.modul] ? +d.modul : 0; CSK.asszisztens = !!(d && d.asszisztens); CSK.name = (d && d.name) || u.displayName || "Csikós Máté"; }
       else if (d && ROLES[d.role]) { CSK.user = em; CSK.role = d.role; CSK.name = d.name || u.displayName || em; CSK.asszisztens = !!d.asszisztens; CSK.isAdmin = d.admin === true; CSK.modul = (d.role === "vezetojelolt" || d.role === "reprezentans") && MODULES[d.modul] ? +d.modul : 0; }
       else { CSK.denied = em; await Au.signOut(auth); }
     }
@@ -78,7 +78,7 @@ function render() {
   if (li) {
     li.textContent = "";
     if (CSK.role) {
-      const sp = document.createElement("span"); sp.innerHTML = ""; const n = document.createElement("small"); n.textContent = (CSK.name.split(" ")[0] || CSK.user) + " · " + ROLES[CSK.role] + (CSK.modul ? " (" + MODULES[CSK.modul] + ")" : "") + (CSK.asszisztens && CSK.role !== "asszisztens" ? " + Asszisztens" : "") + (CSK.isAdmin && CSK.role !== "admin" ? " + Admin" : "");
+      const sp = document.createElement("span"); sp.innerHTML = ""; const n = document.createElement("small"); n.textContent = (CSK.name.split(" ")[0] || CSK.user) + " · " + ROLES[CSK.role] + (CSK.modul ? " (" + MODULES[CSK.modul] + ")" : "") + (CSK.asszisztens && CSK.role !== "asszisztens" ? " + Asszisztens" : "") + (CSK.isAdmin ? " + Admin" : "");
       const b = document.createElement("button"); b.type = "button"; b.textContent = "Kilépés"; b.onclick = () => CSK.signOut().then(() => location.reload());
       li.appendChild(n); li.appendChild(b);
     } else {

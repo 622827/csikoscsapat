@@ -52,7 +52,7 @@
     $("app").hidden = false;
     const { db, Fs, ROLES } = C;
     const MODS = C.MODULES; const MODROLE = r => r === "reprezentans" || r === "vezetojelolt";
-    const ROLE_KEYS = Object.keys(ROLES).filter(k => k !== "admin");
+    const ROLE_KEYS = Object.keys(ROLES);
     const TAGS = [["gyakornok","Gyakornok"],["reprezentans","Reprezentáns"],["vezetojelolt","Vezetőjelölt (bármely modul)"],["vj1","Modul I (reprezentánstól)"],["vj2","Modul II (reprezentánstól)"],["vj3","Modul III (reprezentánstól)"],["gts","GST"],["bl","BL"],["asszisztens","Asszisztens"]];
     const PAGES = [["index.html","Főoldal"],["negyedev.html","Negyedéves cél"],["verseny.html","Versenyek és utazások"],["elemzo.html","Elemző füzet"],["teljesitmeny-uj.html","Teljesítmény (Start bónusz)"],["vizsga.html","Vizsga gyakorló"],["kampanynaptar.html","Kampánynaptár"],["kifogas.html","Kifogáskezelő"],["ppt.html","PPT generátor"]];
     const sel = $("ar"); ROLE_KEYS.forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = ROLES[k]; sel.appendChild(o); });
@@ -114,6 +114,6 @@
   }
   if (self !== top) { document.documentElement.classList.add("emb"); const s = () => { try { parent.postMessage({ embh: document.documentElement.scrollHeight }, location.origin); } catch (e) {} }; new ResizeObserver(s).observe(document.documentElement); setInterval(s, 1200); }
 </script>
-<script src="anim.js?v=41" defer></script>
+<script src="anim.js?v=42" defer></script>
 </body>
 </html>
