@@ -19,9 +19,10 @@
   button { cursor:pointer; font-weight:700; background:var(--accent); color:#001f3d; border:0; } button.s { background:var(--track); color:#fff; font-weight:600; }
   .st { color:var(--muted); font-size:.85rem; min-height:1.2em; } .err { color:#ff8da1; }
   ul.t, ul.t ul { list-style:none; margin:0; padding:0; } ul.t ul { margin-left:14px; padding-left:18px; border-left:2px solid var(--line); }
-  ul.t li { position:relative; } ul.t ul > li::before { content:""; position:absolute; left:-18px; top:24px; width:14px; border-top:2px solid var(--line); }
-  .row { display:grid; grid-template-columns:22px minmax(0,1fr) auto; gap:4px 10px; align-items:center; padding:7px 6px; border-radius:10px; border:2px solid transparent; }
-  .row:hover { background:#00305a66; }
+  ul.t li { position:relative; } ul.t ul > li::before { content:""; position:absolute; left:-18px; top:38px; width:14px; border-top:2px solid var(--line); }
+  .row { display:grid; grid-template-columns:22px minmax(0,1fr) auto; grid-template-areas:"g n a" ". t t"; gap:6px 10px; align-items:center; padding:10px 12px; border-radius:12px; border:2px solid var(--line); background:#00264b; max-width:620px; margin:10px 0 0; }
+  .row:hover { border-color:#5d84b0; }
+  .row .grip { grid-area:g; } .row .nm { grid-area:n; } .row .tags { grid-area:t; justify-content:flex-start; } .row .act { grid-area:a; display:flex; gap:6px; }
   .row.dragging { opacity:.4; } .row.in { border-color:var(--accent); background:#ff99cc22; }
   .row.bf { box-shadow:0 -3px 0 var(--accent); } .row.af { box-shadow:0 3px 0 var(--accent); }
   .grip { cursor:grab; color:var(--muted); font-size:1.1rem; text-align:center; user-select:none; }
@@ -34,14 +35,16 @@
   select.a-public { background:var(--pubb); color:var(--pub); border-color:var(--pub); } select.a-any { background:var(--anyb); color:var(--any); border-color:var(--any); } select.a-roles { background:var(--rolb); color:var(--rol); border-color:var(--rol); }
   select.m-locked { background:var(--lkb); color:var(--lk); border-color:var(--lk); }
   .ib { padding:3px 9px; font-size:.9rem; background:var(--track); color:#fff; }
-  .roles { margin:0 0 6px 34px; padding:6px 10px; background:#00264b; border-radius:8px; }
+  .roles { max-width:620px; margin:4px 0 0; padding:6px 10px; background:#00264b; border-radius:8px; }
   label.cb { display:inline-flex; align-items:center; gap:5px; margin:2px 12px 2px 0; font-size:.85rem; white-space:nowrap; } label.cb input { padding:0; }
+  .top { max-width:620px; margin:0 0 4px; padding:12px 14px; border-radius:12px; background:var(--accent); color:#001f3d; font-weight:700; }
+  .spine { margin-left:14px; padding-left:18px; border-left:2px solid var(--line); }
   .root { font-weight:700; text-transform:uppercase; letter-spacing:.06em; font-size:.82rem; color:var(--muted); padding:8px 6px; border:2px dashed transparent; border-radius:10px; margin-top:4px; }
   .root.in { border-color:var(--accent); } .root small { text-transform:none; letter-spacing:0; font-weight:400; margin-left:8px; }
   .add { display:flex; flex-wrap:wrap; gap:8px; } .add input { min-width:180px; }
   .adm-ro .row { grid-template-columns:minmax(0,1fr) auto; opacity:.85; }
   .note { border-left:4px solid var(--lk); background:var(--lkb); padding:9px 12px; border-radius:8px; font-size:.9rem; margin:0 0 12px; }
-  @media (max-width:640px) { .row { grid-template-columns:22px minmax(0,1fr); } .tags { grid-column:1 / -1; justify-content:flex-start; } }
+  
 </style>
 </head>
 <body>
@@ -49,7 +52,7 @@
   <div id="gate" hidden style="color:var(--muted)">Lépj be a menüsorban adminként Google-fiókkal, utána itt szerkeszthető az oldaltérkép.</div>
   <div id="app" hidden>
     <h2>Oldaltérkép és jogosultságok</h2>
-    <p class="h">Ez a rajz az oldal tényleges szerkezete. Húzd a ⠿ fogantyút: a sor fölé vagy alá ejtve sorrendet cserélsz, a sor közepére ejtve aloldal lesz belőle. A változás azonnal mentődik, és a menü, valamint a hozzáférések ebből épülnek.</p>
+    <p class="h">Ez a rajz az oldal tényleges szerkezete. Húzd a ⠿ fogantyút: a sor fölé vagy alá ejtve sorrendet cserélsz, a sor közepére ejtve aloldal lesz belőle. A fa fentről lefelé halad: a főmenü a gyökér, alatta az oldalak, azok alatt az aloldalak. A változás azonnal mentődik, és a menü, valamint a hozzáférések ebből épülnek.</p>
     <div class="panel">
       <div class="bar">
         <input id="nt" placeholder="Új menüpont neve" aria-label="Új menüpont neve">
@@ -138,10 +141,11 @@
         const cur = it.access; as.value = !cur || cur === "public" ? "public" : cur === "any" ? "any" : "roles"; as.className = "a-" + as.value;
         as.onchange = () => { it.access = as.value === "public" ? "public" : as.value === "any" ? "any" : (Array.isArray(it.access) ? it.access : []); changed(); }; tg.appendChild(as);
       } else if (isSub) { const c = document.createElement("span"); c.className = "chip"; c.textContent = "az oldal jogosultsága"; tg.appendChild(c); }
-      if (depth < 2) { const ab = document.createElement("button"); ab.type = "button"; ab.className = "ib"; ab.textContent = "+"; ab.title = "Aloldal hozzáadása"; ab.onclick = () => addSub(it); tg.appendChild(ab); }
+      const act = document.createElement("div"); act.className = "act";
+      if (depth < 2) { const ab = document.createElement("button"); ab.type = "button"; ab.className = "ib"; ab.textContent = "+"; ab.title = "Aloldal hozzáadása"; ab.onclick = () => addSub(it); act.appendChild(ab); }
       const db_ = document.createElement("button"); db_.type = "button"; db_.className = "ib"; db_.textContent = "×"; db_.title = "Törlés (az aloldalak feljebb kerülnek)";
       db_.onclick = () => { if (db_.dataset.sure) { kids(it.id).forEach(k => k.parent = it.parent); items = items.filter(x => x !== it); changed(); } else { db_.dataset.sure = 1; db_.textContent = "Biztos?"; setTimeout(() => { db_.dataset.sure = ""; db_.textContent = "×"; }, 2500); } };
-      tg.appendChild(db_); row.appendChild(tg);
+      act.appendChild(db_); row.appendChild(act); row.appendChild(tg);
       row.addEventListener("dragstart", e => { drag = it.id; row.classList.add("dragging"); try { e.dataTransfer.setData("text/plain", it.id); e.dataTransfer.effectAllowed = "move"; } catch (x) {} });
       row.addEventListener("dragend", () => { drag = null; row.classList.remove("dragging"); clearMarks(); });
       row.addEventListener("dragover", e => { if (!drag || drag === it.id || isDesc(it.id, drag)) return; e.preventDefault(); const z = zone(row, e); clearMarks(); row.classList.add(z === "in" ? "in" : z === "bf" ? "bf" : "af"); });
@@ -172,11 +176,11 @@
     function render() {
       const t = $("tree"); t.textContent = "";
       [["menu","Főmenü (oldalsáv)","a menüben látszanak"],["out","Menün kívüli oldalak","linkről vagy logóról érhetők el"]].forEach(([rid, name, sub]) => {
-        const h = document.createElement("div"); h.className = "root"; h.textContent = name; const sm = document.createElement("small"); sm.textContent = sub; h.appendChild(sm);
+        const h = document.createElement("div"); h.className = rid === "menu" ? "top" : "top"; if (rid === "out") h.style.background = "var(--track)", h.style.color = "#fff"; h.textContent = name; const sm = document.createElement("small"); sm.style.cssText = "font-weight:400;margin-left:10px;opacity:.8"; sm.textContent = sub; h.appendChild(sm);
         h.addEventListener("dragover", e => { if (!drag) return; e.preventDefault(); clearMarks(); h.classList.add("in"); });
         h.addEventListener("drop", e => { if (!drag) return; e.preventDefault(); clearMarks(); moveRoot(drag, rid); });
         t.appendChild(h);
-        const ul = document.createElement("ul"); ul.className = "t"; kids(rid).forEach(it => ul.appendChild(rowFor(it, 1))); t.appendChild(ul);
+        const ul = document.createElement("ul"); ul.className = "t spine"; ul.style.marginBottom = "18px"; kids(rid).forEach(it => ul.appendChild(rowFor(it, 1))); t.appendChild(ul);
       });
     }
     $("nadd").onclick = () => { const ti = $("nt").value.trim(); if (!ti) { say("Add meg az új menüpont nevét.", 1); return; } items.push({ id: uid(), title: ti, href: $("nh").value.trim(), parent: "menu", menu: "show", access: "public" }); $("nt").value = ""; $("nh").value = ""; changed(); };
