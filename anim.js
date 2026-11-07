@@ -1,3 +1,18 @@
+/* Oldaltérkép: a menüt az admin "Oldaltérkép" csempéje szabja meg (config/sitemap). Gyorsítótár: localStorage csk_sitemap */
+(function () {
+  var m = null; try { m = JSON.parse(localStorage.getItem("csk_sitemap") || "null"); } catch (e) {}
+  window.__cskMap = m && m.items ? m : null;
+  window.__cskKids = function (id) { return ((window.__cskMap && window.__cskMap.items) || []).filter(function (x) { return x.parent === id; }); };
+  if (self !== top) return;
+  fetch("firebase-config.json").then(function (r) { return r.json(); }).then(function (c) {
+    return fetch("https://firestore.googleapis.com/v1/projects/" + c.projectId + "/databases/(default)/documents/config/sitemap?key=" + c.apiKey);
+  }).then(function (r) { return r.status === 404 ? null : r.json(); }).then(function (d) {
+    var j = (d && d.fields && d.fields.json && d.fields.json.stringValue) || "", old = localStorage.getItem("csk_sitemap") || "";
+    if (j === old) return;
+    if (j) localStorage.setItem("csk_sitemap", j); else localStorage.removeItem("csk_sitemap");
+    if (sessionStorage.getItem("csk_smr") === j) return; sessionStorage.setItem("csk_smr", j); location.reload();
+  }).catch(function () {});
+})();
 /* Közös animációk: minden kattintásra visszajelzés (hullám + lenyomás), oldal be-/kifakulás */
 
 /* Oldalsó menüsáv: ikonok + címek, összecsukható (összecsukva csak az ikon látszik) */
@@ -25,6 +40,15 @@
   function init() {
     var nav = document.querySelector(".topnav"), host = nav && nav.querySelector(".in"), ul = host && host.querySelector("ul");
     if (!ul || self !== top || document.querySelector(".csk-sidebar")) return;
+    if (window.__cskMap) {
+      var curF = (location.pathname.split("/").pop() || "index.html"); ul.textContent = "";
+      window.__cskKids("menu").forEach(function (it) {
+        var li = document.createElement("li"), an = document.createElement("a"), lk = it.menu === "locked";
+        an.textContent = it.title + (lk ? " 🔒" : "");
+        if (!lk) { an.setAttribute("href", it.href || ("#g-" + it.id)); if (it.href && it.href === curF) an.setAttribute("aria-current", "page"); }
+        li.appendChild(an); ul.appendChild(li);
+      });
+    }
     var root = document.documentElement, KEY = "csk_side", mobile = function () { return window.innerWidth < 800; };
     var st = document.createElement("style");
     st.textContent =
@@ -94,6 +118,7 @@
 /* Almenü: a lefelé nyíllal jelölt menüpontra kattintva lenyílnak az aloldalak */
 (function () {
   var SUB = { "verseny.html": [["Erdélyi Incentive", "verseny.html#erdely"], ["Téli Incentive", "verseny.html#teli"], ["2026 Lengyelország karácsony", "verseny.html#lengyel"]]};
+  if (window.__cskMap) { SUB = {}; window.__cskKids("menu").forEach(function (it) { var ch = window.__cskKids(it.id); if (ch.length && it.menu !== "locked") SUB[it.href || ("#g-" + it.id)] = ch.map(function (c) { return [c.title, c.href || "#"]; }); }); }
   function init() {
     var nav = document.querySelector(".topnav"); if (!nav) return;
     var st = document.createElement("style");
@@ -114,7 +139,7 @@
       if (cur) { cur.classList.remove("csk-open"); cur.setAttribute("aria-expanded", "false"); } cur = null;
     }
     document.querySelectorAll(".topnav li > a[href], .csk-sidebar li > a[href]").forEach(function (a) {
-      var key = (a.getAttribute("href") || "").split("#")[0]; var items = SUB[key]; if (!items) return;
+      var fullH = a.getAttribute("href") || "", key = fullH.split("#")[0]; var items = SUB[fullH] || SUB[key]; if (!items) return;
       var ch = document.createElement("span"); ch.className = "csk-chev"; ch.setAttribute("aria-hidden", "true"); ch.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'; a.appendChild(ch);
       a.setAttribute("aria-haspopup", "true"); a.setAttribute("aria-expanded", "false");
       a.addEventListener("click", function (e) {
@@ -244,5 +269,5 @@
       var st=document.createElement("style");st.textContent="html.csk-prelock body > *:not(#csk-lock){visibility:hidden!important}";document.head.appendChild(st);document.documentElement.classList.add("csk-prelock");
     }
   }catch(e){}
-  var s=document.createElement("script");s.type="module";s.src="auth.js?v=8";document.head.appendChild(s);
+  var s=document.createElement("script");s.type="module";s.src="auth.js?v=9";document.head.appendChild(s);
 })();

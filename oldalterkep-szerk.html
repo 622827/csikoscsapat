@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Oldaltérkép és jogosultságok</title>
+<style>
+  :root { --bg:#001f3d; --ink:#fff; --muted:#99bbdd; --accent:#ff99cc; --track:#00305a; --card:#003366; --line:#2b5686;
+    --pub:#5bd69b; --pubb:#123a2a; --any:#7fb0ff; --anyb:#172f58; --rol:#c29bff; --rolb:#2b1f48; --lk:#f2b84b; --lkb:#46330c; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:"Instrument Sans",system-ui,sans-serif; padding:24px 16px 48px; }
+  html.emb body { padding-top:6px; }
+  main { max-width:1100px; margin:0 auto; }
+  h2 { font-size:1.2rem; margin:0 0 4px; } .h { color:var(--muted); font-size:.92rem; margin:0 0 12px; }
+  .bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 14px; }
+  .panel { background:var(--card); border:3px solid var(--track); border-radius:16px; padding:14px 16px; margin-bottom:16px; }
+  input, select, button { font:inherit; padding:7px 10px; border-radius:8px; border:1px solid #3a6a9a; background:#00264b; color:#fff; }
+  button { cursor:pointer; font-weight:700; background:var(--accent); color:#001f3d; border:0; } button.s { background:var(--track); color:#fff; font-weight:600; }
+  .st { color:var(--muted); font-size:.85rem; min-height:1.2em; } .err { color:#ff8da1; }
+  ul.t, ul.t ul { list-style:none; margin:0; padding:0; } ul.t ul { margin-left:14px; padding-left:18px; border-left:2px solid var(--line); }
+  ul.t li { position:relative; } ul.t ul > li::before { content:""; position:absolute; left:-18px; top:24px; width:14px; border-top:2px solid var(--line); }
+  .row { display:grid; grid-template-columns:22px minmax(0,1fr) auto; gap:4px 10px; align-items:center; padding:7px 6px; border-radius:10px; border:2px solid transparent; }
+  .row:hover { background:#00305a66; }
+  .row.dragging { opacity:.4; } .row.in { border-color:var(--accent); background:#ff99cc22; }
+  .row.bf { box-shadow:0 -3px 0 var(--accent); } .row.af { box-shadow:0 3px 0 var(--accent); }
+  .grip { cursor:grab; color:var(--muted); font-size:1.1rem; text-align:center; user-select:none; }
+  .nm { min-width:0; } .nm input.tt { width:100%; max-width:340px; font-weight:700; background:transparent; border:1px solid transparent; padding:3px 6px; }
+  .nm input.tt:hover, .nm input.tt:focus { border-color:#3a6a9a; background:#00264b; }
+  .nm code { display:block; font-family:ui-monospace,Menlo,monospace; font-size:.74rem; color:var(--muted); padding-left:6px; overflow-wrap:anywhere; }
+  .tags { display:flex; flex-wrap:wrap; gap:6px; align-items:center; justify-content:flex-end; }
+  .chip { font-size:.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:3px 9px; border-radius:999px; border:1px dashed #5d84b0; color:var(--muted); white-space:nowrap; }
+  .tags select { padding:4px 8px; font-size:.82rem; font-weight:700; border-radius:999px; }
+  select.a-public { background:var(--pubb); color:var(--pub); border-color:var(--pub); } select.a-any { background:var(--anyb); color:var(--any); border-color:var(--any); } select.a-roles { background:var(--rolb); color:var(--rol); border-color:var(--rol); }
+  select.m-locked { background:var(--lkb); color:var(--lk); border-color:var(--lk); }
+  .ib { padding:3px 9px; font-size:.9rem; background:var(--track); color:#fff; }
+  .roles { margin:0 0 6px 34px; padding:6px 10px; background:#00264b; border-radius:8px; }
+  label.cb { display:inline-flex; align-items:center; gap:5px; margin:2px 12px 2px 0; font-size:.85rem; white-space:nowrap; } label.cb input { padding:0; }
+  .root { font-weight:700; text-transform:uppercase; letter-spacing:.06em; font-size:.82rem; color:var(--muted); padding:8px 6px; border:2px dashed transparent; border-radius:10px; margin-top:4px; }
+  .root.in { border-color:var(--accent); } .root small { text-transform:none; letter-spacing:0; font-weight:400; margin-left:8px; }
+  .add { display:flex; flex-wrap:wrap; gap:8px; } .add input { min-width:180px; }
+  .adm-ro .row { grid-template-columns:minmax(0,1fr) auto; opacity:.85; }
+  .note { border-left:4px solid var(--lk); background:var(--lkb); padding:9px 12px; border-radius:8px; font-size:.9rem; margin:0 0 12px; }
+  @media (max-width:640px) { .row { grid-template-columns:22px minmax(0,1fr); } .tags { grid-column:1 / -1; justify-content:flex-start; } }
+</style>
+</head>
+<body>
+<main>
+  <div id="gate" hidden style="color:var(--muted)">Lépj be a menüsorban adminként Google-fiókkal, utána itt szerkeszthető az oldaltérkép.</div>
+  <div id="app" hidden>
+    <h2>Oldaltérkép és jogosultságok</h2>
+    <p class="h">Ez a rajz az oldal tényleges szerkezete. Húzd a ⠿ fogantyút: a sor fölé vagy alá ejtve sorrendet cserélsz, a sor közepére ejtve aloldal lesz belőle. A változás azonnal mentődik, és a menü, valamint a hozzáférések ebből épülnek.</p>
+    <div class="panel">
+      <div class="bar">
+        <input id="nt" placeholder="Új menüpont neve" aria-label="Új menüpont neve">
+        <input id="nh" placeholder="Oldal címe (pl. ujoldal.html), üres = csoport" aria-label="Oldal címe">
+        <button id="nadd" type="button">Hozzáad a főmenühöz</button>
+        <button id="nsave" type="button" class="s">Mentés most</button>
+        <button id="nreset" type="button" class="s">Visszaállítás a jelenlegi állapotra</button>
+        <span id="ns" class="st"></span>
+      </div>
+      <div id="seednote" class="note" hidden>Ez a jelenlegi állapot, még nincs elmentve. Az első módosításkor vagy a „Mentés most" gombra a menü ebből épül.</div>
+      <div id="tree"></div>
+    </div>
+    <div class="panel adm-ro">
+      <h2>Admin felület</h2>
+      <p class="h">Az admin oldal csempéi: jelszóval védettek, ezek elrendezését itt nem lehet húzni.</p>
+      <div id="admro"></div>
+    </div>
+  </div>
+</main>
+<script type="module">
+  await new Promise(r => { (function w() { if (window.CSK && window.CSK.ready) r(); else setTimeout(w, 100); })(); });
+  const C = await window.CSK.ready;
+  const $ = id => document.getElementById(id);
+  if (!C || !C.isAdmin) { $("gate").hidden = false; }
+  else {
+    $("app").hidden = false;
+    const { db, Fs, ROLES } = C;
+    const TAGS = [["gyakornok","Gyakornok"],["reprezentans","Reprezentáns"],["vezetojelolt","Vezetőjelölt"],["vj1","Modul I"],["vj2","Modul II"],["vj3","Modul III"],["gts","GST"],["bl","BL"],["asszisztens","Asszisztens"]];
+    const LEGACY = { "negyedev.html":"BLBD","verseny.html":"BLBD","elemzo.html":"BLBD","vizsga.html":"BLBD","kampanynaptar.html":"BLBD","ppt.html":"BLBD","webshop.html":"BLBD / RDLD","onodicsapat.html":"saját jelszó","teljesitmeny.html":"BLBD + RDLD" };
+    const SEED = [
+      ["home","Kezdőlap","index.html","menu"],["neg","Negyedéves cél","negyedev.html","menu"],["ver","Versenyek és utazások","verseny.html","menu"],
+      ["ver1","Erdélyi Incentive","verseny.html#erdely","ver"],["ver2","Téli Incentive","verseny.html#teli","ver"],["ver3","2026 Lengyelország karácsony","verseny.html#lengyel","ver"],
+      ["elem","Elemző füzet","elemzo.html","menu"],["tel","Teljesítmény","teljesitmeny-uj.html","menu"],["viz","Vizsga gyakorló","vizsga.html","menu"],
+      ["kam","Kampánynaptár","kampanynaptar.html","menu","locked"],["ppt","Tanácsadó PPT generátor","ppt.html","menu","locked"],["vj","Vezetőjelölti","","menu","locked"],
+      ["onodi","Ónodi csapat","onodicsapat.html","out"],["onodih","Ónodi Start bónusz haladás","onodi-haladas.html","out"],["csikh","Csikós Start bónusz haladás","csikos-haladas.html","out"],
+      ["felber","Felber csapat","felbercsapat.html","out"],["ceg","Cégbemutató","cegbemutato-nomenu.html","out"],["flotta","Telefonszámla – mennyit fizetek?","flotta-fizetes.html","out"],
+      ["web","Webshop","webshop.html","out"],["telr","Teljesítmény (régi)","teljesitmeny.html","out"] ];
+    const ADMIN_TILES = [["Vezetői eszközök","Felhasználók · Oldaltérkép · Start bónusz · Kampánynaptár · Asszisztensi feladatok · Elemzések utáni teendők · Kifogáskezelő · PPT kategóriák · Webshop"],["Pénzügyi","Csapatkassza · Iroda kassza (külön kassza jelszóval)"],["Könyvelés","TSC · Számlák · OVB flotta · Magánköltségvetés"]];
+    $("admro").innerHTML = ADMIN_TILES.map(t => `<div class="row"><div class="nm"><b></b><code></code></div><div class="tags"><span class="chip">admin jelszó</span></div></div>`).join("");
+    [...$("admro").querySelectorAll(".row")].forEach((r, i) => { r.querySelector("b").textContent = ADMIN_TILES[i][0]; r.querySelector("code").textContent = ADMIN_TILES[i][1]; });
+
+    let items = [], timer = null, seeded = false, drag = null;
+    const say = (t, e) => { const n = $("ns"); n.textContent = t; n.className = "st" + (e ? " err" : ""); };
+    const kids = pid => items.filter(x => x.parent === pid);
+    const isDesc = (id, anc) => { let p = items.find(x => x.id === id); while (p) { if (p.id === anc) return true; p = items.find(x => x.id === p.parent); } return false; };
+    const uid = () => "n" + Date.now().toString(36) + Math.floor(Math.random() * 1e3);
+
+    async function seedItems() {
+      let legacy = {}; try { const s = await Fs.getDoc(Fs.doc(db, "config", "access")); if (s.exists()) legacy = s.data().pages || {}; } catch (e) {}
+      return SEED.map(([id, title, href, parent, menu]) => ({ id, title, href, parent, menu: menu || "show", access: legacy[href.split("#")[0]] || "public" }));
+    }
+    async function load() {
+      let m = null; try { const s = await Fs.getDoc(Fs.doc(db, "config", "sitemap")); if (s.exists() && s.data().json) m = JSON.parse(s.data().json); } catch (e) {}
+      if (m && m.items) { items = m.items; seeded = false; } else { items = await seedItems(); seeded = true; }
+      $("seednote").hidden = !seeded; render();
+    }
+    function save(now) {
+      clearTimeout(timer); say("Mentés…");
+      const go = () => Fs.setDoc(Fs.doc(db, "config", "sitemap"), { json: JSON.stringify({ v: 1, items }), upd: new Date().toISOString() })
+        .then(() => { seeded = false; $("seednote").hidden = true; say("Elmentve. A menü és a hozzáférések frissülnek."); }, e => say("Hiba: " + e.message, 1));
+      if (now) go(); else timer = setTimeout(go, 600);
+    }
+    const changed = () => { render(); save(); };
+
+    function rowFor(it, depth) {
+      const li = document.createElement("li"); li.dataset.id = it.id;
+      const row = document.createElement("div"); row.className = "row"; row.draggable = true;
+      const grip = document.createElement("span"); grip.className = "grip"; grip.textContent = "⠿"; grip.title = "Húzd máshova"; row.appendChild(grip);
+      const nm = document.createElement("div"); nm.className = "nm";
+      const ti = document.createElement("input"); ti.className = "tt"; ti.value = it.title; ti.setAttribute("aria-label", "Név");
+      ti.onchange = () => { it.title = ti.value.trim() || it.title; save(); };
+      const co = document.createElement("code"); co.textContent = it.href || (it.parent === "menu" ? "csoport (nincs saját oldal)" : "–");
+      nm.appendChild(ti); nm.appendChild(co); row.appendChild(nm);
+      const tg = document.createElement("div"); tg.className = "tags";
+      const file = (it.href || "").split("#")[0];
+      if (LEGACY[file]) { const c = document.createElement("span"); c.className = "chip"; c.textContent = "jelszókapu: " + LEGACY[file]; c.title = "Az oldalba kódolt régi jelszókapu, a Google-belépés mellett működik"; tg.appendChild(c); }
+      if (it.parent !== "out") {
+        const ms = document.createElement("select"); ms.setAttribute("aria-label", "Menüben");
+        [["show","Menüben látszik"],["locked","Menüben lezárva 🔒"]].forEach(([v, l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; ms.appendChild(o); });
+        ms.value = it.menu === "locked" ? "locked" : "show"; ms.className = "m-" + ms.value; ms.onchange = () => { it.menu = ms.value; changed(); }; tg.appendChild(ms);
+      }
+      const isSub = (it.href || "").indexOf("#") >= 0;
+      if (it.href && !isSub) {
+        const as = document.createElement("select"); as.setAttribute("aria-label", "Ki láthatja (Google-belépés)");
+        [["public","Nyilvános"],["any","Bármely belépett"],["roles","Kiválasztott csoportok"]].forEach(([v, l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; as.appendChild(o); });
+        const cur = it.access; as.value = !cur || cur === "public" ? "public" : cur === "any" ? "any" : "roles"; as.className = "a-" + as.value;
+        as.onchange = () => { it.access = as.value === "public" ? "public" : as.value === "any" ? "any" : (Array.isArray(it.access) ? it.access : []); changed(); }; tg.appendChild(as);
+      } else if (isSub) { const c = document.createElement("span"); c.className = "chip"; c.textContent = "az oldal jogosultsága"; tg.appendChild(c); }
+      if (depth < 2) { const ab = document.createElement("button"); ab.type = "button"; ab.className = "ib"; ab.textContent = "+"; ab.title = "Aloldal hozzáadása"; ab.onclick = () => addSub(it); tg.appendChild(ab); }
+      const db_ = document.createElement("button"); db_.type = "button"; db_.className = "ib"; db_.textContent = "×"; db_.title = "Törlés (az aloldalak feljebb kerülnek)";
+      db_.onclick = () => { if (db_.dataset.sure) { kids(it.id).forEach(k => k.parent = it.parent); items = items.filter(x => x !== it); changed(); } else { db_.dataset.sure = 1; db_.textContent = "Biztos?"; setTimeout(() => { db_.dataset.sure = ""; db_.textContent = "×"; }, 2500); } };
+      tg.appendChild(db_); row.appendChild(tg);
+      row.addEventListener("dragstart", e => { drag = it.id; row.classList.add("dragging"); try { e.dataTransfer.setData("text/plain", it.id); e.dataTransfer.effectAllowed = "move"; } catch (x) {} });
+      row.addEventListener("dragend", () => { drag = null; row.classList.remove("dragging"); clearMarks(); });
+      row.addEventListener("dragover", e => { if (!drag || drag === it.id || isDesc(it.id, drag)) return; e.preventDefault(); const z = zone(row, e); clearMarks(); row.classList.add(z === "in" ? "in" : z === "bf" ? "bf" : "af"); });
+      row.addEventListener("drop", e => { if (!drag || drag === it.id || isDesc(it.id, drag)) return; e.preventDefault(); const z = zone(row, e); clearMarks(); moveTo(drag, it, z); });
+      li.appendChild(row);
+      if (Array.isArray(it.access) && it.href && !isSub) {
+        const rl = document.createElement("div"); rl.className = "roles";
+        TAGS.forEach(([k, lab]) => { const l = document.createElement("label"); l.className = "cb"; const i = document.createElement("input"); i.type = "checkbox"; i.checked = it.access.indexOf(k) >= 0; i.onchange = () => { it.access = TAGS.map(t => t[0]).filter(t => (t === k ? i.checked : it.access.indexOf(t) >= 0)); save(); }; l.appendChild(i); l.appendChild(document.createTextNode(lab)); rl.appendChild(l); });
+        li.appendChild(rl);
+      }
+      const ch = kids(it.id);
+      if (ch.length) { const ul = document.createElement("ul"); ch.forEach(c => ul.appendChild(rowFor(c, depth + 1))); li.appendChild(ul); }
+      return li;
+    }
+    function addSub(parent) {
+      const t = "Új aloldal"; const it = { id: uid(), title: t, href: "", parent: parent.id, menu: "show", access: "public" };
+      items.push(it); changed();
+    }
+    function zone(row, e) { const r = row.getBoundingClientRect(), y = (e.clientY - r.top) / r.height; return y < .28 ? "bf" : y > .72 ? "af" : "in"; }
+    function clearMarks() { document.querySelectorAll(".in,.bf,.af").forEach(n => n.classList.remove("in", "bf", "af")); }
+    function moveTo(id, target, z) {
+      const it = items.find(x => x.id === id); items = items.filter(x => x !== it);
+      if (z === "in") { it.parent = target.id; items.push(it); }
+      else { it.parent = target.parent; const ix = items.indexOf(target); items.splice(z === "bf" ? ix : ix + 1, 0, it); }
+      changed();
+    }
+    function moveRoot(id, root) { const it = items.find(x => x.id === id); if (!it || isDesc(root, id)) return; items = items.filter(x => x !== it); it.parent = root; items.push(it); changed(); }
+    function render() {
+      const t = $("tree"); t.textContent = "";
+      [["menu","Főmenü (oldalsáv)","a menüben látszanak"],["out","Menün kívüli oldalak","linkről vagy logóról érhetők el"]].forEach(([rid, name, sub]) => {
+        const h = document.createElement("div"); h.className = "root"; h.textContent = name; const sm = document.createElement("small"); sm.textContent = sub; h.appendChild(sm);
+        h.addEventListener("dragover", e => { if (!drag) return; e.preventDefault(); clearMarks(); h.classList.add("in"); });
+        h.addEventListener("drop", e => { if (!drag) return; e.preventDefault(); clearMarks(); moveRoot(drag, rid); });
+        t.appendChild(h);
+        const ul = document.createElement("ul"); ul.className = "t"; kids(rid).forEach(it => ul.appendChild(rowFor(it, 1))); t.appendChild(ul);
+      });
+    }
+    $("nadd").onclick = () => { const ti = $("nt").value.trim(); if (!ti) { say("Add meg az új menüpont nevét.", 1); return; } items.push({ id: uid(), title: ti, href: $("nh").value.trim(), parent: "menu", menu: "show", access: "public" }); $("nt").value = ""; $("nh").value = ""; changed(); };
+    $("nsave").onclick = () => save(true);
+    $("nreset").onclick = async () => { const b = $("nreset"); if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = "Biztos? Kattints még egyszer"; setTimeout(() => { b.dataset.sure = ""; b.textContent = "Visszaállítás a jelenlegi állapotra"; }, 3000); return; } b.dataset.sure = ""; b.textContent = "Visszaállítás a jelenlegi állapotra"; items = await seedItems(); render(); save(true); };
+    await load();
+  }
+  if (self !== top) { document.documentElement.classList.add("emb"); const s = () => { try { parent.postMessage({ embh: document.documentElement.scrollHeight }, location.origin); } catch (e) {} }; new ResizeObserver(s).observe(document.documentElement); setInterval(s, 1200); }
+</script>
+<script src="anim.js?v=43" defer></script>
+</body>
+</html>

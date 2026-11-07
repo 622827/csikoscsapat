@@ -39,8 +39,7 @@
       <div class="st" id="us"></div>
     </div>
     <h2>Oldalak hozzáférése</h2>
-    <p class="h">Alapból minden oldal nyilvános. Itt lehet egy oldalt belépéshez kötni, vagy csak bizonyos szintekhez. Az Admin mindent lát. A beállítás automatikusan mentődik.</p>
-    <div class="c"><table><thead><tr><th>Oldal</th><th>Ki láthatja</th><th>Kik (pozíció / modul / asszisztens)</th></tr></thead><tbody id="pb"></tbody></table><div class="st" id="ps"></div></div>
+    <p class="h">Az oldalak hozzáférését az admin <b>Oldaltérkép</b> csempéjén állíthatod, ott húzogatható rajzon látszik minden oldal és aloldal.</p>
   </div>
 </main>
 <script type="module">
@@ -98,22 +97,9 @@
     };
     await loadUsers().catch(e => say("us", "Hiba: " + e.message, 1));
 
-    let acc = {...(C.access || {})}, t = null;
-    function save() { clearTimeout(t); t = setTimeout(() => Fs.setDoc(Fs.doc(db, "config", "access"), { pages: acc, upd: new Date().toISOString() }).then(() => say("ps", "Mentve."), e => say("ps", "Hiba: " + e.message, 1)), 500); }
-    const pb = $("pb");
-    PAGES.forEach(([f, n]) => {
-      const tr = document.createElement("tr"), c1 = document.createElement("td"), c2 = document.createElement("td"), c3 = document.createElement("td");
-      c1.textContent = n;
-      const ms = document.createElement("select"); [["public", "Nyilvános"], ["any", "Bármely belépett"], ["roles", "Kiválasztott csoportok"]].forEach(([v, l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; ms.appendChild(o); });
-      const cur = acc[f]; ms.value = !cur || cur === "public" ? "public" : cur === "any" ? "any" : "roles";
-      const cbs = TAGS.map(([k, lab]) => { const l = document.createElement("label"); l.className = "cb"; const i = document.createElement("input"); i.type = "checkbox"; i.value = k; i.checked = Array.isArray(cur) && cur.indexOf(k) >= 0; l.appendChild(i); l.appendChild(document.createTextNode(lab)); c3.appendChild(l); return i; });
-      function upd() { c3.style.display = ms.value === "roles" ? "" : "none"; if (ms.value === "public") delete acc[f]; else if (ms.value === "any") acc[f] = "any"; else acc[f] = cbs.filter(i => i.checked).map(i => i.value); save(); }
-      ms.onchange = upd; cbs.forEach(i => i.onchange = upd); c3.style.display = ms.value === "roles" ? "" : "none";
-      c2.appendChild(ms); tr.append(c1, c2, c3); pb.appendChild(tr);
-    });
   }
   if (self !== top) { document.documentElement.classList.add("emb"); const s = () => { try { parent.postMessage({ embh: document.documentElement.scrollHeight }, location.origin); } catch (e) {} }; new ResizeObserver(s).observe(document.documentElement); setInterval(s, 1200); }
 </script>
-<script src="anim.js?v=42" defer></script>
+<script src="anim.js?v=43" defer></script>
 </body>
 </html>

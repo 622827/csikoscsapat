@@ -18,7 +18,11 @@ CSK.ready = (async function () {
   CSK.signOut = () => Au.signOut(auth);
 
   let acc = {};
-  try { const s = await Fs.getDoc(Fs.doc(db, "config", "access")); if (s.exists()) acc = s.data().pages || {}; } catch (e) { acc = JSON.parse(ls.get("csk_acc") || "{}"); }
+  try {
+    const sm = await Fs.getDoc(Fs.doc(db, "config", "sitemap"));
+    if (sm.exists() && sm.data().json) { const m = JSON.parse(sm.data().json); (m.items || []).forEach(it => { if (it.href && it.href.indexOf("#") < 0) acc[it.href] = it.access || "public"; }); }
+    else { const s = await Fs.getDoc(Fs.doc(db, "config", "access")); if (s.exists()) acc = s.data().pages || {}; }
+  } catch (e) { acc = JSON.parse(ls.get("csk_acc") || "{}"); }
   CSK.access = acc; ls.set("csk_acc", JSON.stringify(acc));
 
   await new Promise(res => Au.onAuthStateChanged(auth, async u => {
