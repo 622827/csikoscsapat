@@ -551,6 +551,7 @@
      A jelszót a script ellenőrzi (Szkripttulajdonságok: ADMIN_PASSWORD), az oldalon nincs tárolva. */
   var KAPI = "https://script.google.com/macros/s/AKfycbxmv7vYoK5dEbxdeDh53MZEcYG_KKAB_6FzWbetacIrK6Due1t-alLccqqbpEq1-9Rk/exec";
   window.addEventListener("error", function (ev) { try { var m = document.querySelector("main"), q = document.getElementById("kp-jserr") || m.appendChild(Object.assign(document.createElement("p"), { id: "kp-jserr", style: "color:#e57;margin-top:18px;font-size:.9rem" })); q.textContent = "Oldalhiba: " + (ev.message || "ismeretlen") + (ev.lineno ? " (sor " + ev.lineno + ")" : ""); } catch (e) {} });
+  try { if (location.hash === "#webshop" && !sessionStorage.getItem("csk_admin")) { location.replace("webshop.html"); } } catch (e) {}
   var AK = "csk_admin", $ = function (id) { return document.getElementById(id); };
   var HO = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
   var D = null, view = "sum", fdir = "";
@@ -1724,6 +1725,6 @@
   window.mgOpen = function () { load(); };
 })();
 </script>
-<script src="anim.js?v=39" defer></script>
+<script src="anim.js?v=40" defer></script>
 </body>
 </html>

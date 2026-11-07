@@ -164,13 +164,14 @@
   }
   var PRICE = { nj: 2500, pe: 2000, ku: 12000 };
   var PW = "";
-  var H = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2";
+  var H = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2";  /* RDLD */
+  var HOK = [H, "1d64403b498a5a08df18ef1619ecdb8d54a53355617936e178e480894a9e2d14"];  /* RDLD, BLBD */
   function open() { $("gate").hidden = true; $("app").hidden = false; }
-  try { if (sessionStorage.getItem("ws_ok") === H) { PW = sessionStorage.getItem("ws_pw") || ""; open(); } } catch (e) {}
+  try { if (HOK.indexOf(sessionStorage.getItem("ws_ok")) >= 0) { PW = sessionStorage.getItem("ws_pw") || ""; open(); } } catch (e) {}
   $("gform").addEventListener("submit", function (ev) {
     ev.preventDefault();
     sha($("gpw").value.trim()).then(function (h) {
-      if (h === H) { PW = $("gpw").value.trim(); try { sessionStorage.setItem("ws_ok", H); sessionStorage.setItem("ws_pw", PW); } catch (e) {} $("gerr").textContent = ""; open(); }
+      if (HOK.indexOf(h) >= 0) { PW = $("gpw").value.trim(); try { sessionStorage.setItem("ws_ok", h); sessionStorage.setItem("ws_pw", PW); } catch (e) {} $("gerr").textContent = ""; open(); }
       else { $("gerr").textContent = "Hibás jelszó."; $("gpw").select(); }
     });
   });
@@ -272,6 +273,6 @@
     b.addEventListener("focus", show); b.addEventListener("blur", hide);
     b.addEventListener("click", function (ev) { ev.preventDefault(); ev.stopPropagation(); if (t) hide(); else { show(); tm = setTimeout(hide, 5000); } }); })();
 </script>
-<script src="anim.js?v=39" defer></script>
+<script src="anim.js?v=40" defer></script>
 </body>
 </html>
