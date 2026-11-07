@@ -49,7 +49,7 @@
     const { db, Fs, ROLES } = C;
     const MODS = C.MODULES;
     const ROLE_KEYS = Object.keys(ROLES).filter(k => k !== "admin");
-    const TAGS = [["gyakornok","Gyakornok"],["reprezentans","Reprezentáns"],["vezetojelolt","Vezetőjelölt (bármely modul)"],["vj1","Vezetőjelölt – Modul I"],["vj2","Vezetőjelölt – Modul II"],["vj3","Vezetőjelölt – Modul III"],["gts","GTS"],["bl","BL"],["asszisztens","Asszisztens"]];
+    const TAGS = [["gyakornok","Gyakornok"],["reprezentans","Reprezentáns"],["vezetojelolt","Vezetőjelölt (bármely modul)"],["vj1","Vezetőjelölt – Modul I"],["vj2","Vezetőjelölt – Modul II"],["vj3","Vezetőjelölt – Modul III"],["gts","GST"],["bl","BL"],["asszisztens","Asszisztens"]];
     const PAGES = [["index.html","Főoldal"],["negyedev.html","Negyedéves cél"],["verseny.html","Versenyek és utazások"],["elemzo.html","Elemző füzet"],["teljesitmeny-uj.html","Teljesítmény (Start bónusz)"],["vizsga.html","Vizsga gyakorló"],["kampanynaptar.html","Kampánynaptár"],["kifogas.html","Kifogáskezelő"],["ppt.html","PPT generátor"]];
     const sel = $("ar"); ROLE_KEYS.forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = ROLES[k]; sel.appendChild(o); });
     const msel = $("am"); [["0","– nincs modul –"],["1","Modul I"],["2","Modul II"],["3","Modul III"]].forEach(([v,l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; msel.appendChild(o); });
@@ -95,6 +95,6 @@
   }
   if (self !== top) { document.documentElement.classList.add("emb"); const s = () => { try { parent.postMessage({ embh: document.documentElement.scrollHeight }, location.origin); } catch (e) {} }; new ResizeObserver(s).observe(document.documentElement); setInterval(s, 1200); }
 </script>
-<script src="anim.js?v=33" defer></script>
+<script src="anim.js?v=34" defer></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 /* Google-belépés + fehérlista + szintek (Firebase Auth + Firestore users/config) */
 const V = "https://www.gstatic.com/firebasejs/10.14.1/";
 const ADMIN = "csikos.mate.ovb@gmail.com";
-const ROLES = { admin: "Admin", bl: "BL", gts: "GTS", vezetojelolt: "Vezetőjelölt", reprezentans: "Reprezentáns", gyakornok: "Gyakornok" };
+const ROLES = { admin: "Admin", bl: "BL", gts: "GST", vezetojelolt: "Vezetőjelölt", reprezentans: "Reprezentáns", gyakornok: "Gyakornok" };
 const MODULES = { 1: "Modul I", 2: "Modul II", 3: "Modul III" };
 const CSK = window.CSK = { ROLES, MODULES, ADMIN, user: null, role: null, modul: 0, asszisztens: false, tags: [], name: "", denied: "", ready: null };
 const top_ = self === top;
