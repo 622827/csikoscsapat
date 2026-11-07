@@ -235,3 +235,14 @@
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
 })();
+
+/* Belépés (Google) – csak betöltés, a logika az auth.js-ben */
+(function(){
+  try{
+    var k=(location.pathname.split("/").pop()||"index.html"),a=JSON.parse(localStorage.getItem("csk_acc")||"{}"),r=a[k],u=localStorage.getItem("csk_role");
+    if(self===top&&r&&r!=="public"&&!(u&&(u==="admin"||r==="any"||(typeof r!=="string"&&r.indexOf(u)>=0)))){
+      var st=document.createElement("style");st.textContent="html.csk-prelock body > *:not(#csk-lock){visibility:hidden!important}";document.head.appendChild(st);document.documentElement.classList.add("csk-prelock");
+    }
+  }catch(e){}
+  var s=document.createElement("script");s.type="module";s.src="auth.js?v=1";document.head.appendChild(s);
+})();

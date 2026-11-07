@@ -1,0 +1,18 @@
+// Ezt a két blokkot kell beilleszteni a meglévő Firestore szabályok közé
+// (a "match /databases/{database}/documents { ... }" belsejébe), a meglévő részeket NE töröld.
+
+    function csk_email() { return request.auth.token.email.lower(); }
+    function csk_admin() {
+      return request.auth != null && request.auth.token.email != null && (
+        csk_email() == 'csikos.mate.ovb@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(csk_email())) &&
+         get(/databases/$(database)/documents/users/$(csk_email())).data.role == 'admin'));
+    }
+    match /users/{u} {
+      allow read: if request.auth != null && request.auth.token.email != null && (csk_email() == u || csk_admin());
+      allow write: if csk_admin();
+    }
+    match /config/{d} {
+      allow read: if true;
+      allow write: if csk_admin();
+    }

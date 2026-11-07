@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Felhasználók és jogosultságok</title>
+<style>
+  :root { --bg:#001f3d; --ink:#fff; --muted:#99bbdd; --accent:#ff99cc; --track:#00305a; --card:#003366; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:"Instrument Sans",system-ui,sans-serif; padding:24px 16px 40px; }
+  html.emb body { padding-top:6px; }
+  main { max-width:1100px; margin:0 auto; }
+  h2 { font-size:1.25rem; margin:26px 0 6px; } p.h { color:var(--muted); margin:0 0 14px; font-size:.95rem; }
+  .c { background:var(--card); border:3px solid var(--track); border-radius:16px; padding:16px; }
+  table { width:100%; border-collapse:collapse; } th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--track); font-size:.95rem; vertical-align:middle; }
+  th { color:var(--muted); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; }
+  input, select, button { font:inherit; padding:8px 10px; border-radius:8px; border:1px solid #3a6a9a; background:#00264b; color:#fff; }
+  button { cursor:pointer; font-weight:700; background:var(--accent); color:#001f3d; border:0; } button.s { background:#00305a; color:#fff; font-weight:600; }
+  .add { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; } .add input[type=email] { flex:1; min-width:220px; }
+  .st { color:var(--muted); font-size:.85rem; margin-top:8px; min-height:1.2em; } .err { color:#ff8da1; }
+  label.cb { display:inline-flex; align-items:center; gap:5px; margin:2px 10px 2px 0; font-size:.88rem; white-space:nowrap; } label.cb input { padding:0; }
+  .lock { color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <div id="gate" class="lock" hidden>Lépj be a menüsorban adminként Google-fiókkal (csikos.mate.ovb@gmail.com), utána itt szerkeszthető a lista.</div>
+  <div id="app" hidden>
+    <h2>Engedélyezett felhasználók</h2>
+    <p class="h">Csak a listán szereplő Gmail-címmel lehet belépeni. A szint mondja meg, mit lát az illető.</p>
+    <div class="c">
+      <table><thead><tr><th>E-mail</th><th>Név</th><th>Szint</th><th></th></tr></thead><tbody id="ub"></tbody></table>
+      <form class="add" id="af"><input type="email" id="ae" placeholder="gmail cím" required><input id="an" placeholder="Név"><select id="ar"></select><button>Hozzáad</button></form>
+      <div class="st" id="us"></div>
+    </div>
+    <h2>Oldalak hozzáférése</h2>
+    <p class="h">Alapból minden oldal nyilvános. Itt lehet egy oldalt belépéshez kötni, vagy csak bizonyos szintekhez. Az Admin mindent lát. A beállítás automatikusan mentődik.</p>
+    <div class="c"><table><thead><tr><th>Oldal</th><th>Ki láthatja</th><th>Szintek</th></tr></thead><tbody id="pb"></tbody></table><div class="st" id="ps"></div></div>
+  </div>
+</main>
+<script type="module">
+  await new Promise(r => { (function w() { if (window.CSK && window.CSK.ready) r(); else setTimeout(w, 100); })(); });
+  const C = await window.CSK.ready;
+  const $ = id => document.getElementById(id);
+  if (!C || C.role !== "admin") { $("gate").hidden = false; }
+  else {
+    $("app").hidden = false;
+    const { db, Fs, ROLES } = C;
+    const ROLE_KEYS = Object.keys(ROLES).filter(k => k !== "admin");
+    const PAGES = [["index.html","Főoldal"],["negyedev.html","Negyedéves cél"],["verseny.html","Versenyek és utazások"],["elemzo.html","Elemző füzet"],["teljesitmeny-uj.html","Teljesítmény (Start bónusz)"],["vizsga.html","Vizsga gyakorló"],["kampanynaptar.html","Kampánynaptár"],["kifogas.html","Kifogáskezelő"],["ppt.html","PPT generátor"]];
+    const sel = $("ar"); ROLE_KEYS.forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = ROLES[k]; sel.appendChild(o); });
+    const say = (id, t, e) => { const n = $(id); n.textContent = t; n.className = "st" + (e ? " err" : ""); };
+    async function loadUsers() {
+      const s = await Fs.getDocs(Fs.collection(db, "users")); const rows = []; s.forEach(d => rows.push({ id: d.id, ...d.data() }));
+      rows.sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id, "hu"));
+      const tb = $("ub"); tb.textContent = "";
+      rows.forEach(u => {
+        const tr = document.createElement("tr");
+        const td = (t) => { const c = document.createElement("td"); if (t !== undefined) c.textContent = t; tr.appendChild(c); return c; };
+        td(u.id); td(u.name || "");
+        const sc = td(); const rs = sel.cloneNode(true); rs.value = ROLES[u.role] ? u.role : "gyakornok"; rs.onchange = () => Fs.setDoc(Fs.doc(db, "users", u.id), { name: u.name || "", role: rs.value }).then(() => say("us", "Mentve."), e => say("us", "Hiba: " + e.message, 1)); sc.appendChild(rs);
+        const dc = td(); const b = document.createElement("button"); b.className = "s"; b.textContent = "Töröl"; b.onclick = () => { if (confirm(u.id + " törlése a listáról?")) Fs.deleteDoc(Fs.doc(db, "users", u.id)).then(loadUsers, e => say("us", "Hiba: " + e.message, 1)); }; dc.appendChild(b);
+        tb.appendChild(tr);
+      });
+      if (!rows.length) say("us", "A lista még üres. A saját címed (admin) mindig beléphet.");
+    }
+    $("af").onsubmit = e => { e.preventDefault(); const em = $("ae").value.trim().toLowerCase(); if (!em) return;
+      Fs.setDoc(Fs.doc(db, "users", em), { name: $("an").value.trim(), role: $("ar").value }).then(() => { $("ae").value = ""; $("an").value = ""; say("us", "Hozzáadva."); loadUsers(); }, e2 => say("us", "Hiba: " + e2.message, 1)); };
+    await loadUsers().catch(e => say("us", "Hiba: " + e.message, 1));
+
+    let acc = {...(C.access || {})}, t = null;
+    function save() { clearTimeout(t); t = setTimeout(() => Fs.setDoc(Fs.doc(db, "config", "access"), { pages: acc, upd: new Date().toISOString() }).then(() => say("ps", "Mentve."), e => say("ps", "Hiba: " + e.message, 1)), 500); }
+    const pb = $("pb");
+    PAGES.forEach(([f, n]) => {
+      const tr = document.createElement("tr"), c1 = document.createElement("td"), c2 = document.createElement("td"), c3 = document.createElement("td");
+      c1.textContent = n;
+      const ms = document.createElement("select"); [["public", "Nyilvános"], ["any", "Bármely belépett"], ["roles", "Kiválasztott szintek"]].forEach(([v, l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; ms.appendChild(o); });
+      const cur = acc[f]; ms.value = !cur || cur === "public" ? "public" : cur === "any" ? "any" : "roles";
+      const cbs = ROLE_KEYS.map(k => { const l = document.createElement("label"); l.className = "cb"; const i = document.createElement("input"); i.type = "checkbox"; i.value = k; i.checked = Array.isArray(cur) && cur.indexOf(k) >= 0; l.appendChild(i); l.appendChild(document.createTextNode(ROLES[k])); c3.appendChild(l); return i; });
+      function upd() { c3.style.display = ms.value === "roles" ? "" : "none"; if (ms.value === "public") delete acc[f]; else if (ms.value === "any") acc[f] = "any"; else acc[f] = cbs.filter(i => i.checked).map(i => i.value); save(); }
+      ms.onchange = upd; cbs.forEach(i => i.onchange = upd); c3.style.display = ms.value === "roles" ? "" : "none";
+      c2.appendChild(ms); tr.append(c1, c2, c3); pb.appendChild(tr);
+    });
+  }
+  if (self !== top) { document.documentElement.classList.add("emb"); const s = () => { try { parent.postMessage({ embh: document.documentElement.scrollHeight }, location.origin); } catch (e) {} }; new ResizeObserver(s).observe(document.documentElement); setInterval(s, 1200); }
+</script>
+<script src="anim.js?v=31" defer></script>
+</body>
+</html>
