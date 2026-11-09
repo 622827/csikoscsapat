@@ -482,7 +482,8 @@
   .pg .as-r .as-chip, .pg .as-r .as-cl { display: inline-block; white-space: nowrap; line-height: 1.5; }
   .pg .as-r .c-ty { min-width: 150px; } .pg .as-r .c-pr { min-width: 150px; } .pg .as-r .c-cl { min-width: 120px; } .pg .as-r .c-ow { min-width: 170px; }
   .pg .as-r .c-ti { min-width: 300px; overflow-wrap: anywhere; }
-  .pg .as-tb { min-width: 1240px; }
+  .pg .as-tb { min-width: 1360px; }
+  .pg .as-r .c-by { white-space: nowrap; min-width: 130px; color: var(--muted); font-size: .85rem; } .pg .as-r .as-by.none { opacity: .5; }
   .pg .as-r tr.d td { background: rgba(120,150,220,.06); padding: 6px 10px 14px; }
   .pg .as-r tr.d[hidden] { display: none; }
   .pg .as-r tr.d .as-subs { grid-column: auto; margin: 0; max-width: 720px; }
@@ -1097,6 +1098,7 @@
     var so = el("select"), ownK = Object.keys(AS_OWNERS); if (x.owner && ownK.indexOf(x.owner) < 0) ownK.push(x.owner);
     ownK.forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = AS_OWNERS[k] || TEAM[k] || k; so.appendChild(o); });
     so.value = x.owner || AS_OWNER_DEFAULT; so.title = "Felelős"; so.addEventListener("change", function () { asUpd(x.id, { owner: so.value }); }); td("c-ow").appendChild(so);
+    var byN = x.byName || (x.by ? (AS_OWNERS[x.by] || TEAM[x.by] || x.by) : ""); var tby = td("c-by"); tby.appendChild(el("span", byN ? "as-by" : "as-by none", byN || "–")); tby.title = "Ki adta a feladatot";
     var subs = (x.subs || []).map(function (u) { return Object.assign({}, u); });
     var sh = el("button", "as-sh2" + (asOpen[x.id] ? " open" : "")); sh.type = "button"; sh.innerHTML = '<span class="chev">▸</span>';
     sh.appendChild(document.createTextNode(subs.length ? " " + subs.filter(function (u) { return u.done; }).length + "/" + subs.length + " alfeladat" : " Alfeladat"));
@@ -1121,7 +1123,7 @@
     var sb = el("button", "sm", "+"); sb.type = "submit"; sb.title = "Alfeladat hozzáadása"; sf.appendChild(si); sf.appendChild(sb);
     sf.addEventListener("submit", function (ev) { ev.preventDefault(); var t = si.value.trim(); if (!t) return; var nn = subs.slice(); nn.push({ id: "s" + Date.now().toString(36) + Math.floor(Math.random() * 1000), t: t, done: false }); si.value = ""; asOpen[x.id] = true; asUpd(x.id, { subs: nn }); });
     sw.appendChild(sf);
-    var dr = el("tr", "d"); dr.hidden = !asOpen[x.id]; dr.appendChild(el("td")); var dd = el("td"); dd.colSpan = 8; dd.appendChild(sw); dr.appendChild(dd); tb.appendChild(dr);
+    var dr = el("tr", "d"); dr.hidden = !asOpen[x.id]; dr.appendChild(el("td")); var dd = el("td"); dd.colSpan = 9; dd.appendChild(sw); dr.appendChild(dd); tb.appendChild(dr);
     function toggle() { var o = dr.hidden; dr.hidden = !o; asOpen[x.id] = o; tb.classList.toggle("open", o); sh.classList.toggle("open", o); sh.setAttribute("aria-expanded", o ? "true" : "false"); }
     sh.addEventListener("click", toggle); tt.addEventListener("click", toggle);
     return tb;
@@ -1196,11 +1198,11 @@
     var groups = [["Lejárt", "late", function (x) { return !x.done && x.due && x.due < now; }], ["Ma esedékes", "", function (x) { return !x.done && x.due === now; }], ["Közelgő", "", function (x) { return !x.done && x.due && x.due > now; }], ["Nincs határidő", "", function (x) { return !x.done && !x.due; }], ["Kész", "", function (x) { return !!x.done; }]];
     var box = $("as-list"); box.textContent = ""; var firstRun = asSeen === null; if (firstRun) asSeen = {};
     var tw = el("div", "as-tw"), tbl = el("table", "as-tb"), th = el("thead"), hr = el("tr");
-    ["", "Feladat", "Típus", "Termék", "Ügyfél", "Határidő", "Felelős", "Alfeladatok", ""].forEach(function (h) { hr.appendChild(el("th", "", h)); });
+    ["", "Feladat", "Típus", "Termék", "Ügyfél", "Határidő", "Felelős", "Beadta", "Alfeladatok", ""].forEach(function (h) { hr.appendChild(el("th", "", h)); });
     th.appendChild(hr); tbl.appendChild(th);
     groups.forEach(function (g) {
       var items = L.filter(g[2]); if (!items.length) return;
-      var gb = el("tbody", "as-gh" + (g[1] ? " " + g[1] : "")), gr = el("tr"), gh = el("th", "", g[0] + " (" + items.length + ")"); gh.colSpan = 9; gr.appendChild(gh); gb.appendChild(gr); tbl.appendChild(gb);
+      var gb = el("tbody", "as-gh" + (g[1] ? " " + g[1] : "")), gr = el("tr"), gh = el("th", "", g[0] + " (" + items.length + ")"); gh.colSpan = 10; gr.appendChild(gh); gb.appendChild(gr); tbl.appendChild(gb);
       items.forEach(function (x) { tbl.appendChild(asRow(x, now, firstRun)); });
     });
     if (L.length) { tw.appendChild(tbl); box.appendChild(tw); }
