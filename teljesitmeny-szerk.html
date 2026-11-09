@@ -452,6 +452,35 @@
   .pg .as-t .x { display: grid; place-content: center; width: 34px; height: 34px; padding: 0; border-radius: 10px; border: 2px solid var(--track, rgba(127,127,127,.35)); background: transparent; color: var(--muted); font: inherit; font-size: 1.25rem; line-height: 1; cursor: pointer; transition: background .2s, color .2s, border-color .2s, transform .15s; }
   .pg .as-t .x:hover, .pg .as-t .x:focus-visible { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); outline: none; }
   .pg .as-t .x:active { transform: scale(.88); }
+  /* ---- Asszisztensi feladatok: széles, táblázatos nézet ---- */
+  .pg.asw { max-width: 1760px; }
+  .pg.asw #v-as > .lead { max-width: 900px; }
+  .pg.asw .as-add { grid-template-columns: minmax(240px, 2fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(170px, 1fr) minmax(200px, auto) minmax(230px, auto); }
+  .pg.asw .as-add #as-title, .pg.asw .as-add #as-client { grid-column: auto; }
+  .pg.asw .as-add #as-note { grid-column: 1 / span 5; }
+  .pg.asw .as-add button { grid-column: 6; }
+  .pg .as-tw { overflow-x: auto; }
+  .pg .as-tb { width: 100%; min-width: 980px; border-collapse: separate; border-spacing: 0; font-size: .92rem; }
+  .pg .as-tb thead th { text-align: left; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 2px solid var(--track, #e5e5e5); white-space: nowrap; }
+  .pg .as-tb .as-gh th { padding: 20px 10px 6px; font-size: .95rem; text-align: left; color: var(--muted); border-bottom: 1px solid var(--track, #e5e5e5); }
+  .pg .as-tb .as-gh.late th { color: #ff8095; }
+  .pg .as-tb td { padding: 8px 10px; border-bottom: 1px solid var(--track, #e5e5e5); vertical-align: middle; }
+  .pg .as-r:hover tr.m td { background: rgba(120,150,220,.08); }
+  .pg .as-r.late tr.m td:first-child { box-shadow: inset 3px 0 0 rgba(255,128,149,.85); }
+  .pg .as-r .c-ck { width: 38px; } .pg .as-r .c-ck input { width: 20px; height: 20px; accent-color: var(--accent); }
+  .pg .as-r .c-ti { min-width: 260px; cursor: pointer; }
+  .pg .as-r .as-ti { font-weight: 700; } .pg .as-r.done .as-ti { text-decoration: line-through; color: var(--muted); } .pg .as-r.done { opacity: .8; }
+  .pg .as-r .as-note { margin-top: 2px; }
+  .pg .as-r .c-du { width: 150px; } .pg .as-r .c-du input { width: 122px; }
+  .pg .as-r .c-ow select, .pg .as-r .c-du input { font: inherit; font-size: .85rem; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); color: inherit; }
+  .pg .as-r .c-x { width: 100px; text-align: right; white-space: nowrap; }
+  .pg .as-r .x { display: inline-grid; place-content: center; width: 32px; height: 32px; padding: 0; border-radius: 10px; border: 2px solid var(--track, rgba(127,127,127,.35)); background: transparent; color: var(--muted); font: inherit; font-size: 1.2rem; line-height: 1; cursor: pointer; }
+  .pg .as-r .x:hover, .pg .as-r .x:focus-visible { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); outline: none; }
+  .pg .as-sh2 { display: inline-flex; gap: 6px; align-items: center; padding: 3px 10px; font: inherit; font-size: .82rem; font-weight: 700; color: var(--muted); background: transparent; border: 1px solid var(--track, #e5e5e5); border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .pg .as-sh2 .chev { display: inline-block; transition: transform .25s ease; } .pg .as-sh2.open .chev { transform: rotate(90deg); }
+  .pg .as-r tr.d td { background: rgba(120,150,220,.06); padding: 6px 10px 14px; }
+  .pg .as-r tr.d[hidden] { display: none; }
+  .pg .as-r tr.d .as-subs { grid-column: auto; margin: 0; max-width: 720px; }
   @media (max-width: 520px) { .pg .as-add { grid-template-columns: 1fr; } }
   /* ===== animációk ===== */
   .pg input[type=checkbox] { appearance: none; -webkit-appearance: none; display: grid; place-content: center; width: 22px; height: 22px; flex: none; margin: 0; border: 2px solid var(--muted); border-radius: 7px; background: transparent; cursor: pointer; transition: background-color .22s ease, border-color .22s ease, transform .15s ease, box-shadow .22s ease; }
@@ -923,7 +952,7 @@
   function asTab(k) {
     var V = { perf: "v-perf", as: "v-as", sb: "v-sb" }, M = { perf: "mt-perf", as: "mt-as", sb: "mt-sb" };
     Object.keys(V).forEach(function (q) { $(V[q]).hidden = q !== k; $(M[q]).classList.toggle("on", q === k); $(M[q]).setAttribute("aria-selected", q === k ? "true" : "false"); });
-    $("app").classList.toggle("sbw", k === "sb");
+    $("app").classList.toggle("sbw", k === "sb"); $("app").classList.toggle("asw", k === "as");
     var vv = $(V[k]); vv.classList.remove("vfade"); void vv.offsetWidth; vv.classList.add("vfade");
     try { sessionStorage.setItem("tj_view", k); } catch (e) {}
   }
@@ -1045,6 +1074,53 @@
         wrap.appendChild(sw); r.appendChild(sh); r.appendChild(wrap);
     return r;
   }
+  function asRow(x, now, firstRun) {
+    if (asSeen === null) asSeen = {};
+    var late = !x.done && x.due && x.due < now;
+    var tb = el("tbody", "as-r" + (x.done ? " done" : "") + (late ? " late" : "") + (asOpen[x.id] ? " open" : ""));
+    asSeen[x.id] = 1;
+    var tr = el("tr", "m");
+    function td(c) { var t = el("td", c); tr.appendChild(t); return t; }
+    var ck = el("input"); ck.type = "checkbox"; ck.checked = !!x.done; ck.setAttribute("aria-label", "Kész");
+    ck.addEventListener("change", function () { hold(); tb.classList.toggle("done", ck.checked); asUpd(x.id, { done: ck.checked, doneAt: ck.checked ? Date.now() : 0 }); });
+    td("c-ck").appendChild(ck);
+    var tt = td("c-ti"); tt.appendChild(el("div", "as-ti", x.title)); if (x.note) tt.appendChild(el("div", "as-note", x.note));
+    td("c-ty").appendChild(el("span", "as-chip", x.type || "Egyéb"));
+    var tp = td("c-pr"); if (x.product) tp.appendChild(el("span", "as-chip", x.product));
+    var tc = td("c-cl"); if (x.client) tc.appendChild(el("span", "as-cl", x.client));
+    var due = el("input"); dpAttach(due); due.value = x.due || ""; due.title = "Határidő"; due.addEventListener("change", function () { asUpd(x.id, { due: due.value }); }); td("c-du").appendChild(due);
+    var so = el("select"), ownK = Object.keys(AS_OWNERS); if (x.owner && ownK.indexOf(x.owner) < 0) ownK.push(x.owner);
+    ownK.forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = AS_OWNERS[k] || TEAM[k] || k; so.appendChild(o); });
+    so.value = x.owner || AS_OWNER_DEFAULT; so.title = "Felelős"; so.addEventListener("change", function () { asUpd(x.id, { owner: so.value }); }); td("c-ow").appendChild(so);
+    var subs = (x.subs || []).map(function (u) { return Object.assign({}, u); });
+    var sh = el("button", "as-sh2" + (asOpen[x.id] ? " open" : "")); sh.type = "button"; sh.innerHTML = '<span class="chev">▸</span>';
+    sh.appendChild(document.createTextNode(subs.length ? " " + subs.filter(function (u) { return u.done; }).length + "/" + subs.length + " alfeladat" : " Alfeladat"));
+    sh.setAttribute("aria-expanded", asOpen[x.id] ? "true" : "false"); td("c-su").appendChild(sh);
+    var tx = td("c-x");
+    if (asConfirm === x.id) {
+      var y = el("button", "sm", "Törlés"), n = el("button", "sm gh", "Mégse"); y.type = n.type = "button";
+      y.addEventListener("click", function () { asConfirm = ""; FB.F.deleteDoc(FB.F.doc(FB.db, "perf", ID, "atasks", x.id)).catch(function (e) { toast("Törlés sikertelen: " + e.message); }); });
+      n.addEventListener("click", function () { asConfirm = ""; asRender(); }); tx.appendChild(y); tx.appendChild(n);
+    } else { var del = el("button", "x", "×"); del.type = "button"; del.title = "Törlés"; del.addEventListener("click", function () { asConfirm = x.id; asRender(); }); tx.appendChild(del); }
+    tb.appendChild(tr);
+    var sw = el("div", "as-subs");
+    subs.forEach(function (u, i) {
+      var ro = el("label", "as-s" + (u.done ? " done" : "")), c2 = el("input"); c2.type = "checkbox"; c2.checked = !!u.done;
+      c2.addEventListener("change", function () { hold(); ro.classList.toggle("done", c2.checked); var nn = subs.map(function (z) { return Object.assign({}, z); }); nn[i].done = c2.checked; asUpd(x.id, { subs: nn }); });
+      ro.appendChild(c2); ro.appendChild(el("span", "", u.t));
+      var d2 = el("button", "x", "×"); d2.type = "button"; d2.title = "Alfeladat törlése";
+      d2.addEventListener("click", function (ev) { ev.preventDefault(); asUpd(x.id, { subs: subs.filter(function (z, j) { return j !== i; }) }); });
+      ro.appendChild(d2); sw.appendChild(ro);
+    });
+    var sf = el("form", "as-sadd"), si = el("input"); si.type = "text"; si.maxLength = 160; si.placeholder = "Alfeladat hozzáadása…"; si.setAttribute("aria-label", "Alfeladat");
+    var sb = el("button", "sm", "+"); sb.type = "submit"; sb.title = "Alfeladat hozzáadása"; sf.appendChild(si); sf.appendChild(sb);
+    sf.addEventListener("submit", function (ev) { ev.preventDefault(); var t = si.value.trim(); if (!t) return; var nn = subs.slice(); nn.push({ id: "s" + Date.now().toString(36) + Math.floor(Math.random() * 1000), t: t, done: false }); si.value = ""; asOpen[x.id] = true; asUpd(x.id, { subs: nn }); });
+    sw.appendChild(sf);
+    var dr = el("tr", "d"); dr.hidden = !asOpen[x.id]; dr.appendChild(el("td")); var dd = el("td"); dd.colSpan = 8; dd.appendChild(sw); dr.appendChild(dd); tb.appendChild(dr);
+    function toggle() { var o = dr.hidden; dr.hidden = !o; asOpen[x.id] = o; tb.classList.toggle("open", o); sh.classList.toggle("open", o); sh.setAttribute("aria-expanded", o ? "true" : "false"); }
+    sh.addEventListener("click", toggle); tt.addEventListener("click", toggle);
+    return tb;
+  }
   var AS_VIEW = "list", calY = new Date().getFullYear(), calM = new Date().getMonth();
   var calWeek = null, calTask = "";
   function calMon(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)); }
@@ -1114,11 +1190,15 @@
     if (AS_VIEW === "cal") { $("as-none").textContent = ""; asCal(L, now); return; }
     var groups = [["Lejárt", "late", function (x) { return !x.done && x.due && x.due < now; }], ["Ma esedékes", "", function (x) { return !x.done && x.due === now; }], ["Közelgő", "", function (x) { return !x.done && x.due && x.due > now; }], ["Nincs határidő", "", function (x) { return !x.done && !x.due; }], ["Kész", "", function (x) { return !!x.done; }]];
     var box = $("as-list"); box.textContent = ""; var firstRun = asSeen === null; if (firstRun) asSeen = {};
+    var tw = el("div", "as-tw"), tbl = el("table", "as-tb"), th = el("thead"), hr = el("tr");
+    ["", "Feladat", "Típus", "Termék", "Ügyfél", "Határidő", "Felelős", "Alfeladatok", ""].forEach(function (h) { hr.appendChild(el("th", "", h)); });
+    th.appendChild(hr); tbl.appendChild(th);
     groups.forEach(function (g) {
       var items = L.filter(g[2]); if (!items.length) return;
-      box.appendChild(el("h4", "as-g" + (g[1] ? " " + g[1] : ""), g[0] + " (" + items.length + ")"));
-      items.forEach(function (x) { box.appendChild(asCard(x, now, firstRun)); });
+      var gb = el("tbody", "as-gh" + (g[1] ? " " + g[1] : "")), gr = el("tr"), gh = el("th", "", g[0] + " (" + items.length + ")"); gh.colSpan = 9; gr.appendChild(gh); gb.appendChild(gr); tbl.appendChild(gb);
+      items.forEach(function (x) { tbl.appendChild(asRow(x, now, firstRun)); });
     });
+    if (L.length) { tw.appendChild(tbl); box.appendChild(tw); }
     $("as-none").textContent = L.length ? "" : (ME && !ME.email ? "Lépj be a Google-fiókoddal, hogy lásd a feladataidat." : (AS.length ? "Nincs a szűrőnek megfelelő feladat." : (asCanCreate() ? "Még nincs feladat. Vegyél fel egyet fent." : "Nincs hozzád rendelt feladat.")));
   }
   function render() {
