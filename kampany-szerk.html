@@ -68,6 +68,8 @@
   .yt { display: inline-flex; gap: 4px; background: var(--card); border: 1px solid var(--track); border-radius: 999px; padding: 4px; margin: 0 0 18px; }
   .yt a { color: var(--muted); text-decoration: none; font-weight: 700; padding: 6px 16px; border-radius: 999px; }
   .yt a.on { background: var(--accent); color: var(--on-accent); }
+  .bar2 { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 18px; } .bar2 .yt { margin: 0; }
+  .so { font: inherit; font-weight: 700; font-size: .85rem; color: var(--muted); background: var(--card); border: 1px solid var(--track); border-radius: 999px; padding: 9px 16px; cursor: pointer; } .so:hover { color: var(--ink); }
 </style>
 <script>try{if(self!==top)document.documentElement.classList.add("emb")}catch(e){}</script>
 <script>try{if(self!==top)document.documentElement.classList.add("emb")}catch(e){}</script><style>html.emb,html.emb body{background:transparent!important}html.emb body::before{display:none!important}html.emb{color-scheme:normal}</style>
@@ -76,7 +78,8 @@
 <main>
   <h1>Kampánynaptár szerkesztő</h1>
   <div class="bar"><span class="sv" id="sv">Betöltés…</span><span>·</span><a id="mv" href="kampanynaptar.html" target="_blank" rel="noopener">munkatársi nézet ↗</a></div>
-  <nav class="yt" aria-label="Év"><a href="kampany-szerk.html?v=6&ev=2026" data-y="2026">2026</a><a href="kampany-szerk.html?v=6&ev=2027" data-y="2027">2027</a></nav>
+  <div class="bar2"><nav class="yt" aria-label="Év"><a href="kampany-szerk.html?v=6&ev=2026" data-y="2026">2026</a><a href="kampany-szerk.html?v=6&ev=2027" data-y="2027">2027</a></nav>
+  <button type="button" class="so" id="so" title="Hónapok sorrendje"></button></div>
   <div id="grid"></div>
 </main>
 <script>
@@ -151,9 +154,20 @@
     if (x.ajanlat && x.ajanlat.indexOf("\n") < 0 && /(^|\s)2\)\s/.test(x.ajanlat)) x.ajanlat = x.ajanlat.split(/\s*(?:^|\s)\d\)\s+/).map(function (t) { return t.trim(); }).filter(Boolean).join("\n");
     if (x.datumok && x.datumok.indexOf("\n") < 0 && x.datumok.indexOf(" · ") > 0) x.datumok = x.datumok.split(/\s*·\s*/).join("\n");
   }
+  // A hónapok megjelenítési sorrendje (csak nézet, a mentett adatot nem érinti): csökkenő vagy növekvő.
+  var SECT = {}, DESC = false;
+  try { DESC = localStorage.getItem("kampany_desc") === "1"; } catch (e) {}
+  function reorder() {
+    var g = $("grid"), so = $("so");
+    Object.keys(SECT).map(Number).sort(function (a, b) { return DESC ? b - a : a - b; }).forEach(function (m) { g.appendChild(SECT[m]); });
+    so.textContent = DESC ? "↓ Csökkenő (dec. → jan.)" : "↑ Növekvő (jan. → dec.)";
+    so.setAttribute("aria-label", "Hónapok sorrendje: " + (DESC ? "csökkenő" : "növekvő") + ". Kattintásra vált.");
+  }
+  $("so").addEventListener("click", function () { DESC = !DESC; try { localStorage.setItem("kampany_desc", DESC ? "1" : "0"); } catch (e) {} reorder(); });
   function build() {
     D.months.forEach(migrate);
     var g = $("grid"); g.textContent = ""; g.id = "grid";
+    SECT = {};
     D.months.forEach(function (x) {
       var c = el("section", "c" + (OPENM[x.m] ? " open" : "")), h = el("div", "ch"), left = el("div");
       var tg = el("button", "mt", "▸"); tg.type = "button"; tg.title = "Hónap kinyitása / becsukása"; tg.setAttribute("aria-expanded", OPENM[x.m] ? "true" : "false");
@@ -181,8 +195,9 @@
         bd.appendChild(sc);
       });
       c.appendChild(bd);
-      g.appendChild(c);
+      g.appendChild(c); SECT[x.m] = c;
     });
+    reorder();
     Array.prototype.forEach.call(g.querySelectorAll("textarea"), grow);
     status("Mentve", true);
   }
