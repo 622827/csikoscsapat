@@ -521,7 +521,7 @@
       var need = Math.max(MIN_OWN, QUALIFY - credit);
       return { p: p, pts: points[p.name], camp: campTotal, own: p.total, credit: credit, rec: p.recruits || 0, need: need,
                qualified: p.total >= need };
-    }).sort(function (a, b) { return b.pts - a.pts || b.camp - a.camp || b.own - a.own || a.p.name.localeCompare(b.p.name, "hu"); });
+    }).sort(function (a, b) { return b.camp - a.camp || b.pts - a.pts || b.own - a.own || a.p.name.localeCompare(b.p.name, "hu"); });   // a rangsor a kampányegységek összege szerint, holtversenynél a pontok
 
     var prizeCount = 0;
     rows.forEach(function (r) { if (r.qualified && prizeCount < WINNERS) { r.prize = true; prizeCount++; } });
@@ -615,7 +615,8 @@
 
     var upd = data.updated ? new Date(data.updated) : null;
     var txt = upd && !isNaN(upd) ? "Frissítve: " + upd.toLocaleString("hu-HU", { dateStyle: "medium", timeStyle: "short" }) : "";
-    if (data.skipped && data.skipped.length) txt += (txt ? " · " : "") + "Nem olvasható lap: " + data.skipped.join(", ");
+    var sk = (data.skipped || []).filter(function (n) { return n !== "Havi zárás"; });
+    if (sk.length) txt += (txt ? " · " : "") + "Nem olvasható lap: " + sk.join(", ");
     if (data.demo) txt = "Minta adatok (?demo), nem valódi állás.";
     $("meta").textContent = txt;
     $("msg").hidden = true;

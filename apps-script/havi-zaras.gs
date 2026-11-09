@@ -64,7 +64,7 @@ function snapshotClosedMonths() {
   ss.getSheets().forEach(function (sh) {
     if (KIHAGY.indexOf(sh.getName()) > -1) return;
     var o = lapOsszeg_(sh, honap); if (!o) return;
-    var nev = String(sh.getRange(1, 1).getValue()).trim() || sh.getName();
+    var nev = sh.getName();   // a lap neve (ezt használja a versenyszkript is: pl. "Vas Marcsi")
     sorok.push([honap, nev, o.lead, o.el, o.lead + o.el, Utilities.formatDate(most, ss.getSpreadsheetTimeZone(), "yyyy-MM-dd HH:mm"), o.camp]);
   });
   if (sorok.length) lap.getRange(lap.getLastRow() + 1, 1, sorok.length, 7).setValues(sorok);
