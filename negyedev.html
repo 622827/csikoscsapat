@@ -608,18 +608,33 @@
   function isEl(k) { return plain(k).indexOf("elszamolt") > -1; }
   function quarterize(d) {
     var P = (d.people || []).filter(function (x) { return x && x.name; });
-    if (!P.some(function (x) { return x.proc; })) return null;
+    var closed = {};   // lezárt hónapok mentett állása: closed[hónap][név] = {lead, el}
+    (d.closed || []).forEach(function (r) {
+      var m = +r.m; if (!r || QM.indexOf(m) < 0) return;
+      (closed[m] = closed[m] || {})[plain(r.name)] = { name: r.name, lead: +r.lead || 0, el: +r.el || 0 };
+    });
+    var hasClosed = Object.keys(closed).length > 0;
+    if (!hasClosed && !P.some(function (x) { return x.proc; })) return null;
+    P = P.slice();
+    Object.keys(closed).forEach(function (m) { Object.keys(closed[m]).forEach(function (k) {
+      if (!P.some(function (x) { return plain(x.name) === k; })) P.push({ name: closed[m][k].name, proc: {} });
+    }); });
     var T = { csikos: { done: 0, outlook: 0 }, farkas: { done: 0, outlook: 0 } }, out = [];
     P.forEach(function (x) {
-      var lead = 0, el = 0, all = 0, proc = {}, mt = {};
+      var key = plain(x.name), lead = 0, el = 0, all = 0, proc = {}, mt = {};
       QM.forEach(function (m) {
-        var r = (x.proc || {})[m]; if (!r) return; proc[m] = r;
+        if (closed[m]) {   // lezárt hónap: a mentett (befagyasztott) érték, nem az élő táblázat
+          var c = closed[m][key]; if (!c) return;
+          proc[m] = {}; if (c.lead) proc[m]["100% Leadva"] = c.lead; if (c.el) proc[m]["Elszámolt"] = c.el;
+          lead += c.lead; el += c.el; all += c.lead + c.el; mt[m] = c.lead + c.el; return;
+        }
+        var r = (x.proc || {})[m]; if (!r) return; proc[m] = r;   // aktuális hónap: élő adat
         Object.keys(r).forEach(function (k) { var v = +r[k] || 0, c = cn(x, k); all += v; mt[m] = (mt[m] || 0) + v; if (isLead(c)) lead += v; else if (isEl(c)) el += v; });
       });
       var o = {}; Object.keys(x).forEach(function (k) { o[k] = x[k]; });
       o.proc = proc; o.mt = mt; o.lead = lead; o.total = lead + el; o.outlook = all;
       out.push(o);
-      var tm = CSK_MEMBERS.indexOf(plain(x.name)) > -1 ? T.csikos : T.farkas;
+      var tm = CSK_MEMBERS.indexOf(key) > -1 ? T.csikos : T.farkas;
       tm.done += lead + el; tm.outlook += all;
     });
     return { people: out, teams: T };
@@ -633,7 +648,7 @@
         var g = src[k] ? src[k].goal * TEAM_GOAL_MULT : 0, z = Q.teams[k];
         tm[k] = { goal: g, done: z.done, outlook: Math.max(z.outlook, z.done), missing: Math.max(0, g - z.done) };
       });
-      d = { teams: (src.csikos && src.farkas) ? tm : src, people: Q.people, months: (d.months || []).filter(function (m) { return QM.indexOf(+m) > -1; }), counter: d.counter };
+      d = { teams: (src.csikos && src.farkas) ? tm : src, people: Q.people, months: QM.slice(), counter: d.counter };
     }
     renderTeams(d.teams);
     renderPeople(d.people, d.months);
