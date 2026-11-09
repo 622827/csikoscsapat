@@ -640,7 +640,9 @@
     return { people: out, teams: T };
   }
 
+  var ZARAS = null;   // negyedev-zaras.json: a lezárt hónapok befagyasztott állása (ha az Apps Script nem adja)
   function applyData(d) {
+    if (!d.closed && ZARAS) { var c = {}; Object.keys(d).forEach(function (k) { c[k] = d[k]; }); c.closed = ZARAS; d = c; }
     var Q = quarterize(d);
     if (Q) {
       var tm = {}, src = d.teams || {};
@@ -681,7 +683,7 @@
         if (d.error) throw new Error(d.error);
         if (!d.counter) throw new Error("a szkript még nem a legújabb verzió (nincs benne counter adat)");
         try { localStorage.setItem("nev_cache_v1", JSON.stringify({ t: Date.now(), d: d })); } catch (e) {}
-        applyData(d); LAST = Date.now(); stamp();
+        window.__lastD = d; applyData(d); LAST = Date.now(); stamp();
       })
       .catch(function (e) {
         document.body.classList.remove("loading");
@@ -701,6 +703,8 @@
     var cc = JSON.parse(localStorage.getItem("nev_cache_v1") || "null");
     if (cc && cc.d && cc.d.counter && Date.now() - cc.t < 7 * 86400000) { applyData(cc.d); LAST = cc.t; $("status").textContent = "Frissítés… (a " + hm(cc.t) + "-kori adat látszik)"; }
   } catch (e) {}
+  fetch("negyedev-zaras.json?_=" + Date.now()).then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) { if (j && j.closed) { ZARAS = j.closed; if (window.__lastD) applyData(window.__lastD); } }).catch(function () {});
   load();
   setInterval(load, 300000);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) load(); });
