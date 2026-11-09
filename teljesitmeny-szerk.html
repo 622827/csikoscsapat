@@ -968,7 +968,18 @@
     FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "atasks"), function (snap) {
       AS_ALL = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); asApplyVis();
     }, function (e) { toast("Asszisztensi feladatok: " + e.message); });
-    asWhoAmI();
+    asWhoAmI(); asLoadLeaders();
+  }
+  /* A "Beadta" lenyílóba a vezetők (GST, BL) a felhasználók listájából. Ha a lista nem olvasható (nem admin), marad az alap lista. */
+  var BY_EXTRA = {};
+  function asLoadLeaders() {
+    try {
+      FB.F.getDocs(FB.F.collection(FB.db, "users")).then(function (snap) {
+        var n = 0;
+        snap.docs.forEach(function (d) { var u = d.data() || {}; if (u.role === "gts" || u.role === "bl") { BY_EXTRA[String(d.id).toLowerCase()] = u.name || TEAM[d.id] || d.id; n++; } });
+        if (n) asRender();
+      }).catch(function () {});
+    } catch (e) {}
   }
   /* ---- Ki mit lát: az admin mindent; az asszisztens csak azt, ahol ő a felelős, vagy amit ő adott le. ---- */
   var AS_ALL = [], ME = null;
@@ -1099,7 +1110,7 @@
     var so = el("select"), ownK = Object.keys(AS_OWNERS); if (x.owner && ownK.indexOf(x.owner) < 0) ownK.push(x.owner);
     ownK.forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = AS_OWNERS[k] || TEAM[k] || k; so.appendChild(o); });
     so.value = x.owner || AS_OWNER_DEFAULT; so.title = "Felelős"; so.addEventListener("change", function () { asUpd(x.id, { owner: so.value }); }); td("c-ow").appendChild(so);
-    var tby = td("c-by"), bs = el("select"), BY = { "csikos.mate.ovb@gmail.com": "Csikós Máté" }; Object.keys(AS_OWNERS).forEach(function (k) { BY[k] = AS_OWNERS[k]; });
+    var tby = td("c-by"), bs = el("select"), BY = { "csikos.mate.ovb@gmail.com": "Csikós Máté" }; Object.keys(BY_EXTRA).forEach(function (k) { BY[k] = BY_EXTRA[k]; }); Object.keys(AS_OWNERS).forEach(function (k) { BY[k] = AS_OWNERS[k]; });
     var curBy = String(x.by || "").toLowerCase(); if (curBy && !BY[curBy]) BY[curBy] = x.byName || TEAM[curBy] || curBy;
     var o0 = document.createElement("option"); o0.value = ""; o0.textContent = "–"; bs.appendChild(o0);
     Object.keys(BY).forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = BY[k]; bs.appendChild(o); });
