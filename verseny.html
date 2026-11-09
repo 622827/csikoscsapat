@@ -480,7 +480,33 @@
     });
   }
 
+  /* A lezárt hónapok befagyasztott állása ("Havi zárás" lap, data.closed): a lezárt hónap kampányegysége és egyéni
+     összege onnan jön, mert a pipeline-lapokról a régi szerződések kikerülnek. Az aktuális hónapok az élő adatból. */
+  function plainName(t) { return String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim(); }
+  function applyClosed(data) {
+    var closed = {};
+    (data.closed || []).forEach(function (r) { var m = +r.m; if (MONTHS.indexOf(m) < 0) return; (closed[m] = closed[m] || {})[plainName(r.name)] = r; });
+    if (!Object.keys(closed).length) return data;
+    var P = (data.people || []).slice(), have = {};
+    P.forEach(function (x) { have[plainName(x.name)] = 1; });
+    Object.keys(closed).forEach(function (m) { Object.keys(closed[m]).forEach(function (k) {
+      if (!have[k]) { have[k] = 1; P.push({ name: closed[m][k].name, camp: {}, total: 0, outlook: 0, recruits: 0 }); } }); });
+    P = P.map(function (x) {
+      var o = {}; Object.keys(x).forEach(function (k) { o[k] = x[k]; }); o.camp = {}; Object.keys(x.camp || {}).forEach(function (m) { o.camp[m] = x.camp[m]; });
+      var key = plainName(x.name), tot = 0, haveProc = !!x.proc;
+      MONTHS.forEach(function (m) {
+        if (closed[m]) { var c = closed[m][key]; if (c) { o.camp[m] = +c.camp || 0; tot += (+c.lead || 0) + (+c.el || 0); } else { o.camp[m] = 0; } return; }
+        var r = (x.proc || {})[m]; if (!r) return;
+        Object.keys(r).forEach(function (k) { var q = plainName(k); if ((q.indexOf("100") > -1 && q.indexOf("leadva") > -1) || q.indexOf("elszamolt") > -1) tot += +r[k] || 0; });
+      });
+      if (haveProc || Object.keys(closed).some(function (m) { return closed[m][key]; })) o.total = tot;
+      return o;
+    });
+    var d = {}; Object.keys(data).forEach(function (k) { d[k] = data[k]; }); d.people = P; return d;
+  }
+
   function render(data) {
+    data = applyClosed(data);
     var people = (data.people || []).filter(function (p) { return EXCLUDE.indexOf(p.name) < 0; });
     var monthly = {}, points = {};
     people.forEach(function (p) { points[p.name] = 0; });
