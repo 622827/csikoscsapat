@@ -706,8 +706,9 @@
     $("as-client").addEventListener("blur", function () { this.value = shortName(this.value); });
     $("as-form").addEventListener("submit", function (ev) {
       ev.preventDefault(); if (!FB) { toast("Az adatbázis még nem töltött be."); return; }
+      if (!asCanCreate()) { toast("Feladatot csak asszisztensi jogosultsággal lehet felvenni."); return; }
       var title = $("as-title").value.trim(); if (!title) return;
-      var data = { title: title, type: $("as-type").value, product: $("as-prod").value, client: shortName($("as-client").value), due: $("as-due").value || "", owner: $("as-owner").value, note: $("as-note").value.trim(), done: false, created: Date.now(), doneAt: 0 };
+      var data = { title: title, type: $("as-type").value, product: $("as-prod").value, client: shortName($("as-client").value), due: $("as-due").value || "", owner: $("as-owner").value, by: ME.email, byName: ME.name || "", note: $("as-note").value.trim(), done: false, created: Date.now(), doneAt: 0 };
       var ref = FB.F.doc(FB.F.collection(FB.db, "perf", ID, "atasks"));
       FB.F.setDoc(ref, data).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
       $("as-title").value = ""; $("as-prod").value = ""; $("as-client").value = ""; $("as-note").value = ""; $("as-due").value = ""; $("as-title").focus();
@@ -913,6 +914,7 @@
     $("mt-sb").addEventListener("click", function () { asTab("sb"); });
     $("sb-form").addEventListener("submit", function (ev) {
       ev.preventDefault(); if (!FB) { toast("Az adatbázis még nem töltött be."); return; }
+      if (!asCanCreate()) { toast("Feladatot csak asszisztensi jogosultsággal lehet felvenni."); return; }
       var nm = $("sb-name").value.trim(); if (!nm) return;
       FB.F.setDoc(FB.F.doc(FB.F.collection(FB.db, "perf", ID, "sb")), { name: nm, start: $("sb-start").value || todayIso(), mentor: $("sb-mentor").value, mnb: false, kev: false, ta: [], created: Date.now() }).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
       $("sb-name").value = ""; $("sb-name").focus();
@@ -928,8 +930,31 @@
   function asStart() {
     if (asReady) return; asReady = true;
     FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "atasks"), function (snap) {
-      AS = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); soon(asRender);
+      AS_ALL = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); asApplyVis();
     }, function (e) { toast("Asszisztensi feladatok: " + e.message); });
+    asWhoAmI();
+  }
+  /* ---- Ki mit lát: az admin mindent; az asszisztens csak azt, ahol ő a felelős, vagy amit ő adott le. ---- */
+  var AS_ALL = [], ME = null;
+  function asVisible(x) {
+    if (!ME || !ME.email) return false;
+    if (ME.admin) return true;
+    return String(x.owner || "").toLowerCase() === ME.email || String(x.by || "").toLowerCase() === ME.email;
+  }
+  function asCanCreate() { return !!(ME && ME.email && (ME.admin || ME.ass)); }
+  function asApplyVis() {
+    AS = AS_ALL.filter(asVisible);
+    var f = $("as-form"); if (f) f.hidden = !asCanCreate();
+    soon(asRender);
+  }
+  function asWhoAmI() {
+    var tries = 0;
+    (function wait() {
+      var c = window.CSK;
+      if (c && c.ready) { Promise.resolve(c.ready).then(function () { ME = { email: String(c.user || "").toLowerCase(), admin: !!c.isAdmin, ass: !!c.asszisztens, name: c.name || "" }; asApplyVis(); }); return; }
+      if (++tries > 200) { ME = { email: "", admin: false, ass: false, name: "" }; asApplyVis(); return; }
+      setTimeout(wait, 50);
+    })();
   }
   function asUpd(id, patch) { FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "atasks", id), patch).catch(function (e) { toast("Mentés sikertelen: " + e.message); }); }
   var asSeen = null, asOpen = {};
@@ -1093,7 +1118,7 @@
       box.appendChild(el("h4", "as-g" + (g[1] ? " " + g[1] : ""), g[0] + " (" + items.length + ")"));
       items.forEach(function (x) { box.appendChild(asCard(x, now, firstRun)); });
     });
-    $("as-none").textContent = L.length ? "" : (AS.length ? "Nincs a szűrőnek megfelelő feladat." : "Még nincs feladat. Vegyél fel egyet fent.");
+    $("as-none").textContent = L.length ? "" : (ME && !ME.email ? "Lépj be a Google-fiókoddal, hogy lásd a feladataidat." : (AS.length ? "Nincs a szűrőnek megfelelő feladat." : (asCanCreate() ? "Még nincs feladat. Vegyél fel egyet fent." : "Nincs hozzád rendelt feladat.")));
   }
   function render() {
     if (!D) return;
