@@ -369,30 +369,92 @@
     for (var i = 0; i < els.length; i++) if (!els[i].childElementCount) num(els[i]);
   }
 
-  /* Haladássávok: a kitöltés balról jobbra „söpör” be (clip-path, a szélességet nem bántjuk) */
+  /* Haladássávok: a kitöltés balról jobbra „söpör” be (clip-path, a szélességet nem bántjuk).
+     Minden sáv külön indul, amikor görgetéskor a képernyőre ér; az egyszerre látszók kis lépcsőzéssel. */
+  function kidsOf(p) { return [].slice.call(p.children).map(function (k) { return { k: k, c: k.style.clipPath }; }); }
+  function clipAll(p, x, W) {
+    var pr = p.getBoundingClientRect();
+    p.__kids.forEach(function (d) {
+      var r = d.k.getBoundingClientRect(), l = r.left - pr.left, w = r.width, vis = Math.max(0, Math.min(w, x - l));
+      d.k.style.clipPath = "inset(0 " + (w - vis).toFixed(1) + "px 0 0)";
+    });
+  }
+  var bq = [], bw = [];
+  var bio = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { bio.unobserve(e.target); bq.push(e.target); } });
+    if (!bq.length) return;
+    bw = bw.filter(function (p) { return bq.indexOf(p) < 0; });
+    var q = bq.splice(0).sort(function (a, b) { return a.getBoundingClientRect().top - b.getBoundingClientRect().top; });
+    q.forEach(function (p, i) {
+      var o = { v: 0 }, W = p.getBoundingClientRect().width;
+      A.animate(o, { v: 1, duration: 1000, delay: 80 + Math.min(i * 90, 540), ease: "inOutQuart",
+        onUpdate: function () { clipAll(p, o.v * W, W); },
+        onComplete: function () { p.__kids.forEach(function (d) { d.k.style.clipPath = d.c || ""; }); } });
+    });
+  }, { rootMargin: "0px 0px -8% 0px", threshold: 0.6 });
   function bars(root, force) {
     if (!A || !(force || live())) return;
     var fs = root.querySelectorAll ? root.querySelectorAll("[style*='width']") : [], seen = [];
     for (var i = 0; i < fs.length; i++) {
-      var f = fs[i], p = f.parentElement; if (!/%\s*$/.test(f.style.width) || !p || p.__sw || p.closest("[data-rv]") || seen.indexOf(p) >= 0) continue;
-      var pt = p.getBoundingClientRect(); if (pt.top > innerHeight || pt.bottom < 0) continue;
+      var f = fs[i], p = f.parentElement; if (!/%\s*$/.test(f.style.width) || !p || p.__sw || seen.indexOf(p) >= 0) continue;
       var pr = p.getBoundingClientRect(); if (pr.height > 28 || pr.width < 60 || getComputedStyle(p).overflow === "visible") continue;
       seen.push(p);
     }
-    seen.forEach(function (p) {
-      p.__sw = 1; var pr = p.getBoundingClientRect(), kids = [].slice.call(p.children).map(function (k) { var r = k.getBoundingClientRect(); return { k: k, l: r.left - pr.left, w: r.width, c: k.style.clipPath }; });
-      var o = { v: 0 };
-      function draw() { var x = o.v * pr.width; kids.forEach(function (d) { var vis = Math.max(0, Math.min(d.w, x - d.l)); d.k.style.clipPath = "inset(0 " + (d.w - vis).toFixed(1) + "px 0 0)"; }); }
-      draw();
-      A.animate(o, { v: 1, duration: 1100, delay: 120, ease: "inOutQuart", onUpdate: draw,
-        onComplete: function () { kids.forEach(function (d) { d.k.style.clipPath = d.c || ""; }); } });
+    seen.forEach(function (p) { p.__sw = 1; p.__kids = kidsOf(p); clipAll(p, 0); bio.observe(p); bw.push(p); });
+  }
+  /* Gyors görgetésnél (ugrásnál) átugrott sávok: azonnal teljesek, ne maradjanak üresen */
+  var bt = 0;
+  addEventListener("scroll", function () {
+    if (bt || !bw.length) return;
+    bt = requestAnimationFrame(function () {
+      bt = 0;
+      bw = bw.filter(function (p) {
+        if (!p.isConnected) return false;
+        if (p.getBoundingClientRect().bottom > 0) return true;
+        bio.unobserve(p); p.__kids.forEach(function (d) { d.k.style.clipPath = d.c || ""; }); return false;
+      });
     });
+  }, { passive: true, capture: true });
+
+  /* Kampánynaptár kereke: betöltéskor cikkelyenként (az óramutató szerint) beúszik, utána a heti gyűrű szakaszonként kitöltődik.
+     Kattintáskor (újrarajzoláskor) nem animál újra. */
+  var whDone = 0;
+  function wheel() {
+    var w = document.getElementById("wheel"); if (whDone || !w || !A || Date.now() - lastAct < 1500) return;
+    whDone = 1;
+    var sgs = [].slice.call(w.querySelectorAll(".sg")), rest = [].slice.call(w.children).filter(function (n) { return sgs.indexOf(n) < 0; });
+    var wks = [].slice.call(w.querySelectorAll(".wk"));
+    sgs.forEach(function (g) { g.style.opacity = "0"; });
+    wks.forEach(function (c) { c.style.opacity = "0"; });
+    rest.forEach(function (n) { n.style.opacity = "0"; });
+    function go() {
+      sgs.forEach(function (g, i) {
+        var o = { v: 0 }; g.style.transformBox = "view-box"; g.style.transformOrigin = "300px 300px";
+        A.animate(o, { v: 1, duration: 620, delay: i * 70, ease: "outCubic",
+          onUpdate: function () { g.style.opacity = String(o.v); g.style.scale = String(.9 + .1 * o.v); },
+          onComplete: function () { ["opacity", "scale", "transform-box", "transform-origin"].forEach(function (k) { g.style.removeProperty(k); }); } });
+      });
+      wks.forEach(function (c, i) {
+        var o = { v: 0 };
+        A.animate(o, { v: 1, duration: 260, delay: 350 + i * 22, ease: "outQuad",
+          onUpdate: function () { c.style.opacity = String(o.v); }, onComplete: function () { c.style.removeProperty("opacity"); } });
+      });
+      rest.forEach(function (n) {
+        var o = { v: 0 };
+        A.animate(o, { v: 1, duration: 500, delay: 12 * 70 + 150, ease: "outQuad",
+          onUpdate: function () { n.style.opacity = String(o.v); }, onComplete: function () { n.style.removeProperty("opacity"); } });
+      });
+    }
+    var r = w.getBoundingClientRect();
+    if (r.top < innerHeight && r.bottom > 0) go();
+    else { var wio = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { wio.disconnect(); go(); } }, { threshold: .25 }); wio.observe(w); }
   }
 
   function scan(root) {
     if (!root.querySelectorAll) return;
     if (root.matches && root.matches(CAND)) tag(root);
     root.querySelectorAll(CAND).forEach(tag);
+    wheel();
   }
   var mq = [], mt = 0;
   new MutationObserver(function (ms) {
@@ -408,7 +470,7 @@
   }).observe(document.body, { subtree: true, childList: true });
 
   scan(document.body);
-  function ready() { A = window.anime; window.cskAnime = A; if (pend.length) flush(); nums(document.body); bars(document.body); }
+  function ready() { A = window.anime; window.cskAnime = A; if (pend.length) flush(); nums(document.body); bars(document.body); wheel(); }
   var s = document.createElement("script"); s.src = "anime.min.js?v=4.5.0";
   s.onload = ready;
   s.onerror = function () { all.forEach(show); pend.length = 0; };
