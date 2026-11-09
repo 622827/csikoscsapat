@@ -119,7 +119,7 @@
 /* Almenü: a lefelé nyíllal jelölt menüpontra kattintva lenyílnak az aloldalak */
 (function () {
   var SUB = { "verseny.html": [["Erdélyi Incentive", "verseny.html#erdely"], ["Téli Incentive", "verseny.html#teli"], ["2026 Lengyelország karácsony", "verseny.html#lengyel"]]};
-  if (window.__cskMap) { SUB = {}; window.__cskKids("menu").forEach(function (it) { var ch = window.__cskKids(it.id); if (ch.length && it.menu !== "locked" && it.menu !== "hidden") SUB[it.href || ("#g-" + it.id)] = ch.filter(function (c) { return c.menu !== "hidden"; }).map(function (c) { return [c.title, c.href || "#"]; }); }); }
+  if (window.__cskMap) { SUB = {}; window.__cskKids("menu").forEach(function (it) { var vis = window.__cskKids(it.id).filter(function (c) { return c.menu !== "hidden"; }); if (vis.length && it.menu !== "locked" && it.menu !== "hidden") SUB[it.href || ("#g-" + it.id)] = vis.map(function (c) { return [c.title, c.href || "#"]; }); }); }   // csak akkor lesz lenyíló, ha van látható almenüpont
   function init() {
     var nav = document.querySelector(".topnav"); if (!nav) return;
     var st = document.createElement("style");
@@ -151,7 +151,10 @@
       });
       function open() {
         cur = a; a.classList.add("csk-open"); box.textContent = "";
-        items.forEach(function (it) { var l = document.createElement("a"); l.href = it[1]; l.textContent = it[0];
+        var list = items.slice(), pageHref = fullH.charAt(0) === "#" ? "" : fullH;
+        // saját oldallal rendelkező menüpontnál az első elem maga az oldal, hogy a szülő is megnyitható legyen
+        if (window.__cskMap && pageHref && !list.some(function (x) { return x[1] === pageHref; })) list.unshift([(a.textContent || "").trim() || pageHref, pageHref]);
+        list.forEach(function (it) { var l = document.createElement("a"); l.href = it[1]; l.textContent = it[0];
           var h = location.hash, onPage = location.pathname.split("/").pop() === key;
           var curKey = ""; try { curKey = key === "csapatkassza.html" ? (h === "#flotta" || h === "#iroda" ? h : "#kassza") : key === "verseny.html" ? (h === "#teli" || h === "#lengyel" ? h : "#erdely") : key === "admin.html" ? (h || "#konyveles") : (h ? h : (sessionStorage.getItem("tj_view") === "as" ? "#asszisztens" : "#elemzesek")); } catch (e) {}
           if (onPage && it[1].slice(it[1].indexOf("#")) === curKey) l.className = "cur";
