@@ -945,6 +945,7 @@
   function asApplyVis() {
     AS = AS_ALL.filter(asVisible);
     var f = $("as-form"); if (f) f.hidden = !asCanCreate();
+    var fo = $("as-f-owner"); if (fo) { fo.hidden = !(ME && ME.admin); if (fo.hidden) fo.value = ""; }   // a "kinek a feladatai" szűrő csak az adminnak kell
     soon(asRender);
   }
   function asWhoAmI() {
