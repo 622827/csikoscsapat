@@ -275,3 +275,143 @@
   }catch(e){}
   var s=document.createElement("script");s.type="module";s.src="auth.js?v=9";document.head.appendChild(s);
 })();
+
+/* Revamp: anime.js (helyi anime.min.js) – lépcsőzetes beúszás, számlálók, haladássávok + finom vizuális frissítés.
+   Csak :where()-es (0 specificitású) alapstílusok, így az oldalak saját szabályai mindig erősebbek. */
+(function () {
+  if (window.__cskRv || self !== top) return; window.__cskRv = 1;
+  var rm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var st = document.createElement("style");
+  st.textContent =
+    ":root{--csk-shc:0,30,60;--csk-ease:cubic-bezier(.22,1,.36,1)}" +
+    "@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--csk-shc:0,0,0}}:root[data-theme=dark]{--csk-shc:0,0,0}" +
+    "body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}" +
+    ":where(h1,h2,h3){text-wrap:balance}:where(p,.lead,.note){text-wrap:pretty}" +
+    "::selection{background:color-mix(in srgb,var(--hot,#ff3399) 26%,transparent)}" +
+    "html{scrollbar-color:color-mix(in srgb,var(--ink,#036) 22%,transparent) transparent}" +
+    /* Felületek: halk, kétrétegű árnyék */
+    ":where(.card,.tile,.kpi,.news .item){box-shadow:0 1px 2px rgba(var(--csk-shc),.05),0 8px 24px -14px rgba(var(--csk-shc),.22);transition:transform .3s var(--csk-ease),box-shadow .3s ease,background-color .2s ease,border-color .2s ease}" +
+    ":where(a.card,a.tile,.news .item,.tile[onclick],.card[onclick],.kpi[onclick]):hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(var(--csk-shc),.06),0 16px 32px -14px rgba(var(--csk-shc),.3)}" +
+    /* Fejléc: áttetsző, elmosott háttér; görgetéskor finom árnyék */
+    "html .topnav{background:color-mix(in srgb,var(--bg,#fff) 80%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(14px);backdrop-filter:saturate(1.6) blur(14px);transition:box-shadow .25s ease,padding-left .22s ease}" +
+    "html.csk-scr .topnav{box-shadow:0 10px 30px -18px rgba(var(--csk-shc),.35)}" +
+    /* Gombok, sorok */
+    ":where(.btn,a.btn,button.primary,.pri):not(:disabled):hover{transform:translateY(-1px)}" +
+    ":where(.btn,a.btn,button.primary,.pri){transition:transform .2s var(--csk-ease),filter .15s ease,box-shadow .2s ease,background-color .2s ease,color .2s ease}" +
+    ":where(table) tbody tr{transition:background-color .15s ease}:where(table) tbody tr:hover{background-color:color-mix(in srgb,var(--accent,#036) 5%,transparent)}" +
+    ":where(.pill,.chip){transition:transform .2s var(--csk-ease),background-color .2s ease}" +
+    "@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}" +
+    "[data-rv='0']{opacity:0!important}" +
+    "@media (prefers-reduced-motion:reduce){:where(.card,.tile,.kpi,.news .item,.btn):hover{transform:none!important}}";
+  document.head.appendChild(st);
+  function onScr() { document.documentElement.classList.toggle("csk-scr", scrollY > 4); }
+  addEventListener("scroll", onScr, { passive: true }); onScr();
+  if (rm) return;
+
+  var A = null, t0 = Date.now(), lastAct = 0, lastKey = 0;
+  ["pointerdown", "change"].forEach(function (n) { document.addEventListener(n, function () { lastAct = Date.now(); }, true); });
+  ["keydown", "input"].forEach(function (n) { document.addEventListener(n, function () { lastKey = Date.now(); }, true); });
+  /* Animálunk: betöltéskor, adatbetöltéskor (első 10 mp) és felhasználói művelet után; háttérfrissítésnél és gépelés közben nem. */
+  function live() { var n = Date.now(); return n - lastKey > 900 && (n - t0 < 10000 || n - lastAct < 1500); }
+
+  var CAND = ".card,.tile,.kpi,.news .item,.hero,main h1,.closes li,.links li,#csk-gate form > *";
+  var SKIP = ".csk-sidebar,.topnav,.csk-sub,#csk-lock,dialog,[role=dialog],.csk-in,.csk-drop";
+  var pend = [], all = [];
+  function rect(el) { var r = el.getBoundingClientRect(); return r.width || r.height ? r : null; }
+  function tag(el) {
+    if (el.__rv || el.closest(SKIP) || !rect(el)) return;
+    var p = el.parentElement && el.parentElement.closest("[data-rv]"); if (p && p.__rv) return;
+    el.__rv = 1; el.__rvO = parseFloat(getComputedStyle(el).opacity) || 1;
+    el.setAttribute("data-rv", "0"); all.push(el); io.observe(el);
+  }
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { io.unobserve(e.target); pend.push(e.target); } });
+    if (pend.length) requestAnimationFrame(flush);
+  }, { rootMargin: "0px 0px -6% 0px" });
+  function show(el) { el.removeAttribute("data-rv"); el.style.removeProperty("opacity"); el.style.removeProperty("translate"); }
+  function flush() {
+    var q = pend.splice(0); if (!q.length) return;
+    if (!A) { q.forEach(show); return; }
+    q.sort(function (a, b) { return (a.__y = a.getBoundingClientRect().top) - (b.__y = b.getBoundingClientRect().top); });
+    q.forEach(function (el, i) {
+      var o = { v: 0 }, to = el.__rvO; el.style.opacity = "0"; el.removeAttribute("data-rv");
+      A.animate(o, { v: 1, duration: 560, delay: Math.min(i * 45, 360), ease: "outCubic",
+        onUpdate: function () { el.style.opacity = String(to * o.v); el.style.translate = "0 " + ((1 - o.v) * 14).toFixed(2) + "px"; },
+        onComplete: function () { show(el); } });
+      bars(el, 1); nums(el, 1);
+    });
+  }
+
+  /* Számlálók: nagy (≥20px) számok 0-ról a végértékig */
+  var NRE = /^\s*([+\-−]?)(\d{1,3}(?:[   .]\d{3})+|\d+)(?:,(\d+))?(\s*(?:%|Ft|e\s?Ft|M\s?Ft|MFt|db|ES|egység|nap|pont|pt|fő|M|millió)?)\s*$/i;
+  function num(el) {
+    if (el.childElementCount || el.closest(SKIP + ",[data-rv],input,textarea,select,option,button,.topnav")) return;
+    var tx = el.textContent; if (!tx || tx.length > 24 || el.__w === tx) return;
+    var m = NRE.exec(tx); if (!m) return;
+    var sep = (m[2].match(/[   .]/) || [""])[0], dec = m[3] ? m[3].length : 0;
+    var val = parseFloat(m[2].replace(/[   .]/g, "") + (dec ? "." + m[3] : ""));
+    if (!val || (!m[4].trim() && !sep && val >= 1900 && val <= 2100 && !dec)) return;
+    var r = el.getBoundingClientRect(); if (!r.width || r.top > innerHeight || r.bottom < 0 || parseFloat(getComputedStyle(el).fontSize) < 20) return;
+    var lead = tx.slice(0, tx.indexOf(m[1] + m[2])), tail = tx.slice(tx.indexOf(m[2]) + m[2].length);
+    function fmt(v) {
+      var s = v.toFixed(dec), ip = s.split(".")[0], fp = s.split(".")[1];
+      if (sep) ip = ip.replace(/\B(?=(\d{3})+(?!\d))/g, sep);
+      return lead + m[1] + ip + (dec ? "," + fp : "") + tail.replace(/^,\d+/, "");
+    }
+    var o = { v: 0 }, final = tx; el.__w = fmt(0); el.textContent = el.__w;
+    var an = A.animate(o, { v: val, duration: 1100, ease: "outExpo",
+      onUpdate: function () { if (el.textContent !== el.__w) { an.pause(); return; } el.__w = fmt(o.v); el.textContent = el.__w; },
+      onComplete: function () { if (el.textContent === el.__w) { el.textContent = final; el.__w = final; } } });
+  }
+  function nums(root, force) {
+    if (!A || !(force || live())) return;
+    var els = root.matches && root.childElementCount === 0 ? [root] : root.querySelectorAll("b,strong,span,div,p,h1,h2,h3,h4,dd,output");
+    for (var i = 0; i < els.length; i++) if (!els[i].childElementCount) num(els[i]);
+  }
+
+  /* Haladássávok: a kitöltés balról jobbra „söpör” be (clip-path, a szélességet nem bántjuk) */
+  function bars(root, force) {
+    if (!A || !(force || live())) return;
+    var fs = root.querySelectorAll ? root.querySelectorAll("[style*='width']") : [], seen = [];
+    for (var i = 0; i < fs.length; i++) {
+      var f = fs[i], p = f.parentElement; if (!/%\s*$/.test(f.style.width) || !p || p.__sw || p.closest("[data-rv]") || seen.indexOf(p) >= 0) continue;
+      var pt = p.getBoundingClientRect(); if (pt.top > innerHeight || pt.bottom < 0) continue;
+      var pr = p.getBoundingClientRect(); if (pr.height > 28 || pr.width < 60 || getComputedStyle(p).overflow === "visible") continue;
+      seen.push(p);
+    }
+    seen.forEach(function (p) {
+      p.__sw = 1; var pr = p.getBoundingClientRect(), kids = [].slice.call(p.children).map(function (k) { var r = k.getBoundingClientRect(); return { k: k, l: r.left - pr.left, w: r.width, c: k.style.clipPath }; });
+      var o = { v: 0 };
+      function draw() { var x = o.v * pr.width; kids.forEach(function (d) { var vis = Math.max(0, Math.min(d.w, x - d.l)); d.k.style.clipPath = "inset(0 " + (d.w - vis).toFixed(1) + "px 0 0)"; }); }
+      draw();
+      A.animate(o, { v: 1, duration: 1100, delay: 120, ease: "inOutQuart", onUpdate: draw,
+        onComplete: function () { kids.forEach(function (d) { d.k.style.clipPath = d.c || ""; }); } });
+    });
+  }
+
+  function scan(root) {
+    if (!root.querySelectorAll) return;
+    if (root.matches && root.matches(CAND)) tag(root);
+    root.querySelectorAll(CAND).forEach(tag);
+  }
+  var mq = [], mt = 0;
+  new MutationObserver(function (ms) {
+    if (!live()) return;
+    ms.forEach(function (m) {
+      if (m.target.nodeType === 1 && m.addedNodes.length && m.target.childElementCount === 0) mq.push(m.target); /* szövegcsere (adatbetöltés) */
+      m.addedNodes.forEach(function (n) { if (n.nodeType === 1) mq.push(n); });
+    });
+    if (mq.length && !mt) mt = requestAnimationFrame(function () {
+      mt = 0; var q = mq.splice(0);
+      q.forEach(function (n) { if (!n.isConnected) return; scan(n); if (!n.closest("[data-rv]") && rect(n)) { nums(n); bars(n); } });
+    });
+  }).observe(document.body, { subtree: true, childList: true });
+
+  scan(document.body);
+  function ready() { A = window.anime; window.cskAnime = A; if (pend.length) flush(); nums(document.body); bars(document.body); }
+  var s = document.createElement("script"); s.src = "anime.min.js?v=4.5.0";
+  s.onload = ready;
+  s.onerror = function () { all.forEach(show); pend.length = 0; };
+  document.head.appendChild(s);
+  setTimeout(function () { if (!A) all.forEach(show); }, 2500);
+})();
