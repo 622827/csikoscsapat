@@ -47,9 +47,15 @@ function lapOsszeg_(sh, honap) {
   return { lead: lead, el: el, camp: camp };
 }
 
+// A táblázat: önálló projektben a SPREADSHEET_ID-vel (a Kód.gs-ben már megvan), táblázathoz kötött projektben az aktív táblázat.
+function tabla_() {
+  if (typeof SPREADSHEET_ID !== "undefined" && SPREADSHEET_ID) return SpreadsheetApp.openById(SPREADSHEET_ID);
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
+
 // Napi trigger: ha az előző hónap még nincs a "Havi zárás" lapon, beírja. Meglévő sort sosem módosít.
 function snapshotClosedMonths() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet(), lap = ss.getSheetByName(ZARAS_LAP);
+  var ss = tabla_(), lap = ss.getSheetByName(ZARAS_LAP);
   if (!lap) { lap = ss.insertSheet(ZARAS_LAP); lap.appendRow(["Hónap", "Név", "100% Leadva", "Elszámolt", "Összesen", "Rögzítve", "Kampány ES"]); lap.setFrozenRows(1); }
   var honap = elozoHonap_(termelesiHonap_(new Date()));
   var van = lap.getLastRow() > 1 && lap.getRange(2, 1, lap.getLastRow() - 1, 1).getValues().some(function (r) { return Number(r[0]) === honap; });
@@ -66,7 +72,7 @@ function snapshotClosedMonths() {
 
 // A honlapnak: a lezárt hónapok mentett sorai.
 function readClosed() {
-  var lap = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ZARAS_LAP);
+  var lap = tabla_().getSheetByName(ZARAS_LAP);
   if (!lap || lap.getLastRow() < 2) return [];
   return lap.getRange(2, 1, lap.getLastRow() - 1, 7).getValues()
     .filter(function (r) { return r[0] && r[1]; })
