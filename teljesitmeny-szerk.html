@@ -398,6 +398,7 @@
   .pg .vw { display: inline-flex; margin-left: auto; border: 2px solid var(--track, #e5e5e5); border-radius: 999px; overflow: hidden; }
   .pg .vw button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; padding: 6px 14px; cursor: pointer; transition: background .2s, color .2s; }
   .pg .vw button.on { background: var(--accent); color: var(--on-accent, #fff); }
+  .pg .vw.vs { margin-left: 0; }
   .pg .cal-h { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; }
   .pg .cal-h b { font-size: 1.15rem; flex: 1; text-align: center; }
   .pg .cal-h button { border: 2px solid var(--track, #e5e5e5); background: transparent; color: inherit; font: inherit; font-weight: 700; border-radius: 10px; padding: 4px 12px; cursor: pointer; transition: background .2s, transform .15s; }
@@ -734,6 +735,15 @@
     fillSel($("as-owner"), team); $("as-owner").value = AS_OWNER_DEFAULT;
     fillSel($("as-f-owner"), team, "Mindenki");
     ["as-f-status", "as-f-type", "as-f-owner"].forEach(function (i) { $(i).addEventListener("change", asRender); });
+    (function () {   // az "Állapot" szűrő egymás melletti gombokként (a lenyíló rejtve marad, az tárolja az értéket)
+      var sel = $("as-f-status"), g = el("span", "vw vs"); g.setAttribute("role", "group"); g.setAttribute("aria-label", "Állapot");
+      [["open", "Nyitott"], ["done", "Kész"], ["all", "Mind"]].forEach(function (o) {
+        var b = el("button", sel.value === o[0] ? "on" : "", o[1]); b.type = "button"; b.setAttribute("data-v", o[0]);
+        b.addEventListener("click", function () { sel.value = o[0]; sel.dispatchEvent(new Event("change")); [].forEach.call(g.children, function (c) { c.classList.toggle("on", c.getAttribute("data-v") === o[0]); }); });
+        g.appendChild(b);
+      });
+      sel.parentNode.insertBefore(g, sel); sel.hidden = true;
+    })();
     $("mt-perf").addEventListener("click", function () { asTab("perf"); });
     dpAttach($("as-due"));
     $("as-vl").addEventListener("click", function () { asView("list"); }); $("as-vc").addEventListener("click", function () { asView("cal"); });
