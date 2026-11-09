@@ -561,7 +561,7 @@
     var lgk = Object.keys(seen).sort(function (a, b) { return ppProc(a) - ppProc(b); }); 
     var legend = lgk.length ? '<div class="pp-lg pp-top">' + lgk.map(function (k) { return '<span><em' + (isLead(k) || plain(k).indexOf('elszamolt') > -1 ? '' : ' class="f"') + ' style="background:' + ppCol(k) + '"></em>' + esc(k) + '</span>'; }).join("") + '</div>' : "";
     box.innerHTML = legend + L.map(function (x, n) {
-      var done = x.total || 0, out = Math.max(x.outlook || 0, done), key = plain(x.name);
+      var done = x.lead != null ? x.lead : (x.total || 0), out = Math.max(x.outlook || 0, x.total || 0, done), key = plain(x.name);
       var tot = {}; Object.keys(x.proc || {}).forEach(function (m) { var r = x.proc[m] || {}; Object.keys(r).forEach(function (k) { var c = cn(x, k); tot[c] = (tot[c] || 0) + r[k]; }); });
       var isEl = function (k) { return plain(k).indexOf("elszamolt") > -1; };
       var oth = Object.keys(tot).filter(function (k) { return !isLead(k) && !isEl(k) && tot[k] > 0; }).sort(function (a, b) { return ppProc(a) - ppProc(b); }), sum = 0, elSum = 0;
@@ -581,7 +581,7 @@
             '<div class="pp-lg">' + names.map(function (k) { return '<span><em' + (isLead(k) || plain(k).indexOf('elszamolt') > -1 ? '' : ' class="f"') + ' style="background:' + ppCol(k) + '"></em>' + esc(k) + ' <b>' + nf.format(pr[k]) + '</b></span>'; }).join("") + '</div>'
             : '<span class="no">' + (hasProc ? 'Nincs tétel ebben a hónapban.' : 'A folyamat szerinti bontás még nem érhető el.') + '</span>') + '</div></div>';
       }).join("");
-      return '<div class="team pp' + (CSK_MEMBERS.indexOf(key) > -1 ? ' csk' : '') + (PP_OPEN[key] ? ' open' : '') + '" data-k="' + esc(key) + '"><button type="button" class="pp-hd" aria-expanded="' + (PP_OPEN[key] ? 'true' : 'false') + '"><div class="head"><span class="nm">' + esc(x.name) + '</span><span class="val">' + nf.format(done) + ' ' + LABEL + '</span></div>' +
+      return '<div class="team pp' + (CSK_MEMBERS.indexOf(key) > -1 ? ' csk' : '') + (PP_OPEN[key] ? ' open' : '') + '" data-k="' + esc(key) + '"><button type="button" class="pp-hd" aria-expanded="' + (PP_OPEN[key] ? 'true' : 'false') + '"><div class="head"><span class="nm">' + esc(x.name) + '</span><span class="val">' + nf.format(x.total != null ? x.total : done) + ' ' + LABEL + '</span></div>' +
         '<div class="bar"><div class="sgs">' + sgs + '</div>' + lines + '</div>' +
         '<div class="sub">Kilátás: ' + nf.format(x.outlook || 0) + '</div></button><div class="pp-dt"><div>' + det + '</div></div></div>';
     }).join("");
@@ -601,7 +601,40 @@
     var t = b.parentNode, o = !t.classList.contains("open"); t.classList.toggle("open", o); b.setAttribute("aria-expanded", o ? "true" : "false"); PP_OPEN[t.getAttribute("data-k")] = o;
   });
 
+  /* ---- Negyedéves összesítés: a pipeline-lapokon csak az adott termelési hónap látszik,
+     a negyedév összegét itt számoljuk: a negyedév hónapjainak "100% Leadva" és "Elszámolt" tételei. ---- */
+  var QM = [qYear * 100 + q * 3 + 1, qYear * 100 + q * 3 + 2, qYear * 100 + q * 3 + 3];
+  var TEAM_GOAL_MULT = 3;   // a csapatcél a táblázatban havi; a negyedéves cél a háromszorosa
+  function isEl(k) { return plain(k).indexOf("elszamolt") > -1; }
+  function quarterize(d) {
+    var P = (d.people || []).filter(function (x) { return x && x.name; });
+    if (!P.some(function (x) { return x.proc; })) return null;
+    var T = { csikos: { done: 0, outlook: 0 }, farkas: { done: 0, outlook: 0 } }, out = [];
+    P.forEach(function (x) {
+      var lead = 0, el = 0, all = 0, proc = {}, mt = {};
+      QM.forEach(function (m) {
+        var r = (x.proc || {})[m]; if (!r) return; proc[m] = r;
+        Object.keys(r).forEach(function (k) { var v = +r[k] || 0, c = cn(x, k); all += v; mt[m] = (mt[m] || 0) + v; if (isLead(c)) lead += v; else if (isEl(c)) el += v; });
+      });
+      var o = {}; Object.keys(x).forEach(function (k) { o[k] = x[k]; });
+      o.proc = proc; o.mt = mt; o.lead = lead; o.total = lead + el; o.outlook = all;
+      out.push(o);
+      var tm = CSK_MEMBERS.indexOf(plain(x.name)) > -1 ? T.csikos : T.farkas;
+      tm.done += lead + el; tm.outlook += all;
+    });
+    return { people: out, teams: T };
+  }
+
   function applyData(d) {
+    var Q = quarterize(d);
+    if (Q) {
+      var tm = {}, src = d.teams || {};
+      ["csikos", "farkas"].forEach(function (k) {
+        var g = src[k] ? src[k].goal * TEAM_GOAL_MULT : 0, z = Q.teams[k];
+        tm[k] = { goal: g, done: z.done, outlook: Math.max(z.outlook, z.done), missing: Math.max(0, g - z.done) };
+      });
+      d = { teams: (src.csikos && src.farkas) ? tm : src, people: Q.people, months: (d.months || []).filter(function (m) { return QM.indexOf(+m) > -1; }), counter: d.counter };
+    }
     renderTeams(d.teams);
     renderPeople(d.people, d.months);
     var t = d.teams || {}, total;
