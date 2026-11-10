@@ -421,41 +421,39 @@
 
   /* Kampánynaptár kereke: betöltéskor cikkelyenként (az óramutató szerint) beúszik, utána a heti gyűrű szakaszonként kitöltődik.
      Kattintáskor (újrarajzoláskor) nem animál újra. */
-  var whDone = 0, de = document.documentElement;
+  var whDone = 0, whT0 = 0, whW = null, de = document.documentElement, WH_TOTAL = 3600;
   /* Amíg a kerék animációja el nem indul, a kerék rejtve marad (különben betöltéskor bevillan). */
   st.textContent += "html.csk-whwait #wheel>*{opacity:0}";
   de.classList.add("csk-whwait");
   function whFree() { de.classList.remove("csk-whwait"); }
-  setTimeout(function () { if (!whDone) { whDone = 1; whFree(); } }, 6000);
+  setTimeout(function () { if (!whT0) { whDone = 1; whFree(); } }, 6000);
+  /* Az oldal betöltés közben többször is újrarajzolja a kereket (alapadatok, majd az adatbázis válasza).
+     Ilyenkor az animáció az új kereken onnan folytatódik, ahol tartott. Felhasználói kattintásnál nincs animáció. */
   function wheel() {
-    var w = document.getElementById("wheel"); if (whDone || !w || !A) return;
-    whDone = 1;
-    if (Date.now() - lastAct < 1500) { whFree(); return; }
+    var w = document.getElementById("wheel"); if (!w || !A || w === whW) return;
+    whW = w;
+    if (whDone) return;
+    var now = Date.now();
+    if (now - lastAct < 1500) { whDone = 1; whFree(); return; }
+    if (!whT0) whT0 = now;
+    var el = now - whT0; if (el >= WH_TOTAL) { whDone = 1; whFree(); return; }
     var sgs = [].slice.call(w.querySelectorAll(".sg")), rest = [].slice.call(w.children).filter(function (n) { return sgs.indexOf(n) < 0; });
     var wks = [].slice.call(w.querySelectorAll(".wk"));
-    sgs.concat(wks, rest).forEach(function (n) { n.style.opacity = "0"; });
-    whFree();
-    function go() {
-      sgs.forEach(function (g, i) {
-        var o = { v: 0 }; g.style.transformBox = "view-box"; g.style.transformOrigin = "300px 300px";
-        A.animate(o, { v: 1, duration: 1100, delay: 150 + i * 130, ease: "outQuart",
-          onUpdate: function () { g.style.opacity = String(o.v); g.style.scale = String(.93 + .07 * o.v); },
-          onComplete: function () { ["opacity", "scale", "transform-box", "transform-origin"].forEach(function (k) { g.style.removeProperty(k); }); } });
-      });
-      wks.forEach(function (c, i) {
-        var o = { v: 0 };
-        A.animate(o, { v: 1, duration: 500, delay: 700 + i * 40, ease: "outQuad",
-          onUpdate: function () { c.style.opacity = String(o.v); }, onComplete: function () { c.style.removeProperty("opacity"); } });
-      });
-      rest.forEach(function (n) {
-        var o = { v: 0 };
-        A.animate(o, { v: 1, duration: 800, delay: 150 + 12 * 130 + 200, ease: "outQuad",
-          onUpdate: function () { n.style.opacity = String(o.v); }, onComplete: function () { n.style.removeProperty("opacity"); } });
-      });
+    function run(n, D, U, set, clear) {
+      if (el >= D + U) return;
+      var t = el > D ? (el - D) / U : 0, o = { v: 1 - Math.pow(1 - t, 3) };
+      set(n, o.v);
+      A.animate(o, { v: 1, duration: U * (1 - t), delay: Math.max(0, D - el), ease: t ? "outQuad" : "outQuart",
+        onUpdate: function () { set(n, o.v); }, onComplete: function () { clear(n); } });
     }
-    var r = w.getBoundingClientRect();
-    if (r.top < innerHeight && r.bottom > 0) go();
-    else { var wio = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { wio.disconnect(); go(); } }, { threshold: .25 }); wio.observe(w); }
+    function sgSet(g, v) { g.style.transition = "none"; g.style.transformBox = "view-box"; g.style.transformOrigin = "300px 300px"; g.style.opacity = String(v); g.style.scale = String(.93 + .07 * v); }
+    function sgClr(g) { ["opacity", "scale", "transform-box", "transform-origin", "transition"].forEach(function (k) { g.style.removeProperty(k); }); }
+    function opSet(n, v) { n.style.transition = "none"; n.style.opacity = String(v); }
+    function opClr(n) { n.style.removeProperty("opacity"); n.style.removeProperty("transition"); }
+    sgs.forEach(function (g, i) { run(g, 150 + i * 130, 1100, sgSet, sgClr); });
+    wks.forEach(function (c, i) { run(c, 700 + i * 40, 500, opSet, opClr); });
+    rest.forEach(function (n) { run(n, 150 + 12 * 130 + 200, 800, opSet, opClr); });
+    whFree();
   }
 
   function scan(root) {
@@ -466,6 +464,7 @@
   }
   var mq = [], mt = 0;
   new MutationObserver(function (ms) {
+    if (!whDone) wheel(); /* még a kirajzolás előtt, különben az újrarajzolt kerék bevillan */
     if (!live()) return;
     ms.forEach(function (m) {
       if (m.target.nodeType === 1 && m.addedNodes.length && m.target.childElementCount === 0) mq.push(m.target); /* szövegcsere (adatbetöltés) */
