@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<!-- BELÉPÉS: jelszó a Google Apps Scriptben (nem az oldalon) -->
+<style>
+  html.csklock body > *:not(#csk-gate) { visibility: hidden !important; }
+  html.csklock body { overflow: hidden; }
+  #csk-gate { position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 24px;
+    background: var(--bg, #fff); color: var(--ink, #003366); font-family: "Stag Sans", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; visibility: visible; }
+  #csk-gate form { width: 100%; max-width: 360px; }
+  #csk-gate h1 { font-size: clamp(2rem, 8vw, 2.8rem); letter-spacing: -.03em; line-height: 1; margin: 0 0 8px; }
+  #csk-gate p { color: var(--muted, #336699); margin: 0 0 22px; }
+  #csk-gate input { width: 100%; font: inherit; font-size: 1.1rem; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--track, #e5e5e5); background: var(--card, #e5e5e5); color: inherit; }
+  #csk-gate input:focus { outline: 3px solid var(--accent, #003366); outline-offset: 2px; }
+  #csk-gate button { width: 100%; margin-top: 12px; font: inherit; font-weight: 700; font-size: 1.05rem; padding: 14px; border: 0; border-radius: 12px; cursor: pointer; background: var(--accent, #003366); color: var(--on-accent, #fff); }
+  #csk-gate button[disabled] { opacity: .6; cursor: wait; }
+  #csk-gate .err { color: var(--hot, #cc0066); min-height: 1.4em; margin: 10px 0 0; font-size: .95rem; }
+
+  /* Háttérminta: lovas lovag + farkas, átlósan ismétlődve (a szín változatlan) */
+  :root { --hatter: url(data:image/png;base64,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); }
+  body::before, #csk-gate::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--ink); opacity: .07;
+    -webkit-mask: var(--hatter) 0 0 / 230px 230px; mask: var(--hatter) 0 0 / 230px 230px; }
+  #csk-gate::before { position: absolute; z-index: 0; }
+  #csk-gate > * { position: relative; z-index: 1; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body::before, :root:not([data-theme="light"]) #csk-gate::before { opacity: .09; } }
+  :root[data-theme="dark"] body::before, :root[data-theme="dark"] #csk-gate::before { opacity: .09; }
+@media print { body::before { display: none; } }
+</style>
+<script>
+(function () {
+  var API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
+  var K = "csk_token", tok = "", root = document.documentElement, of = window.fetch.bind(window);
+  function ckGet() { var m = document.cookie.match(/(?:^|; )csk_token=([^;]*)/); return m ? decodeURIComponent(m[1]) : ""; }
+  function ckSet(v) {
+    var h = location.hostname.replace(/^www\./, ""), dom = /^[\d.]+$|^localhost$/.test(h) || !h ? "" : "; domain=." + h;
+    document.cookie = "csk_token=" + (v ? encodeURIComponent(v) : "") + dom + "; path=/; max-age=" + (v ? 31536000 : 0) + "; SameSite=Lax" + (location.protocol === "https:" ? "; Secure" : "");
+  }
+  try { tok = localStorage.getItem(K) || ""; } catch (e) {}
+  if (!tok) tok = ckGet();
+  if (tok) { try { localStorage.setItem(K, tok); } catch (e) {} ckSet(tok); }
+  if (!tok) root.classList.add("csklock");
+
+  window.fetch = function (u, o) {
+    var s = typeof u === "string" ? u : (u && u.url) || "";
+    if (s.indexOf("AKfycbxQ-h6UZiyI") < 0 || s.indexOf("login=") > -1) return of(u, o);
+    s += (s.indexOf("?") > -1 ? "&" : "?") + "t=" + encodeURIComponent(tok);
+    return of(s, o).then(function (r) {
+      r.clone().json().then(function (d) { if (d && d.error === "auth") lock(); }).catch(function () {});
+      return r;
+    });
+  };
+
+  function lock() {
+    try { localStorage.removeItem(K); } catch (e) {} ckSet("");
+    tok = ""; root.classList.add("csklock"); build();
+  }
+  function build() {
+    if (document.getElementById("csk-gate")) return;
+    if (!document.body) { document.addEventListener("DOMContentLoaded", build); return; }
+    var g = document.createElement("div"); g.id = "csk-gate";
+    g.innerHTML = '<form autocomplete="on"><h1>Csikós csapat</h1><p>Add meg a jelszót a belépéshez.</p>' +
+      '<input type="password" id="csk-pw" placeholder="Jelszó" autocomplete="current-password" autofocus>' +
+      '<button type="submit">Belépés</button><p class="err" id="csk-err" role="alert"></p></form>';
+    document.body.appendChild(g);
+    var f = g.querySelector("form"), pw = g.querySelector("#csk-pw"), btn = g.querySelector("button"), er = g.querySelector("#csk-err");
+    setTimeout(function () { pw.focus(); }, 50);
+    f.addEventListener("submit", function (ev) {
+      ev.preventDefault(); if (!pw.value) return;
+      btn.disabled = true; er.textContent = "";
+      of(API + "?login=" + encodeURIComponent(pw.value) + "&_=" + Date.now())
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d && d.ok && d.token) { try { localStorage.setItem(K, d.token); } catch (e) {} ckSet(d.token); location.reload(); }
+          else { er.textContent = "Hibás jelszó."; btn.disabled = false; pw.select(); }
+        })
+        .catch(function () { er.textContent = "Nem sikerült csatlakozni, próbáld újra."; btn.disabled = false; });
+    });
+  }
+  if (!tok) build();
+})();
+</script>
+<meta name="robots" content="noindex"><link rel="icon" type="image/png" sizes="32x32" href="ikon/favicon-32.png" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/png" sizes="32x32" href="ikon/favicon-dark-32.png" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" sizes="48x48" href="ikon/favicon-48.png">
+<link rel="apple-touch-icon" href="ikon/apple-touch-icon.png">
+<title>Feladatok · Menedzsment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff; --ink: #003366; --muted: #336699; --accent: #003366; --on-accent: #fff;
+    --soft: #6699cc; --track: #e5e5e5; --card: #e5e5e5; --gold: #cc0066; --gold-bg: #ffe6f2; --ok: #006666;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #001f3d; --ink: #ffffff; --muted: #6699cc; --accent: #ff99cc; --on-accent: #001f3d;
+      --soft: #336699; --track: #00305a; --card: #003366; --gold: #ff99cc; --gold-bg: #3a0a2a; --ok: #66cccc;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); padding: 80px 24px 24px;
+         font-family: "Stag Sans", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding-top: 40px; }
+  h1 { font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1; letter-spacing: -.03em; margin: 8px 0 8px; }
+  h2 { font-size: clamp(1.15rem, 2.6vw, 1.5rem); margin: 36px 0 12px; }
+  .lead { color: var(--muted); font-size: clamp(1rem, 2vw, 1.2rem); margin: 0; max-width: 62ch; }
+  .meta { color: var(--muted); font-size: .9rem; margin: 10px 0 0; min-height: 1.2em; }
+  .msg { background: var(--card); border: 1px solid var(--track); border-radius: 14px; padding: 16px 18px; margin-top: 20px; }
+  a { color: var(--accent); }
+
+
+  /* ===== verseny plakát ===== */
+  .poster { --pi: var(--ink); --pm: var(--muted); --pc: var(--card); --pl: var(--track);
+    color: var(--pi); padding: 0; margin: 0 0 36px; }
+  .poster h2.pt { text-align: center; font-size: clamp(1.8rem, 5.2vw, 3.4rem); letter-spacing: -.01em; margin: 0; line-height: 1.05; }
+  .poster .pbadge { display: block; width: fit-content; margin: 14px auto 26px; background: var(--accent); color: var(--on-accent); font-weight: 700; padding: 8px 40px; font-size: clamp(.9rem, 2vw, 1.15rem); }
+  .poster .pgrid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.1fr) minmax(0, .9fr); gap: 22px; align-items: start; }
+  .poster .pcol { display: grid; gap: 22px; }
+  .poster .lb { margin: 0; font-size: .78rem; font-weight: 600; letter-spacing: .05em; color: var(--pm); text-transform: uppercase; }
+  .poster .big { margin: 4px 0 0; font-weight: 700; font-size: clamp(1.1rem, 2.2vw, 1.5rem); text-transform: uppercase; }
+  .poster .sm { margin: 4px 0 0; color: var(--pm); font-size: .95rem; }
+  .poster .box { background: var(--pc); border: 1px solid var(--pl); border-radius: 14px; padding: 16px 18px; }
+  .poster .box h3 { margin: 0 0 12px; font-size: .82rem; letter-spacing: .05em; text-transform: uppercase; }
+  .poster .box ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .poster .box li { border-left: 3px solid var(--accent); padding: 3px 0 3px 10px; background: var(--bg); font-size: .95rem; }
+  .poster .box li b { display: inline-block; min-width: 6.2em; }
+  .poster .sec { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; }
+  .poster svg { width: 30px; height: 30px; fill: none; stroke: var(--pi); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .poster ul.plain { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 3px; }
+  .poster ul.plain li::before { content: "•"; margin-right: 8px; }
+  .poster .trans { display: flex; align-items: center; gap: 10px; background: var(--pc); border: 1px solid var(--pl); border-radius: 10px; padding: 10px 14px; width: fit-content; margin-top: 16px; }
+  .poster .trans small { display: block; font-size: .65rem; letter-spacing: .05em; color: var(--pm); }
+  .poster .mini { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; }
+  .poster .mini div { background: var(--pc); border: 1px solid var(--pl); border-radius: 12px; padding: 14px; text-align: center; }
+  .poster .mini svg { width: 26px; height: 26px; margin: 0 auto 4px; display: block; }
+  .poster .mini b { display: block; text-transform: uppercase; font-size: .85rem; }
+  .poster .mini span { color: var(--pm); font-size: .85rem; }
+  .poster .photos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  .poster .photos img { width: 100%; display: block; object-fit: cover; border-radius: 16px; }
+  .poster .photos .tall { grid-row: span 2; height: 100%; }
+  .poster .photos .wide { grid-column: 1 / -1; }
+  .poster .cta { background: var(--pi); color: #fff; text-align: center; font-weight: 700; padding: 14px; margin-top: 24px; font-size: clamp(.95rem, 2.2vw, 1.3rem); }
+  .poster .foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 10px 0 0; font-size: .85rem; color: var(--pm); }
+  .poster .foot b { color: var(--pi); }
+  @keyframes swimin { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+  .poster .pt, .poster .pbadge, .poster .sec, .poster .trans, .poster .box, .poster .photos img, .poster .foot { animation: swimin .9s cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(var(--i, 0) * .12s + .2s); }
+  @media (prefers-reduced-motion: reduce) { .poster * { animation: none !important; } }
+  @media (max-width: 860px) { .poster .pgrid { grid-template-columns: 1fr; } .poster .photos .tall { height: auto; } }
+
+  /* összesített állás */
+  .stand { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--track); }
+  .row { display: grid; grid-template-columns: 2.2rem minmax(0, 1.1fr) 5.2rem minmax(0, 1.6fr); gap: 6px 16px;
+         align-items: center; padding: 14px 8px; border-bottom: 1px solid var(--track); }
+  .row.prize { background: var(--gold-bg); }
+  .pos { font-weight: 700; font-size: 1.3rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .row.prize .pos { color: var(--gold); }
+  .who b { display: block; font-size: 1.1rem; overflow-wrap: anywhere; }
+  .who span { color: var(--muted); font-size: .88rem; }
+  .pts { text-align: right; font-weight: 700; font-size: 1.6rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .pts small { display: block; font-size: .75rem; font-weight: 400; color: var(--muted); }
+  .qual .bar { position: relative; height: 14px; background: var(--track); border-radius: 7px; overflow: hidden; }
+  .qual .own { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
+  .qual .rec { position: absolute; top: 0; bottom: 0; background: var(--soft); }
+  .qual .min { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--ink); opacity: .8; transform: translateX(-1px); }
+  .qual p.lbl { margin: 10px 0 4px; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+  .qual p.lbl:first-child { margin-top: 0; }
+  .qual .bar + p { margin-top: 5px; }
+  .qual p { margin: 6px 0 0; font-size: .88rem; color: var(--muted); }
+  .qual p b { color: var(--ink); }
+  .ok { color: var(--ok); font-weight: 700; }
+  .tag { display: inline-block; font-size: .78rem; font-weight: 700; color: var(--gold); border: 1px solid var(--gold); border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
+
+  /* havi kártyák */
+  .months { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; }
+  .month { background: var(--card); border: 1px solid var(--track); border-radius: 16px; padding: 18px; }
+  .month h3 { margin: 0; font-size: 1.25rem; }
+  .month .st { color: var(--muted); font-size: .9rem; margin: 4px 0 2px; }
+  .month .prod { font-size: .9rem; margin: 0 0 12px; }
+  .month ol { list-style: none; margin: 0; padding: 0; }
+  .month li { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr) auto auto; gap: 8px; padding: 7px 0; border-top: 1px solid var(--track); align-items: baseline; }
+  .month li .r { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .month li .n { overflow-wrap: anywhere; }
+  .month li .e { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .month li .p { font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 700; min-width: 4.2ch; text-align: right; }
+  .empty { color: var(--muted); font-size: .95rem; margin: 6px 0 0; }
+
+  .rules { color: var(--muted); font-size: .92rem; max-width: 70ch; line-height: 1.5; }
+  .rules li { margin-bottom: 4px; }
+
+  @media (max-width: 640px) {
+    body { padding: 72px 16px 16px; }
+    .row { grid-template-columns: 1.8rem minmax(0, 1fr) 4.6rem; }
+    .row .qual { grid-column: 2 / -1; }
+  }
+
+
+  .topnav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; background: var(--bg); border-bottom: 1px solid var(--track); }
+  .topnav .in { max-width: 1100px; margin: 0 auto; padding: 0 16px; height: 56px; display: flex; align-items: center; gap: 20px; }
+  .topnav .brand { font-weight: 700; color: var(--ink); text-decoration: none; white-space: nowrap; font-size: 1.05rem; margin: 0; }
+  .topnav ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: 1; }
+  .topnav ul::-webkit-scrollbar { display: none; }
+  .topnav li a { display: block; padding: 8px 14px; border-radius: 999px; color: var(--ink); text-decoration: none; font-weight: 600;
+                 font-size: .95rem; white-space: nowrap; }
+  .topnav li a:hover { background: var(--track); }
+  .topnav li a[aria-current="page"] { background: var(--accent); color: var(--on-accent, #fff); }
+  .topnav a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  @media (max-width: 640px) { .topnav .brand { display: none; } .topnav .in { gap: 0; padding: 0 8px; } }
+
+  .zm { position: relative; margin-left: auto; flex: none; }
+  .zm > button { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; border: 0; cursor: pointer;
+                 background: var(--card); color: var(--ink); font: inherit; font-weight: 700; font-size: .95rem; white-space: nowrap; }
+  .zm > button:hover { filter: brightness(.96); }
+  .zm > button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .zm .badge { background: var(--accent); color: var(--on-accent, #fff); border-radius: 999px; padding: 2px 9px; font-size: .82rem; }
+  .zm .panel { position: absolute; right: 0; top: calc(100% + 10px); width: min(340px, calc(100vw - 16px)); background: var(--bg); color: var(--ink);
+               border: 1px solid var(--track); border-radius: 14px; box-shadow: 0 8px 28px rgba(0,0,0,.22); padding: 8px 14px 12px; }
+  .zm .panel[hidden] { display: none; }
+  .zm .panel h3 { margin: 6px 0 4px; font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .zm .panel ol { list-style: none; margin: 0; padding: 0; }
+  .zm .panel li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; padding: 9px 0; border-bottom: 1px solid var(--track); }
+  .zm .panel li:last-child { border-bottom: 0; }
+  .zm .panel .m { font-weight: 700; } .zm .panel .d { color: var(--muted); font-size: .88rem; grid-column: 1; }
+  .zm .panel .n { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-weight: 700; }
+  .zm .panel li.past { opacity: .5; } .zm .panel li.next .n { color: var(--accent); }
+  .zm.dv { margin-left: auto; } .zm.dv + .zm { margin-left: 8px; }
+  body.home .zm.dv { display: block; }
+  .zm.dv .panel { width: min(300px, calc(100vw - 16px)); }
+  .zm.dv .panel a { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; padding: 10px 0; color: inherit; text-decoration: none; border-bottom: 1px solid var(--track); }
+  .zm.dv .panel a:last-child { border-bottom: 0; }
+  .zm.dv .panel a:hover .m { color: var(--accent); }
+  .zm.dv .panel a .go { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-weight: 700; color: var(--accent); }
+  @media (max-width: 640px) { .zm > button { padding: 8px 10px; } .zm .lbl { display: none; } }
+
+  /* betöltés-jelző: vékony futó csík az oldal tetején */
+  .ldbar { position: fixed; left: 0; right: 0; top: 0; height: 4px; z-index: 1000; overflow: hidden; opacity: 0; pointer-events: none; transition: opacity .4s; }
+  body.loading .ldbar { opacity: 1; }
+  .ldbar::before { content: ""; position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; border-radius: 4px; background: var(--hot, var(--accent)); animation: ldmove 1.15s ease-in-out infinite; }
+  @keyframes ldmove { 0% { left: -40%; } 100% { left: 100%; } }
+  @keyframes ldpulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+  @media (prefers-reduced-motion: reduce) { .ldbar::before { animation-duration: 3s; } body.loading .ldp { animation: none !important; } }
+  body.loading #meta { animation: ldpulse 1.2s ease-in-out infinite; }
+</style>
+<script>try{if(self!==top)document.documentElement.classList.add("emb")}catch(e){}</script><style>.emb .topnav,.emb .ldbar{display:none!important}.emb body::before{display:none!important}</style>
+<style>.emb html,html.emb,html.emb body{background:transparent!important}html.emb body{min-height:0!important;overflow:hidden!important}html.emb h1,html.emb .pg>h1,html.emb main>h1{display:none!important}html.emb main,html.emb .pg{padding-top:0!important;margin-top:0!important}</style>
+<script>(function(){if(self===top)return;function send(){try{parent.postMessage({embh:document.documentElement.scrollHeight},location.origin)}catch(e){}}if(window.ResizeObserver)new ResizeObserver(send).observe(document.documentElement);window.addEventListener("load",send);setInterval(send,1200)})();</script>
+<style>html.emb #mt-sb{display:none!important}</style>
+<style>.vtabs2{display:none!important}</style>
+<style>html.emb{color-scheme:normal!important}</style></head>
+<body>
+<div class="ldbar" aria-hidden="true"></div>
+
+<nav class="topnav" aria-label="Főmenü"><div class="in"><a class="brand" href="index.html">Csikós BL csapat</a><ul><li><a href="index.html">Kezdőlap</a></li><li><a href="negyedev.html">Negyedéves cél</a></li><li><a href="verseny.html">Versenyek és utazások</a></li><li><a href="elemzo.html">Elemző füzet</a></li><li><a aria-disabled="true" tabindex="-1" title="Hamarosan" style="pointer-events:none;cursor:default;opacity:.55">Teljesítmény 🔒</a></li><li><a href="vizsga.html">Vizsga gyakorló</a></li><li><a href="kampanynaptar.html">Kampánynaptár</a></li><li><a href="ppt.html">Tanácsadó PPT</a></li><li><a aria-disabled="true" tabindex="-1" title="Hamarosan" style="pointer-events:none;cursor:default;opacity:.55">Vezetőjelölti 🔒</a></li></ul></div></nav>
+<style>
+  .pg { max-width: 760px; margin: 0 auto; padding: 36px 16px 72px; color: var(--ink); }
+  .pg h1 { font-size: clamp(1.9rem, 7vw, 2.6rem); letter-spacing: -.03em; line-height: 1.05; margin: 0 0 8px; }
+  .pg .lead { color: var(--muted); margin: 0 0 20px; }
+  .pg .bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+  .pg select { font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  .pg button.sm { font: inherit; font-weight: 700; padding: 10px 14px; border: 0; border-radius: 10px; cursor: pointer; background: var(--accent); color: var(--on-accent); }
+  .pg button[disabled] { opacity: .55; cursor: wait; }
+  .pg .upd { color: var(--muted); font-size: .85rem; margin-left: auto; }
+  .pg .mt { background: var(--card, #f0f3f7); border-radius: 14px; margin-bottom: 14px; overflow: hidden; }
+  .pg .mt > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 14px 16px; font-weight: 700; }
+  .pg .mt > summary::-webkit-details-marker { display: none; }
+  .pg .mt .n { margin-left: auto; text-align: right; font-weight: 600; font-size: .9rem; color: var(--muted); }
+  .pg .mt .cnt { font-size: 1.4rem; font-weight: 700; color: var(--ink); line-height: 1; display: block; }
+  .pg .cl { margin: 0 12px 12px; padding: 12px 14px; background: var(--bg); border-radius: 12px; border: 2px solid var(--track, #e5e5e5); }
+  .pg .cl.gone { opacity: .6; }
+  .pg .q { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-weight:600; }
+  .pg .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .pg .tab { border:2px solid var(--track,#e5e5e5); background:var(--bg); border-radius:999px; padding:6px 14px; font:inherit; font-weight:700; cursor:pointer; }
+  .pg .tab.on { background:#c8102e; color:#fff; border-color:#c8102e; }
+  .pg .tab .cnt { opacity:.75; margin-left:4px; }
+  .pg .sum { margin:0 12px 8px; color:var(--muted); font-weight:600; }
+  .pg h4.wk { margin:14px 12px 8px; font-size:.95rem; color:var(--muted); border-bottom:1px solid var(--track,#e5e5e5); padding-bottom:4px; }
+  .pg .st { display:inline-flex; align-items:center; gap:4px; margin:0 0 10px; padding:4px 12px; border-radius:999px; border:1px solid transparent; font:inherit; font-size:.78rem; font-weight:700; cursor:pointer; width:auto; line-height:1.4; transition:filter .15s; }
+  .pg .st:hover { filter:brightness(1.15); }
+  .pg .st.yes { background:rgba(46,160,90,.18); color:#5fd68c; border-color:rgba(95,214,140,.45); }
+  .pg .st.no { background:rgba(230,140,40,.18); color:#ffb35c; border-color:rgba(255,179,92,.45); }
+  .pg .cf { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:0 0 10px; padding:8px 12px; border-radius:10px; background:rgba(255,179,92,.12); border:1px solid rgba(255,179,92,.4); font-size:.85rem; font-weight:600; }
+  .pg .gh { background:transparent !important; border:1px solid rgba(255,255,255,.35) !important; color:inherit !important; }
+  .pg .as-add { display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin: 0 0 18px; padding: 14px; border-radius: 14px; background: var(--card, #f0f3f7); }
+  .pg .as-add input, .pg .as-add select { font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); min-width: 0; }
+  .pg .as-lb { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--muted); }
+  .pg .as-lb input, .pg .as-lb select { flex: 1; }
+  .pg .as-add #as-client, .pg .as-add #as-title, .pg .as-add #as-note { grid-column: 1 / -1; }
+  .pg .as-add button { grid-column: 1 / -1; }
+  .pg .as-g { margin: 18px 0 8px; font-size: .95rem; color: var(--muted); border-bottom: 1px solid var(--track, #e5e5e5); padding-bottom: 4px; }
+  .pg .as-g.late { color: #ff8095; }
+  .pg .as-t { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: start; padding: 12px 14px; margin-bottom: 8px; background: var(--bg); border: 2px solid var(--track, #e5e5e5); border-radius: 12px; }
+  .pg .as-t.late { border-color: rgba(255,128,149,.7); }
+  .pg .as-t.done .as-ti { text-decoration: line-through; color: var(--muted); }
+  .pg .as-t input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); margin-top: 2px; }
+  .pg .as-ti { font-weight: 700; }
+  .pg .as-meta { grid-column: 2 / 3; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: .85rem; color: var(--muted); }
+  .pg .as-chip { padding: 2px 10px; border-radius: 999px; background: rgba(120,150,220,.2); color: var(--ink); font-weight: 600; font-size: .78rem; }
+  .pg .as-meta input, .pg .as-meta select { font: inherit; font-size: .82rem; padding: 3px 6px; border-radius: 8px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  .pg .as-subs { grid-column: 2 / 4; margin-top: 6px; padding-left: 10px; border-left: 3px solid var(--track, #e5e5e5); }
+  .pg .as-s { display: flex; align-items: center; gap: 10px; padding: 3px 0; font-size: .92rem; }
+  .pg .as-s input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .pg .as-s.done span { text-decoration: line-through; color: var(--muted); }
+  .pg .as-s .x { margin-left: auto; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 1.05rem; }
+  .pg .sb-c { padding: 14px 16px; margin-bottom: 12px; background: var(--bg); border: 2px solid var(--track, #e5e5e5); border-radius: 14px; }
+  .pg .sb-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pg .sb-n { font-weight: 800; font-size: 1.05rem; }
+  .pg .sb-m { color: var(--muted); font-size: .85rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .pg .sb-m select, .pg .sb-m input { font: inherit; font-size: .82rem; padding: 3px 6px; border-radius: 8px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  .pg .sb-pct { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .pg .sb-bar { height: 12px; border-radius: 999px; background: var(--track, #e5e5e5); overflow: hidden; margin: 10px 0 4px; }
+  .pg .sb-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .6s ease; }
+  .pg .sb-bar.mini { height: 8px; margin: 4px 0 0; }
+  .pg .sb-t { margin: 12px 0 6px; font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .pg .sb-st { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 4px 18px; }
+  .pg .sb-s { display: flex; align-items: center; gap: 10px; padding: 4px 0; cursor: pointer; }
+  .pg .sb-s.done span { color: var(--muted); text-decoration: line-through; }
+  .pg .sb-gs { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 18px; }
+  .pg .sb-g { display: flex; flex-direction: column; gap: 2px; font-size: .9rem; font-weight: 600; }
+  .pg .sb-g .r { display: flex; align-items: center; gap: 6px; font-weight: 700; }
+  .pg .sb-g input { width: 70px; font: inherit; padding: 4px 8px; border-radius: 8px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  .pg .sb-x { margin-left: auto; display: grid; place-content: center; width: 34px; height: 34px; padding: 0; border-radius: 10px; border: 2px solid var(--track, rgba(127,127,127,.35)); background: transparent; color: var(--muted); font: inherit; font-size: 1.25rem; line-height: 1; cursor: pointer; transition: background .2s, color .2s, border-color .2s, transform .15s; }
+  .pg .sb-x:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); }
+  .pg .sb-x:active { transform: scale(.88); }
+  .pg .sb-cfg { margin-top: 18px; padding: 12px 14px; border-radius: 14px; background: var(--card, #f0f3f7); }
+  .pg .sb-cfg summary { cursor: pointer; font-weight: 700; }
+  .pg .sb-l { display: flex; flex-direction: column; gap: 4px; font-weight: 600; margin: 10px 0; }
+  .pg .sb-l textarea { font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  .pg .sb-hint { color: var(--muted); font-size: .85rem; margin: 8px 0 0; }
+  .pg .sb-pct.ok { color: #1f9d5c; } .pg .sb-pct.wait { color: var(--muted); }
+  .pg .sb-k { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--card, #f0f3f7); }
+  .pg .sb-kh { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pg .sb-kh b, .pg .sb-ckt b { font-weight: 800; }
+  .pg .sb-v { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pg .sb-tag { font-size: .72rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--track, #e5e5e5); color: var(--muted); }
+  .pg .sb-tag.ok { background: #1f9d5c; color: #fff; }
+  .pg .sb-note { color: var(--muted); font-size: .82rem; margin-top: 4px; }
+  .pg .sb-in, .pg .sb-tr input, .pg .sb-cg input { font: inherit; font-size: .9rem; padding: 5px 9px; border-radius: 8px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  .pg .sb-in { margin-top: 6px; width: min(260px, 100%); }
+  .pg .sb-ck { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .pg .sb-ck { position: relative; overflow: hidden; }
+  .pg .sb-ck > * { position: relative; }
+  .pg .sb-ck::before { content: ""; position: absolute; inset: 0; background: rgba(31,157,92,.22); transform: scaleX(0); transform-origin: left center; }
+  .pg .sb-ck.done::before { transform: scaleX(1); }
+  .pg .sb-ck.fillin::before { animation: sbFill .55s cubic-bezier(.2,.7,.2,1); }
+  .pg .sb-ck.unfill::before { animation: sbUnfill .4s ease; }
+  @keyframes sbFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes sbUnfill { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+  @media (prefers-reduced-motion: reduce) { .pg .sb-ck::before { animation: none !important; } }
+  .pg .sb-ck input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+  .pg .sb-ck.done .sb-v { color: #1f9d5c; } .pg .sb-ck small { color: var(--muted); }
+  .pg .sb-ta { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+  .pg .sb-tr { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 8px; border-radius: 10px; background: var(--bg); border: 2px solid transparent; }
+  .pg .sb-tr.ok { border-color: #1f9d5c; }
+  .pg .sb-tr.live input[readonly] { border-style: dashed; opacity: .85; }
+  .pg .sb-tr input[type=text] { flex: 1 1 160px; min-width: 0; } .pg .sb-tr input[type=number] { width: 70px; }
+  .pg .sb-tr label { display: flex; align-items: center; gap: 4px; font-size: .85rem; color: var(--muted); font-weight: 700; }
+  .pg .sb-trv { margin-left: auto; font-weight: 800; font-size: .85rem; white-space: nowrap; color: var(--muted); } .pg .sb-tr.ok .sb-trv { color: #1f9d5c; }
+  .pg .sb-tr .x { border: 0; background: transparent; color: var(--muted); font-size: 1.2rem; cursor: pointer; padding: 0 4px; }
+  .pg .sb-sum { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 10px; }
+  @media (max-width: 640px) { .pg .sb-sum { grid-template-columns: 1fr; } }
+  .pg .sb-tile { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: 14px; background: var(--card, #f0f3f7); border: 2px solid transparent; min-width: 0; }
+  .pg .sb-tl { font-size: .74rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .pg .sb-tv { font-size: clamp(1.5rem, 3.4vw, 2.1rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pg .sb-ts { font-size: .82rem; color: var(--muted); font-weight: 600; }
+  .pg .sb-ts.two { display: flex; justify-content: space-between; gap: 8px; white-space: nowrap; } .pg .sb-ts.two span { overflow: hidden; text-overflow: ellipsis; } .pg .sb-ts.two b { flex: none; font-weight: 700; }
+  .pg .sb-tile.bon .sb-tv { color: var(--muted); } .pg .sb-tile.bon.ok { border-color: #1f9d5c; } .pg .sb-tile.bon.ok .sb-tv, .pg .sb-tile.bon.ok .sb-ts { color: #1f9d5c; }
+  /* Start bónusz: Ónodi-féle csempés nézet (csak kinézet) */
+  .pg.sbw { max-width: 1280px; }
+  .pg.sbw #sb-form, .pg.sbw .cs-share, .pg.sbw #v-sb > .lead { max-width: 820px; }
+  .pg .sb-c { border: 3px solid var(--accent); box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+  #sb-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; margin-top: 22px; }
+  #sb-list > .sb-c { margin: 0; min-width: 0; }
+  @media (max-width: 980px) { #sb-list { grid-template-columns: 1fr; } }
+  #sb-list .sb-sum { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #sb-list .sb-sum .sb-tile.all { grid-column: 1 / -1; }
+  #sb-list .sb-tile { width: auto; min-width: 0; max-width: none; }
+  .cs-share { margin: 14px 0 0; color: var(--muted); font-size: .92rem; }
+  .cs-share a { color: var(--accent); font-weight: 700; }
+  .cs-copy { font: inherit; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+  @keyframes csPop { 0% { transform: scale(1); } 35% { transform: scale(1.08); } 65% { transform: scale(.97); } 100% { transform: scale(1); } }
+  @keyframes csShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  @keyframes csTick { 0% { transform: translateY(0); } 40% { transform: translateY(-4px) scale(1.12); } 100% { transform: translateY(0); } }
+  @keyframes csWin { 0% { box-shadow: 0 0 0 0 rgba(31,157,92,.8); transform: scale(1); } 30% { transform: scale(1.025); } 100% { box-shadow: 0 0 0 22px rgba(31,157,92,0); transform: scale(1); } }
+  @keyframes csUp { 0% { transform: translateY(0); } 40% { transform: translateY(-6px); } 100% { transform: translateY(0); } }
+  .cs-pop { animation: csPop .5s cubic-bezier(.2,.8,.2,1); }
+  .cs-unpop { animation: csShake .35s ease; }
+  .cs-tick { display: inline-block; animation: csTick .5s ease; }
+  .cs-win { animation: csWin 1.1s ease-out 2; }
+  .cs-up { animation: csUp .5s ease; }
+  @media (prefers-reduced-motion: reduce) { .cs-pop, .cs-unpop, .cs-tick, .cs-win, .cs-up { animation: none !important; } }
+  .pg .sb-tile.all { background: var(--accent); color: var(--on-accent, #fff); } .pg .sb-tile.all .sb-tl, .pg .sb-tile.all .sb-ts { color: inherit; opacity: .8; }
+  .pg .sb-pick { margin: 4px 0 8px; }
+  .pg .sb-pick select { width: 100%; font: inherit; font-size: .92rem; font-weight: 600; padding: 8px 10px; border-radius: 10px; border: 2px solid var(--accent); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .pg .sb-cg { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 16px; }
+  .pg .vw { display: inline-flex; margin-left: auto; border: 2px solid var(--track, #e5e5e5); border-radius: 999px; overflow: hidden; }
+  .pg .vw button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; padding: 6px 14px; cursor: pointer; transition: background .2s, color .2s; }
+  .pg .vw button.on { background: var(--accent); color: var(--on-accent, #fff); }
+  .pg .vw.vs { margin-left: 0; }
+  .pg .cal-h { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; }
+  .pg .cal-h b { font-size: 1.15rem; flex: 1; text-align: center; }
+  .pg .cal-h button { border: 2px solid var(--track, #e5e5e5); background: transparent; color: inherit; font: inherit; font-weight: 700; border-radius: 10px; padding: 4px 12px; cursor: pointer; transition: background .2s, transform .15s; }
+  .pg .cal-h button:hover { background: var(--card, rgba(127,127,127,.15)); } .pg .cal-h button:active { transform: scale(.92); }
+  .pg .cal-g { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .pg .cal-w { text-align: center; font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; padding: 2px 0; }
+  .pg .cal-d { min-height: 92px; padding: 4px; border-radius: 10px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); display: flex; flex-direction: column; gap: 3px; cursor: pointer; overflow: hidden; transition: border-color .2s; }
+  .pg .cal-d:hover { border-color: var(--accent); }
+  .pg .cal-d.o { opacity: .45; } .pg .cal-d.t { border: 2px solid var(--accent); }
+  .pg .cal-d > i { font-style: normal; font-size: .78rem; font-weight: 700; color: var(--muted); }
+  .pg .cal-d.t > i { color: var(--accent); }
+  .pg .cal-c { font-size: .72rem; font-weight: 600; line-height: 1.2; padding: 2px 6px; border-radius: 6px; background: rgba(120,150,220,.25); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pg .cal-c.late { background: rgba(255,128,149,.3); } .pg .cal-c.done { text-decoration: line-through; opacity: .6; }
+  .pg .cal-m { font-size: .72rem; color: var(--muted); font-weight: 700; }
+  .pg .cal-n { margin-top: 14px; color: var(--muted); font-size: .9rem; }
+  @media (max-width: 640px) { .pg .cal-d { min-height: 64px; padding: 3px; } .pg .cal-c { font-size: .62rem; padding: 1px 3px; } }
+  .dp { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238fa8c8' stroke-width='2' stroke-linecap='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='3'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 30px !important; }
+  .pg .as-meta input.dp, .pg .sb-m input.dp { width: 128px; }
+  .dp-pop { position: fixed; z-index: 3000; width: 280px; padding: 12px; border-radius: 16px; background: var(--bg); color: var(--ink); border: 1px solid var(--track, #ddd); box-shadow: 0 12px 34px rgba(0,0,0,.35); animation: dpIn .16s ease; }
+  .dp-pop[hidden] { display: none; }
+  @keyframes dpIn { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+  .dp-h { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .dp-h b { flex: 1; text-align: center; }
+  .dp-h button, .dp-f button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; padding: 4px 10px; border-radius: 8px; cursor: pointer; transition: background .15s, transform .12s; }
+  .dp-h button:hover, .dp-f button:hover { background: var(--card, rgba(127,127,127,.18)); } .dp-h button:active, .dp-f button:active { transform: scale(.9); }
+  .dp-g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .dp-w { text-align: center; font-size: .7rem; font-weight: 700; color: var(--muted); padding: 2px 0; text-transform: uppercase; }
+  .dp-d { aspect-ratio: 1; border: 0; border-radius: 50%; background: transparent; color: inherit; font: inherit; font-size: .85rem; cursor: pointer; transition: background .15s, transform .12s; }
+  .dp-d:hover { background: var(--card, rgba(127,127,127,.2)); } .dp-d:active { transform: scale(.88); }
+  .dp-d.o { color: var(--muted); opacity: .55; } .dp-d.t { box-shadow: inset 0 0 0 2px var(--accent); }
+  .dp-d.s { background: var(--accent); color: var(--on-accent, #fff); opacity: 1; font-weight: 800; }
+  .dp-f { display: flex; justify-content: space-between; margin-top: 8px; }
+  .pg .wk-g { display: grid; grid-template-columns: repeat(7, minmax(112px, 1fr)); gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+  .pg .wk-d { min-height: 150px; padding: 6px; border-radius: 12px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); display: flex; flex-direction: column; gap: 5px; }
+  .pg .wk-d.t { border: 2px solid var(--accent); }
+  .pg .wk-h { display: flex; align-items: center; justify-content: space-between; font-size: .78rem; font-weight: 700; color: var(--muted); }
+  .pg .wk-d.t .wk-h { color: var(--accent); }
+  .pg .wk-a { border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 800; font-size: 1rem; border-radius: 8px; width: 24px; height: 24px; cursor: pointer; transition: background .15s, color .15s; }
+  .pg .wk-a:hover { background: var(--accent); color: var(--on-accent, #fff); }
+  .pg .wk-c { text-align: left; border: 2px solid transparent; background: rgba(120,150,220,.22); color: var(--ink); font: inherit; font-size: .82rem; font-weight: 700; border-radius: 9px; padding: 5px 8px; cursor: pointer; display: flex; flex-direction: column; gap: 1px; transition: border-color .15s, transform .12s; }
+  .pg .as-cl { padding: 2px 12px; border-radius: 999px; background: var(--accent); color: var(--on-accent, #fff); font-weight: 800; font-size: .85rem; }
+  .pg .wk-cl { font-style: normal; font-weight: 800; font-size: .75rem; padding: 1px 8px; margin: 2px 0; border-radius: 999px; background: var(--accent); color: var(--on-accent, #fff); align-self: flex-start; }
+  .pg .wk-c small { font-weight: 600; font-size: .7rem; color: var(--muted); }
+  .pg .wk-c:hover, .pg .wk-c.on { border-color: var(--accent); } .pg .wk-c:active { transform: scale(.97); }
+  .pg .wk-c.late { background: rgba(255,128,149,.28); } .pg .wk-c.done { opacity: .6; text-decoration: line-through; }
+  .pg .wk-p { margin-top: 12px; animation: tjIn .25s ease; }
+  .pg .as-sadd { display: flex; gap: 6px; margin-top: 6px; }
+  .pg .as-sadd input { flex: 1; min-width: 0; font: inherit; font-size: .9rem; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  .pg .as-sadd button { padding: 6px 12px; }
+  .pg .as-note { grid-column: 2 / 3; font-size: .88rem; color: var(--muted); }
+  .pg .as-t .x { grid-column: 3; grid-row: 1; }
+  .pg .as-t .x { display: grid; place-content: center; width: 34px; height: 34px; padding: 0; border-radius: 10px; border: 2px solid var(--track, rgba(127,127,127,.35)); background: transparent; color: var(--muted); font: inherit; font-size: 1.25rem; line-height: 1; cursor: pointer; transition: background .2s, color .2s, border-color .2s, transform .15s; }
+  .pg .as-t .x:hover, .pg .as-t .x:focus-visible { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); outline: none; }
+  .pg .as-t .x:active { transform: scale(.88); }
+  /* ---- Asszisztensi feladatok: széles, táblázatos nézet ---- */
+  .pg.asw { max-width: 1760px; }
+  .pg.asw #v-as > .lead { max-width: 900px; }
+  .pg.asw .as-add { grid-template-columns: minmax(240px, 2fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(170px, 1fr) minmax(200px, auto) minmax(230px, auto); }
+  .pg.asw .as-add #as-title, .pg.asw .as-add #as-client { grid-column: auto; }
+  .pg.asw .as-add #as-note { grid-column: 1 / span 5; }
+  .pg.asw .as-add button { grid-column: 6; }
+  .pg .as-tw { overflow-x: auto; }
+  .pg .as-tb { width: 100%; min-width: 0; border-collapse: separate; border-spacing: 0; font-size: .92rem; }
+  .pg .as-tb thead th { text-align: left; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 2px solid var(--track, #e5e5e5); white-space: nowrap; }
+  .pg .as-tb .as-gh th { padding: 20px 10px 6px; font-size: .95rem; text-align: left; color: var(--muted); border-bottom: 1px solid var(--track, #e5e5e5); }
+  .pg .as-tb .as-gh.late th { color: #ff8095; }
+  .pg .as-tb td { padding: 8px 10px; border-bottom: 1px solid var(--track, #e5e5e5); vertical-align: middle; }
+  .pg .as-r:hover tr.m td { background: rgba(120,150,220,.08); }
+  .pg .as-r.late tr.m td:first-child { box-shadow: inset 3px 0 0 rgba(255,128,149,.85); }
+  .pg .as-r .c-ck { width: 38px; } .pg .as-r .c-ck input { width: 20px; height: 20px; accent-color: var(--accent); }
+  .pg .as-r .c-ti { min-width: 180px; cursor: pointer; }
+  .pg .as-r .as-ti { font-weight: 700; } .pg .as-r.done .as-ti { text-decoration: line-through; color: var(--muted); } .pg .as-r.done { opacity: .8; }
+  .pg .as-r .as-note { margin-top: 2px; }
+  .pg .as-r .c-du { width: 1%; } .pg .as-r .c-du input { width: 116px; }
+  .pg .as-r .c-ow select, .pg .as-r .c-du input { font: inherit; font-size: .85rem; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); color: inherit; }
+  .pg .as-r .c-x { width: 1%; text-align: right; white-space: nowrap; }
+  .pg .as-r .x { display: inline-grid; place-content: center; width: 32px; height: 32px; padding: 0; border-radius: 10px; border: 2px solid var(--track, rgba(127,127,127,.35)); background: transparent; color: var(--muted); font: inherit; font-size: 1.2rem; line-height: 1; cursor: pointer; }
+  .pg .as-r .x:hover, .pg .as-r .x:focus-visible { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); outline: none; }
+  .pg .as-sh2 { display: inline-flex; gap: 6px; align-items: center; padding: 3px 10px; font: inherit; font-size: .82rem; font-weight: 700; color: var(--muted); background: transparent; border: 1px solid var(--track, #e5e5e5); border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .pg .as-sh2 .chev { display: inline-block; transition: transform .25s ease; } .pg .as-sh2.open .chev { transform: rotate(90deg); }
+  .pg .as-r .c-ty, .pg .as-r .c-pr, .pg .as-r .c-cl, .pg .as-r .c-ow, .pg .as-r .c-su { white-space: nowrap; }
+  .pg .as-r .as-chip, .pg .as-r .as-cl { display: inline-block; white-space: nowrap; line-height: 1.5; }
+  .pg .as-r .c-ow select, .pg .as-r .c-by select { max-width: 150px; }
+  .pg .as-r .c-ti { min-width: 180px; overflow-wrap: anywhere; }
+  .pg .as-r .c-by { white-space: nowrap; }
+  .pg .as-r .c-by select { font: inherit; font-size: .85rem; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); color: inherit; }
+  .pg .as-r tr.d td { background: rgba(120,150,220,.06); padding: 6px 10px 14px; }
+  .pg .as-r tr.d[hidden] { display: none; }
+  .pg .as-r tr.d .as-subs { grid-column: auto; margin: 0; max-width: 720px; }
+  /* Kiférjen görgetés nélkül: szűk helyen a Típus/Termék/Ügyfél a feladat neve alá kerül, a gomb feliratai rövidülnek */
+  .pg .as-tw { container-type: inline-size; }
+  .pg .as-tb td, .pg .as-tb thead th { padding-left: 7px; padding-right: 7px; }
+  .pg .as-mt { display: none; flex-wrap: wrap; gap: 4px 6px; margin-top: 5px; }
+  .pg .as-mt .as-chip, .pg .as-mt .as-cl { white-space: normal; overflow-wrap: anywhere; }
+  .pg .as-sh2 .pl { display: none; }
+  @container (max-width: 1250px) { .pg .as-tb .c-ty, .pg .as-tb .c-pr, .pg .as-tb .c-cl { display: none; } .pg .as-mt { display: flex; } }
+  @container (max-width: 900px) { .pg .as-r .c-ow select, .pg .as-r .c-by select { max-width: 104px; } .pg .as-r .c-du input { width: 112px; padding-left: 7px; padding-right: 5px; } .pg .as-r .c-ti { min-width: 130px; } .pg .as-sh2 .lb { display: none; } .pg .as-sh2 .pl { display: inline; } .pg .as-tb thead th.c-su span { display: none; } }
+  /* Átláthatóbb sorok: sávozás, erősebb elválasztás, a lenyitott feladat egy keretes blokk */
+  .pg .as-tb tr.m td { padding-top: 12px; padding-bottom: 12px; border-bottom: 1px solid color-mix(in srgb, var(--ink, #036) 12%, transparent); }
+  .pg .as-r.alt tr.m td { background: color-mix(in srgb, var(--ink, #036) 6%, transparent); }
+  .pg .as-r:hover tr.m td { background: color-mix(in srgb, var(--accent, #036) 9%, transparent); }
+  .pg .as-r.open tr.m td, .pg .as-r.open tr.d td { background: color-mix(in srgb, var(--accent, #036) 10%, transparent); }
+  .pg .as-r.open tr.m td { border-bottom-color: transparent; border-top: 2px solid color-mix(in srgb, var(--accent, #036) 45%, transparent); }
+  .pg .as-r.open tr.d td { border-bottom: 2px solid color-mix(in srgb, var(--accent, #036) 45%, transparent); padding-bottom: 16px; }
+  .pg .as-r.open tr.m td:first-child, .pg .as-r.open tr.d td:first-child { box-shadow: inset 4px 0 0 var(--accent, #036); }
+  .pg .as-r.open .as-ti { color: var(--accent, #036); }
+  /* Terület-címke az összesített nézetben */
+  .pg .as-lt { display: inline-block; margin-bottom: 4px; padding: 2px 9px; border-radius: 999px; font-size: .68rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; line-height: 1.5; color: #fff; }
+  .pg .as-lt.lt-ertekesites { background: #1f9d63; }
+  .pg .as-lt.lt-menedzsment { background: #2f6fe0; }
+  .pg .as-lt.lt-cegvezetes { background: #8e4fd8; }
+  /* Megjegyzés a lenyitott sorban */
+  .pg .as-nt { display: grid; gap: 4px; margin: 2px 0 10px; }
+  .pg .as-nt > span { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .pg .as-nt textarea { font: inherit; font-size: .9rem; line-height: 1.4; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); resize: vertical; min-height: 44px; }
+  @media (max-width: 520px) { .pg .as-add { grid-template-columns: 1fr; } }
+  /* ===== animációk ===== */
+  .pg input[type=checkbox] { appearance: none; -webkit-appearance: none; display: grid; place-content: center; width: 22px; height: 22px; flex: none; margin: 0; border: 2px solid var(--muted); border-radius: 7px; background: transparent; cursor: pointer; transition: background-color .22s ease, border-color .22s ease, transform .15s ease, box-shadow .22s ease; }
+  .pg input[type=checkbox]::after { content: ""; width: 6px; height: 11px; border: solid var(--on-accent, #fff); border-width: 0 3px 3px 0; transform: translateY(-1px) rotate(45deg) scale(0); transition: transform .26s cubic-bezier(.34, 1.56, .64, 1) .04s; }
+  .pg input[type=checkbox]:checked { background: var(--accent); border-color: var(--accent); }
+  .pg input[type=checkbox]:checked::after { transform: translateY(-1px) rotate(45deg) scale(1); }
+  .pg input[type=checkbox]:active { transform: scale(.86); }
+  .pg input[type=checkbox]:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .pg .tk span, .pg .as-ti, .pg .as-s span { background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0% 2px; transition: background-size .32s ease, color .25s ease; text-decoration: none !important; }
+  .pg .tk.done span, .pg .as-t.done .as-ti, .pg .as-s.done span { background-size: 100% 2px; color: var(--muted); }
+  .pg .as-t { transition: border-color .25s ease, opacity .25s ease; }
+  .pg .as-t.done { opacity: .8; }
+  @keyframes tjIn { from { opacity: 0; transform: translateY(-10px) scale(.98); } to { opacity: 1; transform: none; } }
+  @keyframes tjDrop { from { opacity: 0; transform: translateY(-6px); max-height: 0; } to { opacity: 1; transform: none; max-height: 120px; } }
+  @keyframes tjFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .pg .enter { animation: tjIn .38s cubic-bezier(.22, 1, .36, 1) both; }
+  .pg .cf, .pg .as-cf { animation: tjDrop .28s ease both; overflow: hidden; }
+  .pg .vfade { animation: tjFade .3s ease both; }
+  .pg .as-sh { grid-column: 2 / 4; justify-self: start; display: inline-flex; gap: 6px; align-items: center; margin-top: 4px; padding: 3px 10px; font: inherit; font-size: .82rem; font-weight: 700; color: var(--muted); background: transparent; border: 1px solid var(--track, #e5e5e5); border-radius: 999px; cursor: pointer; }
+  .pg .as-sh .chev { display: inline-block; transition: transform .25s ease; }
+  .pg .as-sh.open .chev { transform: rotate(90deg); }
+  .pg .as-sb { grid-column: 2 / 4; display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s ease; }
+  .pg .as-sb.open { grid-template-rows: 1fr; }
+  .pg .as-sb > .as-subs { grid-column: auto; overflow: hidden; min-height: 0; margin-top: 0; opacity: 0; transition: opacity .25s ease, margin-top .3s ease; }
+  .pg .as-sb.open > .as-subs { opacity: 1; margin-top: 6px; }
+  @media (prefers-reduced-motion: reduce) { .pg *, .pg *::after { animation: none !important; transition: none !important; } }
+  .pg button.sm { transition: transform .15s ease, filter .15s ease, box-shadow .2s ease, opacity .2s ease; }
+  .pg button.sm:hover { filter: brightness(1.08); }
+  .pg button.sm:active { transform: scale(.93); }
+  .pg .q button.sm.picked { transform: scale(1.08); box-shadow: 0 0 0 4px rgba(255,255,255,.18); }
+  .pg .q.out { opacity: 0; transform: translateY(-4px); transition: opacity .25s ease, transform .25s ease; pointer-events: none; }
+  .pg .q.out button.sm:not(.picked) { opacity: .35; }
+  .pg .st.enter, .pg .tk.enter { animation: tjIn .4s cubic-bezier(.34, 1.56, .64, 1) both; }
+  .pg .cl h3 { margin: 0 0 8px; font-size: 1rem; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .pg .cl h3 small { color: var(--muted); font-weight: 600; font-size: .8rem; }
+  .pg .tk { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+  .pg .tk input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+  .pg .tk.done span { text-decoration: line-through; color: var(--muted); }
+  .pg .tk .x { margin-left: auto; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 1.1rem; }
+  .pg .add { display: flex; gap: 8px; margin-top: 8px; }
+  .pg .add input { flex: 1; min-width: 0; font: inherit; padding: 8px 10px; border-radius: 10px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  .pg .none { color: var(--muted); font-size: .9rem; margin-top: 16px; }
+  .pg .pmsg { min-height: 1.4em; font-weight: 600; color: var(--hot, #cc0066); }
+  #gate { position: fixed; inset: 0; z-index: 99; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 24px; color: var(--ink); }
+  #gate[hidden], #app[hidden] { display: none !important; }
+  #gate form { width: 100%; max-width: 340px; }
+  #gate h1 { font-size: 1.9rem; letter-spacing: -.03em; line-height: 1.05; margin: 0 0 8px; }
+  #gate .lead { color: var(--muted); margin: 0 0 16px; }
+  #gate input { width: 100%; font: inherit; font-size: 1.1rem; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  #gate button { width: 100%; margin-top: 12px; font: inherit; font-weight: 700; font-size: 1.05rem; padding: 14px; border: 0; border-radius: 12px; cursor: pointer; background: var(--accent); color: var(--on-accent); }
+  #gate .gerr { color: var(--hot, #cc0066); min-height: 1.4em; margin: 10px 0 0; font-weight: 600; }
+</style>
+<div id="gate">
+  <form id="gform" autocomplete="off">
+    <h1>Teljesítmény</h1>
+    <p class="lead">Add meg a jelszót a belépéshez.</p>
+    <input id="gpw" type="password" placeholder="Jelszó" autocomplete="off" aria-label="Jelszó">
+    <button class="primary" type="submit">Belépés</button>
+    <p class="gerr" id="gerr" role="alert"></p>
+  </form>
+</div>
+<main class="pg" id="app" hidden>
+  <h1>Teljesítmény</h1>
+  <div class="tabs vtabs2" role="tablist" aria-label="Nézet">
+    <button type="button" class="tab on" id="mt-perf" role="tab" aria-selected="true">Elemzések utáni teendők</button>
+    <button type="button" class="tab" id="mt-as" role="tab" aria-selected="false">Feladatok · Menedzsment <span class="cnt" id="as-cnt"></span></button>
+    <button type="button" class="tab" id="mt-sb" role="tab" aria-selected="false">Start bónusz <span class="cnt" id="sb-cnt"></span></button>
+  </div>
+  <div id="v-perf">
+  <p class="lead">Elemzés utáni teendők munkatársanként. Az ügyfelek a munkatársak naptárából („EL – Ügyfélnév” bejegyzések) érkeznek, naponta frissül.</p>
+  <div class="bar">
+    <select id="per" aria-label="Időszak">
+      <option value="m0">Ez a hónap</option><option value="m1">Előző hónap</option><option value="d30">Utolsó 30 nap</option><option value="all">Mind</option>
+    </select>
+    <button class="sm" id="ref" type="button">Frissítés a naptárból</button>
+    <span class="upd" id="upd"></span>
+  </div>
+  <p class="pmsg" id="err" role="alert"></p>
+  <div id="list"></div>
+  <p class="none" id="none"></p>
+  </div>
+  <div id="v-as" hidden>
+    <p class="lead"><b>Menedzsment</b> · Asszisztensi feladatok: kárbejelentés, nyomtatványok, csoportos beszedés, alapváltás, visszavásárlás, felülvizsgálatok és minden más teendő. Az ügyfél neve csak vezetéknév-kezdőbetűvel és keresztnévvel kerül tárolásra.</p>
+    <form class="as-add" id="as-form" autocomplete="off">
+      <input id="as-title" type="text" maxlength="160" placeholder="Mi a feladat?" aria-label="Feladat" required>
+      <select id="as-type" aria-label="Típus"></select>
+      <select id="as-prod" aria-label="Termék"></select>
+      <input id="as-client" type="text" maxlength="60" placeholder="Ügyfél neve (automatikusan rövidül: K. Ádám)" aria-label="Ügyfél">
+      <label class="as-lb">Határidő <input id="as-due" type="text" aria-label="Határidő"></label>
+      <label class="as-lb">Felelős <select id="as-owner" aria-label="Felelős"></select></label>
+      <input id="as-note" type="text" maxlength="300" placeholder="Megjegyzés (nem kötelező)" aria-label="Megjegyzés">
+      <button class="sm" type="submit">Hozzáadás</button>
+    </form>
+    <div class="bar">
+      <select id="as-f-status" aria-label="Állapot"><option value="open">Nyitott</option><option value="done">Kész</option><option value="all">Mind</option></select>
+      <select id="as-f-type" aria-label="Típus szűrő"></select>
+      <select id="as-f-owner" aria-label="Felelős szűrő"></select>
+      <select id="as-f-by" aria-label="Ki adta be szűrő" hidden></select>
+      <select id="as-f-list" aria-label="Terület szűrő" hidden></select>
+      <span class="vw" role="group" aria-label="Nézet"><button type="button" id="as-vl" class="on">Lista</button><button type="button" id="as-vc">Naptár</button></span>
+    </div>
+    <div id="as-list"></div>
+    <div id="as-cal" hidden></div>
+    <p class="none" id="as-none"></p>
+  </div>
+  <div id="v-sb" hidden>
+    <p class="cs-share">Munkatársi nézet (olvasható, ezt kapják az új munkatársak). Szerkesztés: <a href="admin.html#startbonusz">az adminban</a> · <a href="csikos-haladas.html" target="_blank" rel="noopener">megnyitás ↗</a> · <button type="button" class="cs-copy" id="cs-copy">link másolása</button></p>
+    <iframe src="csikos-haladas.html" title="Start bónusz – munkatársi nézet" style="width:100%;height:78vh;border:0;border-radius:14px;margin-top:12px"></iframe>
+    <div hidden>
+    <p class="lead">Start bónusz: új munkatársanként négy mérőszám. A sikeres MNB és elemző vizsga ösztöndíjat ér, a mentorált tanácsadások (TA) a start bónuszt adják. Mindkettő kifizetésének feltétele az 500 ES technikai teljesítmény (a pipeline-ból számolva).</p>
+    <form class="as-add" id="sb-form" autocomplete="off">
+      <input id="sb-name" type="text" maxlength="60" placeholder="Új munkatárs neve" aria-label="Név" required>
+      <label class="as-lb">Kezdés <input id="sb-start" type="text" aria-label="Kezdés dátuma"></label>
+      <label class="as-lb">Betanító <select id="sb-mentor" aria-label="Betanító"></select></label>
+      <button class="sm" type="submit">Hozzáadás</button>
+    </form>
+    <div id="sb-list"></div>
+    <p class="none" id="sb-none"></p>
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+  var API = "https://script.google.com/macros/s/AKfycbyeBUhK2P5wGl9YbQKG_MSewVomcXoqL9mxP5NioW91kUEsMH8VSV165YuIUqV0C3nU/exec";
+  function $(i) { return document.getElementById(i); }
+  function sha(s) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }); }
+  var PW = "", H = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2", D = null;
+  function openApp() { $("gate").hidden = true; $("app").hidden = false; start(); }
+  try { if (sessionStorage.getItem("tj_ok") === H) { PW = sessionStorage.getItem("tj_pw") || ""; openApp(); } } catch (e) {}
+  $("gform").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    sha($("gpw").value.trim()).then(function (h) {
+      if (h === H) { PW = $("gpw").value.trim(); try { sessionStorage.setItem("tj_ok", H); sessionStorage.setItem("tj_pw", PW); } catch (e) {} $("gerr").textContent = ""; openApp(); }
+      else { $("gerr").textContent = "Hibás jelszó."; $("gpw").select(); }
+    });
+  });
+  var CFG = null, FB = null, ID = "";
+  var TEAM = {"csikos.mate.ovb@gmail.com":"Csikós Máté","tolnai.bianka.ovb@gmail.com":"Tolnai Bianka","karsai.katalin2005@gmail.com":"Karsai Katalin","andrea.provics@gmail.com":"Provics Andrea","mayer.reka.ovb@gmail.com":"Mayer Réka","toth.oszkar.ovb@gmail.com":"Tóth Oszkár","borsos.viktoria.ovb@gmail.com":"Borsos Viktória","szilagyi.gyongyi.iroda@gmail.com":"Szilágyi Gyöngyi","szeker.szilvy.ovb@gmail.com":"Szeker Szilvi","farkas.nikolett.julianna.ovb@gmail.com":"Farkas Nikolett","feher.kitti.ovb@gmail.com":"Fehér Kitti","felber.dominik.ovb@gmail.com":"Felber Dominik","gulyas.anna.ovb@gmail.com":"Gulyás Anna","varga.zsofia.iroda@gmail.com":"Varga Zsófia","onodi.virag.ovb@gmail.com":"Ónodi Virág"};
+  var LASTST = {}, holdUntil = 0;
+  function soon(fn) { var w = holdUntil - Date.now(); if (w > 0) { clearTimeout(fn._t); fn._t = setTimeout(function () { soon(fn); }, w + 15); } else fn(); }
+  function hold() { holdUntil = Date.now() + 440; }
+  function toast(t) {
+    var n = document.getElementById("tj-toast");
+    if (!n) { n = document.createElement("div"); n.id = "tj-toast"; n.setAttribute("role", "alert"); n.style.cssText = "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:90vw;padding:12px 18px;border-radius:12px;background:#c8102e;color:#fff;font-weight:700;z-index:9999;box-shadow:0 6px 24px rgba(0,0,0,.4)"; document.body.appendChild(n); }
+    n.textContent = t; n.hidden = false; clearTimeout(n._t); n._t = setTimeout(function () { n.hidden = true; }, 6000);
+  }
+  function err(t) { $("err").textContent = t || ""; }
+  function start() {
+    err("Betöltés…"); setTimeout(function () { asInit(); asTab(/[?&]v=as/.test(location.search) ? "as" : "perf"); }, 0); sbLoadEs();
+    sha("csk-perf|" + PW).then(function (h) { ID = h; return fetch("firebase-config.json").then(function (r) { return r.json(); }); }).then(function (cfg) {
+      CFG = cfg;
+      var V = "https://www.gstatic.com/firebasejs/10.14.1/";
+      return Promise.all([import(V + "firebase-app.js"), import(V + "firebase-firestore.js")]);
+    }).then(function (m) {
+      var app = m[0].initializeApp(CFG), F = m[1], db;
+      try { db = F.initializeFirestore(app, { localCache: F.persistentLocalCache() }); } catch (e) { db = F.getFirestore(app); }
+      FB = { F: F, db: db };
+      asStart(); sbStart();
+      D = { clients: [], team: TEAM, updated: "" };
+      F.onSnapshot(F.collection(db, "perf", ID, "clients"), function (snap) {
+        D.clients = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; if (!o.tasks) o.tasks = []; return o; });
+        err(""); soon(render);
+      }, function (e) { err("Nem sikerült betölteni: " + e.message); });
+      F.onSnapshot(F.doc(db, "perf", ID, "meta", "info"), function (d) { if (d.exists()) { D.updated = d.data().updated || ""; render(); } });
+    }).catch(function (e) { err("Hiba: " + e.message); });
+  }
+  function call(body) {
+    body.perf = 1; body.pw = PW;
+    return fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); }).then(function (d) { if (d.error) throw new Error(d.error); return d; });
+  }
+  $("ref").addEventListener("click", function () {
+    var b = $("ref"); b.disabled = true; b.textContent = "Frissítés…";
+    call({ action: "syncfs" }).then(function () { err(""); }).catch(function (e) { err(e.message); }).then(function () { b.disabled = false; b.textContent = "Frissítés a naptárból"; });
+  });
+  function act(b) {
+    var c = D.clients.filter(function (x) { return x.key === b.key; })[0]; if (!c) return;
+    var tasks = c.tasks.map(function (t) { return Object.assign({}, t); }), upd = {};
+    if (b.action === "toggle") tasks.forEach(function (t) { if (t.id === b.task) t.done = !!b.done; });
+    else if (b.action === "deltask") tasks = tasks.filter(function (t) { return t.id !== b.task; });
+    else if (b.action === "addtask") tasks.push({ id: "c" + Date.now().toString(36) + Math.floor(Math.random() * 1000), t: b.text, done: false, c: true });
+    else if (b.action === "answer") {
+      if (b.yes) { if (!tasks.length || c.state === "no") tasks = ["Bankszámla", "MEO hívás", "Ajánlások"].map(function (y, i) { return { id: "d" + i, t: y, done: false }; }); upd.state = "yes"; }
+      else { tasks = ["Újraegyeztetve", "Lemondta"].map(function (y, i) { return { id: "n" + i, t: y, done: false }; }); upd.state = "no"; }
+    }
+    upd.tasks = tasks;
+    if (!FB) { toast("Az adatbázis még nem töltött be, próbáld újra egy pillanat múlva."); return; }
+    c.tasks = tasks; if (upd.state) c.state = upd.state; soon(render);
+    try {
+      FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "clients", c.id), upd).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
+    } catch (e) { toast("Mentés sikertelen: " + e.message); }
+  }
+  $("per").addEventListener("change", render);
+  /* Termelési hónap: az adott hónap első keddjének hétfőjétől (a zárás hetének hétfőjétől) a következő hónap ilyen hétfője előtti napig. */
+  function firstTue(y, m) { var d = new Date(y, m, 1); return new Date(y, m, 1 + ((2 - d.getDay() + 7) % 7), 0, 0, 0); }
+  function pmStart(y, m) { var t = firstTue(y, m); return new Date(t.getFullYear(), t.getMonth(), t.getDate() - 1, 0, 0, 0); }
+  function pmRange(y, m) { var e = pmStart(y, m + 1); return [pmStart(y, m), new Date(e.getFullYear(), e.getMonth(), e.getDate() - 1, 23, 59, 59)]; }
+  var MN = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+  function sd(d) { return (d.getMonth() + 1) + "." + d.getDate() + "."; }
+  (function () {
+    var n = new Date(), cur = n.getFullYear() * 12 + n.getMonth(), r = pmRange(n.getFullYear(), n.getMonth());
+    if (n < r[0]) cur--;   /* a hónap első keddjéig még az előző termelési hónap tart */
+    var sel = $("per"); sel.textContent = "";
+    for (var k = 0; k < 7; k++) {
+      var v = cur - k, y = Math.floor(v / 12), m = v % 12, rg = pmRange(y, m), o = document.createElement("option");
+      o.value = String(v); o.textContent = y + ". " + MN[m] + " (" + sd(rg[0]) + " – " + sd(rg[1]) + ")" + (k === 0 ? " – jelenlegi" : "");
+      sel.appendChild(o);
+    }
+    var all = document.createElement("option"); all.value = "all"; all.textContent = "Mind"; sel.appendChild(all);
+  })();
+  function inPeriod(iso) {
+    var p = $("per").value; if (p === "all") return true;
+    var v = Number(p), rg = pmRange(Math.floor(v / 12), v % 12), d = new Date(iso.substring(0, 10) + "T12:00:00");
+    return d >= rg[0] && d <= rg[1];
+  }
+  function fmt(iso) { var d = new Date(iso + ":00"); return d.getFullYear() + "." + ("0" + (d.getMonth() + 1)).slice(-2) + "." + ("0" + d.getDate()).slice(-2) + ". " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); }
+  var PEND = "", SEL = ""; try { SEL = sessionStorage.getItem("tj_sel") || ""; } catch (e) {}
+  function mon(iso) { var d = new Date(iso.substring(0, 10) + "T12:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
+  function weekKey(iso) { var d = mon(iso); return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); }
+  function weekLabel(iso) {
+    var a = mon(iso), b = new Date(a); b.setDate(b.getDate() + 6);
+    var t = new Date(a); t.setDate(t.getDate() + 3); var y0 = new Date(t.getFullYear(), 0, 4); var w = 1 + Math.round(((t - y0) / 864e5 - 3 + ((y0.getDay() + 6) % 7)) / 7);
+    function f(d) { return ("0" + (d.getMonth() + 1)).slice(-2) + "." + ("0" + d.getDate()).slice(-2) + "."; }
+    return t.getFullYear() + ". " + w + ". hét (" + f(a) + " – " + f(b) + ")";
+  }
+  function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
+  /* ===== Asszisztensi feladatok ===== */
+  /* Terület (lista): "" = összesített nézet (mindhárom lista együtt, ezt látja az asszisztens);
+     a klónozott oldalakon (feladatok-ertekesites/-menedzsment/-cegvezetes.html) csak az adott terület.
+     A jelölés nélküli régi feladatok az Értékesítéshez tartoznak. */
+  var AS_LIST = "menedzsment";
+  var AS_LISTS = { ertekesites: "Értékesítés", menedzsment: "Menedzsment", cegvezetes: "Cégvezetés" };
+  function asListOf(x) { return AS_LISTS[x.list] ? x.list : "ertekesites"; }
+  var AS_TYPES = ["Kárbejelentés", "Nyomtatvány kitöltés", "Csoportos beszedés", "Intervenciós hívás", "Alapváltás, díjmódosítás", "Visszavásárlás", "KGFB / Casco felülvizsgálat", "Lakásbiztosítás kötés", "Értékpapírszámla", "Bankszámla", "Egyéb"];
+  var AS_PRODS = ["Signal Öngondoskodási Terv", "Signal Nyugdíj terv", "Kabala", "Kabala Nyugdíj", "Signal EV 2.0", "Uniqa Lifeguard / Bodyguard", "Generali Testőr", "Uniqa Premium Life", "Uniqa Pension Invest", "Union Yes"];
+  var AS_OWNERS = {"gulyas.anna.ovb@gmail.com": "Gulyás Anna", "kollmann.eszter.ovb@gmail.com": "Kollmann Eszter"};
+  var AS = [], AS_OWNER_DEFAULT = "gulyas.anna.ovb@gmail.com", asConfirm = "", asReady = false;
+  function shortName(t) {
+    t = String(t || "").trim().replace(/\s+/g, " "); if (!t) return "";
+    if (/^[^\s.]{1,2}\.\s?\S/.test(t)) return t;
+    var p = t.split(" "); if (p.length < 2) return t;
+    return p[0].charAt(0).toUpperCase() + ". " + p.slice(1).join(" ");
+  }
+  function todayIso() { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function fillSel(sel, items, first) { var cur = sel.value; sel.textContent = ""; if (first) { var o0 = document.createElement("option"); o0.value = ""; o0.textContent = first; sel.appendChild(o0); } items.forEach(function (it) { var o = document.createElement("option"); o.value = it[0]; o.textContent = it[1]; sel.appendChild(o); }); if (cur) sel.value = cur; }
+  function asInit() {
+    var team = Object.keys(AS_OWNERS).map(function (k) { return [k, AS_OWNERS[k]]; });
+    fillSel($("as-type"), AS_TYPES.map(function (x) { return [x, x]; }));
+    fillSel($("as-f-type"), AS_TYPES.map(function (x) { return [x, x]; }), "Minden típus");
+    fillSel($("as-prod"), AS_PRODS.map(function (x) { return [x, x]; }), "Termék (nem kötelező)");
+    fillSel($("as-owner"), team); $("as-owner").value = AS_OWNER_DEFAULT;
+    fillSel($("as-f-owner"), team, "Minden felelős");
+    ["as-f-status", "as-f-type", "as-f-owner"].forEach(function (i) { $(i).addEventListener("change", asRender); });
+    if (!AS_LIST) { fillSel($("as-f-list"), Object.keys(AS_LISTS).map(function (k) { return [k, AS_LISTS[k]]; }), "Minden terület"); $("as-f-list").hidden = false; $("as-f-list").addEventListener("change", asRender); }
+    $("as-f-by").addEventListener("change", function () { try { localStorage.setItem("as_f_by", $("as-f-by").value); } catch (e) {} asRender(); });
+    (function () {   // az "Állapot" szűrő egymás melletti gombokként (a lenyíló rejtve marad, az tárolja az értéket)
+      var sel = $("as-f-status"), g = el("span", "vw vs"); g.setAttribute("role", "group"); g.setAttribute("aria-label", "Állapot");
+      [["open", "Nyitott"], ["done", "Kész"], ["all", "Mind"]].forEach(function (o) {
+        var b = el("button", sel.value === o[0] ? "on" : "", o[1]); b.type = "button"; b.setAttribute("data-v", o[0]);
+        b.addEventListener("click", function () { sel.value = o[0]; sel.dispatchEvent(new Event("change")); [].forEach.call(g.children, function (c) { c.classList.toggle("on", c.getAttribute("data-v") === o[0]); }); });
+        g.appendChild(b);
+      });
+      sel.parentNode.insertBefore(g, sel); sel.hidden = true;
+    })();
+    $("mt-perf").addEventListener("click", function () { asTab("perf"); });
+    dpAttach($("as-due"));
+    $("as-vl").addEventListener("click", function () { asView("list"); }); $("as-vc").addEventListener("click", function () { asView("cal"); });
+    try { if (sessionStorage.getItem("tj_asv") === "cal") { AS_VIEW = "cal"; $("as-vl").classList.remove("on"); $("as-vc").classList.add("on"); } } catch (e) {}
+    $("mt-as").addEventListener("click", function () { asTab("as"); }); sbInit();
+    $("as-client").addEventListener("blur", function () { this.value = shortName(this.value); });
+    $("as-form").addEventListener("submit", function (ev) {
+      ev.preventDefault(); if (!FB) { toast("Az adatbázis még nem töltött be."); return; }
+      if (!asCanCreate()) { toast("Feladatot csak asszisztensi jogosultsággal lehet felvenni."); return; }
+      var title = $("as-title").value.trim(); if (!title) return;
+      var data = { title: title, type: $("as-type").value, product: $("as-prod").value, client: shortName($("as-client").value), due: $("as-due").value || "", owner: $("as-owner").value, by: ME.email, byName: ME.name || "", note: $("as-note").value.trim(), done: false, created: Date.now(), doneAt: 0, list: AS_LIST || ($("as-f-list").value || "ertekesites") };
+      var ref = FB.F.doc(FB.F.collection(FB.db, "perf", ID, "atasks"));
+      FB.F.setDoc(ref, data).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
+      $("as-title").value = ""; $("as-prod").value = ""; $("as-client").value = ""; $("as-note").value = ""; $("as-due").value = ""; $("as-title").focus();
+    });
+    try { var tv = "";  } catch (e) {}
+    function fromHash() { asTab(/[?&]v=as/.test(location.search) ? "as" : "perf"); }
+    fromHash(); window.addEventListener("hashchange", fromHash);
+  }
+  /* ---- Start bónusz ---- */
+  // Négy mérőszám újonconként: Technikai ES (jogosultsági feltétel, a pipeline-ból), Sikeres MNB vizsga, Sikeres elemző vizsga, Mentorált TA (mentorált tanácsadás).
+  var SB_OWN = {"csikos.mate.ovb@gmail.com": "Csikós Máté", "farkas.nikolett.julianna.ovb@gmail.com": "Farkas Nikolett", "gulyas.anna.ovb@gmail.com": "Gulyás Anna"};
+  var SB_ES_URL = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec"; // ugyanaz a forrás, mint a negyedéves céloké
+  var SB_DEF = { es: 500, mnb: 20000, kev: 20000, ta: 10000, taEs: 25, taSz: 2 };
+  var SBC = null, SB = [], sbReady = false, sbConfirm = "", SBES = null, sbEsErr = "";
+  function sbCfg() { var c = {}, s = (SBC && SBC.bon) || {}; Object.keys(SB_DEF).forEach(function (k) { c[k] = s[k] !== undefined && s[k] !== "" ? +s[k] : SB_DEF[k]; }); return c; }
+  function sbPlain(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim(); }
+  function sbFt(n) { return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0") + "\u00a0Ft"; }
+  function sbNum(n) { return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+  // Technikai ES: a munkatárs azonos nevű pipeline-jából, a kezdés hónapjától (elszámolt + aktuális hónap 100% leadott)
+  function sbEs(p) {
+    var pp = SBPIPE[sbPlain(p.esName || p.name)];
+    if (pp && pp.rows) {
+      var sm0 = p.start ? +(p.start.slice(0, 4) + p.start.slice(5, 7)) : 0, nw = new Date(), cm0 = nw.getFullYear() * 100 + nw.getMonth() + 1, v0 = 0;
+      pp.rows.forEach(function (r) { if (!r.month || r.month < sm0 || r.month > cm0) return; var q = sbPlain(r.proc); if (q.indexOf("elszamolt") > -1 || (r.month === cm0 && q.indexOf("100% leadva") > -1)) v0 += r.es; });
+      return { found: true, v: v0, part: false };
+    }
+    if (!SBES) return null; var key = sbPlain(p.esName || p.name), x = SBES.people.filter(function (q) { return sbPlain(q.name) === key; })[0];
+    if (!x) return { found: false, v: 0 };
+    var sm = p.start ? +(p.start.slice(0, 4) + p.start.slice(5, 7)) : 0, v = 0, part = false, now = new Date(), cm = now.getFullYear() * 100 + now.getMonth() + 1;
+    // múlt hónapok: elszámolt tételek; aktuális termelési hónap: 100% leadott (+ a már elszámolt) tételek
+    Object.keys(x.proc || {}).map(Number).forEach(function (m) {
+      if (m < sm || m > cm) return; var r = x.proc[m] || {};
+      Object.keys(r).forEach(function (k) { var q = sbPlain(k); if (q.indexOf("elszamolt") > -1 || (m === cm && q.indexOf("100% leadva") > -1)) v += +r[k] || 0; });
+    });
+    if (sm && SBES.months && SBES.months.length && sm < Math.min.apply(null, SBES.months)) part = true;
+    return { found: true, v: v, part: part };
+  }
+  function sbTaOk(t, c) { return (+t.es || 0) >= c.taEs || (+t.sz || 0) >= c.taSz; }
+  // Ugyanaz a szabály, mint a technikai ES-nél: múlt hónapok elszámolt + aktuális hónap 100% leadott tételei, a kezdés hónapjától
+  function sbCount(r, sm, cm) { if (!r.month || r.month < sm || r.month > cm) return false; var q = sbPlain(r.proc); return q.indexOf("elszamolt") > -1 || (r.month === cm && q.indexOf("100% leadva") > -1); }
+  function sbAgg(p) {
+    var pp = SBPIPE[sbPlain(p.esName || p.name)]; if (!pp || !pp.rows) return null;
+    var sm = p.start ? +(p.start.slice(0, 4) + p.start.slice(5, 7)) : 0, nw = new Date(), cm = nw.getFullYear() * 100 + nw.getMonth() + 1, by = {}, order = [];
+    pp.rows.forEach(function (r) { if (!r.cust || !sbCount(r, sm, cm)) return; var k = sbPlain(r.cust); if (!by[k]) { by[k] = { nev: r.cust, es: 0, sz: 0 }; order.push(k); } by[k].es += r.es; by[k].sz++; });
+    return { by: by, list: order.map(function (k) { return by[k]; }) };
+  }
+  // Pipeline-ból választott TA: mindig a pipeline aktuális adatával számol (új szerződés, ES automatikusan hozzájön)
+  function sbTaLive(t, ag) { if (t.src === "pipeline" && ag) { var o = ag.by[sbPlain(t.nev)]; return o ? { nev: t.nev, es: o.es, sz: o.sz, src: t.src } : { nev: t.nev, es: 0, sz: 0, src: t.src }; } return t; }
+  function sbCalc(p) {
+    var c = sbCfg(), e = sbEs(p), ag = sbAgg(p), ta = (p.ta || []).filter(function (t) { return sbTaOk(sbTaLive(t, ag), c); }).length;
+    var mnb = p.mnb ? c.mnb : 0, kev = p.kev ? c.kev : 0, tab = ta * c.ta, esv = e ? e.v : 0;
+    return { c: c, e: e, es: esv, ok: esv >= c.es, ta: ta, mnb: mnb, kev: kev, tab: tab, sum: mnb + kev + tab };
+  }
+  function sbRender() {
+    var box = $("sb-list"); if (!box) return;
+    var ae = document.activeElement; if (ae && box.contains(ae) && ae.tagName === "INPUT" && (ae.type === "number" || ae.type === "text")) return;
+    var L = SB.slice().sort(function (a, b) { return (b.start || "").localeCompare(a.start || "") || (b.created || 0) - (a.created || 0); });
+    $("sb-cnt").textContent = L.length ? "(" + L.length + ")" : ""; $("sb-none").textContent = L.length ? "" : "Még nincs felvett új munkatárs.";
+    var have = {}; Array.prototype.forEach.call(box.children, function (n) { if (n.dataset && n.dataset.id) have[n.dataset.id] = n; });
+    var want = L.map(function (p) { var sg = sbSig(p), o = have[p.id]; if (o && o.dataset.sig === sg) return o; var n = sbCard(p); n.dataset.id = p.id; n.dataset.sig = sg; return n; });
+    want.forEach(function (n, i) { var at = box.children[i]; if (at !== n) { if (at && at.dataset && at.dataset.id && want.indexOf(at) < 0) box.replaceChild(n, at); else box.insertBefore(n, at || null); } });
+    while (box.children.length > want.length) box.removeChild(box.lastChild);
+    csPubSoon();
+  }
+  var sbAnim = "", sbEsVer = 0, SBPIPE = {};
+  // A munkatárs pipeline-jának elszámolt tételei ügyfelenként összesítve: ezekből lehet mentorált TA-t választani
+  function sbPipe(p) {
+    var nm = p.esName || p.name, k = sbPlain(nm); if (SBPIPE[k]) return SBPIPE[k];
+    var cached = sbLsGet("sb_pipe2_" + k); SBPIPE[k] = cached && cached.list ? cached : { loading: true };
+    fetch(SB_ES_URL + "?pipe=" + encodeURIComponent(nm) + "&_=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || !d.ok) { if (SBPIPE[k] && SBPIPE[k].list) return; SBPIPE[k] = { err: (d && d.error) || "nem elérhető" }; sbEsVer++; soon(sbRender); return; }
+      var by = {}, order = [], rows = d.rows.map(function (r) { return { cust: r.cust, month: +r.month || 0, proc: r.proc || "elszámolt", es: +r.es || 0 }; });
+      rows.forEach(function (r) { if (!r.cust || sbPlain(r.proc).indexOf("elszamolt") < 0) return; var c = sbPlain(r.cust); if (!by[c]) { by[c] = { nev: r.cust, es: 0, sz: 0 }; order.push(c); } by[c].es += r.es; by[c].sz++; });
+      SBPIPE[k] = { list: order.map(function (c) { return by[c]; }), rows: rows }; sbLsSet("sb_pipe2_" + k, SBPIPE[k]); sbEsVer++; soon(sbRender);
+    }).catch(function () { if (SBPIPE[k] && SBPIPE[k].list) return; SBPIPE[k] = { err: "nem tölthető be" }; sbEsVer++; soon(sbRender); });
+    return SBPIPE[k];
+  }
+  function sbSig(p) { return JSON.stringify([p.name, p.start, p.mentor, p.mnb, p.kev, p.ta, p.esName, sbConfirm === p.id, sbEsVer, sbEsErr, SBC && SBC.bon, sbAnim.indexOf(p.id + ":") === 0 ? sbAnim : ""]); }
+  function sbCard(p) {
+      var R = sbCalc(p), c = R.c, card = el("div", "sb-c csk-keep"), h = el("div", "sb-h");
+      h.appendChild(el("span", "sb-n", p.name));
+      var m = el("span", "sb-m"); m.appendChild(document.createTextNode("Kezdés:")); var di = el("input"); dpAttach(di); di.value = p.start || ""; di.addEventListener("change", function () { sbUpd(p.id, { start: di.value }); }); m.appendChild(di);
+      if (p.start) { var d = Math.floor((Date.now() - new Date(p.start + "T12:00:00").getTime()) / 864e5); if (d >= 0) m.appendChild(el("span", "", d + ". nap")); }
+      m.appendChild(document.createTextNode("Betanító:")); var so = el("select"); var ks = Object.keys(SB_OWN); if (p.mentor && ks.indexOf(p.mentor) < 0) ks.push(p.mentor); ks.forEach(function (k) { var o = el("option", "", SB_OWN[k] || k); o.value = k; so.appendChild(o); }); so.value = p.mentor || "gulyas.anna.ovb@gmail.com"; so.addEventListener("change", function () { sbUpd(p.id, { mentor: so.value }); }); m.appendChild(so);
+      h.appendChild(m);
+      var tot = el("span", "sb-pct " + (R.ok ? "ok" : "wait"), sbFt(R.mnb + R.kev + (R.ok ? R.tab : 0))); tot.title = "Ösztöndíj " + sbFt(R.mnb + R.kev) + " + start bónusz " + sbFt(R.tab) + (R.ok ? "" : " (a start bónuszhoz " + sbNum(c.es) + " ES kell)"); 
+      var del = el("button", "x sb-x", "×"); del.type = "button"; del.title = "Törlés";
+      if (sbConfirm === p.id) { var w = el("span"), y = el("button", "sm", "Törlés"), n = el("button", "sm gh", "Mégse"); w.style.marginLeft = "auto"; y.type = n.type = "button"; y.addEventListener("click", function () { sbConfirm = ""; FB.F.deleteDoc(FB.F.doc(FB.db, "perf", ID, "sb", p.id)).catch(function (e) { toast("Törlés sikertelen: " + e.message); }); }); n.addEventListener("click", function () { sbConfirm = ""; sbRender(); }); w.appendChild(y); w.appendChild(n); h.appendChild(w); }
+      else { del.addEventListener("click", function () { sbConfirm = p.id; sbRender(); }); h.appendChild(del); }
+      card.appendChild(h);
+      // 1. Technikai ES – jogosultság
+      var es = el("div", "sb-k"), eh = el("div", "sb-kh"); es.dataset.k = "es";
+      eh.appendChild(el("b", "", "Technikai ES")); eh.appendChild(el("span", "sb-tag " + (R.ok ? "ok" : "wait"), R.ok ? "jogosult" : "feltétel"));
+      eh.appendChild(el("span", "sb-v", (R.e ? sbNum(R.es) : "…") + " / " + sbNum(c.es) + " ES")); es.appendChild(eh);
+      var bar = el("div", "sb-bar"), bi = el("i"); bi.style.width = Math.min(100, c.es > 0 ? R.es / c.es * 100 : 0) + "%"; bar.appendChild(bi); es.appendChild(bar);
+      var note = !R.e ? (sbEsErr || "A pipeline betöltése…") : !R.e.found ? "Nincs „" + (p.esName || p.name) + "” nevű sor a pipeline-ban. Írd be a pipeline-ban szereplő nevet:" : "A(z) " + (p.esName || p.name) + " pipeline-ból, a kezdés hónapjától: korábbi hónapok elszámolt tételei + az aktuális hónap 100% leadott tételei." + (R.e.part ? " A kezdés az aktuális negyedév előtt volt, a korábbi hónapok itt nem látszanak." : "");
+      var nt = el("div", "sb-note", note); es.appendChild(nt);
+      if (R.e && !R.e.found || p.esName) { var ni = el("input"); ni.type = "text"; ni.placeholder = "Név a pipeline-ban"; ni.value = p.esName || ""; ni.className = "sb-in"; ni.addEventListener("change", function () { sbUpd(p.id, { esName: ni.value.trim() }); }); es.appendChild(ni); }
+      card.appendChild(es);
+      // 2–3. Vizsgák
+      [["mnb", "Sikeres MNB vizsga · ösztöndíj", c.mnb], ["kev", "Sikeres elemző vizsga · ösztöndíj", c.kev]].forEach(function (q) {
+        var on = !!p[q[0]], an = sbAnim === p.id + ":" + q[0], k = el("label", "sb-k sb-ck" + (on ? " done" : "") + (an ? (on ? " fillin" : " unfill") : "")), ck = el("input"); ck.type = "checkbox"; ck.checked = on; k.dataset.k = q[0];
+        ck.addEventListener("change", function () { var o = {}; o[q[0]] = ck.checked ? todayIso() : false; p[q[0]] = o[q[0]]; sbAnim = p.id + ":" + q[0]; sbRender(); setTimeout(function () { if (sbAnim === p.id + ":" + q[0]) { sbAnim = ""; } }, 800); sbUpd(p.id, o); });
+        k.appendChild(ck); var tx = el("span", "sb-ckt"); tx.appendChild(el("b", "", q[1])); if (on && typeof p[q[0]] === "string") tx.appendChild(el("small", "", " · " + p[q[0]].replace(/-/g, ". ") + ".")); k.appendChild(tx);
+        k.appendChild(el("span", "sb-v", q[2] ? (on ? sbFt(q[2]) : "0 / " + sbFt(q[2])) : "összeg nincs megadva")); card.appendChild(k);
+      });
+      // 4. Mentorált TA
+      var tk = el("div", "sb-k"), th = el("div", "sb-kh"); tk.dataset.k = "ta"; th.appendChild(el("b", "", "Mentorált TA")); th.appendChild(el("span", "sb-tag", R.ta + " érvényes")); th.appendChild(el("span", "sb-v", sbFt(R.tab))); tk.appendChild(th);
+      tk.appendChild(el("div", "sb-note", "Legalább " + c.taEs + " ES vagy " + c.taSz + " db szerződés · " + sbFt(c.ta) + " / TA"));
+      var tl = el("div", "sb-ta");
+      var AG = sbAgg(p);
+      (p.ta || []).forEach(function (t0, i) {
+        var t = sbTaLive(t0, AG), live = t0.src === "pipeline" && AG, r = el("div", "sb-tr" + (sbTaOk(t, c) ? " ok" : "") + (live ? " live" : ""));
+        function inp(k, ph, ty) { var x = el("input"); x.type = ty; x.placeholder = ph; x.value = t[k] || ""; if (ty === "number") x.min = "0"; if (live && k !== "nev") { x.readOnly = true; x.title = "A pipeline-ból számolva"; } x.addEventListener("change", function () { var a = (p.ta || []).slice(); a[i] = Object.assign({}, a[i]); a[i][k] = ty === "number" ? (+x.value || 0) : x.value.trim(); sbUpd(p.id, { ta: a }); }); return x; }
+        r.appendChild(inp("nev", "Ügyfél neve", "text")); var e1 = el("label", "", "ES "); e1.appendChild(inp("es", "0", "number")); r.appendChild(e1); var e2 = el("label", "", "Szerz. "); e2.appendChild(inp("sz", "0", "number")); r.appendChild(e2);
+        r.appendChild(el("span", "sb-trv", sbTaOk(t, c) ? "✓ " + sbFt(c.ta) : "még nem"));
+        var x = el("button", "x", "×"); x.type = "button"; x.title = "Sor törlése"; x.addEventListener("click", function () { var a = (p.ta || []).slice(); a.splice(i, 1); sbUpd(p.id, { ta: a }); }); r.appendChild(x);
+        tl.appendChild(r);
+      });
+      tk.appendChild(tl);
+      var pp = sbPipe(p), used = {}; (p.ta || []).forEach(function (t) { used[sbPlain(t.nev)] = 1; });
+      var pr = el("div", "sb-pick");
+      if (AG) pp = { list: AG.list };
+      if (pp.list) {
+        var opts = pp.list.filter(function (o) { return !used[sbPlain(o.nev)]; });
+        if (opts.length) {
+          var ps = el("select"); var o0 = el("option", "", "Választás a pipeline szerződéseiből (" + opts.length + ")…"); o0.value = ""; ps.appendChild(o0);
+          opts.forEach(function (o, i) { var op = el("option", "", o.nev + " · " + sbNum(o.es) + " ES · " + o.sz + " szerz." + (sbTaOk(o, c) ? " ✓" : "")); op.value = String(i); ps.appendChild(op); });
+          ps.addEventListener("change", function () { var o = opts[+ps.value]; if (!o) return; var a = (p.ta || []).slice(); a.push({ nev: o.nev, es: o.es, sz: o.sz, src: "pipeline" }); sbUpd(p.id, { ta: a }); });
+          pr.appendChild(ps);
+        } else pr.appendChild(el("span", "sb-note", pp.list.length ? "A pipeline összes elszámolt ügyfele fel van véve." : "A pipeline-ban még nincs elszámolt tétel."));
+      } else pr.appendChild(el("span", "sb-note", pp.loading ? "Pipeline betöltése…" : "Pipeline: " + pp.err + (pp.err === "Ismeretlen kérés." ? "" : "")));
+      tk.appendChild(pr);
+      var ad = el("button", "sm gh", "+ Kézzel"); ad.type = "button"; ad.addEventListener("click", function () { var a = (p.ta || []).slice(); a.push({ nev: "", es: 0, sz: 0 }); sbUpd(p.id, { ta: a }); }); tk.appendChild(ad);
+      card.appendChild(tk);
+      var sm = el("div", "sb-sum");
+      function tile(cls, lab, val, sub) { var t = el("div", "sb-tile " + cls); t.appendChild(el("span", "sb-tl", lab)); t.appendChild(el("b", "sb-tv", val)); [].concat(sub || []).forEach(function (x) { var ln = el("span", "sb-ts"); if (Array.isArray(x)) { ln.classList.add("two"); ln.appendChild(el("span", "", x[0])); if (x[1]) ln.appendChild(el("b", "", x[1])); } else ln.textContent = x; t.appendChild(ln); }); sm.appendChild(t); }
+      var miss = sbNum(Math.max(0, c.es - R.es)) + " ES hiányzik", gross = R.mnb + R.kev + R.tab;
+      tile("bon" + (R.ok ? " ok" : ""), "Ösztöndíj", sbFt(R.mnb + R.kev), [[(p.mnb ? "✓ " : "– ") + "MNB vizsga", p.mnb ? sbFt(c.mnb) : ""], [(p.kev ? "✓ " : "– ") + "Elemző vizsga", p.kev ? sbFt(c.kev) : ""]]);
+      tile("bon" + (R.ok ? " ok" : ""), "Start bónusz", sbFt(R.tab), R.ta + " érvényes mentorált TA");
+      tile("all", "Összesen", sbFt(R.ok ? gross : 0), R.ok ? (gross ? "kifizethető" : "még nincs teljesített tétel") : (gross ? sbFt(gross) + " jár a(z) " + sbNum(c.es) + " ES után · " + miss : miss + " a jogosultsághoz"));
+      card.appendChild(sm);
+      csAnimate(card, p, R, c);
+      return card;
+  }
+  // ---- Animációk (csak megjelenés) + munkatársi nézet közzététele ----
+  var CSPREV = {};
+  function csEase(t) { return 1 - Math.pow(1 - t, 3); }
+  function csCount(elm, from, to, fmt) {
+    if (!elm || from === to) return; var t0 = null, d = 700;
+    function st(ts) { if (t0 === null) t0 = ts; var k = Math.min(1, (ts - t0) / d); elm.textContent = fmt(from + (to - from) * csEase(k)); if (k < 1) requestAnimationFrame(st); else elm.textContent = fmt(to); }
+    elm.textContent = fmt(from); requestAnimationFrame(st);
+  }
+  function csBar(i, fromPct) { if (!i) return; var to = i.style.width; i.style.transition = "none"; i.style.width = fromPct + "%"; requestAnimationFrame(function () { requestAnimationFrame(function () { i.style.transition = ""; i.style.width = to; }); }); }
+  function csFx(elm, cls) { if (!elm) return; elm.classList.remove(cls); void elm.offsetWidth; elm.classList.add(cls); setTimeout(function () { elm.classList.remove(cls); }, 1600); }
+  function csAnimate(card, p, R, c) {
+    var PV = CSPREV[p.id], gross = R.mnb + R.kev + R.tab, fiz = R.ok ? gross : 0;
+    var cur = { es: R.es, ok: R.ok, mnb: !!p.mnb, kev: !!p.kev, ta: R.ta, sum: gross, fiz: fiz };
+    CSPREV[p.id] = cur;
+    var pv = PV || { es: 0, ok: R.ok, mnb: !!p.mnb, kev: !!p.kev, ta: R.ta, sum: 0, fiz: 0 };
+    csBar(card.querySelector('[data-k="es"] .sb-bar i'), c.es > 0 ? Math.min(100, pv.es / c.es * 100) : 0);
+    if (!PV) return;
+    ["mnb", "kev"].forEach(function (k) { if (cur[k] !== pv[k]) csFx(card.querySelector('[data-k="' + k + '"]'), cur[k] ? "cs-pop" : "cs-unpop"); });
+    if (R.ok && !pv.ok) { csFx(card.querySelector('[data-k="es"]'), "cs-win"); csFx(card.querySelector(".sb-tile.all"), "cs-win"); }
+    if (cur.ta !== pv.ta) csFx(card.querySelector('[data-k="ta"] .sb-tag'), "cs-tick");
+    if (cur.es !== pv.es) csFx(card.querySelector('[data-k="es"] .sb-v'), "cs-tick");
+    var tv = card.querySelectorAll(".sb-tv"); csCount(tv[2], pv.fiz, cur.fiz, sbFt);
+    var pct = card.querySelector(".sb-h .sb-pct"); if (pct) csCount(pct, pv.fiz, cur.fiz, sbFt);
+    if (cur.sum !== pv.sum) csFx(card.querySelector(".sb-tile.bon"), cur.sum > pv.sum ? "cs-up" : "cs-unpop");
+  }
+  var csPubT = 0, csPubLast = "";
+  function csPubSoon() { clearTimeout(csPubT); csPubT = setTimeout(csPub, 1200); }
+  function csPub() {
+    if (!FB || !SB.length) return;
+    var items = SB.slice().sort(function (a, b) { return (b.start || "").localeCompare(a.start || "") || (b.created || 0) - (a.created || 0); }).map(function (p) {
+      var R = sbCalc(p), c = R.c, gross = R.mnb + R.kev + R.tab;
+      return { name: p.name || "", start: p.start || "", es: R.es, esNeed: c.es, ok: R.ok, mnb: !!p.mnb, kev: !!p.kev, mnbV: c.mnb, kevV: c.kev, ta: R.ta, taV: c.ta, taEs: c.taEs, taSz: c.taSz, schol: R.mnb + R.kev, tab: R.tab, sum: gross, fiz: R.ok ? gross : 0 };
+    });
+    var js = JSON.stringify(items); if (js === csPubLast) return; csPubLast = js;
+    FB.F.setDoc(FB.F.doc(FB.db, "perf", "pub-csikos-sb", "pub", "lista"), { upd: new Date().toISOString(), items: items }).catch(function () { csPubLast = ""; });
+  }
+  (function () { var b = document.getElementById("cs-copy"); if (!b) return; b.addEventListener("click", function () { var u = location.origin + "/csikos-haladas.html"; (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function () { toast("Link kimásolva: " + u); }).catch(function () { prompt("A munkatársi nézet linkje:", u); }); }); })();
+  function sbUpd(id, patch) { FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "sb", id), patch).catch(function (e) { toast("Mentés sikertelen: " + e.message); }); }
+  function sbLsGet(k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function sbLsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  var sbEsReq = false;
+  function sbLoadEs() {
+    if (sbEsReq) return; sbEsReq = true;
+    var c = sbLsGet("sb_es"); if (c && c.people && !SBES) { SBES = c; sbEsVer++; }
+    fetch(SB_ES_URL + "?_=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || d.error || !d.people) { sbEsVer++; sbEsErr = "A pipeline adatai nem érhetők el" + (d && d.error ? " (" + d.error + ")" : "") + "."; soon(sbRender); return; }
+      SBES = { people: d.people.map(function (x) { return { name: x.name, proc: x.proc, mt: x.mt }; }), months: d.months || [] }; sbLsSet("sb_es", SBES); sbEsVer++; soon(sbRender);
+    }).catch(function () { sbEsVer++; sbEsErr = "A pipeline adatai nem tölthetők be."; soon(sbRender); });
+  }
+  function sbStart() {
+    if (sbReady) return; sbReady = true;
+    FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "sb"), function (snap) { SB = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); SB.forEach(sbPipe); soon(sbRender); csPubSoon(); }, function (e) { toast("Start bónusz: " + e.message); });
+    FB.F.onSnapshot(FB.F.doc(FB.db, "perf", ID, "sbcfg", "main"), function (d) { SBC = d.exists() ? d.data() : null; soon(sbRender); }, function () {});
+  }
+  function sbInit() {
+    var so = $("sb-mentor"); Object.keys(SB_OWN).forEach(function (k) { var o = el("option", "", SB_OWN[k]); o.value = k; so.appendChild(o); }); so.value = "gulyas.anna.ovb@gmail.com";
+    dpAttach($("sb-start")); $("sb-start").value = todayIso();
+    $("mt-sb").addEventListener("click", function () { asTab("sb"); });
+    $("sb-form").addEventListener("submit", function (ev) {
+      ev.preventDefault(); if (!FB) { toast("Az adatbázis még nem töltött be."); return; }
+      if (!asCanCreate()) { toast("Feladatot csak asszisztensi jogosultsággal lehet felvenni."); return; }
+      var nm = $("sb-name").value.trim(); if (!nm) return;
+      FB.F.setDoc(FB.F.doc(FB.F.collection(FB.db, "perf", ID, "sb")), { name: nm, start: $("sb-start").value || todayIso(), mentor: $("sb-mentor").value, mnb: false, kev: false, ta: [], created: Date.now() }).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
+      $("sb-name").value = ""; $("sb-name").focus();
+    });
+  }
+  function asTab(k) {
+    var V = { perf: "v-perf", as: "v-as", sb: "v-sb" }, M = { perf: "mt-perf", as: "mt-as", sb: "mt-sb" };
+    Object.keys(V).forEach(function (q) { $(V[q]).hidden = q !== k; $(M[q]).classList.toggle("on", q === k); $(M[q]).setAttribute("aria-selected", q === k ? "true" : "false"); });
+    $("app").classList.toggle("sbw", k === "sb"); $("app").classList.toggle("asw", k === "as");
+    var vv = $(V[k]); vv.classList.remove("vfade"); void vv.offsetWidth; vv.classList.add("vfade");
+    try { sessionStorage.setItem("tj_view", k); } catch (e) {}
+  }
+  function asStart() {
+    if (asReady) return; asReady = true;
+    FB.F.onSnapshot(FB.F.collection(FB.db, "perf", ID, "atasks"), function (snap) {
+      AS_ALL = snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }).filter(function (x) { return !AS_LIST || asListOf(x) === AS_LIST; }); asApplyVis();
+    }, function (e) { toast("Asszisztensi feladatok: " + e.message); });
+    asWhoAmI(); asLoadLeaders();
+  }
+  /* A "Beadta" lenyílóba a vezetők (GST, BL) a felhasználók listájából. Ha a lista nem olvasható (nem admin), marad az alap lista. */
+  var BY_EXTRA = {};
+  function asLoadLeaders() {
+    try {
+      FB.F.getDocs(FB.F.collection(FB.db, "users")).then(function (snap) {
+        var n = 0;
+        snap.docs.forEach(function (d) { var u = d.data() || {}; if (u.role === "gts" || u.role === "bl") { BY_EXTRA[String(d.id).toLowerCase()] = u.name || TEAM[d.id] || d.id; n++; } });
+        if (n) asRender();
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  /* ---- Ki mit lát: az admin mindent; az asszisztens csak azt, ahol ő a felelős, vagy amit ő adott le. ---- */
+  var AS_ALL = [], ME = null;
+  function asVisible(x) {
+    if (!ME || !ME.email) return false;
+    if (ME.admin) return true;
+    return String(x.owner || "").toLowerCase() === ME.email || String(x.by || "").toLowerCase() === ME.email;
+  }
+  function asCanCreate() { return !!(ME && ME.email && (ME.admin || ME.ass)); }
+  function asApplyVis() {
+    AS = AS_ALL.filter(asVisible);
+    var f = $("as-form"); if (f) f.hidden = !asCanCreate();
+    var fo = $("as-f-owner"); if (fo) { fo.hidden = !(ME && ME.admin); if (fo.hidden) fo.value = ""; }
+    /* "Ki adta be" szűrő: a listában szereplő beadók közül (a saját magad elöl); a választás megmarad */
+    var fb = $("as-f-by"); if (fb) {
+      var bys = {}; AS.forEach(function (x) { var k = String(x.by || "").toLowerCase(); if (k && !bys[k]) bys[k] = x.byName || TEAM[k] || AS_OWNERS[k] || k; });
+      var keys = Object.keys(bys).sort(function (a, b) { return (b === (ME && ME.email)) - (a === (ME && ME.email)) || bys[a].localeCompare(bys[b], "hu"); });
+      var want = fb.value; if (!fb.options.length) { try { want = localStorage.getItem("as_f_by") || ""; } catch (e) {} }
+      fillSel(fb, keys.map(function (k) { return [k, (ME && k === ME.email ? "Saját (" + bys[k] + ")" : bys[k])]; }), "Bárki adta be");
+      fb.value = keys.indexOf(want) >= 0 ? want : "";
+      fb.hidden = keys.length < 2;
+    }   // a "kinek a feladatai" szűrő csak az adminnak kell
+    soon(asRender);
+  }
+  function asWhoAmI() {
+    var tries = 0;
+    (function wait() {
+      var c = window.CSK;
+      if (c && c.ready) { Promise.resolve(c.ready).then(function () { ME = { email: String(c.user || "").toLowerCase(), admin: !!c.isAdmin, ass: !!c.asszisztens, name: c.name || "" }; asApplyVis(); }); return; }
+      if (++tries > 200) { ME = { email: "", admin: false, ass: false, name: "" }; asApplyVis(); return; }
+      setTimeout(wait, 50);
+    })();
+  }
+  function asUpd(id, patch) { FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "atasks", id), patch).catch(function (e) { toast("Mentés sikertelen: " + e.message); }); }
+  var asSeen = null, asOpen = {}, asDraft = {};
+  /* ---- témához igazított mini naptár (a natív dátumválasztó helyett) ---- */
+  var DP = null;
+  function dpIso(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function dpAttach(inp) {
+    inp.type = "text"; inp.readOnly = true; inp.classList.add("dp"); inp.placeholder = "éééé-hh-nn"; inp.setAttribute("autocomplete", "off");
+    inp.addEventListener("click", function () { dpOpen(inp); });
+    inp.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") { e.preventDefault(); dpOpen(inp); } });
+  }
+  function dpOpen(inp) {
+    if (!DP) {
+      DP = el("div", "dp-pop"); DP.hidden = true; document.body.appendChild(DP);
+      document.addEventListener("mousedown", function (e) { if (!DP.hidden && !DP.contains(e.target) && !e.target.classList.contains("dp")) DP.hidden = true; });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape") DP.hidden = true; });
+      window.addEventListener("scroll", function () { if (!DP.hidden && DP._in) dpPlace(DP._in); }, true);
+    }
+    DP._in = inp; var cur = /^\d{4}-\d{2}-\d{2}$/.test(inp.value) ? new Date(inp.value + "T12:00:00") : new Date();
+    DP._y = cur.getFullYear(); DP._m = cur.getMonth(); dpDraw(); DP.hidden = false; dpPlace(inp);
+  }
+  function dpPlace(inp) {
+    var r = inp.getBoundingClientRect(), w = DP.offsetWidth || 280, h = DP.offsetHeight || 320;
+    var top = r.bottom + 6; if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    DP.style.top = top + "px"; DP.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + "px";
+  }
+  function dpDraw() {
+    var MN = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"], inp = DP._in, sel = inp.value, today = dpIso(new Date());
+    DP.textContent = "";
+    var h = el("div", "dp-h"), pv = el("button", "", "‹"), nx = el("button", "", "›"); pv.type = nx.type = "button";
+    pv.addEventListener("click", function () { DP._m--; if (DP._m < 0) { DP._m = 11; DP._y--; } dpDraw(); dpPlace(inp); });
+    nx.addEventListener("click", function () { DP._m++; if (DP._m > 11) { DP._m = 0; DP._y++; } dpDraw(); dpPlace(inp); });
+    h.appendChild(pv); h.appendChild(el("b", "", DP._y + ". " + MN[DP._m])); h.appendChild(nx); DP.appendChild(h);
+    var g = el("div", "dp-g"); ["H", "K", "Sze", "Cs", "P", "Szo", "V"].forEach(function (d) { g.appendChild(el("span", "dp-w", d)); });
+    var off = (new Date(DP._y, DP._m, 1).getDay() + 6) % 7, n = Math.ceil((off + new Date(DP._y, DP._m + 1, 0).getDate()) / 7) * 7;
+    for (var i = 0; i < n; i++) {
+      var d = new Date(DP._y, DP._m, 1 - off + i), iso = dpIso(d), b = el("button", "dp-d" + (d.getMonth() !== DP._m ? " o" : "") + (iso === today ? " t" : "") + (iso === sel ? " s" : ""), String(d.getDate())); b.type = "button";
+      (function (iso) { b.addEventListener("click", function () { inp.value = iso; inp.dispatchEvent(new Event("change", { bubbles: true })); DP.hidden = true; }); })(iso);
+      g.appendChild(b);
+    }
+    DP.appendChild(g);
+    var f = el("div", "dp-f"), t = el("button", "", "Ma"), c = el("button", "", "Törlés"); t.type = c.type = "button";
+    t.addEventListener("click", function () { inp.value = today; inp.dispatchEvent(new Event("change", { bubbles: true })); DP.hidden = true; });
+    c.addEventListener("click", function () { inp.value = ""; inp.dispatchEvent(new Event("change", { bubbles: true })); DP.hidden = true; });
+    f.appendChild(t); f.appendChild(c); DP.appendChild(f);
+  }
+  function asCard(x, now, firstRun) {
+    if (asSeen === null) asSeen = {};
+        var late = !x.done && x.due && x.due < now, r = el("div", "as-t" + (x.done ? " done" : "") + (late ? " late" : "") + (!firstRun && !asSeen[x.id] ? " enter" : ""));
+        asSeen[x.id] = 1;
+        var ck = el("input"); ck.type = "checkbox"; ck.checked = !!x.done; ck.setAttribute("aria-label", "Kész");
+        ck.addEventListener("change", function () { hold(); r.classList.toggle("done", ck.checked); asUpd(x.id, { done: ck.checked, doneAt: ck.checked ? Date.now() : 0 }); });
+        r.appendChild(ck); r.appendChild(el("div", "as-ti", x.title));
+        var del = el("button", "x", "×"); del.type = "button"; del.title = "Törlés";
+        if (asConfirm === x.id) {
+          var w = el("span"); var y = el("button", "sm", "Törlés"), n = el("button", "sm gh", "Mégse"); y.type = n.type = "button";
+          y.addEventListener("click", function () { asConfirm = ""; FB.F.deleteDoc(FB.F.doc(FB.db, "perf", ID, "atasks", x.id)).catch(function (e) { toast("Törlés sikertelen: " + e.message); }); });
+          n.addEventListener("click", function () { asConfirm = ""; asRender(); });
+          w.appendChild(y); w.appendChild(n); r.appendChild(w);
+        } else { del.addEventListener("click", function () { asConfirm = x.id; asRender(); }); r.appendChild(del); }
+        var m = el("div", "as-meta"); m.appendChild(el("span", "as-chip", x.type || "Egyéb")); if (x.product) m.appendChild(el("span", "as-chip", x.product));
+        if (x.client) m.appendChild(el("span", "as-cl", x.client));
+        if ((x.subs || []).length) m.appendChild(el("span", "as-chip", (x.subs.filter(function (u) { return u.done; }).length) + "/" + x.subs.length + " alfeladat"));
+        m.appendChild(el("span", "", "Határidő:")); var due = el("input"); dpAttach(due); due.value = x.due || ""; due.title = "Határidő"; due.addEventListener("change", function () { asUpd(x.id, { due: due.value }); }); m.appendChild(due);
+        m.appendChild(el("span", "", "Felelős:")); var so = el("select"); var ownK = Object.keys(AS_OWNERS); if (x.owner && ownK.indexOf(x.owner) < 0) ownK.push(x.owner); ownK.forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = AS_OWNERS[k] || TEAM[k] || k; so.appendChild(o); }); so.value = x.owner || AS_OWNER_DEFAULT; so.title = "Felelős"; so.addEventListener("change", function () { asUpd(x.id, { owner: so.value }); }); m.appendChild(so);
+        r.appendChild(m);
+        if (x.note) r.appendChild(el("div", "as-note", x.note));
+        var subs = (x.subs || []).map(function (u) { return Object.assign({}, u); });
+        var sw = el("div", "as-subs");
+        subs.forEach(function (u, i) {
+          var ro = el("label", "as-s" + (u.done ? " done" : "") + (!firstRun && !asSeen[u.id] ? " enter" : "")), c2 = el("input"); c2.type = "checkbox"; c2.checked = !!u.done;
+          c2.addEventListener("change", function () { hold(); ro.classList.toggle("done", c2.checked); var n = subs.map(function (z) { return Object.assign({}, z); }); n[i].done = c2.checked; asUpd(x.id, { subs: n }); });
+          asSeen[u.id] = 1; ro.appendChild(c2); ro.appendChild(el("span", "", u.t));
+          var d2 = el("button", "x", "×"); d2.type = "button"; d2.title = "Alfeladat törlése";
+          d2.addEventListener("click", function (ev) { ev.preventDefault(); asUpd(x.id, { subs: subs.filter(function (z, j) { return j !== i; }) }); });
+          ro.appendChild(d2); sw.appendChild(ro);
+        });
+        var sf = el("form", "as-sadd"), si = el("input"); si.type = "text"; si.maxLength = 160; si.placeholder = "Alfeladat hozzáadása…"; si.setAttribute("aria-label", "Alfeladat");
+        var sb = el("button", "sm", "+"); sb.type = "submit"; sb.title = "Alfeladat hozzáadása"; sf.appendChild(si); sf.appendChild(sb);
+        sf.addEventListener("submit", function (ev) { ev.preventDefault(); var t = si.value.trim(); if (!t) return; var n = subs.slice(); n.push({ id: "s" + Date.now().toString(36) + Math.floor(Math.random() * 1000), t: t, done: false }); si.value = ""; asUpd(x.id, { subs: n }); });
+        sw.appendChild(sf);
+        var wrap = el("div", "as-sb" + (asOpen[x.id] ? " open" : "")), sh = el("button", "as-sh" + (asOpen[x.id] ? " open" : "")); sh.type = "button";
+        sh.innerHTML = '<span class="chev">▸</span>';
+        sh.appendChild(document.createTextNode(subs.length ? " Alfeladatok (" + subs.filter(function (u) { return u.done; }).length + "/" + subs.length + ")" : " Alfeladat"));
+        sh.setAttribute("aria-expanded", asOpen[x.id] ? "true" : "false");
+        sh.addEventListener("click", function () { var o = !wrap.classList.contains("open"); asOpen[x.id] = o; wrap.classList.toggle("open", o); sh.classList.toggle("open", o); sh.setAttribute("aria-expanded", o ? "true" : "false"); });
+        wrap.appendChild(sw); r.appendChild(sh); r.appendChild(wrap);
+    return r;
+  }
+  function asRow(x, now, firstRun) {
+    if (asSeen === null) asSeen = {};
+    var late = !x.done && x.due && x.due < now;
+    var tb = el("tbody", "as-r" + (x.done ? " done" : "") + (late ? " late" : "") + (asOpen[x.id] ? " open" : ""));
+    asSeen[x.id] = 1;
+    var tr = el("tr", "m");
+    function td(c) { var t = el("td", c); tr.appendChild(t); return t; }
+    var ck = el("input"); ck.type = "checkbox"; ck.checked = !!x.done; ck.setAttribute("aria-label", "Kész");
+    ck.addEventListener("change", function () { hold(); tb.classList.toggle("done", ck.checked); asUpd(x.id, { done: ck.checked, doneAt: ck.checked ? Date.now() : 0 }); });
+    td("c-ck").appendChild(ck);
+    var tt = td("c-ti"); if (!AS_LIST) tt.appendChild(el("span", "as-lt lt-" + asListOf(x), AS_LISTS[asListOf(x)])); tt.appendChild(el("div", "as-ti", x.title)); if (x.note) tt.appendChild(el("div", "as-note", x.note));
+    var mt = el("div", "as-mt"); mt.appendChild(el("span", "as-chip", x.type || "Egyéb")); if (x.product) mt.appendChild(el("span", "as-chip", x.product)); if (x.client) mt.appendChild(el("span", "as-cl", x.client)); tt.appendChild(mt);
+    td("c-ty").appendChild(el("span", "as-chip", x.type || "Egyéb"));
+    var tp = td("c-pr"); if (x.product) tp.appendChild(el("span", "as-chip", x.product));
+    var tc = td("c-cl"); if (x.client) tc.appendChild(el("span", "as-cl", x.client));
+    var due = el("input"); dpAttach(due); due.value = x.due || ""; due.title = "Határidő"; due.addEventListener("change", function () { asUpd(x.id, { due: due.value }); }); td("c-du").appendChild(due);
+    var so = el("select"), ownK = Object.keys(AS_OWNERS); if (x.owner && ownK.indexOf(x.owner) < 0) ownK.push(x.owner);
+    ownK.forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = AS_OWNERS[k] || TEAM[k] || k; so.appendChild(o); });
+    so.value = x.owner || AS_OWNER_DEFAULT; so.title = "Felelős"; so.addEventListener("change", function () { asUpd(x.id, { owner: so.value }); }); td("c-ow").appendChild(so);
+    var tby = td("c-by"), bs = el("select"), BY = { "csikos.mate.ovb@gmail.com": "Csikós Máté" }; Object.keys(BY_EXTRA).forEach(function (k) { BY[k] = BY_EXTRA[k]; }); Object.keys(AS_OWNERS).forEach(function (k) { BY[k] = AS_OWNERS[k]; });
+    var curBy = String(x.by || "").toLowerCase(); if (curBy && !BY[curBy]) BY[curBy] = x.byName || TEAM[curBy] || curBy;
+    var o0 = document.createElement("option"); o0.value = ""; o0.textContent = "–"; bs.appendChild(o0);
+    Object.keys(BY).forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = BY[k]; bs.appendChild(o); });
+    bs.value = curBy; bs.title = "Ki adta a feladatot";
+    bs.addEventListener("change", function () { asUpd(x.id, { by: bs.value, byName: bs.value ? BY[bs.value] : "" }); }); tby.appendChild(bs);
+    var subs = (x.subs || []).map(function (u) { return Object.assign({}, u); });
+    var sh = el("button", "as-sh2" + (asOpen[x.id] ? " open" : "")); sh.type = "button"; sh.innerHTML = '<span class="chev">▸</span>';
+    if (subs.length) { sh.appendChild(document.createTextNode(" " + subs.filter(function (u) { return u.done; }).length + "/" + subs.length)); sh.appendChild(el("span", "lb", " alfeladat")); }
+    else { sh.appendChild(el("span", "lb", " Részletek")); sh.appendChild(el("span", "pl", " +")); }
+    sh.title = "Megjegyzés és alfeladatok";
+    sh.setAttribute("aria-expanded", asOpen[x.id] ? "true" : "false"); td("c-su").appendChild(sh);
+    var tx = td("c-x");
+    if (asConfirm === x.id) {
+      var y = el("button", "sm", "Törlés"), n = el("button", "sm gh", "Mégse"); y.type = n.type = "button";
+      y.addEventListener("click", function () { asConfirm = ""; FB.F.deleteDoc(FB.F.doc(FB.db, "perf", ID, "atasks", x.id)).catch(function (e) { toast("Törlés sikertelen: " + e.message); }); });
+      n.addEventListener("click", function () { asConfirm = ""; asRender(); }); tx.appendChild(y); tx.appendChild(n);
+    } else { var del = el("button", "x", "×"); del.type = "button"; del.title = "Törlés"; del.addEventListener("click", function () { asConfirm = x.id; asRender(); }); tx.appendChild(del); }
+    tb.appendChild(tr);
+    var sw = el("div", "as-subs");
+    var nw = el("label", "as-nt"), na = el("textarea"); nw.appendChild(el("span", "", "Megjegyzés"));
+    na.rows = 2; na.maxLength = 1000; na.placeholder = "Megjegyzés a feladathoz…"; na.setAttribute("data-note-id", x.id);
+    na.value = asDraft[x.id] != null ? asDraft[x.id] : (x.note || "");
+    na.addEventListener("input", function () { asDraft[x.id] = na.value; });
+    na.addEventListener("change", function () { var v = na.value.trim(); delete asDraft[x.id]; if (v !== (x.note || "")) asUpd(x.id, { note: v }); });
+    nw.appendChild(na); sw.appendChild(nw);
+    subs.forEach(function (u, i) {
+      var ro = el("label", "as-s" + (u.done ? " done" : "")), c2 = el("input"); c2.type = "checkbox"; c2.checked = !!u.done;
+      c2.addEventListener("change", function () { hold(); ro.classList.toggle("done", c2.checked); var nn = subs.map(function (z) { return Object.assign({}, z); }); nn[i].done = c2.checked; asUpd(x.id, { subs: nn }); });
+      ro.appendChild(c2); ro.appendChild(el("span", "", u.t));
+      var d2 = el("button", "x", "×"); d2.type = "button"; d2.title = "Alfeladat törlése";
+      d2.addEventListener("click", function (ev) { ev.preventDefault(); asUpd(x.id, { subs: subs.filter(function (z, j) { return j !== i; }) }); });
+      ro.appendChild(d2); sw.appendChild(ro);
+    });
+    var sf = el("form", "as-sadd"), si = el("input"); si.type = "text"; si.maxLength = 160; si.placeholder = "Alfeladat hozzáadása…"; si.setAttribute("aria-label", "Alfeladat");
+    var sb = el("button", "sm", "+"); sb.type = "submit"; sb.title = "Alfeladat hozzáadása"; sf.appendChild(si); sf.appendChild(sb);
+    sf.addEventListener("submit", function (ev) { ev.preventDefault(); var t = si.value.trim(); if (!t) return; var nn = subs.slice(); nn.push({ id: "s" + Date.now().toString(36) + Math.floor(Math.random() * 1000), t: t, done: false }); si.value = ""; asOpen[x.id] = true; asUpd(x.id, { subs: nn }); });
+    sw.appendChild(sf);
+    var dr = el("tr", "d"); dr.hidden = !asOpen[x.id]; dr.appendChild(el("td")); var dd = el("td"); dd.colSpan = 9; dd.appendChild(sw); dr.appendChild(dd); tb.appendChild(dr);
+    function toggle() { var o = dr.hidden; dr.hidden = !o; asOpen[x.id] = o; tb.classList.toggle("open", o); sh.classList.toggle("open", o); sh.setAttribute("aria-expanded", o ? "true" : "false"); }
+    sh.addEventListener("click", toggle); tt.addEventListener("click", toggle);
+    return tb;
+  }
+  var AS_VIEW = "list", calY = new Date().getFullYear(), calM = new Date().getMonth();
+  var calWeek = null, calTask = "";
+  function calMon(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)); }
+  function asWeek(L, now) {
+    var box = $("as-cal"), MS = ["jan.", "febr.", "márc.", "ápr.", "máj.", "jún.", "júl.", "aug.", "szept.", "okt.", "nov.", "dec."], DN = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
+    box.textContent = "";
+    var e = new Date(calWeek.getFullYear(), calWeek.getMonth(), calWeek.getDate() + 6);
+    var h = el("div", "cal-h"), bk = el("button", "", "‹ Hónap"), pv = el("button", "", "‹"), nx = el("button", "", "›"), td = el("button", "", "Ma"); bk.type = pv.type = nx.type = td.type = "button";
+    bk.addEventListener("click", function () { calY = calWeek.getFullYear(); calM = calWeek.getMonth(); calWeek = null; calTask = ""; asRender(); });
+    pv.addEventListener("click", function () { calWeek = new Date(calWeek.getFullYear(), calWeek.getMonth(), calWeek.getDate() - 7); calTask = ""; asRender(); });
+    nx.addEventListener("click", function () { calWeek = new Date(calWeek.getFullYear(), calWeek.getMonth(), calWeek.getDate() + 7); calTask = ""; asRender(); });
+    td.addEventListener("click", function () { calWeek = calMon(new Date()); calTask = ""; asRender(); });
+    h.appendChild(bk); h.appendChild(pv); h.appendChild(el("b", "", calWeek.getFullYear() + ". " + MS[calWeek.getMonth()] + " " + calWeek.getDate() + " – " + (e.getMonth() !== calWeek.getMonth() ? MS[e.getMonth()] + " " : "") + e.getDate())); h.appendChild(td); h.appendChild(nx); box.appendChild(h);
+    var by = {}; L.forEach(function (x) { if (x.due) (by[x.due] = by[x.due] || []).push(x); });
+    var g = el("div", "wk-g"), open = null;
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(calWeek.getFullYear(), calWeek.getMonth(), calWeek.getDate() + i), iso = dpIso(d), c = el("div", "wk-d" + (iso === now ? " t" : "")), hd = el("div", "wk-h");
+      hd.appendChild(el("span", "", DN[i] + " " + d.getDate() + "."));
+      var ad = el("button", "wk-a", "+"); ad.type = "button"; ad.title = "Új feladat erre a napra";
+      (function (iso) { ad.addEventListener("click", function () { $("as-due").value = iso; $("as-form").scrollIntoView({ behavior: "smooth", block: "center" }); $("as-title").focus({ preventScroll: true }); }); })(iso);
+      hd.appendChild(ad); c.appendChild(hd);
+      (by[iso] || []).forEach(function (x) {
+        var late = !x.done && x.due < now, ch = el("button", "wk-c" + (x.done ? " done" : "") + (late ? " late" : "") + (calTask === x.id ? " on" : ""), x.title); ch.type = "button";
+        if (x.client) ch.appendChild(el("em", "wk-cl", x.client)); ch.appendChild(el("small", "", (x.type || "Egyéb")));
+        ch.addEventListener("click", function () { calTask = calTask === x.id ? "" : x.id; asRender(); });
+        c.appendChild(ch); if (calTask === x.id) open = x;
+      });
+      g.appendChild(c);
+    }
+    box.appendChild(g);
+    if (open) { var pn = el("div", "wk-p"); pn.appendChild(asCard(open, now, false)); box.appendChild(pn); }
+  }
+  function asCal(L, now) {
+    if (calWeek) { asWeek(L, now); return; }
+    var box = $("as-cal"), MN = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"];
+    box.textContent = "";
+    var h = el("div", "cal-h"), pv = el("button", "", "‹"), nx = el("button", "", "›"), td = el("button", "", "Ma"); pv.type = nx.type = td.type = "button";
+    pv.setAttribute("aria-label", "Előző hónap"); nx.setAttribute("aria-label", "Következő hónap");
+    pv.addEventListener("click", function () { calM--; if (calM < 0) { calM = 11; calY--; } asRender(); });
+    nx.addEventListener("click", function () { calM++; if (calM > 11) { calM = 0; calY++; } asRender(); });
+    td.addEventListener("click", function () { var d = new Date(); calY = d.getFullYear(); calM = d.getMonth(); asRender(); });
+    h.appendChild(pv); h.appendChild(el("b", "", calY + ". " + MN[calM])); h.appendChild(td); h.appendChild(nx); box.appendChild(h);
+    var g = el("div", "cal-g"); ["H", "K", "Sze", "Cs", "P", "Szo", "V"].forEach(function (d) { g.appendChild(el("div", "cal-w", d)); });
+    var first = new Date(calY, calM, 1), off = (first.getDay() + 6) % 7, start = new Date(calY, calM, 1 - off), by = {};
+    L.forEach(function (x) { if (x.due) (by[x.due] = by[x.due] || []).push(x); });
+    var months = Math.ceil((off + new Date(calY, calM + 1, 0).getDate()) / 7) * 7;
+    for (var i = 0; i < months; i++) {
+      var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), iso = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+      var c = el("div", "cal-d" + (d.getMonth() !== calM ? " o" : "") + (iso === now ? " t" : "")); c.appendChild(el("i", "", String(d.getDate())));
+      var T = by[iso] || [], d0 = d;
+      T.slice(0, 3).forEach(function (x) { var late = !x.done && x.due < now, ch = el("div", "cal-c" + (x.done ? " done" : "") + (late ? " late" : ""), x.title); ch.addEventListener("click", function () { calWeek = calMon(new Date(x.due + "T12:00:00")); calTask = x.id; asRender(); }); ch.title = x.title + (x.client ? " – " + x.client : "") + " (" + (x.type || "Egyéb") + (x.product ? ", " + x.product : "") + ", " + (AS_OWNERS[x.owner] || (TEAM[x.owner] || "")) + ")"; c.appendChild(ch); });
+      if (T.length > 3) c.appendChild(el("div", "cal-m", "+" + (T.length - 3) + " további"));
+      (function (dd) { c.addEventListener("click", function (ev) { if (ev.target.closest(".cal-c")) return; calWeek = calMon(dd); calTask = ""; asRender(); }); })(d);
+      g.appendChild(c);
+    }
+    box.appendChild(g);
+    var nd = L.filter(function (x) { return !x.due; }).length; if (nd) box.appendChild(el("p", "cal-n", nd + " feladatnak nincs határideje – ezek a lista nézetben látszanak."));
+    box.appendChild(el("p", "cal-n", "Egy napra kattintva megnyílik az adott hét, a feladatra kattintva pedig szerkeszthető."));
+  }
+  function asView(v) { AS_VIEW = v; $("as-vl").classList.toggle("on", v === "list"); $("as-vc").classList.toggle("on", v === "cal"); try { sessionStorage.setItem("tj_asv", v); } catch (e) {} asRender(); }
+  function asRender() {
+    var st = $("as-f-status").value, ty = $("as-f-type").value, ow = $("as-f-owner").value, fby = $("as-f-by").value, fli = $("as-f-list").value, now = todayIso();
+    $("as-cnt").textContent = AS.filter(function (x) { return !x.done; }).length || "";
+    var L = AS.filter(function (x) { return (st === "all" || (st === "done") === !!x.done) && (!ty || x.type === ty) && (!ow || x.owner === ow) && (!fby || String(x.by || "").toLowerCase() === fby) && (!fli || asListOf(x) === fli); });
+    L.sort(function (a, b) { return (a.due || "9999") < (b.due || "9999") ? -1 : (a.due || "9999") > (b.due || "9999") ? 1 : (b.created - a.created); });
+    $("as-list").hidden = AS_VIEW === "cal"; $("as-cal").hidden = AS_VIEW !== "cal";
+    if (AS_VIEW === "cal") { $("as-none").textContent = ""; asCal(L, now); return; }
+    var groups = [["Lejárt", "late", function (x) { return !x.done && x.due && x.due < now; }], ["Ma esedékes", "", function (x) { return !x.done && x.due === now; }], ["Közelgő", "", function (x) { return !x.done && x.due && x.due > now; }], ["Nincs határidő", "", function (x) { return !x.done && !x.due; }], ["Kész", "", function (x) { return !!x.done; }]];
+    var box = $("as-list"), fa = document.activeElement, fn = fa && fa.getAttribute && fa.getAttribute("data-note-id"), fs = fn ? [fa.selectionStart, fa.selectionEnd] : null;
+    box.textContent = ""; var firstRun = asSeen === null; if (firstRun) asSeen = {};
+    var tw = el("div", "as-tw"), tbl = el("table", "as-tb"), th = el("thead"), hr = el("tr");
+    [["c-ck", ""], ["c-ti", "Feladat"], ["c-ty", "Típus"], ["c-pr", "Termék"], ["c-cl", "Ügyfél"], ["c-du", "Határidő"], ["c-ow", "Felelős"], ["c-by", "Beadta"], ["c-su", ""], ["c-x", ""]].forEach(function (h) { var t = el("th", h[0]); if (h[0] === "c-su") t.appendChild(el("span", "", "Alfeladatok")); else t.textContent = h[1]; hr.appendChild(t); });
+    th.appendChild(hr); tbl.appendChild(th);
+    groups.forEach(function (g) {
+      var items = L.filter(g[2]); if (!items.length) return;
+      var gb = el("tbody", "as-gh" + (g[1] ? " " + g[1] : "")), gr = el("tr"), gh = el("th", "", g[0] + " (" + items.length + ")"); gh.colSpan = 10; gr.appendChild(gh); gb.appendChild(gr); tbl.appendChild(gb);
+      items.forEach(function (x, i) { var rw = asRow(x, now, firstRun); if (i % 2) rw.classList.add("alt"); tbl.appendChild(rw); });
+    });
+    if (L.length) { tw.appendChild(tbl); box.appendChild(tw); }
+    if (fn) { var nf = box.querySelector('textarea[data-note-id="' + fn + '"]'); if (nf) { nf.focus(); try { nf.setSelectionRange(fs[0], fs[1]); } catch (e) {} } }
+    $("as-none").textContent = L.length ? "" : (ME && !ME.email ? "Lépj be a Google-fiókoddal, hogy lásd a feladataidat." : (AS.length ? "Nincs a szűrőnek megfelelő feladat." : (asCanCreate() ? "Még nincs feladat. Vegyél fel egyet fent." : "Nincs hozzád rendelt feladat.")));
+  }
+  function render() {
+    if (!D) return;
+    $("upd").textContent = D.updated ? "Utolsó frissítés: " + new Date(D.updated).toLocaleString("hu-HU", { dateStyle: "short", timeStyle: "short" }) : "";
+    var by = {}; D.clients.forEach(function (c) { if (inPeriod(c.date)) (by[c.mt] = by[c.mt] || []).push(c); });
+    var mails = Object.keys(by).sort(function (a, b) { return by[b].length - by[a].length; });
+    var L = $("list"); L.textContent = "";
+    if (!mails.length) { $("none").textContent = "Ebben az időszakban nincs elemzés a naptárakban."; return; }
+    $("none").textContent = "";
+    if (!by[SEL]) SEL = mails[0];
+    var tabs = el("div", "tabs");
+    mails.forEach(function (mail) {
+      var tb = el("button", "tab" + (mail === SEL ? " on" : ""), (D.team[mail] || mail) + " "); tb.type = "button";
+      tb.appendChild(el("span", "cnt", String(by[mail].length)));
+      tb.addEventListener("click", function () { SEL = mail; try { sessionStorage.setItem("tj_sel", mail); } catch (e) {} render(); });
+      tabs.appendChild(tb);
+    });
+    L.appendChild(tabs);
+    [SEL].forEach(function (mail) {
+      var cl = by[mail].sort(function (a, b) { return a.date < b.date ? 1 : -1; }), done = 0, all = 0;
+      cl.forEach(function (c) { if (c.state) c.tasks.forEach(function (t) { all++; if (t.done) done++; }); });
+      var det = el("div", "mt");
+      det.appendChild(el("div", "sum", cl.length + " elemzés · " + done + "/" + all + " feladat kész"));
+      var lastWk = "";
+      cl.forEach(function (c) {
+        var wk = weekKey(c.date);
+        if (wk !== lastWk) { lastWk = wk; det.appendChild(el("h4", "wk", weekLabel(c.date))); }
+        var box = el("div", "cl" + (c.gone ? " gone" : "")), h = el("h3", "", c.name); h.appendChild(el("small", "", fmt(c.date) + (c.gone ? " · a naptárból törölve" : ""))); box.appendChild(h);
+        if (!c.state) {
+          LASTST[c.key] = "";
+          var q = el("div", "q"); q.appendChild(el("span", "", "Megvalósult az elemzés?"));
+          var by1 = el("button", "sm", "Igen"), by0 = el("button", "sm", "Nem"); by1.type = by0.type = "button";
+          by1.addEventListener("click", function () { hold(); by1.classList.add("picked"); q.classList.add("out"); act({ action: "answer", key: c.key, yes: true }); });
+          by0.addEventListener("click", function () { hold(); by0.classList.add("picked"); q.classList.add("out"); act({ action: "answer", key: c.key, yes: false }); });
+          q.appendChild(by1); q.appendChild(by0); box.appendChild(q); det.appendChild(box); return;
+        }
+        var fresh = LASTST[c.key] === "" && c.state; LASTST[c.key] = c.state; var chg = el("button", "st " + c.state + (fresh ? " enter" : ""), c.state === "yes" ? "✓ Megvalósult" : "✕ Nem valósult meg"); chg.type = "button"; chg.title = "Kattints a módosításhoz";
+        chg.addEventListener("click", function () { PEND = PEND === "s|" + c.key ? "" : "s|" + c.key; render(); });
+        box.appendChild(chg);
+        if (PEND === "s|" + c.key) {
+          var cf = el("div", "cf"); cf.appendChild(el("span", "", "Módosítod? A feladatok lecserélődnek."));
+          var y = el("button", "sm", "Igen, módosít"), n2 = el("button", "sm gh", "Mégse"); y.type = n2.type = "button";
+          y.addEventListener("click", function () { PEND = ""; act({ action: "answer", key: c.key, yes: c.state !== "yes" }); });
+          n2.addEventListener("click", function () { PEND = ""; render(); });
+          cf.appendChild(y); cf.appendChild(n2); box.appendChild(cf);
+        }
+        c.tasks.forEach(function (t) {
+          var r = el("label", "tk" + (t.done ? " done" : "") + (fresh ? " enter" : "")), ck = el("input"); ck.type = "checkbox"; ck.checked = !!t.done;
+          ck.addEventListener("change", function () { hold(); r.classList.toggle("done", ck.checked); act({ action: "toggle", key: c.key, task: t.id, done: ck.checked }); });
+          r.appendChild(ck); r.appendChild(el("span", "", t.t));
+          if (PEND === "t|" + c.key + "|" + t.id) {
+            var y2 = el("button", "sm", "Törlés"), n3 = el("button", "sm gh", "Mégse"); y2.type = n3.type = "button";
+            y2.addEventListener("click", function (ev) { ev.preventDefault(); PEND = ""; act({ action: "deltask", key: c.key, task: t.id }); });
+            n3.addEventListener("click", function (ev) { ev.preventDefault(); PEND = ""; render(); });
+            r.appendChild(y2); r.appendChild(n3);
+          } else {
+            var x = el("button", "x", "×"); x.type = "button"; x.title = "Feladat törlése";
+            x.addEventListener("click", function (ev) { ev.preventDefault(); PEND = "t|" + c.key + "|" + t.id; render(); });
+            r.appendChild(x);
+          }
+          box.appendChild(r);
+        });
+        var f = el("form", "add"), inp = el("input"); inp.type = "text"; inp.placeholder = "Új feladat…"; inp.maxLength = 120;
+        var b = el("button", "sm", "Hozzáad"); b.type = "submit"; f.appendChild(inp); f.appendChild(b);
+        f.addEventListener("submit", function (ev) { ev.preventDefault(); if (inp.value.trim()) act({ action: "addtask", key: c.key, text: inp.value.trim() }); });
+        box.appendChild(f); det.appendChild(box);
+      });
+      L.appendChild(det);
+    });
+  }
+})();
+</script>
+
+<script>
+  (function () {
+    var host = document.querySelector(".topnav .in"); if (!host) return;
+    function e(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; }
+    var LINKS = [
+      { name: "Csikós Pipeline", sub: "Google Táblázat", url: "https://docs.google.com/spreadsheets/d/1YKwZYWzi1nBNX3HQCDXUlKeovPqnMce0A4C4hnYFaHY/edit" },
+      { name: "Heti Admin", sub: "Google Táblázat", url: "https://docs.google.com/spreadsheets/d/17_kPAR_QCWTYETDD5u8jUmpAYD-0XQzG/edit?gid=336308861#gid=336308861" },
+      { name: "Hitelspecialista Trello", sub: "Trello board", url: "https://trello.com/b/PXzC7js9/csikos-mate-leadek" },
+      { name: "Szakmai szombat oktatások", sub: "Drive mappa", url: "https://drive.google.com/drive/folders/1M3JiElcC3CJIbYqwtWw8dcOIcv1-iqQ8?usp=sharing" },
+      { name: "Szombati elemző oktatások", sub: "Drive mappa", url: "https://drive.google.com/drive/folders/1GD997baQ4Zik4BM8OBn9A_PL_xIDRqu1?usp=sharing" },
+      { name: "Webshop", sub: "Rendelés (jelszóval)", url: "webshop.html" }
+    ];
+    var wrap = e("div", "zm dv"), btn = e("button"), panel = e("div", "panel");
+    btn.type = "button"; btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-haspopup", "true");
+    btn.appendChild(e("span", "", "Hasznos linkek")); btn.appendChild(e("span", "", "▾"));
+    panel.hidden = true; panel.appendChild(e("h3", "", "Hasznos linkek"));
+    LINKS.forEach(function (l) {
+      var a = e("a"); a.href = l.url; a.target = "_blank"; a.rel = "noopener";
+      a.appendChild(e("span", "m", l.name)); a.appendChild(e("span", "d", l.sub)); a.appendChild(e("span", "go", "↗"));
+      panel.appendChild(a);
+    });
+    wrap.appendChild(btn); wrap.appendChild(panel);
+    var z = host.querySelector(".zm"); if (z) host.insertBefore(wrap, z); else host.appendChild(wrap);
+    function set(open) { panel.hidden = !open; btn.setAttribute("aria-expanded", open ? "true" : "false"); }
+    btn.addEventListener("click", function (ev) { ev.stopPropagation(); set(panel.hidden); });
+    document.addEventListener("click", function (ev) { if (!wrap.contains(ev.target)) set(false); });
+    document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") set(false); });
+  })();
+</script>
+<script src="vizsga.js?v=2"></script>
+<script src="anim.js?v=48" defer></script>
+</body>
+</html>

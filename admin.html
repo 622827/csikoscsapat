@@ -450,6 +450,15 @@
     <iframe id="sb-frame" title="Start bónusz szerkesztő" scrolling="no" style="width:100%;height:80vh;border:0;margin-top:12px;background:transparent"></iframe>
   </section>
 
+  <!-- Asszisztensi feladatok: csak Máté látja ezt a választót; mindenki más egyenesen az összesített nézetbe jut -->
+  <section id="as-hub" hidden>
+    <div class="tiles">
+      <a class="tile" href="#asszisztens-ertekesites" data-sec="asszisztens-ertekesites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><b>Értékesítés</b><span>Értékesítési feladatok</span></a>
+      <a class="tile" href="#asszisztens-menedzsment" data-sec="asszisztens-menedzsment"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14c2.6 0 4.5 1.8 4.5 4.5"/></svg><b>Menedzsment</b><span>Csapat- és vezetői feladatok</span></a>
+      <a class="tile" href="#asszisztens-cegvezetes" data-sec="asszisztens-cegvezetes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 10h.01M15 10h.01"/></svg><b>Cégvezetés</b><span>Cégvezetési feladatok</span></a>
+      <a class="tile" href="#asszisztens-osszes" data-sec="asszisztens-osszes"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h10M7 13h10M7 17h6"/></svg><b>Összesített</b><span>Mindhárom terület együtt: ezt látja az asszisztens</span></a>
+    </div>
+  </section>
   <section id="emb" hidden>
     <div class="bar">
       <p class="meta" id="emb-meta"></p>
@@ -584,11 +593,11 @@
   function loading(on) { document.body.classList.toggle("loading", !!on); }
 
   function showLock(msg) {
-    $("konyveles").hidden = true; $("szamlak").hidden = true; $("magan").hidden = true; $("startbonusz").hidden = true; $("emb").hidden = true; $("kp-hub").hidden = true; $("kp-lock").hidden = false; head("");
+    $("konyveles").hidden = true; $("szamlak").hidden = true; $("magan").hidden = true; $("startbonusz").hidden = true; $("emb").hidden = true; $("as-hub").hidden = true; $("kp-hub").hidden = true; $("kp-lock").hidden = false; head("");
     $("kp-err").textContent = msg || ""; setTimeout(function () { $("kp-pw").focus(); }, 50);
   }
-  var SECS = { oldalterkep: ["Oldaltérkép és jogosultságok", "Húzd a menüpontokat, hozz létre újat, zárd le vagy nyisd meg az oldalakat"], felhasznalok: ["Felhasználók", "Google-fiókkal belépők, szintek és oldalak hozzáférése"], konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"], kassza: ["Csapatkassza", "Egyenleg és tételek"], flotta: ["OVB flotta", "Flotta tételek, címkék"], iroda: ["Iroda kassza", "Iroda tételek"], kampany: ["Kampánynaptár", "2026 és 2027 · a mezők gépelés közben automatikusan mentődnek, a munkatársi oldal ebből frissül"], asszisztens: ["Asszisztensi feladatok", "Kárbejelentés, nyomtatványok, felülvizsgálatok és minden más teendő"], elemzesek: ["Elemzések utáni teendők", "Az ügyfelek a munkatársak naptárából érkeznek"], ppt: ["PPT kategóriák", "Húzd a diákat kategóriákba – a munkatársi PPT generátor ebből dolgozik"], webshop: ["Webshop", "Rendelések"], startbonusz: ["Start bónusz", "Új munkatársak mérőszámai: itt szerkeszthető, a munkatársi oldal ebből frissül"], magan: ["Magánköltségvetés", "Revolut, Erste, Erste TFC · költés kategóriánként"], kifogas: ["Kifogáskezelő (béta)", "Csak a vezetői felületen látszik, amíg a Beállításokban nem élesíted"] };
-  var EMB = { oldalterkep: "oldalterkep-szerk.html?v=9&c=2", felhasznalok: "felhasznalok-szerk.html?v=4&c=2", kassza: "csapatkassza.html?c=7#kassza", flotta: "csapatkassza.html?c=7#flotta", iroda: "csapatkassza.html?c=7#iroda", kampany: "kampany-szerk.html?v=8&c=2", asszisztens: "teljesitmeny-szerk.html?v=as&c=13", elemzesek: "teljesitmeny-szerk.html?v=perf&c=2", ppt: "ppt-szerk.html?v=9&c=2", webshop: "webshop.html?c=2", kifogas: "kifogas.html?c=2#admin" };
+  var SECS = { oldalterkep: ["Oldaltérkép és jogosultságok", "Húzd a menüpontokat, hozz létre újat, zárd le vagy nyisd meg az oldalakat"], felhasznalok: ["Felhasználók", "Google-fiókkal belépők, szintek és oldalak hozzáférése"], konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"], kassza: ["Csapatkassza", "Egyenleg és tételek"], flotta: ["OVB flotta", "Flotta tételek, címkék"], iroda: ["Iroda kassza", "Iroda tételek"], kampany: ["Kampánynaptár", "2026 és 2027 · a mezők gépelés közben automatikusan mentődnek, a munkatársi oldal ebből frissül"], asszisztens: ["Asszisztensi feladatok", "Kárbejelentés, nyomtatványok, felülvizsgálatok és minden más teendő"], "asszisztens-ertekesites": ["Feladatok · Értékesítés", "Csak az értékesítési feladatok"], "asszisztens-menedzsment": ["Feladatok · Menedzsment", "Csak a menedzsment feladatok"], "asszisztens-cegvezetes": ["Feladatok · Cégvezetés", "Csak a cégvezetési feladatok"], "asszisztens-osszes": ["Feladatok · Összesített", "Mindhárom terület együtt (az asszisztens nézete)"], elemzesek: ["Elemzések utáni teendők", "Az ügyfelek a munkatársak naptárából érkeznek"], ppt: ["PPT kategóriák", "Húzd a diákat kategóriákba – a munkatársi PPT generátor ebből dolgozik"], webshop: ["Webshop", "Rendelések"], startbonusz: ["Start bónusz", "Új munkatársak mérőszámai: itt szerkeszthető, a munkatársi oldal ebből frissül"], magan: ["Magánköltségvetés", "Revolut, Erste, Erste TFC · költés kategóriánként"], kifogas: ["Kifogáskezelő (béta)", "Csak a vezetői felületen látszik, amíg a Beállításokban nem élesíted"] };
+  var EMB = { oldalterkep: "oldalterkep-szerk.html?v=9&c=2", felhasznalok: "felhasznalok-szerk.html?v=4&c=2", kassza: "csapatkassza.html?c=7#kassza", flotta: "csapatkassza.html?c=7#flotta", iroda: "csapatkassza.html?c=7#iroda", kampany: "kampany-szerk.html?v=8&c=2", asszisztens: "teljesitmeny-szerk.html?v=as&c=14", "asszisztens-osszes": "teljesitmeny-szerk.html?v=as&c=14", "asszisztens-ertekesites": "feladatok-ertekesites.html?v=as&c=1", "asszisztens-menedzsment": "feladatok-menedzsment.html?v=as&c=1", "asszisztens-cegvezetes": "feladatok-cegvezetes.html?v=as&c=1", elemzesek: "teljesitmeny-szerk.html?v=perf&c=2", ppt: "ppt-szerk.html?v=9&c=2", webshop: "webshop.html?c=2", kifogas: "kifogas.html?c=2#admin" };
   var PAH = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2", paDone = false;
   function perfAuth() {
     if (paDone) return; paDone = true;
@@ -599,11 +608,20 @@
     }, function () { paDone = false; });
   }
   function head(sec) { document.title = "ADMIN" + (sec ? " · " + SECS[sec][0] : ""); $("kp-h1").textContent = sec ? SECS[sec][0] : "ADMIN"; $("kp-lead").textContent = sec ? SECS[sec][1] : ""; }
+  var asWaiting = false, asWaited = false;
   function showMain() {
     $("kp-lock").hidden = true;
     var sec = location.hash.replace("#", ""); if (!SECS[sec]) sec = "";
-    $("kp-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; $("szamlak").hidden = sec !== "szamlak"; $("magan").hidden = sec !== "magan"; $("startbonusz").hidden = sec !== "startbonusz"; $("emb").hidden = !EMB[sec]; head(sec);
-    if (EMB[sec]) { var fr = $("emb-frame"); if (fr.getAttribute("data-s") !== sec) {
+    /* Asszisztensi feladatok: Máté a három terület választóját látja; amíg a belépés be nem töltődött, várunk (ne villanjon a rossz nézet) */
+    var C = window.CSK, me = !!(C && String(C.user || "").toLowerCase() === "csikos.mate.ovb@gmail.com");
+    if (sec === "asszisztens" && !me && !asWaited) {
+      $("kp-hub").hidden = true; $("emb").hidden = true; $("as-hub").hidden = true; head(sec);
+      if (!asWaiting) { asWaiting = true; var t0 = Date.now(); (function w() { var c = window.CSK; if (c && c.ready) Promise.resolve(c.ready).then(function () { asWaited = true; showMain(); }); else if (Date.now() - t0 > 4000) { asWaited = true; showMain(); } else setTimeout(w, 60); })(); }
+      return;
+    }
+    var asHub = sec === "asszisztens" && me;
+    $("kp-hub").hidden = !!sec; $("konyveles").hidden = sec !== "konyveles"; $("szamlak").hidden = sec !== "szamlak"; $("magan").hidden = sec !== "magan"; $("startbonusz").hidden = sec !== "startbonusz"; $("as-hub").hidden = !asHub; $("emb").hidden = !EMB[sec] || asHub; head(sec);
+    if (EMB[sec] && !asHub) { var fr = $("emb-frame"); if (fr.getAttribute("data-s") !== sec) {
       // a PPT szerkesztő saját magán belül görget (így a diatár és a gombsor mindig látszik húzás közben)
       var own = sec === "ppt", nf = fr.cloneNode(false); nf.removeAttribute("src");
       nf.setAttribute("scrolling", own ? "yes" : "no"); nf.style.height = own ? "calc(100vh - 40px)" : "85vh";
@@ -617,7 +635,7 @@
   window.addEventListener("hashchange", function () { if (tok()) showMain(); });
   window.addEventListener("message", function (e) { if (e.origin === location.origin && e.data && e.data.embh) $("emb-frame").style.height = Math.max(300, e.data.embh + 8) + "px"; });
   window.addEventListener("message", function (e) { if (e.origin === location.origin && e.data && e.data.sbh) $("sb-frame").style.height = Math.max(300, e.data.sbh + 8) + "px"; });
-  $("emb-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); window.dispatchEvent(new HashChangeEvent("hashchange")); });
+  $("emb-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname + (/^#asszisztens-/.test(location.hash) ? "#asszisztens" : "")); window.dispatchEvent(new HashChangeEvent("hashchange")); });
   $("sb-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); window.dispatchEvent(new HashChangeEvent("hashchange")); });
 
   $("kp-form").addEventListener("submit", function (e) {
