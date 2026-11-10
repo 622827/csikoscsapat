@@ -783,6 +783,7 @@ var Admin = {
   /* Főmenü: „Development center” lenyíló (Vizsga gyakorló + Skillek). Az oldaltérképet (config/sitemap) írja,
      ugyanabban a formában, mint az admin Oldaltérkép csempéje; utána ott tovább húzogatható. */
   menuCheck: function () {
+    var ACC = ["bl", "gts"];   // egyelőre csak BL és GST (az admin mindig)
     var box = $("#ad-menu"); if (!box) return;
     fb().then(function () { return FB.F.getDoc(FB.F.doc(FB.db, "config", "sitemap")); }).then(function (s) {
       var m = s.exists() && s.data().json ? JSON.parse(s.data().json) : null;
@@ -790,16 +791,16 @@ var Admin = {
       var it = m.items, has = function (id) { return it.some(function (x) { return x.id === id; }); };
       if (has("dev") && it.some(function (x) { return x.href === "gyakorlo.html"; })) return;
       box.innerHTML = '<div class="card" style="margin-bottom:14px;border:2px solid var(--gold)"><b>A főmenüben még nincs „Development center”.</b>' +
-        '<p class="muted small">Egy kattintással létrehozom a lenyíló menüt a Vizsga gyakorló helyén, alatta: Vizsga gyakorló, Skillek. Belépett munkatársak látják. Utána az Oldaltérkép csempén tovább alakítható.</p>' +
+        '<p class="muted small">Egy kattintással létrehozom a lenyíló menüt a Vizsga gyakorló helyén, alatta: Vizsga gyakorló, Skillek. A Skillek oldalt egyelőre csak a BL-ek és a GST-k nyithatják meg (és az admin). Utána az Oldaltérkép csempén tovább alakítható.</p>' +
         '<button class="btn sm" id="ad-mk">Development center létrehozása</button></div>';
       postH();
       $("#ad-mk").onclick = function () {
         var vi = -1; it.forEach(function (x, i) { if (x.href === "vizsga.html" && vi < 0) vi = i; });
-        if (!has("dev")) { var dev = { id: "dev", title: "Development center", href: "", parent: "menu", menu: "show", access: "any" }; if (vi >= 0) it.splice(vi, 0, dev); else it.push(dev); }
+        if (!has("dev")) { var dev = { id: "dev", title: "Development center", href: "", parent: "menu", menu: "show", access: ACC }; if (vi >= 0) it.splice(vi, 0, dev); else it.push(dev); }
         it.forEach(function (x) { if (x.href === "vizsga.html") x.parent = "dev"; });
         if (!it.some(function (x) { return x.href === "gyakorlo.html"; })) {
           var at = -1; it.forEach(function (x, i) { if (x.parent === "dev") at = i; });
-          var sk = { id: "skill", title: "Skillek", href: "gyakorlo.html", parent: "dev", menu: "show", access: "any" };
+          var sk = { id: "skill", title: "Skillek", href: "gyakorlo.html", parent: "dev", menu: "show", access: ACC };
           if (at >= 0) it.splice(at + 1, 0, sk); else it.push(sk);
         }
         FB.F.setDoc(FB.F.doc(FB.db, "config", "sitemap"), { json: JSON.stringify({ v: m.v || 1, items: it }), upd: new Date().toISOString() })
