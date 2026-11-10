@@ -740,17 +740,33 @@
     return p.then(function () { FPUBDIRTY = true; setTimeout(fpubSync, 100); return null; });
   }
   // Az ügyfél-lekérdezés (flotta-fizetes.html) nyilvános adata: csak összegek, a kulcs a név + telefonszám lenyomata.
-  var FPUB = location.hostname === "localhost" ? "pub-flotta-test" : "pub-flotta-v1", FPUBDIRTY = false, FPUBBUSY = false;
+  var FPUB = location.hostname === "localhost" ? "pub-flotta-test" : "pub-flotta-v1", FPUBDIRTY = true, FPUBBUSY = false;   // egyszer minden betöltéskor szinkronizál (csak a változott sorokat írja)
   function fpName(n) { return String(n || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean).sort().join(" "); }
   function fpubSync() {
     if (FPUBBUSY || !FST || FMODE !== "live" || !FD) return; FPUBBUSY = true; FPUBDIRTY = false;
     var F = FST.F, db = FST.db, groups = {};
     FD.rows.forEach(function (x) { var l9 = String(x.tel || "").replace(/\D/g, "").slice(-9); if (l9.length === 9) (groups[l9] = groups[l9] || []).push(x); });
+    // A telefonszám nélküli készülékek (pl. Macbook) a gazdájuk száma alá kerülnek, ahogy az admin nézetben is: ugyanaz a tartozás jelenjen meg az ügyfélnek
+    var tg = Object.keys(groups).map(function (k) { return groups[k]; }), pl = function (v) { return plain(String(v || "").trim()); };
+    function pubOwner(x) {
+      if (x.gazda) { var o = pl(x.gazda); for (var i = 0; i < tg.length; i++) if (tg[i].some(function (r) { return pl(r.nev) === o; })) return tg[i]; return null; }
+      var f1 = pl(x.nev).split(" ")[0]; if (!f1) return null;
+      var m = tg.filter(function (g) { return g.some(function (r) { return pl(r.nev).split(" ")[0] === f1; }); });
+      if (m.length === 1) return m[0];
+      if (m.length > 1) { var nm = {}; m.forEach(function (g) { g.forEach(function (r) { if (pl(r.nev).split(" ")[0] === f1) nm[pl(r.nev)] = 1; }); }); if (Object.keys(nm).length === 1) return m[0]; }
+      return null;
+    }
+    var devRows = [];
+    FD.rows.forEach(function (x) { if (String(x.tel || "").replace(/\D/g, "").length >= 9) return; var o = pubOwner(x); if (o) { o.push(x); devRows.push(x); } });
     var want = {}, jobs = [];
     Object.keys(groups).forEach(function (l9) {
-      var rs = groups[l9], total = 0, items = rs.map(function (x) { total += x.egy; return { prov: FPROV[x.fl] || "", csomag: [x.csomag, x.net].filter(Boolean).join(" · "), alap: x.hav, forg: x.forg, kesz: x.kesz, tart: x.tart, bef: x.bef, egy: x.egy }; });
+      var rs = groups[l9], total = 0, items = rs.map(function (x) {
+        total += x.egy; var dv = devRows.indexOf(x) > -1;
+        return dv ? { prov: FPROV[x.fl] || "", csomag: x.csomag || x.nev, alap: 0, forg: 0, kesz: (x.kesz || 0) + (x.hav || 0), tart: x.tart, bef: x.bef, egy: x.egy }
+                  : { prov: FPROV[x.fl] || "", csomag: [x.csomag, x.net].filter(Boolean).join(" · "), alap: x.hav, forg: x.forg, kesz: x.kesz, tart: x.tart, bef: x.bef, egy: x.egy };
+      });
       var doc = { found: true, total: Math.round(total), items: items, upd: new Date().toISOString() }, seen = {};
-      rs.forEach(function (x) { var nk = fpName(x.nev); if (!nk || seen[nk]) return; seen[nk] = 1; jobs.push(fsha("csk-pub|" + l9 + "|" + nk).then(function (h) { want[h] = doc; })); });
+      rs.forEach(function (x) { if (devRows.indexOf(x) > -1) return; var nk = fpName(x.nev); if (!nk || seen[nk]) return; seen[nk] = 1; jobs.push(fsha("csk-pub|" + l9 + "|" + nk).then(function (h) { want[h] = doc; })); });
     });
     return Promise.all(jobs).then(function () {
       return F.getDocs(F.collection(db, "perf", FPUB, "fl_pub"));
