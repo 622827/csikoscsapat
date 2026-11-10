@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#003366">
+<title>Gyakorló · Csikós csapat</title>
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<!--
+  GYAKORLÓ (béta) – a teljes szakmát lefedő gyakorló app váza.
+  - Hozzáférés: ugyanaz, mint a kifogáskezelőnél. Béta alatt csak az ADMIN felületről
+    (admin belépés + teljesítmény-jelszó a munkamenetben). Élesítés után a csapat-háttér kk_init művelete adja a tárat.
+  - Adatok: Firestore perf/<tár>/gy_users/<felhasználó>, hibásnak jelölt kérdések: perf/<tár>/gy_reports/<id>.
+  - Tartalom (1. kör): az MNB vizsga-kérdésbankok (kerdesbank-*.json). Formátum: { s:[fejezet], t:[[fejezet, téma]], q:[[fejezet, téma, kérdés, [válaszok], helyes]] }.
+  - Mechanika: ösvény (fejezet → téma → leckék), feleletválasztós / igaz-hamis / párosítás, XP, napi cél,
+    sorozat (csak munkanapok számítanak), célzott ismétlés a hibákból. Nincs élet- vagy energiarendszer.
+-->
+<style>
+:root {
+  --bg: #f4f7fb; --surface: #ffffff; --ink: #003366; --muted: #4d6f94; --line: #dfe7f0;
+  --brand: #003366; --on-brand: #fff; --hot: #cc0066; --hot-bg: #ffe6f2; --ok: #00806f; --ok-bg: #dff5f1;
+  --sky: #6699cc; --gold: #e0a100; --track: #e5ebf2; --shadow: 0 1px 2px rgba(0,40,80,.06), 0 8px 24px rgba(0,40,80,.08);
+  --r: 18px; --safe-b: env(safe-area-inset-bottom, 0px); --tc: #003366;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #001a33; --surface: #002547; --ink: #f2f7ff; --muted: #8fb0d6; --line: #0d3a66; --brand: #ff99cc; --on-brand: #001f3d;
+    --hot: #ff7ab6; --hot-bg: #3a0a2a; --ok: #5fd6c4; --ok-bg: #063a3a; --sky: #6699cc; --track: #0b355e; --shadow: 0 8px 24px rgba(0,0,0,.35); }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font-family: "Stag Sans", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 16px; line-height: 1.4; min-height: 100vh; }
+button { font: inherit; color: inherit; }
+.wrap { max-width: 600px; margin: 0 auto; padding: 12px 16px calc(28px + var(--safe-b)); }
+body.has-nav .wrap { padding-bottom: calc(96px + var(--safe-b)); }
+body.wide .wrap, body.wide .top .in { max-width: 1000px; }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+.top { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.top .in { max-width: 600px; margin: 0 auto; display: flex; align-items: center; gap: 8px; padding: 10px 16px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 6px 10px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); font-size: .95rem; white-space: nowrap; border: 0; }
+.chip.streak .i { stroke: var(--hot); fill: var(--hot); } .chip.xp .i { stroke: var(--sky); fill: var(--sky); }
+.chip.off { opacity: .55; filter: grayscale(1); }
+button.chip { cursor: pointer; }
+.chip.track { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
+.chip.track::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--tc); flex: none; }
+.sp { flex: 1; }
+.iconbtn { border: 0; background: var(--surface); box-shadow: var(--shadow); width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; cursor: pointer; flex: none; }
+
+.card { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; cursor: pointer; font-weight: 700; font-size: 1.05rem; padding: 15px 18px; border-radius: 14px;
+  background: var(--brand); color: var(--on-brand); box-shadow: 0 4px 0 color-mix(in srgb, var(--brand) 70%, #000); transition: transform .08s, box-shadow .08s, opacity .2s; width: 100%; }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 color-mix(in srgb, var(--brand) 70%, #000); }
+.btn[disabled] { opacity: .45; pointer-events: none; }
+.btn.ghost { background: var(--surface); color: var(--ink); box-shadow: 0 3px 0 var(--line); border: 2px solid var(--line); }
+.btn.ok { background: var(--ok); color: #fff; box-shadow: 0 4px 0 color-mix(in srgb, var(--ok) 65%, #000); }
+.btn.hot { background: var(--hot); color: #fff; box-shadow: 0 4px 0 color-mix(in srgb, var(--hot) 65%, #000); }
+.btn.sm { font-size: .9rem; padding: 9px 12px; width: auto; border-radius: 11px; }
+.link { border: 0; background: none; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 6px; font-size: .88rem; }
+h1 { font-size: 1.6rem; letter-spacing: -.02em; line-height: 1.15; margin: 6px 0 4px; }
+h2 { font-size: 1.1rem; margin: 24px 0 10px; }
+.muted { color: var(--muted); } .small { font-size: .88rem; }
+.center { min-height: 70vh; display: grid; place-items: center; text-align: center; }
+input[type=text] { width: 100%; font: inherit; padding: 13px 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); }
+
+/* Kezdőlap */
+.hero { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; }
+.ring { width: 78px; height: 78px; position: relative; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 9; stroke-linecap: round; }
+.ring .bg { stroke: var(--track); } .ring .fg { stroke: var(--ok); transition: stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1); }
+.ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: .8rem; text-align: center; line-height: 1.1; }
+.quick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.qb { border: 0; text-align: left; cursor: pointer; background: var(--surface); box-shadow: var(--shadow); border-radius: 16px; padding: 14px; display: grid; gap: 4px; position: relative; }
+.qb:active { transform: scale(.97); }
+.qb .i { width: 26px; height: 26px; stroke: var(--brand); }
+.qb b { font-size: 1rem; } .qb span { font-size: .82rem; color: var(--muted); }
+.qb .badge { position: absolute; top: 10px; right: 10px; background: var(--hot); color: #fff; font-size: .75rem; font-weight: 700; border-radius: 99px; padding: 2px 8px; }
+
+/* Ösvény */
+.sec { margin-top: 26px; }
+.sec-h { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--tc); color: #fff; position: sticky; top: 62px; z-index: 5; }
+.sec-h b { font-size: 1rem; line-height: 1.2; } .sec-h span { font-size: .8rem; opacity: .85; white-space: nowrap; }
+.path { padding: 10px 0 4px; }
+.node { --x: 0px; display: flex; flex-direction: column; align-items: center; margin: 40px auto 18px; transform: translateX(var(--x)); width: 220px; position: relative; }
+.node button.nb { width: 72px; height: 68px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; background: var(--tc); color: #fff; position: relative;
+  box-shadow: 0 6px 0 color-mix(in srgb, var(--tc) 60%, #000); transition: transform .1s; }
+.node button.nb:active { transform: translateY(4px); box-shadow: 0 2px 0 color-mix(in srgb, var(--tc) 60%, #000); }
+.node button.nb .i { width: 30px; height: 30px; stroke-width: 2.4; }
+.node.locked button.nb { background: var(--track); color: var(--muted); box-shadow: 0 6px 0 var(--line); }
+.node.done button.nb { background: var(--gold); box-shadow: 0 6px 0 color-mix(in srgb, var(--gold) 60%, #000); }
+.node.next button.nb { animation: pulse 1.8s infinite; }
+.node .pr { position: absolute; inset: -7px; width: 86px; height: 82px; margin: auto; pointer-events: none; }
+.node .pr circle { fill: none; stroke-width: 5; stroke-linecap: round; }
+.node small { margin-top: 10px; font-size: .78rem; font-weight: 600; text-align: center; color: var(--muted); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.node .start { position: absolute; top: -36px; background: var(--surface); color: var(--tc); border: 2px solid var(--line); font-weight: 800; font-size: .8rem; padding: 4px 10px; border-radius: 10px; letter-spacing: .04em; animation: bob 1.6s ease-in-out infinite; white-space: nowrap; }
+@keyframes pulse { 0%,100% { outline: 0 solid color-mix(in srgb, var(--tc) 35%, transparent); } 50% { outline: 10px solid color-mix(in srgb, var(--tc) 0%, transparent); } }
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+/* Lap (bottom sheet) */
+.sheet-bg { position: fixed; inset: 0; background: rgba(0,20,40,.35); z-index: 40; display: none; }
+.sheet-bg.show { display: block; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; transform: translateY(105%); transition: transform .25s cubic-bezier(.2,.8,.2,1); }
+.sheet.show { transform: none; }
+.sheet .in { max-width: 600px; margin: 0 auto; background: var(--surface); border-radius: 22px 22px 0 0; padding: 18px 16px calc(18px + var(--safe-b)); box-shadow: 0 -8px 30px rgba(0,30,60,.18); }
+.sheet .bar { height: 10px; background: var(--track); border-radius: 99px; overflow: hidden; margin: 10px 0 14px; } .sheet .bar i { display: block; height: 100%; background: var(--tc); }
+.sheet .row { display: flex; gap: 10px; margin-top: 10px; }
+
+/* Lecke */
+.prog { height: 14px; background: var(--track); border-radius: 99px; overflow: hidden; flex: 1; }
+.prog i { display: block; height: 100%; width: 0; background: var(--ok); border-radius: 99px; transition: width .5s cubic-bezier(.2,.8,.2,1); }
+.combo { font-weight: 800; color: var(--gold); font-size: .85rem; min-width: 0; white-space: nowrap; }
+.lesson { min-height: calc(100vh - 160px); display: flex; flex-direction: column; padding-bottom: 150px; }
+.kind { font-size: .78rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--hot); margin: 18px 0 6px; display: flex; gap: 6px; align-items: center; }
+.qtext { font-size: 1.2rem; font-weight: 700; line-height: 1.35; margin: 0 0 16px; }
+.stmt { border-left: 4px solid var(--sky); background: var(--surface); border-radius: 0 14px 14px 0; padding: 12px 14px; margin: 0 0 16px; box-shadow: var(--shadow); }
+.opts { display: grid; gap: 10px; }
+.opt { text-align: left; border: 2px solid var(--line); background: var(--surface); border-radius: 14px; padding: 13px 14px; cursor: pointer; box-shadow: 0 3px 0 var(--line); transition: transform .08s; display: flex; gap: 10px; align-items: flex-start; line-height: 1.35; }
+.opt:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+.opt .k { flex: none; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--line); display: grid; place-items: center; font-size: .8rem; font-weight: 700; color: var(--muted); }
+.opt.sel { border-color: var(--sky); background: color-mix(in srgb, var(--sky) 12%, var(--surface)); box-shadow: 0 3px 0 var(--sky); }
+.opt.sel .k { border-color: var(--sky); color: var(--sky); }
+.opt.right { border-color: var(--ok); background: var(--ok-bg); box-shadow: 0 3px 0 var(--ok); }
+.opt.wrong { border-color: var(--hot); background: var(--hot-bg); box-shadow: 0 3px 0 var(--hot); }
+.opt[disabled] { cursor: default; }
+.tf { grid-template-columns: 1fr 1fr; }
+.tf .opt { justify-content: center; font-weight: 700; font-size: 1.05rem; }
+.match { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.match .col { display: grid; gap: 10px; align-content: start; }
+.match .opt { font-size: .9rem; padding: 10px 11px; min-height: 64px; }
+.match .opt.gone { opacity: .35; pointer-events: none; border-color: var(--ok); box-shadow: none; }
+.match .opt.bad { animation: shake .35s; border-color: var(--hot); }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.foot { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; border-top: 2px solid var(--line); background: var(--bg); transition: background .2s; }
+.foot .in { max-width: 600px; margin: 0 auto; padding: 14px 16px calc(14px + var(--safe-b)); }
+.foot.good { background: var(--ok-bg); border-color: transparent; } .foot.bad { background: var(--hot-bg); border-color: transparent; }
+.fb { display: none; margin-bottom: 12px; }
+.foot.good .fb, .foot.bad .fb { display: block; }
+.fb b { font-size: 1.15rem; display: flex; align-items: center; gap: 8px; }
+.foot.good .fb b { color: var(--ok); } .foot.bad .fb b { color: var(--hot); }
+.fb p { margin: 6px 0 0; font-size: .95rem; }
+.fb .tools { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+
+/* Eredmény */
+.res { text-align: center; padding-top: 24px; }
+.res .big { font-size: 2rem; font-weight: 800; margin: 10px 0 4px; }
+.stats3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 22px 0; }
+.stat { border-radius: 16px; border: 2px solid var(--line); overflow: hidden; background: var(--surface); }
+.stat span { display: block; font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: 6px; color: #fff; }
+.stat b { display: block; font-size: 1.35rem; padding: 10px 4px; }
+
+/* Profil, admin */
+.kv { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.kv .card b { display: block; font-size: 1.4rem; } .kv .card span { font-size: .82rem; color: var(--muted); }
+.goals { display: flex; gap: 8px; flex-wrap: wrap; }
+.goals button { border: 2px solid var(--line); background: var(--surface); border-radius: 12px; padding: 8px 12px; cursor: pointer; font-weight: 700; }
+.goals button.on { border-color: var(--brand); background: var(--brand); color: var(--on-brand); }
+.week { display: flex; gap: 6px; align-items: flex-end; height: 90px; margin-top: 8px; }
+.week div { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: .72rem; color: var(--muted); height: 100%; justify-content: flex-end; }
+.week i { display: block; width: 100%; border-radius: 6px 6px 3px 3px; background: var(--sky); min-height: 3px; }
+.week .today i { background: var(--ok); }
+table.t { width: 100%; border-collapse: collapse; font-size: .9rem; }
+table.t th, table.t td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.t th { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+table.t td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; }
+.tabs { display: flex; gap: 8px; margin: 10px 0 14px; flex-wrap: wrap; }
+.tabs button { border: 0; background: var(--surface); box-shadow: var(--shadow); border-radius: 999px; padding: 8px 14px; font-weight: 700; cursor: pointer; }
+.tabs button.on { background: var(--brand); color: var(--on-brand); }
+
+/* Alsó menü */
+.bnav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; background: var(--surface); border-top: 2px solid var(--line); }
+.bnav .in { max-width: 600px; margin: 0 auto; display: flex; padding: 6px 8px calc(6px + var(--safe-b)); }
+.bnav button { flex: 1; border: 0; background: none; cursor: pointer; display: grid; justify-items: center; gap: 2px; padding: 6px; border-radius: 12px; color: var(--muted); font-size: .75rem; font-weight: 700; }
+.bnav button .i { width: 24px; height: 24px; }
+.bnav button.on { color: var(--brand); background: color-mix(in srgb, var(--brand) 10%, transparent); }
+
+.modal { position: fixed; inset: 0; z-index: 60; background: rgba(0,20,40,.45); display: none; place-items: center; padding: 16px; }
+.modal.show { display: grid; }
+.modal .box { background: var(--surface); border-radius: 20px; padding: 18px; width: 100%; max-width: 440px; max-height: 86vh; overflow: auto; }
+.toast { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%) translateY(20px); opacity: 0; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-weight: 600; z-index: 70; transition: .25s; pointer-events: none; max-width: 90vw; text-align: center; }
+.toast.show { opacity: 1; transform: translateX(-50%); }
+#fx { position: fixed; inset: 0; pointer-events: none; z-index: 80; }
+.view { animation: fade .25s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="top" id="top" hidden><div class="in" id="topin"></div></header>
+<main class="wrap" id="view"></main>
+<nav class="bnav" id="bnav" hidden></nav>
+<div class="sheet-bg" id="sheetbg"></div>
+<div class="sheet" id="sheet"><div class="in" id="sheetin"></div></div>
+<div class="modal" id="modal"><div class="box" id="modalbox"></div></div>
+<div class="toast" id="toast"></div>
+<canvas id="fx"></canvas>
+
+<script>
+(function () {
+"use strict";
+
+/* ===================== Beállítások ===================== */
+var TEAM_API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
+var KK_SALT = "kk|";               // ugyanaz a tár, mint a kifogáskezelőé: sha256(KK_SALT + teljesítmény-jelszó)
+var FBV = "https://www.gstatic.com/firebasejs/10.14.1/";
+var LESSON_LEN = 8;                // kérdés / lecke
+var TRACKS = [
+  { id: "penzugyi", f: "kerdesbank-penzugyi.json", n: "Pénzügyi közvetítői", c: "#cc0066" },
+  { id: "biztositas", f: "kerdesbank-biztositas.json", n: "Biztosításközvetítői", c: "#2f6db3" },
+  { id: "tokepiaci", f: "kerdesbank-tokepiaci.json", n: "Tőkepiaci", c: "#00806f" }
+];
+var GOALS = [[10, "Laza"], [20, "Normál"], [30, "Komoly"], [50, "Intenzív"]];
+var SRS = [1, 3, 7, 14];           // ismétlési időközök (nap)
+
+/* ===================== Segédek ===================== */
+var $ = function (s, r) { return (r || document).querySelector(s); };
+var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function pad(n) { return (n < 10 ? "0" : "") + n; }
+function dstr(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+function today() { return dstr(new Date()); }
+function addDays(s, n) { var p = s.split("-"); return dstr(new Date(+p[0], +p[1] - 1, +p[2] + n)); }
+function uidOf(name) { return "u_" + String(name).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
+function shuffle(a, rnd) { rnd = rnd || Math.random; a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(rnd() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function seeded(str) { var h = 1779033703 ^ str.length; for (var i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  return function () { h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); var t = (h ^= h >>> 16) >>> 0; return t / 4294967296; }; }
+function sha(s) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }); }
+var LS = { get: function (k, d) { try { var v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+function ss(k) { try { return sessionStorage.getItem(k) || ""; } catch (e) { return ""; } }
+function ic(d, extra) { return '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"' + (extra || "") + '>' + d + '</svg>'; }
+var IC = {
+  bolt: ic('<path d="M13.5 2 4 14h7l-1.5 8L20 10h-7z"/>'),
+  gem: ic('<path d="M6 3h12l4 6-10 12L2 9z"/>'),
+  close: ic('<path d="M6 6l12 12M18 6 6 18"/>'),
+  back: ic('<path d="M15 18l-6-6 6-6"/>'),
+  star: ic('<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>'),
+  lock: ic('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
+  check: ic('<path d="M5 12l5 5L20 7"/>'),
+  x: ic('<path d="M7 7l10 10M17 7 7 17"/>'),
+  book: ic('<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/>'),
+  crown: ic('<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>'),
+  repeat: ic('<path d="M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5"/>'),
+  path: ic('<circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5"/>'),
+  person: ic('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
+  chart: ic('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),
+  flag: ic('<path d="M5 21V4h11l-2 4 2 4H5"/>'),
+  dumbbell: ic('<path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10"/>'),
+  target: ic('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>'),
+  skip: ic('<path d="M5 5l8 7-8 7zM15 5l4 7-4 7"/>'),
+  gear: ic('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>')
+};
+
+/* ===================== Állapot ===================== */
+var S = { space: "", admin: false, me: null, uid: "", B: {} };
+
+/* ===================== Firestore ===================== */
+var FB = null;
+function fb() {
+  if (FB) return Promise.resolve(FB);
+  return fetch("firebase-config.json").then(function (r) { return r.json(); }).then(function (cfg) {
+    return Promise.all([import(FBV + "firebase-app.js"), import(FBV + "firebase-firestore.js")]).then(function (m) {
+      var app = m[0].initializeApp(cfg, "gy"), F = m[1], db;
+      try { db = F.initializeFirestore(app, { localCache: F.persistentLocalCache() }); } catch (e) { db = F.getFirestore(app); }
+      FB = { F: F, db: db }; return FB;
+    });
+  });
+}
+function dref(coll, id) { return FB.F.doc(FB.db, "perf", S.space, coll, id); }
+function getD(coll, id) { return fb().then(function () { return FB.F.getDoc(dref(coll, id)); }).then(function (s) { return s.exists() ? s.data() : null; }); }
+function setD(coll, id, data, merge) { return fb().then(function () { return FB.F.setDoc(dref(coll, id), data, merge ? { merge: true } : undefined); }); }
+function allOf(coll) { return fb().then(function () { return FB.F.getDocs(FB.F.collection(FB.db, "perf", S.space, coll)); }).then(function (q) { var a = []; q.forEach(function (d) { var v = d.data(); v._id = d.id; a.push(v); }); return a; }); }
+
+/* ===================== Hozzáférés (mint a kifogáskezelőnél) ===================== */
+function teamToken() { try { var t = localStorage.getItem("csk_token"); if (t) return t; } catch (e) {} var m = document.cookie.match(/(?:^|; )csk_token=([^;]*)/); return m ? decodeURIComponent(m[1]) : ""; }
+function resolveAccess() {
+  var adm = ss("csk_admin"), pw = ss("tj_pw");
+  if (adm && pw) return sha(KK_SALT + pw).then(function (h) { return { space: h, admin: true }; });
+  var t = teamToken(); if (!t) return Promise.resolve(null);
+  return fetch(TEAM_API + "?action=kk_init&t=" + encodeURIComponent(t) + "&_=" + Date.now())
+    .then(function (r) { return r.json(); })
+    .then(function (d) { return d && d.ok && d.space ? { space: d.space, admin: false } : null; })
+    .catch(function () { return null; });
+}
+
+/* ===================== Kérdésbankok ===================== */
+function trackById(id) { return TRACKS.filter(function (t) { return t.id === id; })[0] || TRACKS[0]; }
+function loadBank(id) {
+  if (S.B[id]) return Promise.resolve(S.B[id]);
+  var tr = trackById(id);
+  return fetch(tr.f).then(function (r) { if (!r.ok) throw new Error("bank"); return r.json(); }).then(function (d) {
+    var topics = d.t.map(function (t, i) { return { i: i, sec: t[0], title: t[1], qs: [] }; });
+    d.q.forEach(function (q, qi) { if (topics[q[1]]) topics[q[1]].qs.push(qi); });
+    topics.forEach(function (t) { t.qs = shuffle(t.qs, seeded(id + ":" + t.i)); t.nl = Math.max(1, Math.ceil(t.qs.length / LESSON_LEN)); });
+    var B = { id: id, tr: tr, s: d.s, t: topics.filter(function (t) { return t.qs.length; }), q: d.q };
+    B.bySec = B.s.map(function (_, si) { return B.t.filter(function (t) { return t.sec === si; }); });
+    S.B[id] = B; return B;
+  });
+}
+function qkey(tid, qi) { return tid + ":" + qi; }
+function cleanTitle(s) { return String(s).replace(/^[\dIVX]+(\.\d+)*\.?\s*/, ""); }
+
+/* ===================== Felhasználó ===================== */
+function blankUser(name) { return { name: name, xp: 0, lessons: 0, perfect: 0, reviews: 0, streak: 0, best: 0, lastDay: "", days: {}, goal: 20, tr: TRACKS[0].id, p: {}, open: {}, weak: {}, known: {}, st: {} }; }
+var saveT = null;
+function saveMe(now) {
+  S.me.upd = Date.now(); LS.set("gy_me_" + S.uid, S.me);
+  clearTimeout(saveT);
+  var go = function () { return setD("gy_users", S.uid, S.me).catch(function () { toast("Nem sikerült menteni, a gépen megmaradt. Később újrapróbálom."); }); };
+  if (now) return go(); saveT = setTimeout(go, 600); return Promise.resolve();
+}
+function todayXp() { return S.me.days[today()] || 0; }
+function isWork(s) { var p = s.split("-"), w = new Date(+p[0], +p[1] - 1, +p[2]).getDay(); return w > 0 && w < 6; }
+function missedWork(from, to) { var n = 0, d = addDays(from, 1); while (d < to && n < 99) { if (isWork(d)) n++; d = addDays(d, 1); } return n; }
+/* Sorozat: csak a munkanapok számítanak; a hétvégi gyakorlás is növeli, de a kihagyott hétvége nem szakítja meg. */
+function liveStreak(u) { u = u || S.me; if (!u.lastDay) return 0; if (u.lastDay === today()) return u.streak; return missedWork(u.lastDay, today()) === 0 ? u.streak : 0; }
+function bumpStreak(u, d) { if (u.lastDay === d) return false; if (!u.lastDay || missedWork(u.lastDay, d) > 0) u.streak = 1; else u.streak++; u.lastDay = d; u.best = Math.max(u.best || 0, u.streak); return true; }
+function prog(B) { var p = S.me.p[B.id] = S.me.p[B.id] || {}; return p; }
+function doneOf(B, t) { return Math.min(prog(B)[t.i] || 0, t.nl); }
+function isDone(B, t) { return doneOf(B, t) >= t.nl; }
+function isOpen(B, t) {
+  var list = B.bySec[t.sec], idx = list.indexOf(t);
+  if (idx <= 0) return true;                                   // minden fejezet első témája nyitott
+  if ((S.me.open[B.id] || {})[t.i]) return true;               // ugrótesztel megnyitva
+  return isDone(B, list[idx - 1]) || doneOf(B, t) > 0;
+}
+function nextTopic(B) { for (var i = 0; i < B.t.length; i++) { var t = B.t[i]; if (isOpen(B, t) && !isDone(B, t)) return t; } return null; }
+function dueKeys(tid) { var d = today(), w = S.me.weak || {}; return Object.keys(w).filter(function (k) { return (!tid || k.indexOf(tid + ":") === 0) && w[k].due <= d && !S.me.known[k]; }); }
+
+/* ===================== Visszajelzés: hang, rezgés, konfetti ===================== */
+var AC = null;
+function tone(seq) { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); var t = AC.currentTime;
+  seq.forEach(function (n) { var o = AC.createOscillator(), g = AC.createGain(); o.type = n[3] || "sine"; o.frequency.value = n[0];
+    g.gain.setValueAtTime(0.0001, t + n[1]); g.gain.exponentialRampToValueAtTime(0.16, t + n[1] + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + n[1] + n[2]);
+    o.connect(g); g.connect(AC.destination); o.start(t + n[1]); o.stop(t + n[1] + n[2] + 0.05); }); } catch (e) {} }
+function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
+var FX = {
+  on: LS.get("gy_sound", true),
+  good: function () { if (FX.on) tone([[660, 0, .12], [880, .09, .18]]); vib(18); },
+  bad: function () { if (FX.on) tone([[220, 0, .18, "triangle"], [180, .12, .22, "triangle"]]); vib([40, 50, 40]); },
+  win: function () { if (FX.on) tone([[523, 0, .14], [659, .12, .14], [784, .24, .14], [1046, .36, .35]]); vib([20, 40, 20, 40, 60]); confetti(); }
+};
+function confetti() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  var c = $("#fx"), x = c.getContext("2d"), dpr = devicePixelRatio || 1, W = c.width = innerWidth * dpr, H = c.height = innerHeight * dpr;
+  c.style.width = innerWidth + "px"; c.style.height = innerHeight + "px";
+  var cols = ["#003366", "#cc0066", "#00806f", "#6699cc", "#e0a100", "#ff99cc"], P = [];
+  for (var i = 0; i < 140; i++) P.push({ x: W / 2 + (Math.random() - .5) * W * .3, y: H * .35, vx: (Math.random() - .5) * 26, vy: -Math.random() * 30 - 8, r: (Math.random() * 6 + 4) * dpr, c: cols[i % cols.length], a: Math.random() * 6, s: (Math.random() - .5) * .3 });
+  var t0 = performance.now();
+  (function fr(t) { x.clearRect(0, 0, W, H);
+    P.forEach(function (p) { p.vy += 1.1; p.vx *= .985; p.x += p.vx; p.y += p.vy; p.a += p.s; x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.fillStyle = p.c; x.fillRect(-p.r / 2, -p.r / 3, p.r, p.r * .66); x.restore(); });
+    if (t - t0 < 2600) requestAnimationFrame(fr); else x.clearRect(0, 0, W, H); })(t0);
+}
+function toast(msg) { var t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove("show"); }, 2600); }
+function modal(html, onMount) { $("#modalbox").innerHTML = html; $("#modal").classList.add("show"); onMount && onMount($("#modalbox")); }
+function closeModal() { $("#modal").classList.remove("show"); }
+$("#modal").addEventListener("click", function (e) { if (e.target.id === "modal") closeModal(); });
+function sheet(html, onMount) { $("#sheetin").innerHTML = html; $("#sheetbg").classList.add("show"); $("#sheet").classList.add("show"); onMount && onMount($("#sheetin")); }
+function hideSheet() { $("#sheetbg").classList.remove("show"); $("#sheet").classList.remove("show"); }
+$("#sheetbg").addEventListener("click", hideSheet);
+function view(html) { var v = $("#view"); v.innerHTML = '<div class="view">' + html + '</div>'; window.scrollTo(0, 0); return v; }
+function setTc(B) { document.documentElement.style.setProperty("--tc", B ? B.tr.c : "#003366"); }
+
+/* ===================== Felső sáv, alsó menü ===================== */
+function topbar(kind, opts) {
+  $("#top").hidden = false; var h = "";
+  if (kind !== "lesson") { var ft = $("#foot"); if (ft) ft.remove(); }
+  if (kind === "home") {
+    var st = liveStreak(), B = S.B[S.me.tr];
+    h = '<button class="chip track" id="tb-tr" title="Pálya váltása">' + esc(B ? B.tr.n : "") + '</button><span class="sp"></span>' +
+      '<span class="chip streak' + (S.me.lastDay === today() ? "" : " off") + '" title="Sorozat (munkanapok)">' + IC.bolt + st + '</span>' +
+      '<span class="chip xp" title="XP">' + IC.gem + S.me.xp + '</span>' +
+      (S.admin ? '<button class="iconbtn" id="tb-admin" title="Vezetői statisztika">' + IC.chart + '</button>' : "");
+  } else if (kind === "lesson") {
+    h = '<button class="iconbtn" id="tb-x" title="Kilépés">' + IC.close + '</button><div class="prog"><i id="prog"></i></div><span class="combo" id="combo"></span>';
+  } else {
+    h = (opts && opts.back ? '<button class="iconbtn" id="tb-back" title="Vissza">' + IC.back + '</button>' : "") + '<h1 style="margin:0;font-size:1.3rem">' + esc(opts && opts.title || "") + '</h1><span class="sp"></span>' + (opts && opts.right || "");
+  }
+  $("#topin").innerHTML = h;
+  var a = $("#tb-tr"); if (a) a.onclick = pickTrack;
+  var ad = $("#tb-admin"); if (ad) ad.onclick = function () { location.hash = "#admin"; Admin.open(); };
+  var b = $("#tb-back"); if (b) b.onclick = function () { opts.back(); };
+  var x = $("#tb-x"); if (x) x.onclick = function () { if (!L || L.i === 0 || confirm("Biztosan kilépsz? A lecke haladása elvész.")) { L = null; Home.open(); } };
+}
+var NAV = [["home", "Ösvény", IC.path], ["rev", "Ismétlés", IC.repeat], ["prof", "Profil", IC.person]];
+function nav(active) {
+  var n = $("#bnav");
+  if (!active) { n.hidden = true; document.body.classList.remove("has-nav"); return; }
+  n.hidden = false; document.body.classList.add("has-nav");
+  n.innerHTML = '<div class="in">' + NAV.map(function (x) { return '<button data-n="' + x[0] + '" class="' + (x[0] === active ? "on" : "") + '">' + x[2] + '<span>' + x[1] + '</span></button>'; }).join("") + '</div>';
+  $$("button", n).forEach(function (b) { b.onclick = function () { var k = b.getAttribute("data-n"); if (k === "home") Home.open(); else if (k === "rev") Review.open(); else Profile.open(); }; });
+}
+function pickTrack() {
+  modal('<h2 style="margin-top:0">Melyik vizsgára gyakorolsz?</h2><div class="opts">' + TRACKS.map(function (t) {
+    return '<button class="opt" data-t="' + t.id + '" style="' + (t.id === S.me.tr ? "border-color:" + t.c : "") + '"><span class="k" style="background:' + t.c + ';border-color:' + t.c + '"></span><span><b>' + esc(t.n) + '</b><br><span class="muted small">MNB kérdésbank</span></span></button>';
+  }).join("") + '</div><p class="muted small">A haladásod pályánként külön mentődik.</p>', function (m) {
+    $$("[data-t]", m).forEach(function (b) { b.onclick = function () { S.me.tr = b.getAttribute("data-t"); saveMe(); closeModal(); Home.open(); }; });
+  });
+}
+
+/* ===================== Indulás ===================== */
+function boot() {
+  $("#view").innerHTML = '<div class="center"><div class="muted">Betöltés…</div></div>';
+  resolveAccess().then(function (acc) {
+    if (!acc) return locked();
+    S.space = acc.space; S.admin = acc.admin;
+    if (location.hash === "#admin" && S.admin) return Admin.open();
+    return who();
+  }).catch(function (e) { console.error(e); locked("Nem sikerült betölteni. Ellenőrizd a kapcsolatot."); });
+}
+function locked(msg) {
+  $("#top").hidden = true; nav(null); postH();
+  view('<div class="center"><div class="card" style="max-width:420px"><h1>Gyakorló</h1><p class="muted">' + esc(msg || "Ez a felület még béta: jelenleg csak a vezetői felületről érhető el.") + '</p></div></div>');
+}
+function who() {
+  var name = LS.get("gy_name", "") || LS.get("kk_name", "");
+  if (name) return loadMe(name);
+  return allOf("gy_users").catch(function () { return []; }).then(function (us) {
+    $("#top").hidden = true; nav(null);
+    view('<div class="center"><div class="card" style="text-align:left;width:100%;max-width:440px"><h1>Szia!</h1><p class="muted">Add meg a neved, így mentődik a haladásod, és a vezetőd is látja.</p>' +
+      '<input type="text" id="nm" list="nml" placeholder="Teljes név" autocomplete="name"><datalist id="nml">' + us.map(function (u) { return '<option value="' + esc(u.name) + '">'; }).join("") + '</datalist>' +
+      '<div style="height:12px"></div><button class="btn" id="nmok">Kezdjük</button></div></div>');
+    var go = function () { var v = $("#nm").value.trim(); if (v.length < 3) { toast("Írd be a teljes neved."); return; } LS.set("gy_name", v); loadMe(v); };
+    $("#nmok").onclick = go; $("#nm").onkeydown = function (e) { if (e.key === "Enter") go(); };
+  });
+}
+function loadMe(name) {
+  S.uid = uidOf(name);
+  var local = LS.get("gy_me_" + S.uid, null);
+  return getD("gy_users", S.uid).catch(function () { return null; }).then(function (u) {
+    if (local && (!u || (local.upd || 0) > (u.upd || 0))) u = local;   // ha offline mentés frissebb
+    S.me = Object.assign(blankUser(name), u || {}); S.me.name = S.me.name || name;
+    if (!u) saveMe(true);
+    Home.open();
+  });
+}
+
+/* ===================== Kezdőlap: ösvény ===================== */
+var Home = {
+  open: function () {
+    document.body.classList.remove("wide"); hideSheet();
+    if (location.hash === "#admin") history.replaceState(null, "", location.pathname + location.search);
+    view('<div class="center"><div class="muted">Kérdésbank betöltése…</div></div>');
+    loadBank(S.me.tr).then(function (B) { setTc(B); Home.render(B); }).catch(function () { locked("Nem sikerült betölteni a kérdésbankot."); });
+  },
+  render: function (B) {
+    topbar("home"); nav("home");
+    var g = S.me.goal || 20, tx = todayXp(), pct = Math.min(1, tx / g), C = 2 * Math.PI * 39;
+    var nt = nextTopic(B), due = dueKeys(B.id).length;
+    var totalL = 0, doneL = 0; B.t.forEach(function (t) { totalL += t.nl; doneL += doneOf(B, t); });
+    var h = '<div class="card hero"><div><div class="muted small">Mai cél</div><h1 style="margin:2px 0">' + (tx >= g ? "Megvan a mai cél!" : "Még " + (g - tx) + " XP a mai célig") + '</h1>' +
+      '<div class="muted small">' + esc(B.tr.n) + ' · ' + doneL + ' / ' + totalL + ' lecke kész</div></div>' +
+      '<div class="ring"><svg viewBox="0 0 90 90"><circle class="bg" cx="45" cy="45" r="39"/><circle class="fg" cx="45" cy="45" r="39" stroke-dasharray="' + C + '" stroke-dashoffset="' + C + '" id="ringfg"/></svg><b>' + tx + '/' + g + '<br>XP</b></div></div>';
+    h += '<div class="quick">' +
+      '<button class="qb" id="q-next">' + IC.target + '<b>' + (nt ? "Folytatás" : "Minden kész") + '</b><span>' + esc(nt ? cleanTitle(nt.title) : "Gyakorolj vegyesen") + '</span></button>' +
+      '<button class="qb" id="q-rev">' + IC.repeat + '<b>Ismétlés</b><span>A hibáid, a megfelelő időben</span>' + (due ? '<i class="badge">' + due + '</i>' : "") + '</button></div>';
+    B.s.forEach(function (sname, si) {
+      var list = B.bySec[si]; if (!list.length) return;
+      var sd = list.filter(function (t) { return isDone(B, t); }).length;
+      h += '<section class="sec"><div class="sec-h">' + IC.book + '<b>' + esc(sname) + '</b><span class="sp"></span><span>' + sd + '/' + list.length + '</span></div><div class="path">';
+      list.forEach(function (t, k) {
+        var open = isOpen(B, t), done = isDone(B, t), d = doneOf(B, t), cls = done ? "done" : open ? "" : "locked";
+        if (t === nt) cls += " next";
+        var x = Math.round(Math.sin(k * 0.9) * 70);
+        var ring = (!done && d > 0) ? '<svg class="pr" viewBox="0 0 86 82"><circle cx="43" cy="41" r="38" stroke="var(--track)"/><circle cx="43" cy="41" r="38" stroke="var(--gold)" stroke-dasharray="' + (2 * Math.PI * 38) + '" stroke-dashoffset="' + (2 * Math.PI * 38 * (1 - d / t.nl)) + '" transform="rotate(-90 43 41)"/></svg>' : "";
+        h += '<div class="node ' + cls + '" style="--x:' + x + 'px">' + (t === nt ? '<span class="start">' + (d ? "TOVÁBB" : "START") + '</span>' : "") +
+          '<button class="nb" data-t="' + t.i + '" aria-label="' + esc(cleanTitle(t.title)) + '">' + ring + (done ? IC.crown : open ? IC.star : IC.lock) + '</button><small>' + esc(cleanTitle(t.title)) + '</small></div>';
+      });
+      h += '</div></section>';
+    });
+    view(h);
+    requestAnimationFrame(function () { var r = $("#ringfg"); if (r) r.style.strokeDashoffset = C * (1 - pct); });
+    $("#q-next").onclick = function () { if (nt) Lesson.topic(B, nt); else Lesson.mixed(B); };
+    $("#q-rev").onclick = function () { Review.open(); };
+    $$(".nb").forEach(function (b) { b.onclick = function () { var t = B.t.filter(function (x) { return x.i === +b.getAttribute("data-t"); })[0]; Home.node(B, t); }; });
+    var nx = $(".node.next"); if (nx && doneL > 0) setTimeout(function () { nx.scrollIntoView({ block: "center", behavior: "smooth" }); }, 150);
+  },
+  node: function (B, t) {
+    var open = isOpen(B, t), done = isDone(B, t), d = doneOf(B, t);
+    var head = '<div class="muted small">' + esc(B.s[t.sec]) + '</div><h2 style="margin:4px 0 0">' + esc(cleanTitle(t.title)) + '</h2>';
+    if (!open) {
+      sheet(head + '<p class="muted">Ez a téma még zárva van. Ha már tudod az anyagot, ugorj ide egy rövid teszttel: ' + LESSON_LEN + ' kérdés, legfeljebb 1 hiba.</p>' +
+        '<div class="row"><button class="btn ghost" id="sh-x">Mégse</button><button class="btn" id="sh-jump">' + IC.skip + 'Ugrás teszttel</button></div>', function () {
+        $("#sh-x").onclick = hideSheet; $("#sh-jump").onclick = function () { hideSheet(); Lesson.jump(B, t); };
+      });
+      return;
+    }
+    sheet(head + '<div class="bar"><i style="width:' + Math.round(100 * d / t.nl) + '%"></i></div><div class="muted small">' + d + ' / ' + t.nl + ' lecke · ' + t.qs.length + ' kérdés</div>' +
+      '<div class="row">' + (done ? '<button class="btn" id="sh-go">' + IC.dumbbell + 'Gyakorlás (+10 XP)</button>' : '<button class="btn" id="sh-go">' + (d ? "Folytatás" : "Kezdés") + ' · ' + (d + 1) + '. lecke</button>') + '</div>', function () {
+      $("#sh-go").onclick = function () { hideSheet(); if (done) Lesson.practice(B, t); else Lesson.topic(B, t); };
+    });
+  }
+};
+
+/* ===================== Feladatok összeállítása ===================== */
+/* Típusok: mc (feleletválasztás), tf (igaz/hamis: ez a helyes válasz?), match (3 kérdés párosítása a helyes válaszokkal). */
+function itemsFrom(B, qis, opt) {
+  opt = opt || {};
+  var items = [], pool = qis.slice();
+  if (!opt.mcOnly) {
+    var shortQ = pool.filter(function (qi) { var q = B.q[qi]; return q[2].length <= 120 && q[3][q[4]].length <= 90; });
+    if (shortQ.length >= 3 && pool.length >= 6 && Math.random() < .7) {
+      var m = shuffle(shortQ).slice(0, 3); pool = pool.filter(function (qi) { return m.indexOf(qi) < 0; });
+      items.push({ type: "match", qis: m });
+    }
+  }
+  pool.forEach(function (qi) {
+    var q = B.q[qi], r = Math.random();
+    if (!opt.mcOnly && r < .22 && q[3].length >= 2) {
+      var right = Math.random() < .5, wrongs = q[3].map(function (_, k) { return k; }).filter(function (k) { return k !== q[4]; });
+      items.push({ type: "tf", qi: qi, show: right ? q[4] : wrongs[Math.floor(Math.random() * wrongs.length)] });
+    } else items.push({ type: "mc", qi: qi });
+  });
+  items = shuffle(items);
+  return items;
+}
+
+/* ===================== Lecke ===================== */
+var L = null;
+var Lesson = {
+  topic: function (B, t) {
+    var k = doneOf(B, t), qs = t.qs.slice(k * LESSON_LEN, (k + 1) * LESSON_LEN).filter(function (qi) { return !S.me.known[qkey(B.id, qi)]; });
+    if (qs.length < 3) qs = qs.concat(shuffle(t.qs.filter(function (qi) { return qs.indexOf(qi) < 0; })).slice(0, 3 - qs.length));
+    Lesson.start(B, itemsFrom(B, qs), { kind: "topic", t: t, title: cleanTitle(t.title) });
+  },
+  practice: function (B, t) {
+    var w = S.me.weak || {}, weakIn = t.qs.filter(function (qi) { return w[qkey(B.id, qi)]; });
+    var rest = shuffle(t.qs.filter(function (qi) { return weakIn.indexOf(qi) < 0 && !S.me.known[qkey(B.id, qi)]; }));
+    Lesson.start(B, itemsFrom(B, shuffle(weakIn).concat(rest).slice(0, LESSON_LEN)), { kind: "practice", t: t, title: cleanTitle(t.title) });
+  },
+  mixed: function (B) {
+    var all = []; B.t.forEach(function (t) { if (isOpen(B, t)) all = all.concat(t.qs); });
+    Lesson.start(B, itemsFrom(B, shuffle(all).slice(0, LESSON_LEN)), { kind: "practice", title: "Vegyes gyakorlás" });
+  },
+  jump: function (B, t) {
+    Lesson.start(B, itemsFrom(B, shuffle(t.qs).slice(0, LESSON_LEN), { mcOnly: true }), { kind: "jump", t: t, title: "Ugróteszt · " + cleanTitle(t.title), noRequeue: true });
+  },
+  review: function (B, keys) {
+    var qs = keys.map(function (k) { return +k.split(":")[1]; });
+    Lesson.start(B, itemsFrom(B, qs, { mcOnly: true }), { kind: "review", title: "Ismétlés" });
+  },
+  start: function (B, items, meta) {
+    if (!items.length) { toast("Ehhez nincs kérdés."); return; }
+    L = { B: B, items: items, meta: meta, i: 0, total: items.length, ok: 0, firstTry: 0, wrong: 0, combo: 0, maxCombo: 0, t0: Date.now(), seen: {}, requeued: {} };
+    topbar("lesson"); nav(null); Lesson.show();
+  },
+  progress: function () { var p = $("#prog"); if (p) p.style.width = Math.round(100 * L.ok / Math.max(L.total, 1)) + "%"; var c = $("#combo"); if (c) c.textContent = L.combo >= 3 ? L.combo + " jó egymás után" : ""; },
+  show: function () {
+    if (!L) return;
+    if (L.i >= L.items.length) return Lesson.finish();
+    var it = L.items[L.i], B = L.B, h = '<div class="lesson">';
+    if (it.type === "mc") {
+      var q = B.q[it.qi]; it.order = it.order || shuffle(q[3].map(function (_, k) { return k; }));
+      h += '<div class="kind">' + (it.again ? IC.repeat + "Még egyszer" : "Válaszd ki a helyeset") + '</div><p class="qtext">' + esc(q[2]) + '</p><div class="opts">' +
+        it.order.map(function (k, n) { return '<button class="opt" data-k="' + k + '"><span class="k">' + (n + 1) + '</span><span>' + esc(q[3][k]) + '</span></button>'; }).join("") + '</div>';
+    } else if (it.type === "tf") {
+      var q2 = B.q[it.qi];
+      h += '<div class="kind">Igaz vagy hamis?</div><p class="qtext">' + esc(q2[2]) + '</p><div class="muted small" style="margin:-6px 0 6px">Ez a helyes válasz?</div><div class="stmt">' + esc(q2[3][it.show]) + '</div>' +
+        '<div class="opts tf"><button class="opt" data-k="1">' + IC.check + 'Igen</button><button class="opt" data-k="0">' + IC.x + 'Nem</button></div>';
+    } else {
+      it.left = it.left || shuffle(it.qis); it.right = it.right || shuffle(it.qis); it.matched = it.matched || {}; it.miss = it.miss || {};
+      h += '<div class="kind">Párosítsd a kérdést a helyes válasszal</div><div class="match"><div class="col">' +
+        it.left.map(function (qi) { return '<button class="opt" data-l="' + qi + '">' + esc(B.q[qi][2]) + '</button>'; }).join("") + '</div><div class="col">' +
+        it.right.map(function (qi) { var q = B.q[qi]; return '<button class="opt" data-r="' + qi + '">' + esc(q[3][q[4]]) + '</button>'; }).join("") + '</div></div>';
+    }
+    h += '</div>';
+    view(h);
+    Lesson.foot(it);
+    Lesson.progress();
+  },
+  foot: function (it) {
+    var f = $("#foot"); if (!f) { f = document.createElement("div"); f.id = "foot"; f.className = "foot"; document.body.appendChild(f); }
+    f.className = "foot"; f.innerHTML = '<div class="in"><div class="fb" id="fbx"></div><button class="btn" id="chk" disabled>Ellenőrzés</button></div>';
+    var sel = null, chk = $("#chk");
+    if (it.type === "match") {
+      chk.textContent = "Párosíts mindent"; var L1 = null;
+      var tryPair = function () {
+        var a = $(".match .opt.sel[data-l]"), b = $(".match .opt.sel[data-r]"); if (!a || !b) return;
+        var ql = +a.getAttribute("data-l"), qr = +b.getAttribute("data-r");
+        if (ql === qr) { FX.good(); a.className = b.className = "opt gone"; it.matched[ql] = 1; L.combo++; }
+        else { FX.bad(); it.miss[ql] = 1; L.combo = 0; [a, b].forEach(function (x) { x.classList.remove("sel"); x.classList.add("bad"); setTimeout(function () { x.classList.remove("bad"); }, 400); }); }
+        if (Object.keys(it.matched).length === it.qis.length) {
+          var n = it.qis.length, bad = Object.keys(it.miss).length; L.ok++; if (!bad) L.firstTry++; else L.wrong++;
+          it.qis.forEach(function (qi) { Lesson.mark(qi, !it.miss[qi]); });
+          Lesson.result(!bad, bad ? "Kész, " + bad + " elsőre nem ment." : "Mind a " + n + " elsőre jó!", null);
+        }
+        Lesson.progress();
+      };
+      $$(".match .opt").forEach(function (b) { b.onclick = function () {
+        if (b.classList.contains("gone")) return; var side = b.hasAttribute("data-l") ? "l" : "r";
+        $$(".match .opt[data-" + side + "]").forEach(function (x) { if (x !== b) x.classList.remove("sel"); });
+        b.classList.toggle("sel"); tryPair(); }; });
+      return;
+    }
+    $$(".lesson .opt").forEach(function (b) { b.onclick = function () { if (f.classList.contains("good") || f.classList.contains("bad")) return; $$(".lesson .opt").forEach(function (x) { x.classList.remove("sel"); }); b.classList.add("sel"); sel = +b.getAttribute("data-k"); chk.disabled = false; }; });
+    chk.onclick = function () {
+      if (sel == null) return;
+      var q = L.B.q[it.qi], ok, right = q[3][q[4]];
+      if (it.type === "mc") ok = sel === q[4]; else ok = (sel === 1) === (it.show === q[4]);
+      $$(".lesson .opt").forEach(function (x) { x.disabled = true; var k = +x.getAttribute("data-k");
+        if (it.type === "mc") { if (k === q[4]) x.classList.add("right"); else if (k === sel) x.classList.add("wrong"); }
+        else { var corr = (it.show === q[4]) ? 1 : 0; if (k === corr) x.classList.add("right"); else if (k === sel) x.classList.add("wrong"); } });
+      var first = !L.seen[it.qi]; L.seen[it.qi] = 1;
+      if (ok) { L.ok++; L.combo++; L.maxCombo = Math.max(L.maxCombo, L.combo); if (first) L.firstTry++; FX.good(); }
+      else { L.wrong++; L.combo = 0; FX.bad();
+        if (!L.meta.noRequeue && !L.requeued[it.qi]) { L.requeued[it.qi] = 1; L.items.push({ type: "mc", qi: it.qi, again: true }); L.total++; }
+        else L.ok++; }
+      Lesson.mark(it.qi, ok);
+      Lesson.result(ok, ok ? pickPraise() : "A helyes válasz:", ok ? null : right, it.qi);
+      Lesson.progress();
+    };
+  },
+  mark: function (qi, ok) {
+    var k = qkey(L.B.id, qi), w = S.me.weak, st = S.me.st[L.B.id] = S.me.st[L.B.id] || { a: 0, o: 0 };
+    st.a++; if (ok) st.o++;
+    if (!ok) w[k] = { due: addDays(today(), 1), n: 0 };
+    else if (w[k] && L.meta.kind === "review") { var n = w[k].n + 1; if (n >= SRS.length) delete w[k]; else w[k] = { due: addDays(today(), SRS[n]), n: n }; }
+  },
+  result: function (ok, title, right, qi) {
+    var f = $("#foot"); f.className = "foot " + (ok ? "good" : "bad");
+    $("#fbx").innerHTML = '<b>' + (ok ? IC.check : IC.x) + esc(title) + '</b>' + (right ? '<p>' + esc(right) + '</p>' : "") +
+      (qi != null ? '<div class="tools">' + (ok ? '<button class="link" id="known">Ezt már tudom, ne kérdezd többet</button>' : "") + '<button class="link" id="rep">' + 'Szerintem hibás a kérdés</button></div>' : "");
+    var chk = $("#chk"); chk.disabled = false; chk.textContent = "Tovább"; chk.className = "btn " + (ok ? "ok" : "hot");
+    chk.onclick = function () { L.i++; Lesson.show(); };
+    var ls = $(".lesson"); if (ls) ls.style.paddingBottom = (f.offsetHeight + 24) + "px";
+    var kn = $("#known"); if (kn) kn.onclick = function () { S.me.known[qkey(L.B.id, qi)] = 1; delete S.me.weak[qkey(L.B.id, qi)]; kn.outerHTML = '<span class="small muted" style="padding:6px">Rendben, kihagyom.</span>'; };
+    var rp = $("#rep"); if (rp) rp.onclick = function () { Report.open(L.B, qi, rp); };
+    chk.focus();
+  },
+  finish: function () {
+    var f = $("#foot"); if (f) f.remove();
+    var B = L.B, m = L.meta, acc = Math.round(100 * L.firstTry / Math.max(1, L.firstTry + L.wrong)), perfect = L.wrong === 0, sec = Math.round((Date.now() - L.t0) / 1000);
+    var passed = true, xp = 10 + (perfect ? 5 : 0), note = "";
+    if (m.kind === "jump") {
+      passed = L.wrong <= 1;
+      if (passed) { S.me.open[B.id] = S.me.open[B.id] || {}; S.me.open[B.id][m.t.i] = 1; note = "A téma megnyílt."; } else { xp = 0; note = "Most nem sikerült: legfeljebb 1 hiba fér bele. Haladj sorban, vagy próbáld újra később."; }
+    }
+    if (m.kind === "topic") { var p = prog(B); p[m.t.i] = Math.min(m.t.nl, (p[m.t.i] || 0) + 1); }
+    if (m.kind === "review") S.me.reviews = (S.me.reviews || 0) + 1;
+    var d = today(), wasGoal = todayXp() >= (S.me.goal || 20), newDay = false;
+    if (xp) { S.me.xp += xp; S.me.days[d] = (S.me.days[d] || 0) + xp; S.me.lessons++; if (perfect) S.me.perfect++; newDay = bumpStreak(S.me, d); }
+    var goalNow = !wasGoal && todayXp() >= (S.me.goal || 20);
+    saveMe(true);
+    topbar("plain", { title: "" }); nav(null);
+    var topicDone = m.kind === "topic" && isDone(B, m.t);
+    view('<div class="res">' + (passed ? '<div style="font-size:3rem">' + (perfect ? "🏆" : topicDone ? "👑" : "🎉") + '</div>' : '<div style="font-size:3rem">💪</div>') +
+      '<div class="big">' + (passed ? (topicDone ? "Téma kész!" : perfect ? "Hibátlan lecke!" : "Lecke kész!") : "Majdnem!") + '</div>' +
+      '<div class="muted">' + esc(m.title) + (note ? "<br>" + esc(note) : "") + '</div>' +
+      '<div class="stats3"><div class="stat"><span style="background:var(--gold)">XP</span><b>+' + xp + '</b></div>' +
+      '<div class="stat"><span style="background:var(--ok)">Pontosság</span><b>' + acc + '%</b></div>' +
+      '<div class="stat"><span style="background:var(--sky)">Idő</span><b>' + Math.floor(sec / 60) + ':' + pad(sec % 60) + '</b></div></div>' +
+      (newDay ? '<div class="card" style="margin-bottom:12px"><b>' + IC.bolt.replace('class="i"', 'class="i" style="stroke:var(--hot);fill:var(--hot);vertical-align:-4px"') + ' ' + S.me.streak + ' napos sorozat</b><div class="muted small">A hétvége nem szakítja meg.</div></div>' : "") +
+      (goalNow ? '<div class="card" style="margin-bottom:12px"><b>Megvan a mai cél!</b></div>' : "") +
+      '<button class="btn" id="res-go">Tovább</button></div>');
+    if (passed) FX.win();
+    $("#res-go").onclick = function () { L = null; Home.open(); };
+  }
+};
+function pickPraise() { var a = ["Szuper!", "Pontosan!", "Így van!", "Ügyes!", "Remek!"]; return a[Math.floor(Math.random() * a.length)]; }
+document.addEventListener("keydown", function (e) {
+  if (!L || !$(".lesson") || e.target.tagName === "INPUT") return;
+  if (/^[1-9]$/.test(e.key)) { var b = $$(".lesson .opts .opt")[+e.key - 1]; if (b && !b.disabled) b.click(); }
+  if (e.key === "Enter") { var c = $("#chk"); if (c && !c.disabled && document.activeElement !== c) { e.preventDefault(); c.click(); } }
+});
+
+/* ===================== Hibás kérdés jelzése ===================== */
+var Report = {
+  open: function (B, qi, btn) {
+    var q = B.q[qi];
+    modal('<h2 style="margin-top:0">Mi a gond a kérdéssel?</h2><p class="small muted">' + esc(q[2]) + '</p><div class="opts">' +
+      ["A megjelölt válasz szerintem nem jó", "Több válasz is helyes", "Elavult (jogszabály, összeg)", "Érthetetlen megfogalmazás"].map(function (r, i) { return '<button class="opt" data-r="' + i + '">' + esc(r) + '</button>'; }).join("") +
+      '</div><div style="height:10px"></div><button class="btn ghost" id="rp-x">Mégse</button>', function (m) {
+      $("#rp-x").onclick = closeModal;
+      $$("[data-r]", m).forEach(function (b) { b.onclick = function () {
+        var id = B.id + "_" + qi + "_" + S.uid;
+        setD("gy_reports", id, { tr: B.id, qi: qi, q: q[2], why: b.textContent, by: S.me.name, at: Date.now() }).then(function () { toast("Köszönöm, továbbítottam a vezetőnek."); }).catch(function () { toast("Nem sikerült elküldeni."); });
+        closeModal(); if (btn) btn.outerHTML = '<span class="small muted" style="padding:6px">Jelezve.</span>';
+      }; });
+    });
+  }
+};
+
+/* ===================== Ismétlés ===================== */
+var Review = {
+  open: function () {
+    loadBank(S.me.tr).then(function (B) {
+      setTc(B); topbar("plain", { title: "Ismétlés" }); nav("rev");
+      var due = dueKeys(B.id), all = Object.keys(S.me.weak).filter(function (k) { return k.indexOf(B.id + ":") === 0; });
+      var later = all.length - due.length;
+      view('<div class="card"><h1>' + (due.length ? due.length + " kérdés vár ismétlésre" : "Most nincs esedékes ismétlés") + '</h1>' +
+        '<p class="muted">A hibás válaszaid 1, 3, 7 és 14 nap múlva jönnek vissza. Ha négyszer egymás után eltalálod, kikerülnek a listából.</p>' +
+        (due.length ? '<button class="btn" id="rv-go">' + IC.repeat + 'Ismétlés indítása (' + Math.min(due.length, 10) + ' kérdés)</button>' : '<button class="btn ghost" id="rv-mix">' + IC.dumbbell + 'Vegyes gyakorlás helyette</button>') +
+        '<p class="muted small" style="margin-bottom:0">Később esedékes: ' + later + ' kérdés · Pálya: ' + esc(B.tr.n) + '</p></div>');
+      var g = $("#rv-go"); if (g) g.onclick = function () { Lesson.review(B, shuffle(due).slice(0, 10)); };
+      var mx = $("#rv-mix"); if (mx) mx.onclick = function () { Lesson.mixed(B); };
+    });
+  }
+};
+
+/* ===================== Profil ===================== */
+var Profile = {
+  open: function () {
+    topbar("plain", { title: "Profil" }); nav("prof");
+    var u = S.me, days = [], d = new Date(); d.setDate(d.getDate() - 6);
+    for (var i = 0; i < 7; i++) { var s = dstr(d); days.push([s, u.days[s] || 0]); d.setDate(d.getDate() + 1); }
+    var mx = Math.max.apply(null, days.map(function (x) { return x[1]; }).concat([u.goal || 20]));
+    var DN = ["V", "H", "K", "Sze", "Cs", "P", "Szo"];
+    var acc = TRACKS.map(function (t) { var s = u.st[t.id]; return s && s.a ? '<tr><td>' + esc(t.n) + '</td><td class="n">' + s.a + '</td><td class="n">' + Math.round(100 * s.o / s.a) + '%</td></tr>' : ""; }).join("");
+    view('<div class="card"><h1>' + esc(u.name) + '</h1><div class="muted small">Szint: ' + (Math.floor(Math.sqrt(u.xp / 40)) + 1) + '</div></div>' +
+      '<h2>Statisztika</h2><div class="kv">' +
+      '<div class="card"><b>' + liveStreak() + '</b><span>napos sorozat (rekord: ' + (u.best || 0) + ')</span></div>' +
+      '<div class="card"><b>' + u.xp + '</b><span>összes XP</span></div>' +
+      '<div class="card"><b>' + u.lessons + '</b><span>lecke</span></div>' +
+      '<div class="card"><b>' + (u.perfect || 0) + '</b><span>hibátlan lecke</span></div></div>' +
+      '<h2>Az elmúlt 7 nap</h2><div class="card"><div class="week">' + days.map(function (x) { var p = x[0].split("-"); var wd = new Date(+p[0], +p[1] - 1, +p[2]).getDay();
+        return '<div class="' + (x[0] === today() ? "today" : "") + '"><b style="color:var(--ink)">' + (x[1] || "") + '</b><i style="height:' + Math.round(60 * x[1] / mx) + 'px"></i>' + DN[wd] + '</div>'; }).join("") + '</div></div>' +
+      (acc ? '<h2>Pontosság pályánként</h2><div class="card"><table class="t"><tr><th>Pálya</th><th class="n">Válasz</th><th class="n">Jó</th></tr>' + acc + '</table></div>' : "") +
+      '<h2>Napi cél</h2><div class="card"><div class="goals">' + GOALS.map(function (g) { return '<button data-g="' + g[0] + '" class="' + (g[0] === (u.goal || 20) ? "on" : "") + '">' + g[1] + ' · ' + g[0] + ' XP</button>'; }).join("") + '</div>' +
+      '<p class="muted small" style="margin-bottom:0">Egy lecke 10 XP, hibátlanul 15.</p></div>' +
+      '<h2>Beállítások</h2><div class="card"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" id="snd"' + (FX.on ? " checked" : "") + '> Hangeffektek</label>' +
+      '<p class="muted small">Kihagyott kérdések („ezt már tudom”): ' + Object.keys(u.known || {}).length + (Object.keys(u.known || {}).length ? ' · <button class="link" id="unk">visszaállítás</button>' : "") + '</p>' +
+      '<button class="btn ghost sm" id="chg">Nem ' + esc(u.name) + ' vagyok</button></div>');
+    $$("[data-g]").forEach(function (b) { b.onclick = function () { u.goal = +b.getAttribute("data-g"); saveMe(); Profile.open(); }; });
+    $("#snd").onchange = function () { FX.on = this.checked; LS.set("gy_sound", FX.on); };
+    var un = $("#unk"); if (un) un.onclick = function () { if (confirm("Visszaállítod az összes kihagyott kérdést?")) { u.known = {}; saveMe(); Profile.open(); } };
+    $("#chg").onclick = function () { LS.set("gy_name", ""); S.me = null; who(); };
+  }
+};
+
+/* ===================== Vezetői nézet ===================== */
+var Admin = {
+  tab: "users",
+  open: function () {
+    document.body.classList.add("wide"); nav(null); setTc(null);
+    topbar("plain", { title: "Gyakorló · vezetői nézet", right: '<button class="btn sm" id="ad-me">' + IC.path + 'Gyakorlok</button>' });
+    $("#ad-me").onclick = function () {
+      if (EMBED) { try { window.top.location.href = "gyakorlo.html"; return; } catch (e) {} }
+      history.replaceState(null, "", location.pathname + location.search); if (S.me) Home.open(); else who(); };
+    view('<div class="tabs"><button data-tab="users">Munkatársak</button><button data-tab="reports">Hibásnak jelölt kérdések</button></div><div id="ad-body" class="card"><div class="muted">Betöltés…</div></div>' +
+      (EMBED ? "" : '<p><a class="btn ghost sm" href="admin.html#gyakorlo">' + IC.back + 'Vissza az adminba</a></p>') + '<p class="muted small">Béta: a munkatársak akkor érik el, ha a kifogáskezelőnél használt élesítési kapcsoló be van kapcsolva és a menübe bekerül a <code>gyakorlo.html</code>. A régi kifogáskezelő (<code>kifogas.html</code>) érintetlenül megmaradt a repóban.</p>');
+    $$("[data-tab]").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-tab") === Admin.tab); b.onclick = function () { Admin.tab = b.getAttribute("data-tab"); Admin.open(); }; });
+    if (Admin.tab === "users") Admin.users(); else Admin.reports();
+  },
+  users: function () {
+    allOf("gy_users").then(function (us) {
+      us.sort(function (a, b) { return (b.xp || 0) - (a.xp || 0); });
+      var wk = (function () { var d = new Date(), w = (d.getDay() + 6) % 7; d.setDate(d.getDate() - w); return dstr(d); })();
+      $("#ad-body").innerHTML = us.length ? '<div class="scroll"><table class="t"><tr><th>Név</th><th class="n">XP</th><th class="n">Heti XP</th><th class="n">Sorozat</th><th class="n">Lecke</th><th class="n">Pontosság</th><th class="n">Ismétlésre vár</th><th>Utoljára</th></tr>' +
+        us.map(function (u) { var a = 0, o = 0; Object.keys(u.st || {}).forEach(function (k) { a += u.st[k].a; o += u.st[k].o; });
+          var w = 0; Object.keys(u.days || {}).forEach(function (d) { if (d >= wk) w += u.days[d]; });
+          return '<tr><td>' + esc(u.name) + '</td><td class="n">' + (u.xp || 0) + '</td><td class="n">' + w + '</td><td class="n">' + liveStreak(u) + '</td><td class="n">' + (u.lessons || 0) + '</td><td class="n">' + (a ? Math.round(100 * o / a) + "%" : "–") + '</td><td class="n">' + Object.keys(u.weak || {}).length + '</td><td>' + esc(u.lastDay || "–") + '</td></tr>'; }).join("") +
+        '</table></div>' : '<div class="muted">Még senki nem gyakorolt.</div>';
+      postH();
+    }).catch(function () { $("#ad-body").innerHTML = '<div class="muted">Nem sikerült betölteni.</div>'; postH(); });
+  },
+  reports: function () {
+    allOf("gy_reports").then(function (rs) {
+      rs.sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
+      $("#ad-body").innerHTML = rs.length ? '<div class="scroll"><table class="t"><tr><th>Pálya</th><th>Kérdés</th><th>Probléma</th><th>Ki jelezte</th><th></th></tr>' +
+        rs.map(function (r) { return '<tr><td>' + esc(trackById(r.tr).n) + ' #' + r.qi + '</td><td>' + esc(r.q) + '</td><td>' + esc(r.why) + '</td><td>' + esc(r.by) + '</td><td><button class="btn ghost sm" data-del="' + esc(r._id) + '">Kész</button></td></tr>'; }).join("") +
+        '</table></div>' : '<div class="muted">Nincs jelzett kérdés.</div>';
+      postH();
+      $$("[data-del]").forEach(function (b) { b.onclick = function () { fb().then(function () { return FB.F.deleteDoc(dref("gy_reports", b.getAttribute("data-del"))); }).then(Admin.reports); }; });
+    }).catch(function () { $("#ad-body").innerHTML = '<div class="muted">Nem sikerült betölteni.</div>'; });
+  }
+};
+
+/* Beágyazva (admin iframe): a magasságot a szülő állítja be az üzenetünk alapján. */
+var EMBED = window.parent !== window;
+function postH() { if (EMBED) setTimeout(function () { try { parent.postMessage({ embh: document.documentElement.scrollHeight }, location.origin); } catch (e) {} }, 60); }
+window.addEventListener("hashchange", function () { if (location.hash === "#admin" && S.admin) Admin.open(); });
+boot();
+})();
+</script>
+</body>
+</html>
