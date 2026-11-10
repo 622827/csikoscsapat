@@ -625,9 +625,36 @@
         if (k < 1) requestAnimationFrame(step);
       });
     }
+    /* A negyedéves összeg (ugyanaz a számítás, mint a negyedev.html-ben): a negyedév hónapjainak "100% Leadva" + "Elszámolt" tételei.
+       A lezárt hónap a "Havi zárás" lapról jön (d.closed, befagyasztva), az aktuális hónap az élő adatból (people[].proc). */
+    var QCSK = ["csikos mate", "toth oszkar", "szilagyi gyongyi", "gulyas anna"], QZNAP = { "2026-11": 4 };
+    function qPlain(t) { return String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim(); }
+    function qFirstTue(y, m) { var d0 = new Date(y, m, 1), k = y + "-" + ("0" + (m + 1)).slice(-2); return new Date(y, m, QZNAP[k] || 1 + ((2 - d0.getDay() + 7) % 7), 23, 59, 59); }
+    function qMonths() {
+      for (var y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) for (var i = 0; i < 4; i++) if (qFirstTue(y, i * 3 + 3) >= now) return [y * 100 + i * 3 + 1, y * 100 + i * 3 + 2, y * 100 + i * 3 + 3];
+      return [];
+    }
+    function quarterTeams(d) {
+      var QM = qMonths(), P = (d && d.people) || [], closed = {};
+      ((d && d.closed) || []).forEach(function (r) { var m = +r.m; if (QM.indexOf(m) < 0) return; (closed[m] = closed[m] || {})[qPlain(r.name)] = r; });
+      var hasClosed = Object.keys(closed).length > 0;
+      if (!hasClosed && !P.some(function (x) { return x && x.proc; })) return null;
+      var T = { csikos: { done: 0, outlook: 0 }, farkas: { done: 0, outlook: 0 } }, seen = {};
+      function team(key) { return QCSK.indexOf(key) > -1 ? T.csikos : T.farkas; }
+      P.forEach(function (x) {
+        if (!x || !x.name) return; var key = qPlain(x.name); seen[key] = 1; var tm = team(key);
+        QM.forEach(function (m) {
+          if (closed[m]) { var c = closed[m][key]; if (c) { var v = (+c.lead || 0) + (+c.el || 0); tm.done += v; tm.outlook += v; } return; }
+          var r = (x.proc || {})[m]; if (!r) return;
+          Object.keys(r).forEach(function (k) { var v = +r[k] || 0, q = qPlain(k); tm.outlook += v; if ((q.indexOf("100") > -1 && q.indexOf("leadva") > -1) || q.indexOf("elszamolt") > -1) tm.done += v; });
+        });
+      });
+      Object.keys(closed).forEach(function (m) { Object.keys(closed[m]).forEach(function (key) { if (seen[key]) return; var c = closed[m][key], v = (+c.lead || 0) + (+c.el || 0); team(key).done += v; team(key).outlook += v; }); });
+      return T;
+    }
     // Ugyanaz az adat, mint a Negyedéves cél oldalon: a tárolt (utoljára látott) szám azonnal megjelenik, a friss betöltés után frissül.
     function apply(d) {
-        var t = d && d.teams;
+        var t = d && d.teams; var qt = quarterTeams(d); if (qt) t = qt;
         if (!t || !t.csikos || !t.farkas) throw new Error("nincs csapat-adat");
         var tc = t.csikos.done, tf = t.farkas.done, tot = tc + tf;
         animateTo(tot);
