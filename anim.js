@@ -152,8 +152,8 @@
       function open() {
         cur = a; a.classList.add("csk-open"); box.textContent = "";
         var list = items.slice(), pageHref = fullH.charAt(0) === "#" ? "" : fullH;
-        // saját oldallal rendelkező menüpontnál az első elem maga az oldal, hogy a szülő is megnyitható legyen
-        if (window.__cskMap && pageHref && !list.some(function (x) { return x[1] === pageHref; })) list.unshift([(a.textContent || "").trim() || pageHref, pageHref]);
+        // saját oldallal rendelkező menüpontnál az első elem maga az oldal, hogy a szülő is megnyitható legyen (ha egy almenüpont már ugyanarra az oldalra visz, nem kell)
+        if (window.__cskMap && pageHref && !list.some(function (x) { return x[1].split("#")[0] === pageHref; })) list.unshift([(a.textContent || "").trim() || pageHref, pageHref]);
         list.forEach(function (it) { var l = document.createElement("a"); l.href = it[1]; l.textContent = it[0];
           var h = location.hash, onPage = location.pathname.split("/").pop() === key;
           var curKey = ""; try { curKey = key === "csapatkassza.html" ? (h === "#flotta" || h === "#iroda" ? h : "#kassza") : key === "verseny.html" ? (h === "#teli" || h === "#lengyel" ? h : "#erdely") : key === "admin.html" ? (h || "#konyveles") : (h ? h : (sessionStorage.getItem("tj_view") === "as" ? "#asszisztens" : "#elemzesek")); } catch (e) {}
@@ -396,7 +396,10 @@
     if (!A || !(force || live())) return;
     var fs = root.querySelectorAll ? root.querySelectorAll("[style*='width']") : [], seen = [];
     for (var i = 0; i < fs.length; i++) {
-      var f = fs[i], p = f.parentElement; if (!/%\s*$/.test(f.style.width) || !p || p.__sw || seen.indexOf(p) >= 0) continue;
+      var f = fs[i], p = f.parentElement; if (!/%\s*$/.test(f.style.width) || !p) continue;
+      /* a szakaszok lehetnek egy belső rétegben is (pl. .bar > .sgs > i): a legközelebbi vágó (overflow:hidden) szülőig megyünk fel */
+      for (var up = 0; up < 3 && p.parentElement && getComputedStyle(p).overflow === "visible"; up++) p = p.parentElement;
+      if (p.__sw || seen.indexOf(p) >= 0) continue;
       var pr = p.getBoundingClientRect(); if (pr.height > 28 || pr.width < 60 || getComputedStyle(p).overflow === "visible") continue;
       seen.push(p);
     }
@@ -418,30 +421,35 @@
 
   /* Kampánynaptár kereke: betöltéskor cikkelyenként (az óramutató szerint) beúszik, utána a heti gyűrű szakaszonként kitöltődik.
      Kattintáskor (újrarajzoláskor) nem animál újra. */
-  var whDone = 0;
+  var whDone = 0, de = document.documentElement;
+  /* Amíg a kerék animációja el nem indul, a kerék rejtve marad (különben betöltéskor bevillan). */
+  st.textContent += "html.csk-whwait #wheel>*{opacity:0}";
+  de.classList.add("csk-whwait");
+  function whFree() { de.classList.remove("csk-whwait"); }
+  setTimeout(function () { if (!whDone) { whDone = 1; whFree(); } }, 6000);
   function wheel() {
-    var w = document.getElementById("wheel"); if (whDone || !w || !A || Date.now() - lastAct < 1500) return;
+    var w = document.getElementById("wheel"); if (whDone || !w || !A) return;
     whDone = 1;
+    if (Date.now() - lastAct < 1500) { whFree(); return; }
     var sgs = [].slice.call(w.querySelectorAll(".sg")), rest = [].slice.call(w.children).filter(function (n) { return sgs.indexOf(n) < 0; });
     var wks = [].slice.call(w.querySelectorAll(".wk"));
-    sgs.forEach(function (g) { g.style.opacity = "0"; });
-    wks.forEach(function (c) { c.style.opacity = "0"; });
-    rest.forEach(function (n) { n.style.opacity = "0"; });
+    sgs.concat(wks, rest).forEach(function (n) { n.style.opacity = "0"; });
+    whFree();
     function go() {
       sgs.forEach(function (g, i) {
         var o = { v: 0 }; g.style.transformBox = "view-box"; g.style.transformOrigin = "300px 300px";
-        A.animate(o, { v: 1, duration: 620, delay: i * 70, ease: "outCubic",
-          onUpdate: function () { g.style.opacity = String(o.v); g.style.scale = String(.9 + .1 * o.v); },
+        A.animate(o, { v: 1, duration: 1100, delay: 150 + i * 130, ease: "outQuart",
+          onUpdate: function () { g.style.opacity = String(o.v); g.style.scale = String(.93 + .07 * o.v); },
           onComplete: function () { ["opacity", "scale", "transform-box", "transform-origin"].forEach(function (k) { g.style.removeProperty(k); }); } });
       });
       wks.forEach(function (c, i) {
         var o = { v: 0 };
-        A.animate(o, { v: 1, duration: 260, delay: 350 + i * 22, ease: "outQuad",
+        A.animate(o, { v: 1, duration: 500, delay: 700 + i * 40, ease: "outQuad",
           onUpdate: function () { c.style.opacity = String(o.v); }, onComplete: function () { c.style.removeProperty("opacity"); } });
       });
       rest.forEach(function (n) {
         var o = { v: 0 };
-        A.animate(o, { v: 1, duration: 500, delay: 12 * 70 + 150, ease: "outQuad",
+        A.animate(o, { v: 1, duration: 800, delay: 150 + 12 * 130 + 200, ease: "outQuad",
           onUpdate: function () { n.style.opacity = String(o.v); }, onComplete: function () { n.style.removeProperty("opacity"); } });
       });
     }
@@ -473,7 +481,7 @@
   function ready() { A = window.anime; window.cskAnime = A; if (pend.length) flush(); nums(document.body); bars(document.body); wheel(); }
   var s = document.createElement("script"); s.src = "anime.min.js?v=4.5.0";
   s.onload = ready;
-  s.onerror = function () { all.forEach(show); pend.length = 0; };
+  s.onerror = function () { all.forEach(show); pend.length = 0; whDone = 1; whFree(); };
   document.head.appendChild(s);
   setTimeout(function () { if (!A) all.forEach(show); }, 2500);
 })();
