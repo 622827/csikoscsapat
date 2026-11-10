@@ -458,7 +458,9 @@
   .pg.asw #v-as > .lead { max-width: 900px; }
   .pg.asw .as-add { grid-template-columns: minmax(240px, 2fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(170px, 1fr) minmax(200px, auto) minmax(230px, auto); }
   .pg.asw .as-add #as-title, .pg.asw .as-add #as-client { grid-column: auto; }
-  .pg.asw .as-add #as-note { grid-column: 1 / span 5; }
+  .pg.asw .as-add #as-note { grid-column: 1 / span 4; }
+  .pg.asw .as-add #as-src { grid-column: 5; }
+  @media (max-width: 1199px) { .pg.asw .as-add { grid-template-columns: repeat(3, minmax(0, 1fr)); } .pg.asw .as-add #as-title { grid-column: 1 / -1; } .pg.asw .as-add #as-client { grid-column: auto; } .pg.asw .as-add #as-note { grid-column: 1 / span 2; } .pg.asw .as-add #as-src { grid-column: 3; } .pg.asw .as-add button { grid-column: 1 / -1; } }
   .pg.asw .as-add button { grid-column: 6; }
   .pg .as-tw { overflow-x: auto; }
   .pg .as-tb { width: 100%; min-width: 0; border-collapse: separate; border-spacing: 0; font-size: .92rem; }
@@ -510,6 +512,23 @@
   .pg .as-lt.lt-ertekesites { background: #1f9d63; }
   .pg .as-lt.lt-menedzsment { background: #2f6fe0; }
   .pg .as-lt.lt-cegvezetes { background: #8e4fd8; }
+  /* Állapot */
+  .pg .as-stsel { font: inherit; font-size: .8rem; font-weight: 800; padding: 4px 8px; border-radius: 999px; border: 0; cursor: pointer; color: #fff; }
+  .pg .as-stsel option { color: #111; background: #fff; }
+  .pg .st-uj { background: #64748b; color: #fff; } .pg .st-folyamatban { background: #2f6fe0; color: #fff; } .pg .st-var { background: #d97706; color: #fff; } .pg .st-kesz { background: #1f9d63; color: #fff; }
+  .pg .as-wait { display: block; margin-top: 5px; width: 140px; max-width: 100%; font: inherit; font-size: .8rem; padding: 3px 8px; border-radius: 8px; border: 1.5px solid #d97706; background: var(--bg); color: inherit; }
+  .pg .as-r .c-st { white-space: nowrap; width: 1%; }
+  .pg .as-stn { display: none; margin-top: 6px; }
+  @container (max-width: 1250px) { .pg .as-tb .c-st { display: none; } .pg .as-stn { display: block; } }
+  /* Forrás-címke és csoportfejlécek */
+  .pg .as-src { display: inline-block; margin: 0 0 3px 6px; font-size: .74rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .pg .as-srcw select { justify-self: start; font: inherit; font-size: .88rem; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); color: var(--ink); }
+  .pg .as-tb .as-gh th { font-size: 1rem; font-weight: 800; }
+  .pg .as-tb .as-gh.late th { color: #ff4d6a; border-bottom: 2px solid #ff4d6a; }
+  .pg .as-tb .as-gh.today th { color: #f59e0b; border-bottom: 2px solid #f59e0b; }
+  .pg .as-tb .as-gh.week th { color: #4f8ef7; border-bottom: 2px solid #4f8ef7; }
+  .pg .as-r.late tr.m td:first-child { box-shadow: inset 4px 0 0 #ff4d6a; }
+  .pg .as-r.late .as-ti { color: #ff4d6a; }
   /* Megjegyzés a lenyitott sorban */
   .pg .as-nt { display: grid; gap: 4px; margin: 2px 0 10px; }
   .pg .as-nt > span { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
@@ -605,10 +624,11 @@
       <label class="as-lb">Határidő <input id="as-due" type="text" aria-label="Határidő"></label>
       <label class="as-lb">Felelős <select id="as-owner" aria-label="Felelős"></select></label>
       <input id="as-note" type="text" maxlength="300" placeholder="Megjegyzés (nem kötelező)" aria-label="Megjegyzés">
+      <select id="as-src" aria-label="Forrás"><option value="">Forrás (nem kötelező)</option><option value="szoban">Szóban</option><option value="uzenet">Üzenetben</option><option value="email">E-mailben</option></select>
       <button class="sm" type="submit">Hozzáadás</button>
     </form>
     <div class="bar">
-      <select id="as-f-status" aria-label="Állapot"><option value="open">Nyitott</option><option value="done">Kész</option><option value="all">Mind</option></select>
+      <select id="as-f-status" aria-label="Állapot"><option value="open">Nyitott</option><option value="uj">Új</option><option value="folyamatban">Folyamatban</option><option value="var">Vár valakire</option><option value="done">Kész</option><option value="all">Mind</option></select>
       <select id="as-f-type" aria-label="Típus szűrő"></select>
       <select id="as-f-owner" aria-label="Felelős szűrő"></select>
       <select id="as-f-by" aria-label="Ki adta be szűrő" hidden></select>
@@ -748,6 +768,22 @@
   var AS_LIST = "menedzsment";
   var AS_LISTS = { ertekesites: "Értékesítés", menedzsment: "Menedzsment", cegvezetes: "Cégvezetés" };
   function asListOf(x) { return AS_LISTS[x.list] ? x.list : "ertekesites"; }
+  /* Állapot: új → folyamatban → vár valakire (kire: waitFor) → kész. A "kész" a régi done mezővel együtt mozog (más oldalak azt olvassák). */
+  /* Forrás: honnan jött a feladat */
+  var AS_SRC = { szoban: "Szóban", uzenet: "Üzenetben", email: "E-mailben" };
+  var AS_SRC_IC = { szoban: "🗣", uzenet: "💬", email: "✉" };
+  var AS_ST = { uj: "Új", folyamatban: "Folyamatban", "var": "Vár valakire", kesz: "Kész" };
+  function asSt(x) { return x.done ? "kesz" : (AS_ST[x.st] && x.st !== "kesz" ? x.st : "uj"); }
+  function asSetSt(x, v) { asUpd(x.id, v === "kesz" ? { st: "kesz", done: true, doneAt: Date.now() } : { st: v, done: false, doneAt: 0 }); }
+  function asStCtl(x) {
+    var w = el("div", "as-stw"), s = el("select", "as-stsel st-" + asSt(x)); s.title = "Állapot"; s.setAttribute("aria-label", "Állapot");
+    Object.keys(AS_ST).forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = AS_ST[k]; s.appendChild(o); });
+    s.value = asSt(x); s.addEventListener("change", function () { hold(); s.className = "as-stsel st-" + s.value; asSetSt(x, s.value); });
+    w.appendChild(s);
+    if (asSt(x) === "var") { var i = el("input", "as-wait"); i.type = "text"; i.maxLength = 60; i.placeholder = "Kire vár? (pl. Telekom)"; i.value = x.waitFor || ""; i.setAttribute("list", "as-wait-dl"); i.title = "Kire vár";
+      i.addEventListener("change", function () { var v = i.value.trim(); if (v !== (x.waitFor || "")) asUpd(x.id, { waitFor: v }); }); w.appendChild(i); }
+    return w;
+  }
   var AS_TYPES = ["Kárbejelentés", "Nyomtatvány kitöltés", "Csoportos beszedés", "Intervenciós hívás", "Alapváltás, díjmódosítás", "Visszavásárlás", "KGFB / Casco felülvizsgálat", "Lakásbiztosítás kötés", "Értékpapírszámla", "Bankszámla", "Egyéb"];
   var AS_PRODS = ["Signal Öngondoskodási Terv", "Signal Nyugdíj terv", "Kabala", "Kabala Nyugdíj", "Signal EV 2.0", "Uniqa Lifeguard / Bodyguard", "Generali Testőr", "Uniqa Premium Life", "Uniqa Pension Invest", "Union Yes"];
   var AS_OWNERS = {"gulyas.anna.ovb@gmail.com": "Gulyás Anna", "kollmann.eszter.ovb@gmail.com": "Kollmann Eszter"};
@@ -769,10 +805,10 @@
     fillSel($("as-f-owner"), team, "Minden felelős");
     ["as-f-status", "as-f-type", "as-f-owner"].forEach(function (i) { $(i).addEventListener("change", asRender); });
     if (!AS_LIST) { fillSel($("as-f-list"), Object.keys(AS_LISTS).map(function (k) { return [k, AS_LISTS[k]]; }), "Minden terület"); $("as-f-list").hidden = false; $("as-f-list").addEventListener("change", asRender); }
-    $("as-f-by").addEventListener("change", function () { try { localStorage.setItem("as_f_by", $("as-f-by").value); } catch (e) {} asRender(); });
+    $("as-f-by").addEventListener("change", asRender);
     (function () {   // az "Állapot" szűrő egymás melletti gombokként (a lenyíló rejtve marad, az tárolja az értéket)
       var sel = $("as-f-status"), g = el("span", "vw vs"); g.setAttribute("role", "group"); g.setAttribute("aria-label", "Állapot");
-      [["open", "Nyitott"], ["done", "Kész"], ["all", "Mind"]].forEach(function (o) {
+      [["open", "Nyitott"], ["uj", "Új"], ["folyamatban", "Folyamatban"], ["var", "Vár valakire"], ["done", "Kész"], ["all", "Mind"]].forEach(function (o) {
         var b = el("button", sel.value === o[0] ? "on" : "", o[1]); b.type = "button"; b.setAttribute("data-v", o[0]);
         b.addEventListener("click", function () { sel.value = o[0]; sel.dispatchEvent(new Event("change")); [].forEach.call(g.children, function (c) { c.classList.toggle("on", c.getAttribute("data-v") === o[0]); }); });
         g.appendChild(b);
@@ -789,10 +825,10 @@
       ev.preventDefault(); if (!FB) { toast("Az adatbázis még nem töltött be."); return; }
       if (!asCanCreate()) { toast("Feladatot csak asszisztensi jogosultsággal lehet felvenni."); return; }
       var title = $("as-title").value.trim(); if (!title) return;
-      var data = { title: title, type: $("as-type").value, product: $("as-prod").value, client: shortName($("as-client").value), due: $("as-due").value || "", owner: $("as-owner").value, by: ME.email, byName: ME.name || "", note: $("as-note").value.trim(), done: false, created: Date.now(), doneAt: 0, list: AS_LIST || ($("as-f-list").value || "ertekesites") };
+      var data = { title: title, type: $("as-type").value, product: $("as-prod").value, client: shortName($("as-client").value), due: $("as-due").value || "", owner: $("as-owner").value, by: ME.email, byName: ME.name || "", note: $("as-note").value.trim(), done: false, created: Date.now(), doneAt: 0, st: "uj", src: $("as-src").value, list: AS_LIST || ($("as-f-list").value || "ertekesites") };
       var ref = FB.F.doc(FB.F.collection(FB.db, "perf", ID, "atasks"));
       FB.F.setDoc(ref, data).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
-      $("as-title").value = ""; $("as-prod").value = ""; $("as-client").value = ""; $("as-note").value = ""; $("as-due").value = ""; $("as-title").focus();
+      $("as-title").value = ""; $("as-prod").value = ""; $("as-client").value = ""; $("as-note").value = ""; $("as-src").value = ""; $("as-due").value = ""; $("as-title").focus();
     });
     try { var tv = "";  } catch (e) {}
     function fromHash() { asTab(/[?&]v=as/.test(location.search) ? "as" : "perf"); }
@@ -1038,14 +1074,15 @@
     AS = AS_ALL.filter(asVisible);
     var f = $("as-form"); if (f) f.hidden = !asCanCreate();
     var fo = $("as-f-owner"); if (fo) { fo.hidden = !(ME && ME.admin); if (fo.hidden) fo.value = ""; }
-    /* "Ki adta be" szűrő: a listában szereplő beadók közül (a saját magad elöl); a választás megmarad */
+    /* "Ki adta be" szűrő: a listában szereplő beadók közül (a saját magad elöl) */
     var fb = $("as-f-by"); if (fb) {
       var bys = {}; AS.forEach(function (x) { var k = String(x.by || "").toLowerCase(); if (k && !bys[k]) bys[k] = x.byName || TEAM[k] || AS_OWNERS[k] || k; });
       var keys = Object.keys(bys).sort(function (a, b) { return (b === (ME && ME.email)) - (a === (ME && ME.email)) || bys[a].localeCompare(bys[b], "hu"); });
-      var want = fb.value; if (!fb.options.length) { try { want = localStorage.getItem("as_f_by") || ""; } catch (e) {} }
+      /* alapból mindig csak a saját beadott feladataid (adminnak); a választás csak az oldal újratöltéséig él */
+      var want = asByInit ? fb.value : (ME && ME.admin && ME.email ? ME.email : "");
       fillSel(fb, keys.map(function (k) { return [k, (ME && k === ME.email ? "Saját (" + bys[k] + ")" : bys[k])]; }), "Bárki adta be");
       fb.value = keys.indexOf(want) >= 0 ? want : "";
-      fb.hidden = keys.length < 2;
+      fb.hidden = keys.length < 2; if (ME && keys.length) asByInit = true;
     }   // a "kinek a feladatai" szűrő csak az adminnak kell
     soon(asRender);
   }
@@ -1059,7 +1096,7 @@
     })();
   }
   function asUpd(id, patch) { FB.F.updateDoc(FB.F.doc(FB.db, "perf", ID, "atasks", id), patch).catch(function (e) { toast("Mentés sikertelen: " + e.message); }); }
-  var asSeen = null, asOpen = {}, asDraft = {};
+  var asSeen = null, asOpen = {}, asDraft = {}, asByInit = false;
   /* ---- témához igazított mini naptár (a natív dátumválasztó helyett) ---- */
   var DP = null;
   function dpIso(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
@@ -1117,7 +1154,7 @@
           n.addEventListener("click", function () { asConfirm = ""; asRender(); });
           w.appendChild(y); w.appendChild(n); r.appendChild(w);
         } else { del.addEventListener("click", function () { asConfirm = x.id; asRender(); }); r.appendChild(del); }
-        var m = el("div", "as-meta"); m.appendChild(el("span", "as-chip", x.type || "Egyéb")); if (x.product) m.appendChild(el("span", "as-chip", x.product));
+        var m = el("div", "as-meta"); m.appendChild(el("span", "as-chip as-stc st-" + asSt(x), AS_ST[asSt(x)] + (asSt(x) === "var" && x.waitFor ? ": " + x.waitFor : ""))); m.appendChild(el("span", "as-chip", x.type || "Egyéb")); if (x.product) m.appendChild(el("span", "as-chip", x.product));
         if (x.client) m.appendChild(el("span", "as-cl", x.client));
         if ((x.subs || []).length) m.appendChild(el("span", "as-chip", (x.subs.filter(function (u) { return u.done; }).length) + "/" + x.subs.length + " alfeladat"));
         m.appendChild(el("span", "", "Határidő:")); var due = el("input"); dpAttach(due); due.value = x.due || ""; due.title = "Határidő"; due.addEventListener("change", function () { asUpd(x.id, { due: due.value }); }); m.appendChild(due);
@@ -1154,10 +1191,13 @@
     var tr = el("tr", "m");
     function td(c) { var t = el("td", c); tr.appendChild(t); return t; }
     var ck = el("input"); ck.type = "checkbox"; ck.checked = !!x.done; ck.setAttribute("aria-label", "Kész");
-    ck.addEventListener("change", function () { hold(); tb.classList.toggle("done", ck.checked); asUpd(x.id, { done: ck.checked, doneAt: ck.checked ? Date.now() : 0 }); });
+    ck.addEventListener("change", function () { hold(); tb.classList.toggle("done", ck.checked); asUpd(x.id, { done: ck.checked, doneAt: ck.checked ? Date.now() : 0, st: ck.checked ? "kesz" : (x.st && x.st !== "kesz" ? x.st : "folyamatban") }); });
     td("c-ck").appendChild(ck);
     var tt = td("c-ti"); if (!AS_LIST) tt.appendChild(el("span", "as-lt lt-" + asListOf(x), AS_LISTS[asListOf(x)])); tt.appendChild(el("div", "as-ti", x.title)); if (x.note) tt.appendChild(el("div", "as-note", x.note));
     var mt = el("div", "as-mt"); mt.appendChild(el("span", "as-chip", x.type || "Egyéb")); if (x.product) mt.appendChild(el("span", "as-chip", x.product)); if (x.client) mt.appendChild(el("span", "as-cl", x.client)); tt.appendChild(mt);
+    if (AS_SRC[x.src]) { var sc = el("span", "as-src", AS_SRC_IC[x.src] + " " + AS_SRC[x.src]); sc.title = "Forrás"; tt.insertBefore(sc, tt.querySelector(".as-mt")); }
+    var stN = asStCtl(x); stN.className += " as-stn"; tt.appendChild(stN);
+    td("c-st").appendChild(asStCtl(x));
     td("c-ty").appendChild(el("span", "as-chip", x.type || "Egyéb"));
     var tp = td("c-pr"); if (x.product) tp.appendChild(el("span", "as-chip", x.product));
     var tc = td("c-cl"); if (x.client) tc.appendChild(el("span", "as-cl", x.client));
@@ -1191,6 +1231,10 @@
     na.addEventListener("input", function () { asDraft[x.id] = na.value; });
     na.addEventListener("change", function () { var v = na.value.trim(); delete asDraft[x.id]; if (v !== (x.note || "")) asUpd(x.id, { note: v }); });
     nw.appendChild(na); sw.appendChild(nw);
+    var sr = el("label", "as-nt as-srcw"), ss = el("select"); sr.appendChild(el("span", "", "Forrás"));
+    [["", "Nincs megadva"]].concat(Object.keys(AS_SRC).map(function (k) { return [k, AS_SRC[k]]; })).forEach(function (o) { var op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; ss.appendChild(op); });
+    ss.value = AS_SRC[x.src] ? x.src : ""; ss.addEventListener("change", function () { asUpd(x.id, { src: ss.value }); });
+    sr.appendChild(ss); sw.insertBefore(sr, nw);
     subs.forEach(function (u, i) {
       var ro = el("label", "as-s" + (u.done ? " done" : "")), c2 = el("input"); c2.type = "checkbox"; c2.checked = !!u.done;
       c2.addEventListener("change", function () { hold(); ro.classList.toggle("done", c2.checked); var nn = subs.map(function (z) { return Object.assign({}, z); }); nn[i].done = c2.checked; asUpd(x.id, { subs: nn }); });
@@ -1203,7 +1247,7 @@
     var sb = el("button", "sm", "+"); sb.type = "submit"; sb.title = "Alfeladat hozzáadása"; sf.appendChild(si); sf.appendChild(sb);
     sf.addEventListener("submit", function (ev) { ev.preventDefault(); var t = si.value.trim(); if (!t) return; var nn = subs.slice(); nn.push({ id: "s" + Date.now().toString(36) + Math.floor(Math.random() * 1000), t: t, done: false }); si.value = ""; asOpen[x.id] = true; asUpd(x.id, { subs: nn }); });
     sw.appendChild(sf);
-    var dr = el("tr", "d"); dr.hidden = !asOpen[x.id]; dr.appendChild(el("td")); var dd = el("td"); dd.colSpan = 9; dd.appendChild(sw); dr.appendChild(dd); tb.appendChild(dr);
+    var dr = el("tr", "d"); dr.hidden = !asOpen[x.id]; dr.appendChild(el("td")); var dd = el("td"); dd.colSpan = 10; dd.appendChild(sw); dr.appendChild(dd); tb.appendChild(dr);
     function toggle() { var o = dr.hidden; dr.hidden = !o; asOpen[x.id] = o; tb.classList.toggle("open", o); sh.classList.toggle("open", o); sh.setAttribute("aria-expanded", o ? "true" : "false"); }
     sh.addEventListener("click", toggle); tt.addEventListener("click", toggle);
     return tb;
@@ -1271,19 +1315,22 @@
   function asRender() {
     var st = $("as-f-status").value, ty = $("as-f-type").value, ow = $("as-f-owner").value, fby = $("as-f-by").value, fli = $("as-f-list").value, now = todayIso();
     $("as-cnt").textContent = AS.filter(function (x) { return !x.done; }).length || "";
-    var L = AS.filter(function (x) { return (st === "all" || (st === "done") === !!x.done) && (!ty || x.type === ty) && (!ow || x.owner === ow) && (!fby || String(x.by || "").toLowerCase() === fby) && (!fli || asListOf(x) === fli); });
+    var L = AS.filter(function (x) { return (st === "all" || (st === "open" ? !x.done : st === "done" ? !!x.done : asSt(x) === st)) && (!ty || x.type === ty) && (!ow || x.owner === ow) && (!fby || String(x.by || "").toLowerCase() === fby) && (!fli || asListOf(x) === fli); });
     L.sort(function (a, b) { return (a.due || "9999") < (b.due || "9999") ? -1 : (a.due || "9999") > (b.due || "9999") ? 1 : (b.created - a.created); });
     $("as-list").hidden = AS_VIEW === "cal"; $("as-cal").hidden = AS_VIEW !== "cal";
     if (AS_VIEW === "cal") { $("as-none").textContent = ""; asCal(L, now); return; }
-    var groups = [["Lejárt", "late", function (x) { return !x.done && x.due && x.due < now; }], ["Ma esedékes", "", function (x) { return !x.done && x.due === now; }], ["Közelgő", "", function (x) { return !x.done && x.due && x.due > now; }], ["Nincs határidő", "", function (x) { return !x.done && !x.due; }], ["Kész", "", function (x) { return !!x.done; }]];
+    var wkEnd = (function () { var d = new Date(); d.setDate(d.getDate() + (7 - d.getDay()) % 7); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); })();   // e hét vasárnapja
+    var groups = [["Lejárt", "late", function (x) { return !x.done && x.due && x.due < now; }], ["Ma esedékes", "today", function (x) { return !x.done && x.due === now; }], ["E heti", "week", function (x) { return !x.done && x.due && x.due > now && x.due <= wkEnd; }], ["Később", "", function (x) { return !x.done && x.due && x.due > wkEnd; }], ["Nincs határidő", "", function (x) { return !x.done && !x.due; }], ["Kész", "", function (x) { return !!x.done; }]];
     var box = $("as-list"), fa = document.activeElement, fn = fa && fa.getAttribute && fa.getAttribute("data-note-id"), fs = fn ? [fa.selectionStart, fa.selectionEnd] : null;
     box.textContent = ""; var firstRun = asSeen === null; if (firstRun) asSeen = {};
+    var dl = $("as-wait-dl"); if (!dl) { dl = el("datalist"); dl.id = "as-wait-dl"; document.body.appendChild(dl); } dl.textContent = "";
+    var wv = {}; ["Ügyfél", "Telekom", "Biztosító", "Bank", "Központ"].concat(AS.map(function (x) { return x.waitFor || ""; })).forEach(function (v) { if (v && !wv[v]) { wv[v] = 1; var o = document.createElement("option"); o.value = v; dl.appendChild(o); } });
     var tw = el("div", "as-tw"), tbl = el("table", "as-tb"), th = el("thead"), hr = el("tr");
-    [["c-ck", ""], ["c-ti", "Feladat"], ["c-ty", "Típus"], ["c-pr", "Termék"], ["c-cl", "Ügyfél"], ["c-du", "Határidő"], ["c-ow", "Felelős"], ["c-by", "Beadta"], ["c-su", ""], ["c-x", ""]].forEach(function (h) { var t = el("th", h[0]); if (h[0] === "c-su") t.appendChild(el("span", "", "Alfeladatok")); else t.textContent = h[1]; hr.appendChild(t); });
+    [["c-ck", ""], ["c-ti", "Feladat"], ["c-st", "Állapot"], ["c-ty", "Típus"], ["c-pr", "Termék"], ["c-cl", "Ügyfél"], ["c-du", "Határidő"], ["c-ow", "Felelős"], ["c-by", "Beadta"], ["c-su", ""], ["c-x", ""]].forEach(function (h) { var t = el("th", h[0]); if (h[0] === "c-su") t.appendChild(el("span", "", "Alfeladatok")); else t.textContent = h[1]; hr.appendChild(t); });
     th.appendChild(hr); tbl.appendChild(th);
     groups.forEach(function (g) {
       var items = L.filter(g[2]); if (!items.length) return;
-      var gb = el("tbody", "as-gh" + (g[1] ? " " + g[1] : "")), gr = el("tr"), gh = el("th", "", g[0] + " (" + items.length + ")"); gh.colSpan = 10; gr.appendChild(gh); gb.appendChild(gr); tbl.appendChild(gb);
+      var gb = el("tbody", "as-gh" + (g[1] ? " " + g[1] : "")), gr = el("tr"), gh = el("th", "", g[0] + " (" + items.length + ")"); gh.colSpan = 11; gr.appendChild(gh); gb.appendChild(gr); tbl.appendChild(gb);
       items.forEach(function (x, i) { var rw = asRow(x, now, firstRun); if (i % 2) rw.classList.add("alt"); tbl.appendChild(rw); });
     });
     if (L.length) { tw.appendChild(tbl); box.appendChild(tw); }
