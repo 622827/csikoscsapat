@@ -452,6 +452,10 @@
 
   <!-- Asszisztensi feladatok: csak Máté látja ezt a választót; mindenki más egyenesen az összesített nézetbe jut -->
   <section id="as-hub" hidden>
+    <div class="bar" style="margin-bottom:12px">
+      <span class="sp"></span>
+      <a class="btn" href="#" id="ash-back">← Vissza a menükhöz</a>
+    </div>
     <div class="tiles">
       <a class="tile" href="#asszisztens-ertekesites" data-sec="asszisztens-ertekesites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><b>Értékesítés</b><span>Értékesítési feladatok</span></a>
       <a class="tile" href="#asszisztens-menedzsment" data-sec="asszisztens-menedzsment"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14c2.6 0 4.5 1.8 4.5 4.5"/></svg><b>Menedzsment</b><span>Csapat- és vezetői feladatok</span></a>
@@ -636,6 +640,7 @@
   window.addEventListener("message", function (e) { if (e.origin === location.origin && e.data && e.data.embh) $("emb-frame").style.height = Math.max(300, e.data.embh + 8) + "px"; });
   window.addEventListener("message", function (e) { if (e.origin === location.origin && e.data && e.data.sbh) $("sb-frame").style.height = Math.max(300, e.data.sbh + 8) + "px"; });
   $("emb-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname + (/^#asszisztens-/.test(location.hash) ? "#asszisztens" : "")); window.dispatchEvent(new HashChangeEvent("hashchange")); });
+  $("ash-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); window.dispatchEvent(new HashChangeEvent("hashchange")); });
   $("sb-back").addEventListener("click", function (e) { e.preventDefault(); history.pushState(null, "", location.pathname); window.dispatchEvent(new HashChangeEvent("hashchange")); });
 
   $("kp-form").addEventListener("submit", function (e) {
