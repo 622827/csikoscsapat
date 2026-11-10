@@ -778,7 +778,7 @@
         if (!same) { bt.set(F.doc(db, "perf", FPUB, "fl_pub", h), want[h]); n++; }
       });
       Object.keys(old).forEach(function (h) { if (!want[h]) { bt.delete(F.doc(db, "perf", FPUB, "fl_pub", h)); n++; } });
-      return n ? bt.commit() : null;
+      return n ? bt.commit().then(function () { toast("Az ügyfél-lekérdezés frissítve (" + n + " tétel)."); }) : null;
     }).catch(function (e) { toast("Az ügyfél-lekérdezés frissítése nem sikerült: " + (e && e.message || e), true); }).then(function () { FPUBBUSY = false; if (FPUBDIRTY) setTimeout(fpubSync, 300); });
   }
   // Átállás a régi (táblázatos) tárról: egyszeri másolás, a régi adat érintetlen marad.
