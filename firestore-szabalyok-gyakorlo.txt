@@ -1,0 +1,14 @@
+// Skillek (gyakorlo.html) – ezt a két blokkot kell beilleszteni a meglévő Firestore szabályok közé,
+// a "match /databases/{database}/documents { ... }" belsejébe, a firestore-szabalyok-bovites.txt blokkjai mellé.
+// A csk_email() és csk_admin() függvényt az a fájl már létrehozta. A meglévő részeket NE töröld.
+
+    // Haladás: mindenki csak a saját (Google e-mail című) dokumentumát olvassa és írja, az admin mindet olvassa.
+    match /gy_users/{e} {
+      allow read: if request.auth != null && request.auth.token.email != null && (csk_email() == e || csk_admin());
+      allow write: if request.auth != null && request.auth.token.email != null && csk_email() == e;
+    }
+    // Hibásnak jelölt kérdések: bármely belépett munkatárs jelezhet, csak az admin látja és törli.
+    match /gy_reports/{id} {
+      allow create, update: if request.auth != null && request.auth.token.email != null;
+      allow read, delete: if csk_admin();
+    }

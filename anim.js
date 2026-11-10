@@ -35,6 +35,7 @@
     if (h.indexOf("negyedev") === 0) return IC.negyedev; if (h.indexOf("verseny") === 0) return IC.verseny;
     if (h.indexOf("csapatkassza") === 0) return IC.kassza; if (h.indexOf("elemzo") === 0) return IC.elemzo;
     if (h.indexOf("teljesitmeny") === 0) return IC.teljesitmeny; if (h.indexOf("vizsga") === 0) return IC.vizsga;
+    if (/development/i.test(txt || "")) return IC.vizsga; if (h.indexOf("gyakorlo") === 0) return IC.star;
     if (h.indexOf("index") === 0) return IC.index; if (h.indexOf("kampanynaptar") === 0) return IC.naptar; if (/PPT/i.test(txt)) return IC.ppt; return IC.star;
   }
   function init() {

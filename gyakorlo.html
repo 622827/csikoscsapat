@@ -5,16 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#003366">
-<title>Gyakorló · Csikós csapat</title>
+<title>Skillek · Csikós csapat</title>
 <link rel="icon" href="favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <!--
-  GYAKORLÓ (béta) – a teljes szakmát lefedő gyakorló app váza.
-  - Hozzáférés: ugyanaz, mint a kifogáskezelőnél. Béta alatt csak az ADMIN felületről
-    (admin belépés + teljesítmény-jelszó a munkamenetben). Élesítés után a csapat-háttér kk_init művelete adja a tárat.
-  - Adatok: Firestore perf/<tár>/gy_users/<felhasználó>, hibásnak jelölt kérdések: perf/<tár>/gy_reports/<id>.
+  SKILLEK (Development center) – a teljes szakmát lefedő gyakorló app váza.
+  - Hozzáférés és azonosítás: a csapat Google-belépése (auth.js, Felhasználók fehérlista). Vezetői nézet: #admin (csak adminnak).
+  - Adatok: Firestore gy_users/<e-mail>, hibásnak jelölt kérdések: gy_reports/<id>. Szabályok: firestore-szabalyok-gyakorlo.txt
   - Tartalom (1. kör): az MNB vizsga-kérdésbankok (kerdesbank-*.json). Formátum: { s:[fejezet], t:[[fejezet, téma]], q:[[fejezet, téma, kérdés, [válaszok], helyes]] }.
   - Mechanika: ösvény (fejezet → téma → leckék), feleletválasztós / igaz-hamis / párosítás, XP, napi cél,
     sorozat (csak munkanapok számítanak), célzott ismétlés a hibákból. Nincs élet- vagy energiarendszer.
@@ -48,6 +47,22 @@ button.chip { cursor: pointer; }
 .chip.track { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
 .chip.track::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--tc); flex: none; }
 .sp { flex: 1; }
+/* Skillválasztó (mint a Duolingóban a nyelvzászló) */
+.sk { flex: none; display: inline-grid; place-items: center; width: 30px; height: 24px; border-radius: 7px; color: #fff; font-size: .72rem; font-weight: 800; letter-spacing: .02em; box-shadow: inset 0 -3px 0 rgba(0,0,0,.18); }
+.sk.big { width: 46px; height: 36px; border-radius: 10px; font-size: .95rem; }
+.sk.plus { background: var(--track); color: var(--muted); font-size: 1.4rem; box-shadow: inset 0 -3px 0 var(--line); }
+.skchip { padding: 5px 10px 5px 6px; max-width: 58vw; }
+.skchip .skn { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 420px) { .skchip .skn { display: none; } }
+.skpop { position: fixed; z-index: 50; top: 58px; left: 0; right: 0; pointer-events: none; }
+.skpop .in { pointer-events: auto; max-width: 360px; margin-left: max(12px, calc((100vw - 600px) / 2 + 12px)); margin-right: 12px; background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 12px; box-shadow: 0 16px 40px rgba(0,30,60,.2); animation: fade .18s ease; }
+.skh { font-size: .75rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: 2px 6px 8px; }
+.skrow { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; border: 2px solid transparent; background: none; border-radius: 14px; padding: 9px 10px; cursor: pointer; line-height: 1.25; }
+.skrow:hover { background: var(--bg); }
+.skrow.on { border-color: var(--line); background: var(--bg); }
+.skrow > span:nth-child(2) { flex: 1; }
+.skrow.add { border-top: 2px solid var(--line); border-radius: 0 0 12px 12px; margin-top: 6px; padding-top: 12px; }
+.opts .skrow { border: 2px solid var(--line); background: var(--surface); box-shadow: 0 3px 0 var(--line); padding: 14px; }
 .iconbtn { border: 0; background: var(--surface); box-shadow: var(--shadow); width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; cursor: pointer; flex: none; }
 
 .card { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px; }
@@ -204,15 +219,16 @@ table.t td.n { text-align: right; font-variant-numeric: tabular-nums; }
 "use strict";
 
 /* ===================== Beállítások ===================== */
-var TEAM_API = "https://script.google.com/macros/s/AKfycbxQ-h6UZiyIp6StErApri4EaGcIYmYhCKjX5ufz_MnD3MuDqYe1tGlT330PKHjaq5WaoQ/exec";
-var KK_SALT = "kk|";               // ugyanaz a tár, mint a kifogáskezelőé: sha256(KK_SALT + teljesítmény-jelszó)
 var FBV = "https://www.gstatic.com/firebasejs/10.14.1/";
 var LESSON_LEN = 8;                // kérdés / lecke
+/* Skillek (mint a Duolingóban a nyelvek). Újat itt kell felvenni; a munkatárs maga adja hozzá a sajátjaihoz. */
 var TRACKS = [
-  { id: "penzugyi", f: "kerdesbank-penzugyi.json", n: "Pénzügyi közvetítői", c: "#cc0066" },
-  { id: "biztositas", f: "kerdesbank-biztositas.json", n: "Biztosításközvetítői", c: "#2f6db3" },
-  { id: "tokepiaci", f: "kerdesbank-tokepiaci.json", n: "Tőkepiaci", c: "#00806f" }
+  { id: "penzugyi", f: "kerdesbank-penzugyi.json", n: "Pénzügyi közvetítői", ab: "PK", d: "MNB vizsga-kérdésbank", c: "#cc0066" },
+  { id: "biztositas", f: "kerdesbank-biztositas.json", n: "Biztosításközvetítői", ab: "BK", d: "MNB vizsga-kérdésbank", c: "#2f6db3" },
+  { id: "tokepiaci", f: "kerdesbank-tokepiaci.json", n: "Tőkepiaci", ab: "TP", d: "MNB vizsga-kérdésbank", c: "#00806f" }
 ];
+function isSkill(id) { return TRACKS.some(function (t) { return t.id === id; }); }
+function mySkills(u) { u = u || S.me; return (u.my || []).filter(isSkill); }
 var GOALS = [[10, "Laza"], [20, "Normál"], [30, "Komoly"], [50, "Intenzív"]];
 var SRS = [1, 3, 7, 14];           // ismétlési időközök (nap)
 
@@ -258,33 +274,18 @@ var IC = {
 var S = { space: "", admin: false, me: null, uid: "", B: {} };
 
 /* ===================== Firestore ===================== */
+/* A csapat Google-belépésének (auth.js) bejelentkezett Firestore-kapcsolatát használjuk.
+   Gyűjtemények: gy_users/<e-mail> (mindenki csak a sajátját írja, az admin mindet olvassa), gy_reports/<id>.
+   Szabályok: firestore-szabalyok-gyakorlo.txt */
 var FB = null;
 function fb() {
   if (FB) return Promise.resolve(FB);
-  return fetch("firebase-config.json").then(function (r) { return r.json(); }).then(function (cfg) {
-    return Promise.all([import(FBV + "firebase-app.js"), import(FBV + "firebase-firestore.js")]).then(function (m) {
-      var app = m[0].initializeApp(cfg, "gy"), F = m[1], db;
-      try { db = F.initializeFirestore(app, { localCache: F.persistentLocalCache() }); } catch (e) { db = F.getFirestore(app); }
-      FB = { F: F, db: db }; return FB;
-    });
-  });
+  return loadAuth().then(function (C) { if (!C || !C.db) throw new Error("auth"); FB = { F: C.Fs, db: C.db }; return FB; });
 }
-function dref(coll, id) { return FB.F.doc(FB.db, "perf", S.space, coll, id); }
+function dref(coll, id) { return FB.F.doc(FB.db, coll, id); }
 function getD(coll, id) { return fb().then(function () { return FB.F.getDoc(dref(coll, id)); }).then(function (s) { return s.exists() ? s.data() : null; }); }
 function setD(coll, id, data, merge) { return fb().then(function () { return FB.F.setDoc(dref(coll, id), data, merge ? { merge: true } : undefined); }); }
-function allOf(coll) { return fb().then(function () { return FB.F.getDocs(FB.F.collection(FB.db, "perf", S.space, coll)); }).then(function (q) { var a = []; q.forEach(function (d) { var v = d.data(); v._id = d.id; a.push(v); }); return a; }); }
-
-/* ===================== Hozzáférés (mint a kifogáskezelőnél) ===================== */
-function teamToken() { try { var t = localStorage.getItem("csk_token"); if (t) return t; } catch (e) {} var m = document.cookie.match(/(?:^|; )csk_token=([^;]*)/); return m ? decodeURIComponent(m[1]) : ""; }
-function resolveAccess() {
-  var adm = ss("csk_admin"), pw = ss("tj_pw");
-  if (adm && pw) return sha(KK_SALT + pw).then(function (h) { return { space: h, admin: true }; });
-  var t = teamToken(); if (!t) return Promise.resolve(null);
-  return fetch(TEAM_API + "?action=kk_init&t=" + encodeURIComponent(t) + "&_=" + Date.now())
-    .then(function (r) { return r.json(); })
-    .then(function (d) { return d && d.ok && d.space ? { space: d.space, admin: false } : null; })
-    .catch(function () { return null; });
-}
+function allOf(coll) { return fb().then(function () { return FB.F.getDocs(FB.F.collection(FB.db, coll)); }).then(function (q) { var a = []; q.forEach(function (d) { var v = d.data(); v._id = d.id; a.push(v); }); return a; }); }
 
 /* ===================== Kérdésbankok ===================== */
 function trackById(id) { return TRACKS.filter(function (t) { return t.id === id; })[0] || TRACKS[0]; }
@@ -304,7 +305,7 @@ function qkey(tid, qi) { return tid + ":" + qi; }
 function cleanTitle(s) { return String(s).replace(/^[\dIVX]+(\.\d+)*\.?\s*/, ""); }
 
 /* ===================== Felhasználó ===================== */
-function blankUser(name) { return { name: name, xp: 0, lessons: 0, perfect: 0, reviews: 0, streak: 0, best: 0, lastDay: "", days: {}, goal: 20, tr: TRACKS[0].id, p: {}, open: {}, weak: {}, known: {}, st: {} }; }
+function blankUser(name) { return { name: name, my: [], xp: 0, lessons: 0, perfect: 0, reviews: 0, streak: 0, best: 0, lastDay: "", days: {}, goal: 20, tr: TRACKS[0].id, p: {}, open: {}, weak: {}, known: {}, st: {} }; }
 var saveT = null;
 function saveMe(now) {
   S.me.upd = Date.now(); LS.set("gy_me_" + S.uid, S.me);
@@ -370,7 +371,8 @@ function topbar(kind, opts) {
   if (kind !== "lesson") { var ft = $("#foot"); if (ft) ft.remove(); }
   if (kind === "home") {
     var st = liveStreak(), B = S.B[S.me.tr];
-    h = '<button class="chip track" id="tb-tr" title="Pálya váltása">' + esc(B ? B.tr.n : "") + '</button><span class="sp"></span>' +
+    h = (EMBED ? "" : '<a class="iconbtn" href="index.html" title="Vissza a főoldalra" style="color:inherit">' + ic('<path d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>') + '</a>') +
+      '<button class="chip skchip" id="tb-tr" title="Skill váltása" aria-haspopup="true">' + (B ? skillBadge(B.tr) + '<span class="skn">' + esc(B.tr.n) + '</span>' : "") + '<span class="muted">▾</span>' + '</button><span class="sp"></span>' +
       '<span class="chip streak' + (S.me.lastDay === today() ? "" : " off") + '" title="Sorozat (munkanapok)">' + IC.bolt + st + '</span>' +
       '<span class="chip xp" title="XP">' + IC.gem + S.me.xp + '</span>' +
       (S.admin ? '<button class="iconbtn" id="tb-admin" title="Vezetői statisztika">' + IC.chart + '</button>' : "");
@@ -393,47 +395,80 @@ function nav(active) {
   n.innerHTML = '<div class="in">' + NAV.map(function (x) { return '<button data-n="' + x[0] + '" class="' + (x[0] === active ? "on" : "") + '">' + x[2] + '<span>' + x[1] + '</span></button>'; }).join("") + '</div>';
   $$("button", n).forEach(function (b) { b.onclick = function () { var k = b.getAttribute("data-n"); if (k === "home") Home.open(); else if (k === "rev") Review.open(); else Profile.open(); }; });
 }
+function skillBadge(t, big) { return '<span class="sk' + (big ? " big" : "") + '" style="background:' + t.c + '">' + esc(t.ab) + '</span>'; }
+function lessonsDone(id) { var p = S.me.p[id] || {}, n = 0; Object.keys(p).forEach(function (k) { n += p[k]; }); return n; }
+function skRow(id, on, extra) { var t = trackById(id), n = lessonsDone(id);
+  return '<button class="skrow' + (on ? " on" : "") + '" data-t="' + id + '">' + skillBadge(t, true) + '<span><b>' + esc(t.n) + '</b><br><span class="muted small">' + esc(t.d) + (n ? ' · ' + n + ' lecke kész' : "") + '</span></span>' + (extra || "") + '</button>'; }
+function useSkill(id) { if (S.me.my.indexOf(id) < 0) S.me.my.push(id); S.me.tr = id; saveMe(); }
+/* Felső skillválasztó: a saját skillek + „Új skill hozzáadása” (mint a Duolingóban a nyelvek). */
 function pickTrack() {
-  modal('<h2 style="margin-top:0">Melyik vizsgára gyakorolsz?</h2><div class="opts">' + TRACKS.map(function (t) {
-    return '<button class="opt" data-t="' + t.id + '" style="' + (t.id === S.me.tr ? "border-color:" + t.c : "") + '"><span class="k" style="background:' + t.c + ';border-color:' + t.c + '"></span><span><b>' + esc(t.n) + '</b><br><span class="muted small">MNB kérdésbank</span></span></button>';
-  }).join("") + '</div><p class="muted small">A haladásod pályánként külön mentődik.</p>', function (m) {
-    $$("[data-t]", m).forEach(function (b) { b.onclick = function () { S.me.tr = b.getAttribute("data-t"); saveMe(); closeModal(); Home.open(); }; });
-  });
+  var pop = $("#skpop"); if (pop) { pop.remove(); return; }
+  var mine = mySkills(), rest = TRACKS.filter(function (t) { return mine.indexOf(t.id) < 0; });
+  pop = document.createElement("div"); pop.id = "skpop"; pop.className = "skpop";
+  pop.innerHTML = '<div class="in"><div class="skh">Saját skilljeim</div>' +
+    mine.map(function (id) { return skRow(id, id === S.me.tr, id === S.me.tr ? IC.check : ""); }).join("") +
+    (rest.length ? '<button class="skrow add" id="sk-add"><span class="sk big plus">+</span><span><b>Új skill hozzáadása</b><br><span class="muted small">' + rest.length + ' további elérhető</span></span></button>' : "") + '</div>';
+  document.body.appendChild(pop);
+  setTimeout(function () { document.addEventListener("click", function cl(e) { if (!pop.contains(e.target) || !document.body.contains(pop)) { pop.remove(); document.removeEventListener("click", cl); } }); }, 0);
+  $$("[data-t]", pop).forEach(function (b) { b.onclick = function () { pop.remove(); var id = b.getAttribute("data-t"); if (id !== S.me.tr) { S.me.tr = id; saveMe(); } Home.open(); }; });
+  var ad = $("#sk-add", pop); if (ad) ad.onclick = function () { pop.remove(); Skills.choose(false); };
 }
+/* Skill választása: első belépéskor és „Új skill hozzáadása”-nál. */
+var Skills = {
+  choose: function (first) {
+    document.body.classList.remove("wide"); nav(null);
+    var mine = mySkills(), list = TRACKS.filter(function (t) { return mine.indexOf(t.id) < 0; });
+    if (first) { $("#top").hidden = true; } else topbar("plain", { title: "Új skill", back: function () { Home.open(); } });
+    view((first ? '<h1 style="margin-top:18px">Szia, ' + esc(String(S.me.name).split(" ").slice(-1)[0] || S.me.name) + '!</h1>' : "") +
+      '<h2 style="margin-top:' + (first ? 6 : 18) + 'px">Mit szeretnél gyakorolni?</h2><p class="muted small">Később bármikor hozzáadhatsz újat a felső skillválasztóban. A haladásod skillenként külön mentődik.</p>' +
+      '<div class="opts">' + list.map(function (t) { return skRow(t.id, false); }).join("") + '</div>');
+    $$("[data-t]").forEach(function (b) { b.onclick = function () { useSkill(b.getAttribute("data-t")); Home.open(); }; });
+  }
+};
 
 /* ===================== Indulás ===================== */
 function boot() {
   $("#view").innerHTML = '<div class="center"><div class="muted">Betöltés…</div></div>';
-  resolveAccess().then(function (acc) {
-    if (!acc) return locked();
-    S.space = acc.space; S.admin = acc.admin;
-    if (location.hash === "#admin" && S.admin) return Admin.open();
-    return who();
-  }).catch(function (e) { console.error(e); locked("Nem sikerült betölteni. Ellenőrizd a kapcsolatot."); });
+  who().catch(function (e) { console.error(e); locked("Nem sikerült betölteni. Ellenőrizd a kapcsolatot."); });
 }
 function locked(msg) {
   $("#top").hidden = true; nav(null); postH();
-  view('<div class="center"><div class="card" style="max-width:420px"><h1>Gyakorló</h1><p class="muted">' + esc(msg || "Ez a felület még béta: jelenleg csak a vezetői felületről érhető el.") + '</p></div></div>');
+  view('<div class="center"><div class="card" style="max-width:420px"><h1>Skillek</h1><p class="muted">' + esc(msg || "Nem sikerült betölteni.") + '</p></div></div>');
+}
+/* Azonosítás: a csapat Google-belépése (auth.js: Firebase Auth + a Felhasználók fehérlista).
+   A haladás a Google-fiók e-mail címéhez kötődik, így mindig tudjuk, ki gyakorol. */
+function loadAuth() {
+  var w = function () { return Promise.resolve(window.CSK.ready).then(function () { return window.CSK; }); };
+  if (window.CSK && window.CSK.ready) return w();
+  return import("./auth.js?v=9").then(w).catch(function (e) { console.warn(e); return null; });
 }
 function who() {
-  var name = LS.get("gy_name", "") || LS.get("kk_name", "");
-  if (name) return loadMe(name);
-  return allOf("gy_users").catch(function () { return []; }).then(function (us) {
-    $("#top").hidden = true; nav(null);
-    view('<div class="center"><div class="card" style="text-align:left;width:100%;max-width:440px"><h1>Szia!</h1><p class="muted">Add meg a neved, így mentődik a haladásod, és a vezetőd is látja.</p>' +
-      '<input type="text" id="nm" list="nml" placeholder="Teljes név" autocomplete="name"><datalist id="nml">' + us.map(function (u) { return '<option value="' + esc(u.name) + '">'; }).join("") + '</datalist>' +
-      '<div style="height:12px"></div><button class="btn" id="nmok">Kezdjük</button></div></div>');
-    var go = function () { var v = $("#nm").value.trim(); if (v.length < 3) { toast("Írd be a teljes neved."); return; } LS.set("gy_name", v); loadMe(v); };
-    $("#nmok").onclick = go; $("#nm").onkeydown = function (e) { if (e.key === "Enter") go(); };
+  $("#top").hidden = true; nav(null);
+  view('<div class="center"><div class="muted">Belépés ellenőrzése…</div></div>');
+  return loadAuth().then(function (C) {
+    if (C && C.user) {
+      S.admin = !!C.isAdmin;
+      if (location.hash === "#admin" && S.admin) return Admin.open();
+      return loadMe(C.user, C.name || C.user);
+    }
+    postH();
+    if (!C || !C.signIn) return locked("Nem sikerült elérni a belépési szolgáltatást. Frissítsd az oldalt.");
+    view('<div class="center"><div class="card" style="max-width:440px"><h1>Skillek</h1>' +
+      '<p class="muted">' + (C.denied ? "Ez a Google-fiók (" + esc(C.denied) + ") nincs a csapat listáján. Kérd meg Mátét, hogy vegyen fel." : "Lépj be a Google-fiókoddal, így a haladásod hozzád kötődik, bármelyik eszközről folytathatod.") + '</p>' +
+      '<button class="btn" id="gin">Belépés Google-fiókkal</button></div></div>');
+    $("#gin").onclick = function () { C.signIn().then(function () { location.reload(); }).catch(function (e) { toast("A belépés nem sikerült: " + (e && e.code || e)); }); };
   });
 }
-function loadMe(name) {
-  S.uid = uidOf(name);
+function loadMe(email, name) {
+  S.uid = String(email).toLowerCase();
   var local = LS.get("gy_me_" + S.uid, null);
   return getD("gy_users", S.uid).catch(function () { return null; }).then(function (u) {
     if (local && (!u || (local.upd || 0) > (u.upd || 0))) u = local;   // ha offline mentés frissebb
-    S.me = Object.assign(blankUser(name), u || {}); S.me.name = S.me.name || name;
-    if (!u) saveMe(true);
+    S.me = Object.assign(blankUser(name), u || {}); S.me.name = name; S.me.email = S.uid;
+    if (!S.me.my) S.me.my = Object.keys(S.me.p || {}).filter(isSkill);  // régebbi mentés: ahol már haladt
+    if (!mySkills().length) { saveMe(true); return Skills.choose(true); }
+    if (mySkills().indexOf(S.me.tr) < 0) S.me.tr = mySkills()[0];
+    saveMe(!u);
     Home.open();
   });
 }
@@ -722,11 +757,11 @@ var Profile = {
       '<p class="muted small" style="margin-bottom:0">Egy lecke 10 XP, hibátlanul 15.</p></div>' +
       '<h2>Beállítások</h2><div class="card"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" id="snd"' + (FX.on ? " checked" : "") + '> Hangeffektek</label>' +
       '<p class="muted small">Kihagyott kérdések („ezt már tudom”): ' + Object.keys(u.known || {}).length + (Object.keys(u.known || {}).length ? ' · <button class="link" id="unk">visszaállítás</button>' : "") + '</p>' +
-      '<button class="btn ghost sm" id="chg">Nem ' + esc(u.name) + ' vagyok</button></div>');
+      '<p class="muted small">Belépve: ' + esc(u.email || "") + '</p><button class="btn ghost sm" id="chg">Kilépés</button></div>');
     $$("[data-g]").forEach(function (b) { b.onclick = function () { u.goal = +b.getAttribute("data-g"); saveMe(); Profile.open(); }; });
     $("#snd").onchange = function () { FX.on = this.checked; LS.set("gy_sound", FX.on); };
     var un = $("#unk"); if (un) un.onclick = function () { if (confirm("Visszaállítod az összes kihagyott kérdést?")) { u.known = {}; saveMe(); Profile.open(); } };
-    $("#chg").onclick = function () { LS.set("gy_name", ""); S.me = null; who(); };
+    $("#chg").onclick = function () { var C = window.CSK; if (C && C.signOut) C.signOut().then(function () { location.reload(); }); else location.reload(); };
   }
 };
 
@@ -735,23 +770,52 @@ var Admin = {
   tab: "users",
   open: function () {
     document.body.classList.add("wide"); nav(null); setTc(null);
-    topbar("plain", { title: "Gyakorló · vezetői nézet", right: '<button class="btn sm" id="ad-me">' + IC.path + 'Gyakorlok</button>' });
+    topbar("plain", { title: "Skillek · vezetői nézet", right: '<button class="btn sm" id="ad-me">' + IC.path + 'Gyakorlok</button>' });
     $("#ad-me").onclick = function () {
       if (EMBED) { try { window.top.location.href = "gyakorlo.html"; return; } catch (e) {} }
       history.replaceState(null, "", location.pathname + location.search); if (S.me) Home.open(); else who(); };
-    view('<div class="tabs"><button data-tab="users">Munkatársak</button><button data-tab="reports">Hibásnak jelölt kérdések</button></div><div id="ad-body" class="card"><div class="muted">Betöltés…</div></div>' +
-      (EMBED ? "" : '<p><a class="btn ghost sm" href="admin.html#gyakorlo">' + IC.back + 'Vissza az adminba</a></p>') + '<p class="muted small">Béta: a munkatársak akkor érik el, ha a kifogáskezelőnél használt élesítési kapcsoló be van kapcsolva és a menübe bekerül a <code>gyakorlo.html</code>. A régi kifogáskezelő (<code>kifogas.html</code>) érintetlenül megmaradt a repóban.</p>');
+    view('<div id="ad-menu"></div><div class="tabs"><button data-tab="users">Munkatársak</button><button data-tab="reports">Hibásnak jelölt kérdések</button></div><div id="ad-body" class="card"><div class="muted">Betöltés…</div></div>' +
+      (EMBED ? "" : '<p><a class="btn ghost sm" href="admin.html#gyakorlo">' + IC.back + 'Vissza az adminba</a></p>') + '<p class="muted small">A munkatársak a főmenü Development center → Skillek pontjából, Google-belépéssel érik el. A régi kifogáskezelő (<code>kifogas.html</code>) érintetlenül megmaradt a repóban.</p>');
     $$("[data-tab]").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-tab") === Admin.tab); b.onclick = function () { Admin.tab = b.getAttribute("data-tab"); Admin.open(); }; });
     if (Admin.tab === "users") Admin.users(); else Admin.reports();
+    Admin.menuCheck();
+  },
+  /* Főmenü: „Development center” lenyíló (Vizsga gyakorló + Skillek). Az oldaltérképet (config/sitemap) írja,
+     ugyanabban a formában, mint az admin Oldaltérkép csempéje; utána ott tovább húzogatható. */
+  menuCheck: function () {
+    var box = $("#ad-menu"); if (!box) return;
+    fb().then(function () { return FB.F.getDoc(FB.F.doc(FB.db, "config", "sitemap")); }).then(function (s) {
+      var m = s.exists() && s.data().json ? JSON.parse(s.data().json) : null;
+      if (!m || !m.items) return;
+      var it = m.items, has = function (id) { return it.some(function (x) { return x.id === id; }); };
+      if (has("dev") && it.some(function (x) { return x.href === "gyakorlo.html"; })) return;
+      box.innerHTML = '<div class="card" style="margin-bottom:14px;border:2px solid var(--gold)"><b>A főmenüben még nincs „Development center”.</b>' +
+        '<p class="muted small">Egy kattintással létrehozom a lenyíló menüt a Vizsga gyakorló helyén, alatta: Vizsga gyakorló, Skillek. Belépett munkatársak látják. Utána az Oldaltérkép csempén tovább alakítható.</p>' +
+        '<button class="btn sm" id="ad-mk">Development center létrehozása</button></div>';
+      postH();
+      $("#ad-mk").onclick = function () {
+        var vi = -1; it.forEach(function (x, i) { if (x.href === "vizsga.html" && vi < 0) vi = i; });
+        if (!has("dev")) { var dev = { id: "dev", title: "Development center", href: "", parent: "menu", menu: "show", access: "any" }; if (vi >= 0) it.splice(vi, 0, dev); else it.push(dev); }
+        it.forEach(function (x) { if (x.href === "vizsga.html") x.parent = "dev"; });
+        if (!it.some(function (x) { return x.href === "gyakorlo.html"; })) {
+          var at = -1; it.forEach(function (x, i) { if (x.parent === "dev") at = i; });
+          var sk = { id: "skill", title: "Skillek", href: "gyakorlo.html", parent: "dev", menu: "show", access: "any" };
+          if (at >= 0) it.splice(at + 1, 0, sk); else it.push(sk);
+        }
+        FB.F.setDoc(FB.F.doc(FB.db, "config", "sitemap"), { json: JSON.stringify({ v: m.v || 1, items: it }), upd: new Date().toISOString() })
+          .then(function () { box.innerHTML = '<div class="card" style="margin-bottom:14px"><b>Kész.</b> A főmenüben megjelent a Development center (frissítés után látszik).</div>'; postH(); })
+          .catch(function (e) { toast("Nem sikerült menteni: " + (e && e.code || e)); });
+      };
+    }).catch(function () {});
   },
   users: function () {
     allOf("gy_users").then(function (us) {
       us.sort(function (a, b) { return (b.xp || 0) - (a.xp || 0); });
       var wk = (function () { var d = new Date(), w = (d.getDay() + 6) % 7; d.setDate(d.getDate() - w); return dstr(d); })();
-      $("#ad-body").innerHTML = us.length ? '<div class="scroll"><table class="t"><tr><th>Név</th><th class="n">XP</th><th class="n">Heti XP</th><th class="n">Sorozat</th><th class="n">Lecke</th><th class="n">Pontosság</th><th class="n">Ismétlésre vár</th><th>Utoljára</th></tr>' +
+      $("#ad-body").innerHTML = us.length ? '<div class="scroll"><table class="t"><tr><th>Név</th><th>Skillek</th><th class="n">XP</th><th class="n">Heti XP</th><th class="n">Sorozat</th><th class="n">Lecke</th><th class="n">Pontosság</th><th class="n">Ismétlésre vár</th><th>Utoljára</th></tr>' +
         us.map(function (u) { var a = 0, o = 0; Object.keys(u.st || {}).forEach(function (k) { a += u.st[k].a; o += u.st[k].o; });
           var w = 0; Object.keys(u.days || {}).forEach(function (d) { if (d >= wk) w += u.days[d]; });
-          return '<tr><td>' + esc(u.name) + '</td><td class="n">' + (u.xp || 0) + '</td><td class="n">' + w + '</td><td class="n">' + liveStreak(u) + '</td><td class="n">' + (u.lessons || 0) + '</td><td class="n">' + (a ? Math.round(100 * o / a) + "%" : "–") + '</td><td class="n">' + Object.keys(u.weak || {}).length + '</td><td>' + esc(u.lastDay || "–") + '</td></tr>'; }).join("") +
+          return '<tr><td>' + esc(u.name) + (u.email ? '<br><span class="muted small">' + esc(u.email) + '</span>' : "") + '</td><td style="white-space:nowrap">' + mySkills(u).map(function (id) { var t = trackById(id); return '<span title="' + esc(t.n) + '">' + skillBadge(t) + '</span>'; }).join(" ") + '</td><td class="n">' + (u.xp || 0) + '</td><td class="n">' + w + '</td><td class="n">' + liveStreak(u) + '</td><td class="n">' + (u.lessons || 0) + '</td><td class="n">' + (a ? Math.round(100 * o / a) + "%" : "–") + '</td><td class="n">' + Object.keys(u.weak || {}).length + '</td><td>' + esc(u.lastDay || "–") + '</td></tr>'; }).join("") +
         '</table></div>' : '<div class="muted">Még senki nem gyakorolt.</div>';
       postH();
     }).catch(function () { $("#ad-body").innerHTML = '<div class="muted">Nem sikerült betölteni.</div>'; postH(); });
