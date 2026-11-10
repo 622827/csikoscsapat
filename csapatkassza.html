@@ -865,7 +865,12 @@
         if (x.gazda) { var o = pn(x.gazda); for (var i = 0; i < tg.length; i++) if (tg[i].rows.some(function (r) { return pn(r.nev) === o; })) return tg[i]; return null; }
         var f1 = pn(x.nev).split(" ")[0]; if (!f1) return null;
         var m = tg.filter(function (g) { return g.rows.some(function (r) { return pn(r.nev).split(" ")[0] === f1; }); });
-        return m.length === 1 ? m[0] : null;
+        if (m.length === 1) return m[0];
+        if (m.length > 1) {   // ugyanannak a személynek több száma van (pl. BB és TFC): a készülék az elsőhöz kerül
+          var nm = {}; m.forEach(function (g) { g.rows.forEach(function (r) { if (pn(r.nev).split(" ")[0] === f1) nm[pn(r.nev)] = 1; }); });
+          if (Object.keys(nm).length === 1) return m[0];
+        }
+        return null;
       }
       order.slice().forEach(function (g) {
         if (g.tel) return;
