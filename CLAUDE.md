@@ -25,4 +25,5 @@ Statikus oldal (GitHub Pages, `main` → éles, kb. 1–2 perc), build nincs. Mi
 - `teljesitmeny-szerk.html` és a `feladatok-*.html` változatok ugyanazt a kódot használják: módosításnál nézd meg, melyikben kell még.
 - Az oldalak statikus fájljai **nyilvánosak**, a jelszókérő csak a felületet takarja: **soha ne tegyél a repóba jelszót, tokent, bankszámlaszámot, munkatársak teljesítményadatait**.
 - Nincs tesztkészlet: az inline szkriptet `node -e "new Function(...)"`-nel szintaxisra ellenőrizd, a működést Playwrighttal (route-mock a Firestore-ra és az Apps Scriptre).
+- Ennek a fájlnak a frissítése: `/remd csikoscsapat` (skill: `.claude/skills/remd/SKILL.md`). Új munkamenetben érhető el.
 - A tulajdonos rövid, lényegre törő válaszokat kér, fájlt csak kérésre készíts, és szóljon, ha egy feladat sok tokent visz (akkor Gemini is szóba jön).
