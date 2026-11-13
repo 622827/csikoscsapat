@@ -318,6 +318,7 @@
   .side .closes li.hasinfo { cursor: help; }
   .side .closes li.hasinfo .m::after { content: " ⓘ"; font-size: .85em; color: var(--muted); font-weight: 400; }
   .evtip { position: fixed; z-index: 100000; width: min(340px, calc(100vw - 16px)); background: var(--card); color: var(--ink); border: 1px solid var(--track); border-radius: 14px; padding: 14px 16px; box-shadow: 0 10px 34px rgba(0,0,0,.35); font-size: .92rem; line-height: 1.4; pointer-events: none; }
+  .evtip, .evtip * { overflow-wrap: anywhere; word-break: break-word; }   /* a hosszú link (kérdőív) ne lógjon ki a buborékból */
   .evtip .evh { display: block; font-size: 1rem; margin: 0 0 8px; color: var(--mal); }
   .evtip .evr { margin: 0 0 6px; } .evtip .evk { font-weight: 700; }
   .evtip .evf { margin: 8px 0 0; color: var(--muted); font-size: .85rem; }
