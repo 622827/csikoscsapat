@@ -512,6 +512,9 @@
   .pg .as-lt.lt-ertekesites { background: #1f9d63; }
   .pg .as-lt.lt-menedzsment { background: #2f6fe0; }
   .pg .as-lt.lt-cegvezetes { background: #8e4fd8; }
+  /* Összesített nézet: a terület címkéje lenyíló, így a feladat átrakható a három lista között */
+  .pg select.as-lts { -webkit-appearance: none; appearance: none; border: 0; cursor: pointer; font-family: inherit; padding: 2px 22px 2px 9px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M1 1l3 3 3-3' fill='none' stroke='%23fff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important; background-repeat: no-repeat !important; background-position: right 8px center !important; background-size: 8px 5px !important; }
+  .pg select.as-lts option { color: #111; background: #fff; text-transform: none; letter-spacing: 0; font-weight: 600; }
   /* Állapot */
   .pg .as-stsel { font: inherit; font-size: .8rem; font-weight: 800; padding: 4px 8px; border-radius: 999px; border: 0; cursor: pointer; color: #fff; }
   .pg .as-stsel option { color: #111; background: #fff; }
@@ -1193,7 +1196,7 @@
     var ck = el("input"); ck.type = "checkbox"; ck.checked = !!x.done; ck.setAttribute("aria-label", "Kész");
     ck.addEventListener("change", function () { hold(); tb.classList.toggle("done", ck.checked); asUpd(x.id, { done: ck.checked, doneAt: ck.checked ? Date.now() : 0, st: ck.checked ? "kesz" : (x.st && x.st !== "kesz" ? x.st : "folyamatban") }); });
     td("c-ck").appendChild(ck);
-    var tt = td("c-ti"); if (!AS_LIST) tt.appendChild(el("span", "as-lt lt-" + asListOf(x), AS_LISTS[asListOf(x)])); tt.appendChild(el("div", "as-ti", x.title)); if (x.note) tt.appendChild(el("div", "as-note", x.note));
+    var tt = td("c-ti"); if (!AS_LIST) { var lsel = el("select", "as-lt as-lts lt-" + asListOf(x)); lsel.title = "Terület módosítása (áthelyezés másik listába)"; lsel.setAttribute("aria-label", "Terület"); Object.keys(AS_LISTS).forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = AS_LISTS[k]; lsel.appendChild(o); }); lsel.value = asListOf(x); lsel.addEventListener("change", function () { asUpd(x.id, { list: lsel.value }); }); tt.appendChild(lsel); } tt.appendChild(el("div", "as-ti", x.title)); if (x.note) tt.appendChild(el("div", "as-note", x.note));
     var mt = el("div", "as-mt"); mt.appendChild(el("span", "as-chip", x.type || "Egyéb")); if (x.product) mt.appendChild(el("span", "as-chip", x.product)); if (x.client) mt.appendChild(el("span", "as-cl", x.client)); tt.appendChild(mt);
     if (AS_SRC[x.src]) { var sc = el("span", "as-src", AS_SRC_IC[x.src] + " " + AS_SRC[x.src]); sc.title = "Forrás"; tt.insertBefore(sc, tt.querySelector(".as-mt")); }
     var stN = asStCtl(x); stN.className += " as-stn"; tt.appendChild(stN);

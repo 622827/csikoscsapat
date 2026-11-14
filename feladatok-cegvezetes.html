@@ -250,8 +250,18 @@
 <style>html.emb #mt-sb{display:none!important}</style>
 <style>.vtabs2{display:none!important}</style>
 <style>html.emb{color-scheme:normal!important}</style><style>
-  /* Nincs ügyfélnév és termék: űrlapmezők és táblázatoszlopok rejtve */
-  #as-prod, #as-client, .as-tb .c-pr, .as-tb .c-cl { display: none !important; }
+  /* Nincs ügyfélnév, termék és típus: űrlapmezők, szűrő és táblázatoszlopok rejtve */
+  #as-prod, #as-client, #as-type, #as-f-type, .as-tb .c-pr, .as-tb .c-cl, .as-tb .c-ty { display: none !important; }
+  /* Az űrlap rácsa a rejtett mezők nélkül: cím | határidő | felelős, alatta megjegyzés | forrás, majd a gomb */
+  html body .pg.asw .as-add { grid-template-columns: minmax(240px, 2fr) minmax(190px, 1fr) minmax(250px, 1fr); }
+  html body .pg.asw .as-add #as-title { grid-column: 1; }
+  html body .pg.asw .as-add #as-note { grid-column: 1 / span 2; }
+  html body .pg.asw .as-add #as-src, html body .pg.asw .as-add button { grid-column: 3; }
+  @media (max-width: 1199px) { html body .pg.asw .as-add { grid-template-columns: repeat(2, minmax(0, 1fr)); } html body .pg.asw .as-add #as-title, html body .pg.asw .as-add #as-note, html body .pg.asw .as-add button { grid-column: 1 / -1; } html body .pg.asw .as-add #as-src { grid-column: auto; } }
+  @media (max-width: 640px) { html body .pg.asw .as-add { grid-template-columns: 1fr; } html body .pg.asw .as-add #as-src { grid-column: 1 / -1; } }
+  /* A Felelős (és Határidő) mező címkéje alá törik, ha nem fér mellé: a nevek mindig kiférnek */
+  html body .pg .as-lb { flex-wrap: wrap; }
+  html body .pg .as-lb input, html body .pg .as-lb select { flex: 1 1 11.5em; min-width: 0; }
 </style>
 </head>
 <body>
@@ -830,7 +840,7 @@
       ev.preventDefault(); if (!FB) { toast("Az adatbázis még nem töltött be."); return; }
       if (!asCanCreate()) { toast("Feladatot csak asszisztensi jogosultsággal lehet felvenni."); return; }
       var title = $("as-title").value.trim(); if (!title) return;
-      var data = { title: title, type: $("as-type").value, product: $("as-prod").value, client: shortName($("as-client").value), due: $("as-due").value || "", owner: $("as-owner").value, by: ME.email, byName: ME.name || "", note: $("as-note").value.trim(), done: false, created: Date.now(), doneAt: 0, st: "uj", src: $("as-src").value, list: AS_LIST || ($("as-f-list").value || "ertekesites") };
+      var data = { title: title, type: NOCL ? "" : $("as-type").value, product: $("as-prod").value, client: shortName($("as-client").value), due: $("as-due").value || "", owner: $("as-owner").value, by: ME.email, byName: ME.name || "", note: $("as-note").value.trim(), done: false, created: Date.now(), doneAt: 0, st: "uj", src: $("as-src").value, list: AS_LIST || ($("as-f-list").value || "ertekesites") };
       var ref = FB.F.doc(FB.F.collection(FB.db, "perf", ID, "atasks"));
       FB.F.setDoc(ref, data).catch(function (e) { toast("Mentés sikertelen: " + e.message); });
       $("as-title").value = ""; $("as-prod").value = ""; $("as-client").value = ""; $("as-note").value = ""; $("as-src").value = ""; $("as-due").value = ""; $("as-title").focus();
@@ -1159,7 +1169,7 @@
           n.addEventListener("click", function () { asConfirm = ""; asRender(); });
           w.appendChild(y); w.appendChild(n); r.appendChild(w);
         } else { del.addEventListener("click", function () { asConfirm = x.id; asRender(); }); r.appendChild(del); }
-        var m = el("div", "as-meta"); m.appendChild(el("span", "as-chip as-stc st-" + asSt(x), AS_ST[asSt(x)] + (asSt(x) === "var" && x.waitFor ? ": " + x.waitFor : ""))); m.appendChild(el("span", "as-chip", x.type || "Egyéb")); if (x.product && !NOCL) m.appendChild(el("span", "as-chip", x.product));
+        var m = el("div", "as-meta"); m.appendChild(el("span", "as-chip as-stc st-" + asSt(x), AS_ST[asSt(x)] + (asSt(x) === "var" && x.waitFor ? ": " + x.waitFor : ""))); if (!NOCL) m.appendChild(el("span", "as-chip", x.type || "Egyéb")); if (x.product && !NOCL) m.appendChild(el("span", "as-chip", x.product));
         if (x.client && !NOCL) m.appendChild(el("span", "as-cl", x.client));
         if ((x.subs || []).length) m.appendChild(el("span", "as-chip", (x.subs.filter(function (u) { return u.done; }).length) + "/" + x.subs.length + " alfeladat"));
         m.appendChild(el("span", "", "Határidő:")); var due = el("input"); dpAttach(due); due.value = x.due || ""; due.title = "Határidő"; due.addEventListener("change", function () { asUpd(x.id, { due: due.value }); }); m.appendChild(due);
@@ -1199,11 +1209,11 @@
     ck.addEventListener("change", function () { hold(); tb.classList.toggle("done", ck.checked); asUpd(x.id, { done: ck.checked, doneAt: ck.checked ? Date.now() : 0, st: ck.checked ? "kesz" : (x.st && x.st !== "kesz" ? x.st : "folyamatban") }); });
     td("c-ck").appendChild(ck);
     var tt = td("c-ti"); if (!AS_LIST) tt.appendChild(el("span", "as-lt lt-" + asListOf(x), AS_LISTS[asListOf(x)])); tt.appendChild(el("div", "as-ti", x.title)); if (x.note) tt.appendChild(el("div", "as-note", x.note));
-    var mt = el("div", "as-mt"); mt.appendChild(el("span", "as-chip", x.type || "Egyéb")); if (x.product && !NOCL) mt.appendChild(el("span", "as-chip", x.product)); if (x.client && !NOCL) mt.appendChild(el("span", "as-cl", x.client)); tt.appendChild(mt);
+    var mt = el("div", "as-mt"); if (!NOCL) mt.appendChild(el("span", "as-chip", x.type || "Egyéb")); if (x.product && !NOCL) mt.appendChild(el("span", "as-chip", x.product)); if (x.client && !NOCL) mt.appendChild(el("span", "as-cl", x.client)); tt.appendChild(mt);
     if (AS_SRC[x.src]) { var sc = el("span", "as-src", AS_SRC_IC[x.src] + " " + AS_SRC[x.src]); sc.title = "Forrás"; tt.insertBefore(sc, tt.querySelector(".as-mt")); }
     var stN = asStCtl(x); stN.className += " as-stn"; tt.appendChild(stN);
     td("c-st").appendChild(asStCtl(x));
-    td("c-ty").appendChild(el("span", "as-chip", x.type || "Egyéb"));
+    { var cty = td("c-ty"); if (!NOCL) cty.appendChild(el("span", "as-chip", x.type || "Egyéb")); }
     var tp = td("c-pr"); if (x.product && !NOCL) tp.appendChild(el("span", "as-chip", x.product));
     var tc = td("c-cl"); if (x.client && !NOCL) tc.appendChild(el("span", "as-cl", x.client));
     var due = el("input"); dpAttach(due); due.value = x.due || ""; due.title = "Határidő"; due.addEventListener("change", function () { asUpd(x.id, { due: due.value }); }); td("c-du").appendChild(due);
@@ -1280,7 +1290,7 @@
       hd.appendChild(ad); c.appendChild(hd);
       (by[iso] || []).forEach(function (x) {
         var late = !x.done && x.due < now, ch = el("button", "wk-c" + (x.done ? " done" : "") + (late ? " late" : "") + (calTask === x.id ? " on" : ""), x.title); ch.type = "button";
-        if (x.client && !NOCL) ch.appendChild(el("em", "wk-cl", x.client)); ch.appendChild(el("small", "", (x.type || "Egyéb")));
+        if (x.client && !NOCL) ch.appendChild(el("em", "wk-cl", x.client)); if (!NOCL) ch.appendChild(el("small", "", (x.type || "Egyéb")));
         ch.addEventListener("click", function () { calTask = calTask === x.id ? "" : x.id; asRender(); });
         c.appendChild(ch); if (calTask === x.id) open = x;
       });

@@ -249,7 +249,12 @@
 <script>(function(){if(self===top)return;function send(){try{parent.postMessage({embh:document.documentElement.scrollHeight},location.origin)}catch(e){}}if(window.ResizeObserver)new ResizeObserver(send).observe(document.documentElement);window.addEventListener("load",send);setInterval(send,1200)})();</script>
 <style>html.emb #mt-sb{display:none!important}</style>
 <style>.vtabs2{display:none!important}</style>
-<style>html.emb{color-scheme:normal!important}</style></head>
+<style>html.emb{color-scheme:normal!important}</style><style>
+  /* A Felelős (és Határidő) mező címkéje alá törik, ha nem fér mellé: a nevek mindig kiférnek */
+  html body .pg .as-lb { flex-wrap: wrap; }
+  html body .pg .as-lb input, html body .pg .as-lb select { flex: 1 1 11.5em; min-width: 0; }
+</style>
+</head>
 <body>
 <div class="ldbar" aria-hidden="true"></div>
 
