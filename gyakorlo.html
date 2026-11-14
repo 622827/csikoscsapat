@@ -440,7 +440,7 @@ function locked(msg) {
 function loadAuth() {
   var w = function () { return Promise.resolve(window.CSK.ready).then(function () { return window.CSK; }); };
   if (window.CSK && window.CSK.ready) return w();
-  return import("./auth.js?v=9").then(w).catch(function (e) { console.warn(e); return null; });
+  return import("./auth.js?v=10").then(w).catch(function (e) { console.warn(e); return null; });
 }
 function who() {
   $("#top").hidden = true; nav(null);

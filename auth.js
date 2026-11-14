@@ -31,11 +31,26 @@ CSK.ready = (async function () {
       const em = u.email.toLowerCase();
       let d = null;
       try { const s = await Fs.getDoc(Fs.doc(db, "users", em)); if (s.exists()) d = s.data(); } catch (e) {}
-      if (em === ADMIN) { CSK.isAdmin = true; CSK.user = em; CSK.role = d && ROLES[d.role] ? d.role : "bl"; CSK.modul = d && (d.role === "vezetojelolt" || d.role === "reprezentans") && MODULES[d.modul] ? +d.modul : 0; CSK.asszisztens = !!(d && d.asszisztens); CSK.name = (d && d.name) || u.displayName || "Csikós Máté"; }
-      else if (d && ROLES[d.role]) { CSK.user = em; CSK.role = d.role; CSK.name = d.name || u.displayName || em; CSK.asszisztens = !!d.asszisztens; CSK.isAdmin = d.admin === true; CSK.modul = (d.role === "vezetojelolt" || d.role === "reprezentans") && MODULES[d.modul] ? +d.modul : 0; }
+      // Egy e-mail-címhez több pozíció tartozhat: a fő pozíció a dokumentum gyökerében, a többi az extra listában
+      const ents = [];
+      if (d && ROLES[d.role]) ents.push({ role: d.role, modul: d.modul, admin: d.admin === true });
+      (d && Array.isArray(d.extra) ? d.extra : []).forEach(x => { if (x && ROLES[x.role]) ents.push({ role: x.role, modul: x.modul, admin: x.admin === true }); });
+      if (em === ADMIN && !ents.length) ents.push({ role: "bl", modul: 0, admin: true });
+      if (ents.length) {
+        const RANK = ["bl", "gts", "vezetojelolt", "reprezentans", "gyakornok", "asszisztens"], rk = x => { const i = RANK.indexOf(x.role); return i < 0 ? RANK.length : i; };
+        ents.sort((a, b) => rk(a) - rk(b));
+        const isM = r => r === "vezetojelolt" || r === "reprezentans", ms = [];
+        ents.forEach(x => { if (isM(x.role) && MODULES[x.modul]) ms.push(+x.modul); });
+        CSK.user = em; CSK.role = ents[0].role; CSK.name = (d && d.name) || u.displayName || (em === ADMIN ? "Csikós Máté" : em);
+        CSK.modul = ms.length ? Math.max.apply(null, ms) : 0; CSK.modulok = ms;
+        CSK.isAdmin = em === ADMIN || ents.some(x => x.admin);
+        CSK.asszisztens = !!(d && d.asszisztens) || ents.some(x => x.role === "asszisztens");
+        CSK.szerepek = ents.map(x => x.role);
+      }
       else { CSK.denied = em; await Au.signOut(auth); }
     }
-    if (CSK.role) { CSK.tags = (CSK.isAdmin ? ["admin"] : []).concat([CSK.role],CSK.modul ? ["vj" + CSK.modul] : [], CSK.asszisztens && CSK.role !== "asszisztens" ? ["asszisztens"] : []); ls.set("csk_tags", JSON.stringify(CSK.tags)); } else ls.del("csk_tags");
+    if (CSK.role && ["bl", "gts"].indexOf(CSK.role) > -1) CSK.asszisztens = true;   // GST-től felfelé automatikus az asszisztensi jogosultság (a korábban mentett jelölés is érvényben marad)
+    if (CSK.role) { const sz = CSK.szerepek || [CSK.role]; CSK.tags = (CSK.isAdmin ? ["admin"] : []).concat(sz.filter((r, i) => sz.indexOf(r) === i), (CSK.modulok || (CSK.modul ? [CSK.modul] : [])).filter((m, i, a2) => a2.indexOf(m) === i).map(m => "vj" + m), CSK.asszisztens && sz.indexOf("asszisztens") < 0 ? ["asszisztens"] : []); ls.set("csk_tags", JSON.stringify(CSK.tags)); } else ls.del("csk_tags");
     res();
   }));
   render();
@@ -82,7 +97,7 @@ function render() {
   if (li) {
     li.textContent = "";
     if (CSK.role) {
-      const sp = document.createElement("span"); sp.innerHTML = ""; const n = document.createElement("small"); n.textContent = (CSK.name.split(" ")[0] || CSK.user) + " · " + ROLES[CSK.role] + (CSK.modul ? " (" + MODULES[CSK.modul] + ")" : "") + (CSK.asszisztens && CSK.role !== "asszisztens" ? " + Asszisztens" : "") + (CSK.isAdmin ? " + Admin" : "");
+      const sp = document.createElement("span"); sp.innerHTML = ""; const n = document.createElement("small"); n.textContent = (CSK.name.split(" ")[0] || CSK.user) + " · " + ROLES[CSK.role] + (CSK.modul ? " (" + MODULES[CSK.modul] + ")" : "") + (CSK.asszisztens && CSK.role !== "asszisztens" && CSK.role !== "bl" && CSK.role !== "gts" ? " + Asszisztens" : "") + (CSK.isAdmin ? " + Admin" : "");
       const b = document.createElement("button"); b.type = "button"; b.textContent = "Kilépés"; b.onclick = () => CSK.signOut().then(() => location.reload());
       li.appendChild(n); li.appendChild(b);
     } else {

@@ -100,6 +100,15 @@
     if (/(^|\/)admin\.html$/.test(location.pathname)) aa.setAttribute("aria-current", "page");
     aa.innerHTML = svg(IC.admin) + '<span class="lb">ADMIN</span>';
     ali.appendChild(aa); adm.appendChild(ali); side.appendChild(adm);
+    /* Az ADMIN gomb csak GST-nek, BL-nek, asszisztensnek (és adminnak) látszik: előbb a mentett jogosultságokból (nincs villanás), majd a belépés után pontosan */
+    var ADM_OK = ["gts", "bl", "asszisztens", "admin"];
+    function admShow(tags) { adm.style.display = (tags || []).some(function (t) { return ADM_OK.indexOf(t) > -1; }) ? "flex" : "none"; }
+    try { admShow(JSON.parse(localStorage.getItem("csk_tags") || "[]")); } catch (e) { admShow([]); }
+    (function waitCsk(n) {
+      var c = window.CSK;
+      if (c && c.ready) { Promise.resolve(c.ready).then(function () { admShow(c.tags); }); return; }
+      if (n < 100) setTimeout(function () { waitCsk(n + 1); }, 100);
+    })(0);
     document.body.appendChild(side);
     var bd = document.createElement("div"); bd.className = "csk-bd"; document.body.appendChild(bd);
     var mb = document.createElement("button"); mb.type = "button"; mb.className = "csk-mbtn"; mb.setAttribute("aria-label", "Menü");
@@ -274,7 +283,7 @@
       var st=document.createElement("style");st.textContent="html.csk-prelock body > *:not(#csk-lock){visibility:hidden!important}";document.head.appendChild(st);document.documentElement.classList.add("csk-prelock");
     }
   }catch(e){}
-  var s=document.createElement("script");s.type="module";s.src="auth.js?v=9";document.head.appendChild(s);
+  var s=document.createElement("script");s.type="module";s.src="auth.js?v=10";document.head.appendChild(s);
 })();
 
 /* Revamp: anime.js (helyi anime.min.js) – lépcsőzetes beúszás, számlálók, haladássávok + finom vizuális frissítés.
