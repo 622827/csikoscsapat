@@ -133,6 +133,15 @@
   .vg-kv td { padding: 7px 4px; border-top: 1px solid color-mix(in srgb, var(--muted) 18%, transparent); }
   .vg-kv td:first-child { color: var(--muted); } .vg-kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
   .vg-kv tr.tot td { font-weight: 700; color: var(--ink); }
+  .vg-bars { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin: 6px 0 4px; }
+  .vg-bar { background: var(--card); border-radius: 14px; padding: 14px 16px; }
+  .vg-bar .hd { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .vg-bar .hd b { font-size: 1rem; } .vg-bar .hd span { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ok); }
+  .vg-bar .tr { height: 14px; border-radius: 999px; background: var(--track); overflow: hidden; }
+  .vg-bar .tr i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--ok); transition: width 1.1s cubic-bezier(.22, 1, .36, 1); }
+  .vg-bar.gold .hd span { color: var(--gold); } .vg-bar.gold .tr i { background: var(--gold); }
+  .vg-bar small { display: block; margin-top: 8px; color: var(--muted); font-size: .84rem; font-variant-numeric: tabular-nums; }
+  @media (prefers-reduced-motion: reduce) { .vg-bar .tr i { transition: none; } }
   /* Pénzmozgások hónapokra bontva, hónaponként nyitható */
   details.mg-m { background: var(--card); border-radius: 14px; margin: 0 0 10px; overflow: hidden; }
   details.mg-m > summary { display: grid; grid-template-columns: minmax(150px, 1.4fr) minmax(70px, .6fr) repeat(3, minmax(110px, 1fr)); gap: 8px; align-items: center; padding: 12px 16px; cursor: pointer; list-style: none; font-variant-numeric: tabular-nums; }
@@ -1834,23 +1843,34 @@
   function vgRender() {
     var g = VG && VG.ingatlan; if (!g) return;
     var h = g.hitel || {}, kt = g.koltsegek || [], S = sched(h), now = new Date();
-    var kost = 0, kfiz = 0; kt.forEach(function (x) { kost += num(x.osszeg); if (/kifizetve/i.test(x.allapot || "")) kfiz += num(x.osszeg); });
+    function kifiz(x) { return x.kifizetve != null ? Math.min(num(x.kifizetve), num(x.osszeg)) : (/kifizetve/i.test(x.allapot || "") ? num(x.osszeg) : 0); }
+    var kost = 0, kfiz = 0; kt.forEach(function (x) { kost += num(x.osszeg); kfiz += kifiz(x); });
     var ar = num(g.vetelar), sajat = num(g.sajater), ertek = num(g.ertek), osszeg = num(h.osszeg);
     var paid = 0; S.rows.forEach(function (r) { if (r.date && r.date <= now) paid = r.k; });
+    paid = Math.max(paid, Math.min(S.rows.length, Math.round(num(h.reszletek))));
     var remaining = paid ? S.rows[paid - 1].bal : osszeg, tokeFiz = osszeg - remaining;
     function card(c, v, e) { return "<div><small>" + esc(c) + "</small><b>" + v + "</b><em>" + e + "</em></div>"; }
-    var h1 = "<h3 class='vg-h'>" + esc(g.nev || "Ingatlan") + "</h3>";
+    var tabBtn = document.querySelector("#vg-main .vg-tabs button[data-t='ingatlan']"); if (tabBtn) tabBtn.textContent = g.nev || "Ingatlan";   // a fül neve az ingatlan megnevezése
+    var h1 = "<h3 class='vg-h'>" + esc(g.cim || g.nev || "Ingatlan") + "</h3>";                                                  // alatta a pontos cím
     h1 += "<div class='mg-acc'>" +
       card("Vételár", ft(ar), g.adasvetel ? "adásvétel: " + esc(g.adasvetel) : "az adásvétel dátuma még nincs megadva") +
       card("Összes költség", ft(ar + kost), "vételár + járulékos költségek (" + ft(kost) + ")") +
       card("Saját forrás", ft(sajat + kost), "saját erő " + ft(sajat) + " + járulékos költségek " + ft(kost)) +
-      card("Becsült érték", ft(ertek), "a vételárhoz képest " + (ertek - ar >= 0 ? "+" : "") + ft(ertek - ar)) +
+      card("Az ingatlan értéke", ft(ertek), "a vételárhoz képest " + (ertek - ar >= 0 ? "+" : "") + ft(ertek - ar)) +
       card("Hátralévő hitel", ft(remaining), paid ? paid + " részlet kifizetve" : "a törlesztés még nem kezdődött el") +
-      card("Saját tőke", ft(ertek - remaining), "becsült érték − hátralévő hitel") + "</div>";
+      card("Saját tőke", ft(ertek - remaining), "az ingatlan értéke − hátralévő hitel") + "</div>";
+    // két állapotcsík: a hiteltörlesztés és az illeték kifizetése
+    var il = null; kt.forEach(function (x) { if (!il && /illet(é|e)k/i.test(x.tetel || "")) il = x; });
+    var pctH = osszeg > 0 ? Math.min(100, tokeFiz / osszeg * 100) : 0, nRes = S.rows.length;
+    var nincsFol = !paid && /folyamatban/i.test(h.allapot || "");
+    var bars = "<div class='vg-bar'><div class='hd'><b>Hiteltörlesztés</b><span>" + pctH.toFixed(1).replace(".", ",") + " %</span></div><div class='tr'><i data-w='" + pctH + "'></i></div><small>" + paid + " / " + nRes + " részlet kifizetve · tőke " + ft(tokeFiz) + " / " + ft(osszeg) + (nincsFol ? " · a hitel még nincs folyósítva" : "") + "</small></div>";
+    if (il) { var ilFz = kifiz(il), ilT = num(il.osszeg), pctI = ilT > 0 ? Math.min(100, ilFz / ilT * 100) : 0;
+      bars += "<div class='vg-bar gold'><div class='hd'><b>" + esc(il.tetel) + " kifizetése</b><span>" + pctI.toFixed(1).replace(".", ",") + " %</span></div><div class='tr'><i data-w='" + pctI + "'></i></div><small>" + ft(ilFz) + " / " + ft(ilT) + " kifizetve · hátra " + ft(Math.max(0, ilT - ilFz)) + "</small></div>"; }
+    h1 += "<h3 class='vg-h'>Állapot</h3><div class='vg-bars'>" + bars + "</div>";
     // költségek
     h1 += "<h3 class='vg-h'>Járulékos költségek</h3><table class='vg-kv'>" + kt.map(function (x) {
-      var ok = /kifizetve/i.test(x.allapot || "");
-      return "<tr><td>" + esc(x.tetel) + " <span class='vg-chip " + (ok ? "ok" : "wait") + "'>" + esc(x.allapot || "–") + "</span></td><td>" + ft(num(x.osszeg)) + "</td></tr>";
+      var fz = kifiz(x), tt = num(x.osszeg), ok = tt > 0 && fz >= tt, part = fz > 0 && fz < tt;
+      return "<tr><td>" + esc(x.tetel) + " <span class='vg-chip " + (ok ? "ok" : "wait") + "'>" + (ok ? "Kifizetve" : part ? "Részben kifizetve" : "Kifizetetlen") + "</span></td><td>" + (part ? ft(fz) + " / " : "") + ft(tt) + "</td></tr>";
     }).join("") + "<tr class='tot'><td>Összesen</td><td>" + ft(kost) + "</td></tr>" + (kost - kfiz > 0 ? "<tr><td>Ebből még kifizetetlen</td><td>" + ft(kost - kfiz) + "</td></tr>" : "") + "</table>";
     // hitel adatai
     var haso = "<span class='vg-chip " + (/folyós(ítva|ított)|kifizet/i.test(h.allapot || "") && !/folyamatban/i.test(h.allapot || "") ? "ok" : "wait") + "'>" + esc(h.allapot || "–") + "</span>";
@@ -1868,6 +1888,7 @@
       h1 += "<details class='mg-m vg-y' data-y='" + y + "'><summary><b>" + esc(cim) + "</b><span>" + rs.length + " részlet</span><span title='Tőketörlesztés'>" + ft(tk) + "</span><span title='Kamat'>" + ft(ti) + "</span><span class='net' title='Hátralévő tőke az év végén'>" + ft(rs[rs.length - 1].bal) + "</span></summary><div class='tw'><table class='mg-tb'></table></div></details>";
     }
     $("vg-ingatlan").innerHTML = h1; VG.S = S; VG.paid = paid;
+    requestAnimationFrame(function () { requestAnimationFrame(function () { [].forEach.call($("vg-ingatlan").querySelectorAll(".vg-bar i[data-w]"), function (i) { i.style.width = i.getAttribute("data-w") + "%"; }); }); });
   }
   function vgYear(d) {
     var t = d.querySelector("table"); if (!d.open || !t || t.firstChild || !VG || !VG.S) return;
