@@ -373,7 +373,7 @@
     fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: auth({ list: 1 }) })
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (d.error === "auth" || d.error === "pw") { try { localStorage.removeItem("csk_token"); } catch (e) {} location.reload(); return; }
+        if (d.error === "auth" || d.error === "pw") { var had = false; try { had = !!localStorage.getItem("csk_token"); localStorage.removeItem("csk_token"); } catch (e) {} if (had) location.reload(); return; }
         if (d.error || !d.slides) throw new Error(d.error || "üres válasz");
         try { localStorage.setItem(LK, JSON.stringify({ t: Date.now(), slides: d.slides, cfg: d.cfg || null })); } catch (e) {}
         var changed = JSON.stringify(d.slides) !== JSON.stringify(SLIDES) || JSON.stringify(d.cfg || null) !== JSON.stringify(CFG);
@@ -514,7 +514,7 @@
       .then(function (r) { return r.text(); })
       .then(function (txt) {
         clearTimeout(tm); var d; try { d = JSON.parse(txt); } catch (e) { throw new Error("A szerver válasza nem értelmezhető."); }
-        if (d.error === "auth") { try { localStorage.removeItem("csk_token"); } catch (e) {} location.reload(); return; }
+        if (d.error === "auth") { var had = false; try { had = !!localStorage.getItem("csk_token"); localStorage.removeItem("csk_token"); } catch (e) {} if (had) location.reload(); return; }
         if (d.error) throw new Error(d.error);
         var bin = atob(d.b64), n = bin.length, u = new Uint8Array(n); for (var i = 0; i < n; i++) u[i] = bin.charCodeAt(i);
         var url = URL.createObjectURL(new Blob([u], { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" }));
