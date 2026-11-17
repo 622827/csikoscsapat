@@ -482,6 +482,8 @@
   .pg .as-r .c-du { width: 1%; } .pg .as-r .c-du input { width: 116px; }
   .pg .as-r .c-ow select, .pg .as-r .c-du input { font: inherit; font-size: .85rem; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--track, #e5e5e5); background: var(--bg); color: inherit; }
   .pg .as-r .c-x { width: 1%; text-align: right; white-space: nowrap; }
+  /* A törlés megerősítése (Törlés / Mégse): a gombok egymás alatt, hogy ne lógjanak ki a kártyából */
+  .pg .as-r .c-x button.sm, .pg .as-t > span button.sm { display: block; margin: 3px 0 3px auto; padding: 7px 12px; font-size: .85rem; }
   .pg .as-r .x { display: inline-grid; place-content: center; width: 32px; height: 32px; padding: 0; border-radius: 10px; border: 2px solid var(--track, rgba(127,127,127,.35)); background: transparent; color: var(--muted); font: inherit; font-size: 1.2rem; line-height: 1; cursor: pointer; }
   .pg .as-r .x:hover, .pg .as-r .x:focus-visible { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); outline: none; }
   .pg .as-sh2 { display: inline-flex; gap: 6px; align-items: center; padding: 3px 10px; font: inherit; font-size: .82rem; font-weight: 700; color: var(--muted); background: transparent; border: 1px solid var(--track, #e5e5e5); border-radius: 999px; cursor: pointer; white-space: nowrap; }
@@ -1057,13 +1059,14 @@
     asWhoAmI(); asLoadLeaders();
   }
   /* A "Beadta" lenyílóba a vezetők (GST, BL) a felhasználók listájából. Ha a lista nem olvasható (nem admin), marad az alap lista. */
-  var BY_EXTRA = {};
+  var BY_EXTRA = {}, OWN_EXTRA = {};   // OWN_EXTRA: a vezetők (GST, BL) a Felelős listához
+  function asOwn() { var o = {}; Object.keys(AS_OWNERS).forEach(function (k) { o[k] = AS_OWNERS[k]; }); Object.keys(OWN_EXTRA).forEach(function (k) { if (!o[k]) o[k] = OWN_EXTRA[k]; }); return o; }
   function asLoadLeaders() {
     try {
       FB.F.getDocs(FB.F.collection(FB.db, "users")).then(function (snap) {
         var n = 0;
-        snap.docs.forEach(function (d) { var u = d.data() || {}; if (u.role === "gts" || u.role === "bl") { BY_EXTRA[String(d.id).toLowerCase()] = u.name || TEAM[d.id] || d.id; n++; } });
-        if (n) asRender();
+        snap.docs.forEach(function (d) { var u = d.data() || {}; if (u.role === "gts" || u.role === "bl") { BY_EXTRA[String(d.id).toLowerCase()] = OWN_EXTRA[String(d.id).toLowerCase()] = u.name || TEAM[d.id] || d.id; n++; } });
+        if (n) { var ow = asOwn(), team = Object.keys(ow).map(function (k) { return [k, ow[k]]; }), cur = $("as-owner").value; fillSel($("as-owner"), team); $("as-owner").value = cur || AS_OWNER_DEFAULT; fillSel($("as-f-owner"), team, "Minden felelős"); asRender(); }
       }).catch(function () {});
     } catch (e) {}
   }
@@ -1163,7 +1166,7 @@
         if (x.client) m.appendChild(el("span", "as-cl", x.client));
         if ((x.subs || []).length) m.appendChild(el("span", "as-chip", (x.subs.filter(function (u) { return u.done; }).length) + "/" + x.subs.length + " alfeladat"));
         m.appendChild(el("span", "", "Határidő:")); var due = el("input"); dpAttach(due); due.value = x.due || ""; due.title = "Határidő"; due.addEventListener("change", function () { asUpd(x.id, { due: due.value }); }); m.appendChild(due);
-        m.appendChild(el("span", "", "Felelős:")); var so = el("select"); var ownK = Object.keys(AS_OWNERS); if (x.owner && ownK.indexOf(x.owner) < 0) ownK.push(x.owner); ownK.forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = AS_OWNERS[k] || TEAM[k] || k; so.appendChild(o); }); so.value = x.owner || AS_OWNER_DEFAULT; so.title = "Felelős"; so.addEventListener("change", function () { asUpd(x.id, { owner: so.value }); }); m.appendChild(so);
+        m.appendChild(el("span", "", "Felelős:")); var so = el("select"); var ownK = Object.keys(asOwn()); if (x.owner && ownK.indexOf(x.owner) < 0) ownK.push(x.owner); ownK.forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = asOwn()[k] || TEAM[k] || k; so.appendChild(o); }); so.value = x.owner || AS_OWNER_DEFAULT; so.title = "Felelős"; so.addEventListener("change", function () { asUpd(x.id, { owner: so.value }); }); m.appendChild(so);
         r.appendChild(m);
         if (x.note) r.appendChild(el("div", "as-note", x.note));
         var subs = (x.subs || []).map(function (u) { return Object.assign({}, u); });
@@ -1207,8 +1210,8 @@
     var tp = td("c-pr"); if (x.product) tp.appendChild(el("span", "as-chip", x.product));
     var tc = td("c-cl"); if (x.client) tc.appendChild(el("span", "as-cl", x.client));
     var due = el("input"); dpAttach(due); due.value = x.due || ""; due.title = "Határidő"; due.addEventListener("change", function () { asUpd(x.id, { due: due.value }); }); td("c-du").appendChild(due);
-    var so = el("select"), ownK = Object.keys(AS_OWNERS); if (x.owner && ownK.indexOf(x.owner) < 0) ownK.push(x.owner);
-    ownK.forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = AS_OWNERS[k] || TEAM[k] || k; so.appendChild(o); });
+    var so = el("select"), ownK = Object.keys(asOwn()); if (x.owner && ownK.indexOf(x.owner) < 0) ownK.push(x.owner);
+    ownK.forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = asOwn()[k] || TEAM[k] || k; so.appendChild(o); });
     so.value = x.owner || AS_OWNER_DEFAULT; so.title = "Felelős"; so.addEventListener("change", function () { asUpd(x.id, { owner: so.value }); }); td("c-ow").appendChild(so);
     var tby = td("c-by"), bs = el("select"), BY = { "csikos.mate.ovb@gmail.com": "Csikós Máté" }; Object.keys(BY_EXTRA).forEach(function (k) { BY[k] = BY_EXTRA[k]; }); Object.keys(AS_OWNERS).forEach(function (k) { BY[k] = AS_OWNERS[k]; });
     var curBy = String(x.by || "").toLowerCase(); if (curBy && !BY[curBy]) BY[curBy] = x.byName || TEAM[curBy] || curBy;
