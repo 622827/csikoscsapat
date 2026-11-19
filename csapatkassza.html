@@ -305,6 +305,7 @@
   .pv.one { background: #d4001a; color: #fff; }
   .pv.tel { background: #ff8fc0; color: #5a0030; }
   .pv.dev { background: #1f9d55; color: #fff; margin-left: 6px; }
+  .pv.mem { background: #7b5cd6; color: #fff; margin-left: 6px; }   /* közös fizetés: lila, hogy ne keveredjen a készülék zöldjével */
   :root[data-theme="dark"] .pv.tel { background: #ff8fc0; color: #4a0026; }
 
   .ftable { overflow-x: auto; }
@@ -1067,7 +1068,7 @@
     }
     function subRow(x, single, g) {
       var r = el("div", "fbal " + (single ? "sum" : "sub") + (x._mem ? " mem" : "") + (x.fiz ? " rowpaid" : "")), n = el("div", "nm"), nb = el("b", "", (x._dev ? "📱 " : x._mem ? "👥 " : "") + (x.nev || "–")), pe = x._dev ? null : pill(x); if (pe) nb.appendChild(pe);
-      if (x._mem) { var mm0 = el("span", "pv dev", "Közös fizetés"); mm0.title = "A(z) " + (x.fizeto || "") + " mellé csatolva: közösen fizetnek"; nb.appendChild(mm0); }
+      if (x._mem) { var mm0 = el("span", "pv mem", "Közös fizetés"); mm0.title = "A(z) " + (x.fizeto || "") + " mellé csatolva: közösen fizetnek"; nb.appendChild(mm0); }
       var df0 = devFlag(x); if (df0) nb.appendChild(df0); if (x._dev && !df0) { var dv0 = el("span", "pv dev", "Készülék"); nb.appendChild(dv0); }
       n.appendChild(nb); n.appendChild(el("small", "", [(single || (g && g.pay) || x._mem) && !x._dev ? ftel(x.tel) : "", x.kesz ? "készülék " + ft(x.kesz) : "", x.megj].filter(Boolean).join(" · "))); n.appendChild(frTag(x.frissitve)); r.appendChild(n);
       r.appendChild(el("span", "", [x.csomag, x.net].filter(Boolean).join(" · ") || "–"));
