@@ -5,7 +5,29 @@
 (function () {
   try {
     if (window.CSKLP) return;
-    if (self !== top) return;   // beágyazott (iframe) oldalban nincs betöltő: azt a főoldal (admin) teljes ablakos betöltője fedi
+    if (self !== top) {   // beágyazott (iframe) oldalban nincs saját betöltő: azt a főoldal (admin) teljes ablakos betöltője fedi, ami addig tart, amíg az oldal "kész" jelzést nem küld
+      var posted = false, lastMut = Date.now(), pendE = 0, ofE = window.fetch;
+      window.CSKREADY = function () { if (posted) return; posted = true; try { parent.postMessage({ cskReady: 1 }, location.origin); } catch (e) {} };
+      if (ofE) window.fetch = function (u) {
+        var s = String((u && u.url) || u); if (!/script\.google(usercontent)?\.com/.test(s)) return ofE.apply(this, arguments);
+        pendE++; var p = ofE.apply(this, arguments), d = function () { pendE--; lastMut = Date.now(); }; p.then(d, d); return p;
+      };
+      try { new MutationObserver(function () { lastMut = Date.now(); }).observe(document, { childList: true, subtree: true, characterData: true }); } catch (e) {}
+      // Azok az oldalak, amelyek maguk jeleznek (window.CSK_HOLD = true; majd CSKREADY()), a jelzésükre várunk (legfeljebb 25 mp). A többi oldalnál: betöltés + belépés után amíg a tartalom és a lekérések le nem csendesednek.
+      (async function () {
+        var w = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); }, t0 = Date.now();
+        if (document.readyState !== "complete") await Promise.race([new Promise(function (r) { window.addEventListener("load", r, { once: true }); }), w(12000)]);
+        var tc = Date.now(); while (!window.CSK && Date.now() - tc < 2500) await w(60);
+        if (window.CSK && window.CSK.ready) await Promise.race([Promise.resolve(window.CSK.ready).catch(function () {}), w(9000)]);
+        while (!posted && Date.now() - t0 < 25000) {
+          if (!window.CSK_HOLD && pendE === 0 && Date.now() - lastMut > 1200) break;
+          if (!window.CSK_HOLD && Date.now() - t0 > 15000) break;
+          await w(80);
+        }
+        window.CSKREADY();
+      })().catch(function () { window.CSKREADY(); });
+      return;
+    }
     if (/(^|\/)(cegbemutato-nomenu|felbercsapat|teljesitmeny-uj)\.html$/.test(location.pathname)) return;   // nem töltenek be semmit
     var de = document.documentElement;
     var CSS =

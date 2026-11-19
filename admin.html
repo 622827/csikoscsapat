@@ -2,7 +2,7 @@
 <html lang="hu">
 <head>
 <meta charset="utf-8">
-<script src="toltes.js?v=3"></script>
+<script src="toltes.js?v=4"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- BELÉPÉS: jelszó a Google Apps Scriptben (nem az oldalon) -->
 <style>
@@ -684,12 +684,16 @@
   // Beágyazott oldal betöltése: a teljes ablakot fedő betöltő (toltes.js) addig látszik, amíg az iframe be nem tölt
   function embLoad(fr, sec) {
     var LPx = window.CSKLP; if (!LPx) return;
-    LPx.open("Admin", (SECS[sec] && SECS[sec][0]) || "Betöltés"); LPx.step("Oldal betöltése"); var g0 = LPx.gen();   // az open után olvassuk ki a generációt
-    fr.addEventListener("load", function () { if (LPx.gen() !== g0) return; LPx.step("Oldal összeállítása"); LPx.done(); });
-    setTimeout(function () { if (LPx.gen() === g0) LPx.done(); }, 15000);   // biztonság: soha ne ragadjon be
+    LPx.open("Admin", (SECS[sec] && SECS[sec][0]) || "Betöltés"); LPx.step("Oldal betöltése"); var g0 = LPx.gen(), shown = false;   // az open után olvassuk ki a generációt
+    function fin() { if (shown) return; shown = true; window.removeEventListener("message", onm); if (LPx.gen() !== g0) return; LPx.step("Oldal összeállítása"); LPx.done(); }
+    // addig tart, amíg a beágyazott oldal nem jelzi, hogy az adatai is megjelentek (toltes.js: CSKREADY); az iframe csak a betöltés után kezdi lekérni az adatait
+    function onm(e) { if (e.origin === location.origin && e.data && e.data.cskReady && fr.contentWindow && e.source === fr.contentWindow) fin(); }
+    window.addEventListener("message", onm);
+    fr.addEventListener("load", function () { if (!shown && LPx.gen() === g0) LPx.step("Adatok lekérése"); });
+    setTimeout(fin, 28000);   // biztonság: soha ne ragadjon be
   }
   var SECS = { oldalterkep: ["Oldaltérkép és jogosultságok", "Húzd a menüpontokat, hozz létre újat, zárd le vagy nyisd meg az oldalakat"], felhasznalok: ["Felhasználók", "Google-fiókkal belépők, szintek és oldalak hozzáférése"], konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"], kassza: ["Csapatkassza", "Egyenleg és tételek"], flotta: ["OVB flotta", "Flotta tételek, címkék"], iroda: ["Iroda kassza", "Iroda tételek"], kampany: ["Kampánynaptár", "2026 és 2027 · a mezők gépelés közben automatikusan mentődnek, a munkatársi oldal ebből frissül"], asszisztens: ["Asszisztensi feladatok", "Kárbejelentés, nyomtatványok, felülvizsgálatok és minden más teendő"], "asszisztens-ertekesites": ["Feladatok · Értékesítés", "Csak az értékesítési feladatok"], "asszisztens-menedzsment": ["Feladatok · Menedzsment", "Csak a menedzsment feladatok"], "asszisztens-cegvezetes": ["Feladatok · Cégvezetés", "Csak a cégvezetési feladatok"], "asszisztens-osszes": ["Feladatok · Összesített", "Mindhárom terület együtt (az asszisztens nézete)"], elemzesek: ["Elemzések utáni teendők", "Az ügyfelek a munkatársak naptárából érkeznek"], ppt: ["PPT kategóriák", "Húzd a diákat kategóriákba – a munkatársi PPT generátor ebből dolgozik"], webshop: ["Webshop", "Rendelések"], startbonusz: ["Start bónusz", "Új munkatársak mérőszámai: itt szerkeszthető, a munkatársi oldal ebből frissül"], magan: ["Magánköltségvetés", "Minden számla (Revolut, Erste, Erste TFC, Raiffeisen) · költés kategóriánként, hónapokra bontva"], gyakorlo: ["Skillek", "Development center · a munkatársak haladása skillenként"] };
-  var EMB = { oldalterkep: "oldalterkep-szerk.html?v=9&c=4", felhasznalok: "felhasznalok-szerk.html?v=4&c=5", kassza: "csapatkassza.html?c=20#kassza", flotta: "csapatkassza.html?c=20#flotta", iroda: "csapatkassza.html?c=20#iroda", kampany: "kampany-szerk.html?v=8&c=4", asszisztens: "teljesitmeny-szerk.html?v=as&c=19", "asszisztens-osszes": "teljesitmeny-szerk.html?v=as&c=19", "asszisztens-ertekesites": "feladatok-ertekesites.html?v=as&c=7", "asszisztens-menedzsment": "feladatok-menedzsment.html?v=as&c=7", "asszisztens-cegvezetes": "feladatok-cegvezetes.html?v=as&c=7", elemzesek: "teljesitmeny-szerk.html?v=perf&c=4", ppt: "ppt-szerk.html?v=9&c=4", webshop: "webshop.html?c=4", gyakorlo: "gyakorlo.html?c=4#admin" };
+  var EMB = { oldalterkep: "oldalterkep-szerk.html?v=9&c=5", felhasznalok: "felhasznalok-szerk.html?v=4&c=6", kassza: "csapatkassza.html?c=21#kassza", flotta: "csapatkassza.html?c=21#flotta", iroda: "csapatkassza.html?c=21#iroda", kampany: "kampany-szerk.html?v=8&c=5", asszisztens: "teljesitmeny-szerk.html?v=as&c=20", "asszisztens-osszes": "teljesitmeny-szerk.html?v=as&c=20", "asszisztens-ertekesites": "feladatok-ertekesites.html?v=as&c=8", "asszisztens-menedzsment": "feladatok-menedzsment.html?v=as&c=8", "asszisztens-cegvezetes": "feladatok-cegvezetes.html?v=as&c=8", elemzesek: "teljesitmeny-szerk.html?v=perf&c=5", ppt: "ppt-szerk.html?v=9&c=5", webshop: "webshop.html?c=5", gyakorlo: "gyakorlo.html?c=5#admin" };
   var PAH = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2", paDone = false;
   function perfAuth() {
     if (paDone) return; paDone = true;
@@ -721,7 +725,7 @@
       embLoad(nf, sec);
     } }
     if (sec) perfAuth();
-    if (sec === "startbonusz" && !$("sb-frame").getAttribute("src")) { embLoad($("sb-frame"), sec); $("sb-frame").src = "startbonusz-szerk.html?c=2"; }
+    if (sec === "startbonusz" && !$("sb-frame").getAttribute("src")) { embLoad($("sb-frame"), sec); $("sb-frame").src = "startbonusz-szerk.html?c=3"; }
     if (sec === "szamlak") szOpen();
     if (sec === "magan" && window.mgOpen) window.mgOpen();
   }
