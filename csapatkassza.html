@@ -1055,7 +1055,8 @@
       cb.addEventListener("change", function () { fact({ op: "fiz", id: x.id, chk: fkey(x), fiz: cb.checked }, cb.checked ? "Fizetettnek jelölve." : "Visszavonva."); });
       fz.appendChild(cb); r.appendChild(fz);
       var ac = el("div", "act"); if (single && x.egy > 0) ac.appendChild(remBtn(g, [x.nev || ""], x.egy));
-      [["+ Befizetés", "pay", function () { fpay(x); }], ["Szerkeszt", "", function () { fform(x); }]].forEach(function (c) {
+      var grouped = !single && g && g.rows && g.rows.length > 1;   // csoportban a befizetés a személy során van, nem számonként/készülékenként
+      [["+ Befizetés", "pay", function () { fpay(x); }], ["Szerkeszt", "", function () { fform(x); }]].filter(function (c) { return !(grouped && c[1] === "pay"); }).forEach(function (c) {
         var bt = el("button", c[1], c[0]); bt.type = "button"; bt.addEventListener("click", c[2]); ac.appendChild(bt);
       });
       r.appendChild(ac); return r;
@@ -1083,9 +1084,29 @@
       function toggle() { FOPEN[g.key] = !FOPEN[g.key]; renderF(); }
       tg.addEventListener("click", function (e) { e.stopPropagation(); toggle(); }); r.addEventListener("click", toggle); r.style.cursor = "pointer";
       if (sum.egy > 0) ac.appendChild(remBtn(g, names, sum.egy));
+      var pb = el("button", "pay", "+ Befizetés"); pb.type = "button"; pb.addEventListener("click", function (e) { e.stopPropagation(); fpayGroup(g, rs, sum, names); }); ac.appendChild(pb);
       ac.appendChild(tg); r.appendChild(ac); wrap.appendChild(r);
       if (open) rs.forEach(function (x) { wrap.appendChild(subRow(x, false, g)); });
       host.appendChild(wrap);
+    });
+  }
+  // Személy (csoport) szintű befizetés: az összeget a tartozó sorokra osztja (sorrendben), a többlet az első nem készülék sorra kerül; negatív összeg (korrekció) is az első sorra
+  function fpAlloc(rs, o) {
+    var main = rs.filter(function (x) { return !x._dev; })[0] || rs[0], al = [], rest = o;
+    if (o < 0) return [{ x: main, a: o }];
+    rs.forEach(function (x) { if (rest > 0 && x.egy > 0) { var a = Math.min(rest, Math.round(x.egy * 100) / 100); al.push({ x: x, a: a }); rest = Math.round((rest - a) * 100) / 100; } });
+    if (rest > 0) { var ex = al.filter(function (q) { return q.x === main; })[0]; if (ex) ex.a = Math.round((ex.a + rest) * 100) / 100; else al.push({ x: main, a: rest }); }
+    return al;
+  }
+  function fpayGroup(g, rs, sum, names) {
+    var f = {};
+    open("Befizetés · " + (g.pay || names[0] || ftel(g.tel)), function () {
+      f.ossz = field("Összeg (Ft) – a tartozásokra elosztva kerül a sorokra", inp("text", sum.egy > 0 ? Math.round(sum.egy) : "", { inputmode: "numeric", placeholder: "pl. 10000" }));
+      f.dat = field("Befizetés dátuma", inp("date", today()));
+    }, function () {
+      var o = num(f.ossz.value); if (!(o !== 0 && isFinite(o))) return Promise.reject(new Error("Add meg az összeget."));
+      var al = fpAlloc(rs, o);
+      return al.reduce(function (p, it) { return p.then(function () { return fsend({ op: "pay", id: it.x.id, chk: fkey(it.x), amount: it.a, date: f.dat.value }); }); }, Promise.resolve()).then(function () { toast("Befizetés rögzítve" + (al.length > 1 ? " (" + al.length + " sorra elosztva)" : "") + "."); });
     });
   }
   function fpay(x) {
