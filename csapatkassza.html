@@ -1312,7 +1312,8 @@
       });
       return F.setDoc(F.doc(FST.db, "perf", fid(), "fl_meta", "pkgs"), { json: JSON.stringify(out) }).then(function () {
         PK = out; toast("Csomagok mentve.");
-        if (chg.length && confirm(chg.length + " sor eltér az új árlistától (díj vagy átnevezett csomagnév). Átírjam őket az árlista szerint?")) {
+        var chgTxt = chg.slice(0, 10).map(function (c) { var p = []; if (c.dif) p.push("díj " + ft(c.r.alap + c.r.admin) + " → " + ft(c.q.alap + c.q.admin)); if (c.ren) p.push("csomagnév „" + c.r.net + "” → „" + c.q.nev + "”"); return "• " + (c.r.nev || ftel(c.r.tel) || "névtelen") + " (" + (c.r.fl || "") + "): " + p.join("; "); }).join("\n") + (chg.length > 10 ? "\n… és még " + (chg.length - 10) + " sor" : "");
+        if (chg.length && confirm(chg.length + " sor eltér az új árlistától (díj vagy átnevezett csomagnév):\n\n" + chgTxt + "\n\nÁtírjam őket az árlista szerint?")) {
           var bt = F.writeBatch(FST.db); chg.forEach(function (c) { var u = {}; if (c.dif) { u.alap = c.q.alap; u.admin = c.q.admin; } if (c.ren) u.net = c.q.nev; bt.update(F.doc(fcol("fl_rows"), c.r.id), u); });
           FPUBDIRTY = true; return bt.commit().then(function () { setTimeout(fpubSync, 400); toast(chg.length + " sor frissítve."); });
         }
