@@ -652,7 +652,9 @@
   function fnum(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function fnorm(r) {
     ["alap", "admin", "kedv", "forg", "kesz", "tart", "bef"].forEach(function (k) { r[k] = fnum(r[k]); });
-    r.hav = Math.max(0, r.alap + r.admin - r.kedv);   // havi díj = csomagdíj + admin − egyedi kedvezmény
+    r.keszBr = r.kesz;   // a megadott (kedvezmény előtti) havi készülékdíj: a szerkesztő űrlap ezt mutatja
+    if (String(r.tipus || "") === "keszulek") { r.hav = Math.max(0, r.alap + r.admin); r.kesz = Math.max(0, r.kesz - r.kedv); }   // készüléknél az egyedi kedvezmény a havi készülékdíjból vonódik le
+    else r.hav = Math.max(0, r.alap + r.admin - r.kedv);   // havi díj = csomagdíj + admin − egyedi kedvezmény
     r.ossz = r.hav + r.forg + r.kesz + r.tart; r.egy = r.ossz - r.bef; r.fiz = !!r.fiz;
     ["nev", "tel", "csomag", "net", "megj", "datum", "szerz", "huseg", "gazda", "frissitve", "tipus"].forEach(function (k) { r[k] = r[k] == null ? "" : String(r[k]); });
     r.chk = r.id; return r;
@@ -951,7 +953,7 @@
       var df0 = devFlag(x); if (df0) nb.appendChild(df0); if (x._dev && !df0) { var dv0 = el("span", "pv dev", "Készülék"); nb.appendChild(dv0); }
       n.appendChild(nb); n.appendChild(el("small", "", [single ? ftel(x.tel) : "", x.kesz ? "készülék " + ft(x.kesz) : "", x.megj].filter(Boolean).join(" · "))); n.appendChild(frTag(x.frissitve)); r.appendChild(n);
       r.appendChild(el("span", "", [x.csomag, x.net].filter(Boolean).join(" · ") || "–"));
-      var hav = x.hav, hv = el("span", "num", hav ? ft(hav) : "–"); if (x.kedv > 0) { var kd0 = el("small", "", "− kedv. " + ft(x.kedv)); kd0.style.color = "#1f9d55"; hv.appendChild(kd0); } if (x.kesz > 0) { var ks0 = el("small", "", "+ készülék " + ft(x.kesz)); ks0.style.color = "#1f9d55"; hv.appendChild(ks0); } hv.title = [x.alap ? "díj " + ft(x.alap) : "", x.admin ? "admin " + ft(x.admin) : "", x.kedv ? "egyedi kedvezmény −" + ft(x.kedv) : "", x.forg ? "forgalmi " + ft(x.forg) : "", x.kesz ? "készülék " + ft(x.kesz) : ""].filter(Boolean).join(" · ");
+      var hav = x.hav, hv = el("span", "num", hav ? ft(hav) : "–"); if (x.kedv > 0) { var kd0 = el("small", "", "− kedv. " + ft(x.kedv)); kd0.style.color = "#1f9d55"; hv.appendChild(kd0); } if (x.kesz > 0) { var ks0 = el("small", "", "+ készülék " + ft(x.kesz)); ks0.style.color = "#1f9d55"; hv.appendChild(ks0); } hv.title = [x.alap ? "díj " + ft(x.alap) : "", x.admin ? "admin " + ft(x.admin) : "", x.kedv ? "egyedi kedvezmény −" + ft(x.kedv) : "", x.forg ? "forgalmi " + ft(x.forg) : "", x.kesz || x.keszBr ? "készülék " + ft(x.keszBr != null && x.tipus === "keszulek" ? x.keszBr : x.kesz) : ""].filter(Boolean).join(" · ");
       r.appendChild(hv);
       r.appendChild(el("span", "num", x.forg > 0 ? ft(x.forg) : "–"));
       r.appendChild(el("span", "num", x.tart ? ft(x.tart) : "–")); r.appendChild(el("span", "num", ft(x.ossz)));
@@ -1133,7 +1135,7 @@
       var dvl = el("label", "", "Készülék / megnevezés (csak ha nincs csomag, pl. iPhone 16)"); f.dev = inp("text", ps.value === "" ? (x.csomag || "") : ""); dvl.appendChild(f.dev); fields.appendChild(dvl);
       ps.addEventListener("change", function () { dvl.style.display = ps.value === "" ? "" : "none"; }); dvl.style.display = ps.value === "" ? "" : "none";
       f.forg = field("Forgalmi költség (Ft)", inp("text", x.forg || "", { inputmode: "numeric" }));
-      f.kesz = field("Készülék díj (Ft)", inp("text", x.kesz || "", { inputmode: "numeric" }));
+      f.kesz = field("Készülék díj (Ft)", inp("text", (x.keszBr != null ? x.keszBr : x.kesz) || "", { inputmode: "numeric" }));
       var rm0 = /még\s+(\d+)\s+részlet/i.exec(x.megj || ""), rw = el("div", ""), ri = inp("number", rm0 ? rm0[1] : "", { min: "0", step: "1", inputmode: "numeric", placeholder: "pl. 12" });
       rw.style.cssText = "display:flex;gap:8px;align-items:center";
       function rbtn(t, d, lab) { var b = el("button", "", t); b.type = "button"; b.setAttribute("aria-label", lab); b.style.cssText = "flex:none;width:44px;height:44px;font:inherit;font-size:1.3rem;font-weight:700;border:1px solid var(--track);background:var(--bg);color:var(--ink);border-radius:12px;cursor:pointer"; b.addEventListener("click", function () { ri.value = Math.max(0, (parseInt(ri.value, 10) || 0) + d); }); return b; }
@@ -1145,12 +1147,12 @@
       if (!tfc) f.megj = field("Megjegyzés", inp("text", x.megj || ""));
       var cl = el("label", "chk"); f.fiz = inp("checkbox"); f.fiz.checked = !!x.fiz; cl.appendChild(f.fiz); cl.appendChild(document.createTextNode("Fizetve")); fields.appendChild(cl);
       // Típus szerint: készüléknél csak a készülék neve, a gazda, a havi díj, a részletek és a befizetés kell; mobilszámnál minden, kivéve a gazda
-      var simOnly = [f.tel.parentNode, pk, pinfo, f.kedv.parentNode, dvl, f.forg.parentNode, f.fris.parentNode, f.szerz.parentNode, f.huseg.parentNode], devOnly = [f.gazda.parentNode];
-      var nevLab = f.nev.parentNode.firstChild, keszLab = f.kesz.parentNode.firstChild;
+      var simOnly = [f.tel.parentNode, pk, pinfo, dvl, f.forg.parentNode, f.fris.parentNode, f.szerz.parentNode, f.huseg.parentNode], devOnly = [f.gazda.parentNode];
+      var nevLab = f.nev.parentNode.firstChild, keszLab = f.kesz.parentNode.firstChild, kedvLab = f.kedv.parentNode.firstChild;
       function applyType() {
         var dv = f.tipus.value === "keszulek";
         simOnly.forEach(function (n) { n.style.display = dv ? "none" : ""; }); devOnly.forEach(function (n) { n.style.display = dv ? "" : "none"; });
-        nevLab.textContent = dv ? "Készülék neve (pl. Macbook Pro)" : "Név"; keszLab.textContent = dv ? "Havi készülékdíj (Ft)" : "Készülék díj (Ft)";
+        nevLab.textContent = dv ? "Készülék neve (pl. Macbook Pro)" : "Név"; keszLab.textContent = dv ? "Havi készülékdíj (Ft)" : "Készülék díj (Ft)"; kedvLab.textContent = dv ? "Egyedi kedvezmény (Ft/hó, ennyit levon a havi készülékdíjból)" : "Egyedi kedvezmény (Ft/hó, ennyit levon a csomag árából)";
         if (!dv) dvl.style.display = ps.value === "" ? "" : "none";
       }
       f.tipus.addEventListener("change", applyType); applyType();
@@ -1164,7 +1166,7 @@
       if (isDev) {
         if (!nv) return Promise.reject(new Error("Add meg a készülék nevét."));
         if (!f.gazda.value.trim()) return Promise.reject(new Error("Válaszd ki, kié a készülék (a gazda száma alá kerül)."));
-        tl = ""; f.ps.value = ""; f.dev.value = ""; f.csomag.value = ""; f.net.value = ""; f.alap.value = ""; f.admin.value = ""; f.kedv.value = ""; f.forg.value = "";
+        tl = ""; f.ps.value = ""; f.dev.value = ""; f.csomag.value = ""; f.net.value = ""; f.alap.value = ""; f.admin.value = ""; f.forg.value = "";
       } else if (!nv && !tl) return Promise.reject(new Error("Add meg a nevet vagy a telefonszámot."));
       if (!isDev && f.ps.value === "") {
         if (!(num(f.kesz.value || 0) > 0) && !f.gazda.value.trim()) return Promise.reject(new Error("Válassz csomagot a listából (a Csomagok gombbal vihetsz fel újat). Készüléknél a csomag nem kötelező: add meg a Készülék gazdáját (vagy a készülék díját)."));
