@@ -684,7 +684,7 @@
   // Beágyazott oldal betöltése: a teljes ablakot fedő betöltő (toltes.js) addig látszik, amíg az iframe be nem tölt
   function embLoad(fr, sec) {
     var LPx = window.CSKLP; if (!LPx) return;
-    var g0 = LPx.gen(); LPx.open("Admin", (SECS[sec] && SECS[sec][0]) || "Betöltés"); LPx.step("Oldal betöltése");
+    LPx.open("Admin", (SECS[sec] && SECS[sec][0]) || "Betöltés"); LPx.step("Oldal betöltése"); var g0 = LPx.gen();   // az open után olvassuk ki a generációt
     fr.addEventListener("load", function () { if (LPx.gen() !== g0) return; LPx.step("Oldal összeállítása"); LPx.done(); });
     setTimeout(function () { if (LPx.gen() === g0) LPx.done(); }, 15000);   // biztonság: soha ne ragadjon be
   }
