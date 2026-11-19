@@ -997,8 +997,9 @@
     }
     sel.value = FBM;
     var bills = (typeof FINFO !== "undefined" && FINFO && FINFO.bills && FINFO.bills[FBM]) || null, bkeys = FS === "ALL" ? ["TFC", "BB", "ONE"] : [FS], bsum = 0, bhave = false, bparts = [], BN = { TFC: "TFC", BB: "BB", ONE: "One" };
-    bkeys.forEach(function (k) { var v = bills && bills[k] !== undefined && bills[k] !== "" ? Number(bills[k]) : NaN; if (isFinite(v)) { bhave = true; bsum += v; } bparts.push(BN[k] + " " + (isFinite(v) ? ft(v) : "–")); });
-    $("f-bill-v").textContent = bhave ? ft(bsum) : "–"; $("f-bill-s").textContent = bhave ? bparts.join(" · ") : "még nincs beírva (Számlák beírása)";
+    var auto = fbAuto(FBM);   // a feltöltött számlákból (Számlák oldal) automatikusan kiolvasott összegek; a kézzel beírt érték felülírja
+    bkeys.forEach(function (k) { var mv = bills && bills[k] !== undefined && bills[k] !== "" ? Number(bills[k]) : NaN, v = isFinite(mv) ? mv : (auto[k] > 0 ? auto[k] : NaN); if (isFinite(v)) { bhave = true; bsum += v; } bparts.push(BN[k] + " " + (isFinite(v) ? ft(v) + (isFinite(mv) ? "" : " (számlából)") : "–")); });
+    $("f-bill-v").textContent = bhave ? ft(bsum) : "–"; $("f-bill-s").textContent = bhave ? bparts.join(" · ") : "nincs számla erre a hónapra (töltsd fel a Számlák oldalon, vagy írd be)";
     $("f-month").textContent = ft(month); $("f-month2").textContent = rows.length + " sor · csomagdíj + admin, kedvezmény után";
     $("f-ksum").textContent = ft(ksum); $("f-ksum2").textContent = ksum ? "készülékrészletek havonta" : "nincs";
     var df = bsum - month - ksum, dv = $("f-diff"); dv.textContent = bhave ? ft(df) : "–"; dv.className = "v" + (bhave ? (df > 0 ? " out" : " in") : "");
@@ -1185,14 +1186,21 @@
     });
   }
   // A hónap bejövő számláinak végösszege (TFC, BB, One): fl_meta/info.bills[hónap]
+  // A Számlák oldalon feltöltött flotta számlákból kiolvasott összegek (fl_meta/info.bf), hónap és szolgáltató szerint összegezve
+  function fbAuto(m) {
+    var o = { TFC: 0, BB: 0, ONE: 0 }; var bf = (typeof FINFO !== "undefined" && FINFO && FINFO.bf) || {};
+    Object.keys(bf).forEach(function (k) { var e = bf[k]; if (e && e.m === m && o[e.p] !== undefined) o[e.p] += Number(e.a) || 0; });
+    return o;
+  }
   function fbills() {
     if (FMODE !== "live" || !FST) { toast("A flotta még nincs betöltve.", true); return; }
     var f = {}, b = (FINFO && FINFO.bills && FINFO.bills[FBM]) || {};
     open("Flotta számlák · " + FBM.replace("-", ". "), function () {
-      fields.appendChild(el("p", "fnote", "A hónapra szóló bejövő számlák végösszege (Ft). Ebből lesz a „Flotta díj” cella, a Különbség és a Tényleges állás."));
-      f.TFC = field("TFC flotta (Telekom) számla", inp("text", b.TFC === undefined ? "" : b.TFC, { inputmode: "numeric", placeholder: "pl. 150000" }));
-      f.BB = field("BB flotta (Telekom) számla", inp("text", b.BB === undefined ? "" : b.BB, { inputmode: "numeric", placeholder: "pl. 120000" }));
-      f.ONE = field("One flotta számla", inp("text", b.ONE === undefined ? "" : b.ONE, { inputmode: "numeric", placeholder: "pl. 90000" }));
+      fields.appendChild(el("p", "fnote", "A hónapra szóló bejövő számlák végösszege (Ft). A feltöltött számlákból az oldal magától kiolvassa; csak akkor írj ide, ha felül akarod írni. Üresen hagyva az automatikus összeg érvényes."));
+      var au = fbAuto(FBM), at = function (k) { return au[k] > 0 ? " – a feltöltött számlából: " + ft(au[k]) : ""; };
+      f.TFC = field("TFC flotta (Telekom) számla" + at("TFC"), inp("text", b.TFC === undefined ? "" : b.TFC, { inputmode: "numeric", placeholder: "pl. 150000" }));
+      f.BB = field("BB flotta (Telekom) számla" + at("BB"), inp("text", b.BB === undefined ? "" : b.BB, { inputmode: "numeric", placeholder: "pl. 120000" }));
+      f.ONE = field("One flotta számla" + at("ONE"), inp("text", b.ONE === undefined ? "" : b.ONE, { inputmode: "numeric", placeholder: "pl. 90000" }));
     }, function () {
       var o = {}; var bad = false;
       ["TFC", "BB", "ONE"].forEach(function (k) { var v = f[k].value.trim(); if (v === "") { o[k] = ""; return; } var n = num(v); if (!isFinite(n)) bad = true; o[k] = n; });

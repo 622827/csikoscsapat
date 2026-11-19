@@ -708,7 +708,7 @@
     setTimeout(fin, 28000);   // biztonság: soha ne ragadjon be
   }
   var SECS = { oldalterkep: ["Oldaltérkép és jogosultságok", "Húzd a menüpontokat, hozz létre újat, zárd le vagy nyisd meg az oldalakat"], felhasznalok: ["Felhasználók", "Google-fiókkal belépők, szintek és oldalak hozzáférése"], konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"], kassza: ["Csapatkassza", "Egyenleg és tételek"], flotta: ["OVB flotta", "Flotta tételek, címkék"], iroda: ["Iroda kassza", "Iroda tételek"], kampany: ["Kampánynaptár", "2026 és 2027 · a mezők gépelés közben automatikusan mentődnek, a munkatársi oldal ebből frissül"], asszisztens: ["Asszisztensi feladatok", "Kárbejelentés, nyomtatványok, felülvizsgálatok és minden más teendő"], "asszisztens-ertekesites": ["Feladatok · Értékesítés", "Csak az értékesítési feladatok"], "asszisztens-menedzsment": ["Feladatok · Menedzsment", "Csak a menedzsment feladatok"], "asszisztens-cegvezetes": ["Feladatok · Cégvezetés", "Csak a cégvezetési feladatok"], "asszisztens-osszes": ["Feladatok · Összesített", "Mindhárom terület együtt (az asszisztens nézete)"], elemzesek: ["Elemzések utáni teendők", "Az ügyfelek a munkatársak naptárából érkeznek"], ppt: ["PPT kategóriák", "Húzd a diákat kategóriákba – a munkatársi PPT generátor ebből dolgozik"], webshop: ["Webshop", "Rendelések"], startbonusz: ["Start bónusz", "Új munkatársak mérőszámai: itt szerkeszthető, a munkatársi oldal ebből frissül"], magan: ["Magánköltségvetés", "Minden számla (Revolut, Erste, Erste TFC, Raiffeisen) · költés kategóriánként, hónapokra bontva"], gyakorlo: ["Skillek", "Development center · a munkatársak haladása skillenként"] };
-  var EMB = { oldalterkep: "oldalterkep-szerk.html?v=9&c=6", felhasznalok: "felhasznalok-szerk.html?v=4&c=7", kassza: "csapatkassza.html?c=30#kassza", flotta: "csapatkassza.html?c=30#flotta", iroda: "csapatkassza.html?c=30#iroda", kampany: "kampany-szerk.html?v=8&c=6", asszisztens: "teljesitmeny-szerk.html?v=as&c=21", "asszisztens-osszes": "teljesitmeny-szerk.html?v=as&c=21", "asszisztens-ertekesites": "feladatok-ertekesites.html?v=as&c=9", "asszisztens-menedzsment": "feladatok-menedzsment.html?v=as&c=9", "asszisztens-cegvezetes": "feladatok-cegvezetes.html?v=as&c=9", elemzesek: "teljesitmeny-szerk.html?v=perf&c=6", ppt: "ppt-szerk.html?v=9&c=6", webshop: "webshop.html?c=6", gyakorlo: "gyakorlo.html?c=6#admin" };
+  var EMB = { oldalterkep: "oldalterkep-szerk.html?v=9&c=6", felhasznalok: "felhasznalok-szerk.html?v=4&c=7", kassza: "csapatkassza.html?c=31#kassza", flotta: "csapatkassza.html?c=31#flotta", iroda: "csapatkassza.html?c=31#iroda", kampany: "kampany-szerk.html?v=8&c=6", asszisztens: "teljesitmeny-szerk.html?v=as&c=21", "asszisztens-osszes": "teljesitmeny-szerk.html?v=as&c=21", "asszisztens-ertekesites": "feladatok-ertekesites.html?v=as&c=9", "asszisztens-menedzsment": "feladatok-menedzsment.html?v=as&c=9", "asszisztens-cegvezetes": "feladatok-cegvezetes.html?v=as&c=9", elemzesek: "teljesitmeny-szerk.html?v=perf&c=6", ppt: "ppt-szerk.html?v=9&c=6", webshop: "webshop.html?c=6", gyakorlo: "gyakorlo.html?c=6#admin" };
   var PAH = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2", paDone = false;
   function perfAuth() {
     if (paDone) return; paDone = true;
@@ -1747,19 +1747,55 @@
     }
     szpPaint(); if (kind === "ok") SZP.hide = setTimeout(function () { if (p.classList.contains("ok")) p.hidden = true; }, 12000);
   }
+  // Flotta számlák (Telekom TFC / Telekom BB / One): a havi összeg automatikus kiolvasása a PDF szövegéből
+  //  One: a "Fizetendő összesen". Telekom: a hívószámonkénti "Utólag fizetendő összesen" bruttó összegei (az előleg-jóváírás előtt, mert az előleg miatt a "Fizetendő" lehet 0 Ft) + a külön értesítő lapon lévő készülékrészletek.
+  function szNum(x) { return Number(String(x).replace(/\./g, "").replace(",", ".")) || 0; }
+  function szFlottaOsszeg(tx, szolg) {
+    var p = /Telekom TFC/.test(szolg || "") ? "TFC" : /Telekom BB/.test(szolg || "") ? "BB" : /Flotta . One/.test(szolg || "") ? "ONE" : ""; if (!p || !tx) return null;
+    var a = 0, inv = "", m;
+    if (p === "ONE") {
+      m = /Fizetend[őõo]\s+összesen:?\s*([\d.]+,\d{2})/i.exec(tx) || /fizetend[őõo]:\s*([\d.]+)\s*Ft/i.exec(tx); if (m) a = szNum(m[1]);
+      m = /Számlaszám:\s*(\d{8,})(?![\d-])/i.exec(tx); if (m) inv = m[1];
+    } else {
+      var re = /Utólag\s+fizetend[őõo]\s+összesen:?\s*([\d.]+),\d{2}\s+([\d.]+),\d{2}/gi; while ((m = re.exec(tx))) a += szNum(m[2]);
+      if (!a) { m = /Fizetend[őõo]\s+összeg:?\s*([\d.]+)/i.exec(tx); if (m) a = szNum(m[1]); }
+      m = /Summary\s+amount\s+of\s+installments:?\s*([\d.]+)\s*Ft/i.exec(tx); if (m) a += szNum(m[1]);
+      m = /Invoice\s+No\.?:?\s*(\d{10,})/i.exec(tx); if (m) inv = m[1];
+    }
+    return a > 0 ? { p: p, a: Math.round(a), inv: inv } : null;
+  }
+  // Az összeget a Flotta közös tárába (fl_meta/info.bf) is beírja, a számlaszám a kulcs (ugyanaz a számla kétszer sem számít duplán). Csak akkor, ha a Flotta ebben a böngészőben már fel volt oldva.
+  function szBf(pa, f, ho) {
+    var fid = ""; try { fid = localStorage.getItem("kassza_fid") || ""; } catch (e) {}
+    if (!fid || !pa || !/^\d{4}-\d{2}/.test(ho || "")) return Promise.resolve(false);
+    var key = String(pa.inv || (f.name + "_" + f.size)).replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 60), o = {}; o[key] = { m: String(ho).slice(0, 7), p: pa.p, a: pa.a, n: String(f.name).slice(0, 60) };
+    return SZ.F.setDoc(SZ.F.doc(SZ.db, "perf", fid, "fl_meta", "info"), { bf: o }, { merge: true }).then(function () { return true; }, function () { return false; });
+  }
   $("sz-form").addEventListener("submit", function (e) {
     e.preventDefault(); var msg = $("sz-msg");
     if (!szPick.length) { msg.textContent = "Válassz ki legalább egy fájlt."; return; }
     if (!SZ || !szKey()) { msg.textContent = "A tár még nincs betöltve."; return; }
     var big = szPick.filter(function (f) { return f.size > SZMAX; }); if (big.length) { msg.textContent = "Túl nagy fájl (legfeljebb 15 MB): " + big.map(function (f) { return f.name; }).join(", "); return; }
-    var F = SZ.F, szolg = $("sz-szolg").value, list = szPick.slice(), done = 0, go = $("sz-go"), ho = "", kiv = /kivonat/i.test(szolg), bank = "";
+    var F = SZ.F, szolg = $("sz-szolg").value, list = szPick.slice(), done = 0, go = $("sz-go"), ho = "", kiv = /kivonat/i.test(szolg), bank = "", ftx = "";
     var vissza = [];
     go.disabled = true; var total = list.length, idx = 0; szpReset(); msg.textContent = ""; szpSet(1, 3);
     (function next() {
       if (!list.length) { go.disabled = false; msg.textContent = vissza.length ? "Visszadobva, mert már szerepel a könyvelésben: " + vissza.join("; ") : ""; szpEnd("ok", "Kész: " + done + " fájl feltöltve" + (vissza.length ? ", " + vissza.length + " kimaradt" : "")); szPick = []; $("sz-file").value = ""; szShowPick(); return; }
       var f = list.shift(); idx = total - list.length - 1; szpGroup(idx, total, f.name); szpFile(idx, total, 0.04, "Beolvasás, dátum felismerése", 0.28);
-      if (SZFILES.some(function (x) { return x.name === f.name && x.size === f.size; })) { vissza.push(f.name + " (ezt a fájlt már feltöltötték)"); szpSkip("Kihagyva: már fel van töltve"); next(); return; }
+      var ex = SZFILES.filter(function (x) { return x.name === f.name && x.size === f.size; })[0];
+      if (ex) {
+        if (/^Flotta . (Telekom|One)/.test(ex.szolg || "") && ex.amt == null) {   // korábban feltöltött flotta számla: az összeget utólag kiolvassuk (nem tölti fel újra)
+          szpFile(idx, total, 0.2, "Összeg kiolvasása a már feltöltött számlából", 0.8);
+          szSzoveg(f).then(function (tx) {
+            var pa = szFlottaOsszeg(tx, ex.szolg); if (!pa) throw new Error("nem olvasható ki");
+            return F.setDoc(F.doc(szCol("sz_files"), ex.id), { amt: pa.a, inv: pa.inv }, { merge: true }).then(function () { return szBf(pa, f, ex.ho); }).then(function (ok) { vissza.push(f.name + " (már fel volt töltve; az összeg kiolvasva: " + ft(pa.a) + (ok ? ", a Flottába beírva" : ", a Flotta nincs feloldva ebben a böngészőben") + ")"); });
+          }).catch(function () { vissza.push(f.name + " (már fel volt töltve; az összeg nem olvasható ki)"); }).then(function () { szpSkip("Már fel volt töltve, az összeg kiolvasva"); next(); });
+          return;
+        }
+        vissza.push(f.name + " (ezt a fájlt már feltöltötték)"); szpSkip("Kihagyva: már fel van töltve"); next(); return;
+      }
       szSzoveg(f).then(function (tx) {
+        ftx = tx;
         if (kiv) {
           bank = /11600006|erste/i.test(tx) ? "Erste" : /10918001|unicredit/i.test(tx) ? "Unicredit" : /11773|otp\s*bank/i.test(tx) ? "OTP" : /12010|raiffeisen/i.test(tx) ? "Raiffeisen" : /10402|k&h|k\s*&\s*h/i.test(tx) ? "K&H" : /11600006/.test(f.name) ? "Erste" : "Egyéb bank";
           ho = szDatum(tx) || ""; szpFile(idx, total, 0.32, "Feltöltés a Drive-ba · " + bank, 0.82);
@@ -1771,10 +1807,11 @@
       }).then(function (dv) {
         if (dv === "skip") { szpSkip("Kihagyva: már szerepel"); return "skip"; }
         if (dv) szpFile(idx, total, 0.88, "Mentés a listába", 0.97);
-        if (dv) return F.setDoc(F.doc(szCol("sz_files")), { name: f.name, size: f.size, type: f.type || "", szolg: kiv ? szolg + " – " + bank : szolg, ho: ho, n: 0, drive: dv.url, folder: dv.folder || "", up: new Date().toISOString(), st: "uj" }).then(function () {
+        if (dv) { var pa = kiv ? null : szFlottaOsszeg(ftx, szolg), base0 = { name: f.name, size: f.size, type: f.type || "", szolg: kiv ? szolg + " – " + bank : szolg, ho: ho, n: 0, drive: dv.url, folder: dv.folder || "", up: new Date().toISOString(), st: "uj" }; if (pa) { base0.amt = pa.a; base0.inv = pa.inv; }
+        return F.setDoc(F.doc(szCol("sz_files")), base0).then(function () { return pa ? szBf(pa, f, ho) : null; }).then(function () {
           // A TFC-s telefonszámla automatikusan a TFC könyvelési anyagba is kerül (a BB-s és a One-os nem).
           if (szolg === "Flotta – Telekom TFC") return F.setDoc(F.doc(szCol("sz_files")), { name: f.name, size: f.size, type: f.type || "", szolg: "TFC könyvelés", ho: ho, n: 0, drive: dv.url, folder: dv.folder || "", up: new Date().toISOString(), st: "uj", megj: "TFC-s telefonszámla – automatikusan könyvelésre küldve" });
-        });
+        }); }
         szpFile(idx, total, 0.4, "Mentés a közös tárba", 0.9);
         return f.arrayBuffer().then(function (buf) {
         var u8 = new Uint8Array(buf), ref = F.doc(szCol("sz_files")), n = Math.ceil(u8.length / SZCH) || 1, jobs = [];
