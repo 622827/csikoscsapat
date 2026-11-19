@@ -2,6 +2,7 @@
 <html lang="hu">
 <head>
 <meta charset="utf-8">
+<script src="toltes.js?v=1"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- BELÉPÉS: jelszó a Google Apps Scriptben (nem az oldalon) -->
 <style>
@@ -111,24 +112,6 @@
   .ldsk i.w { grid-column: 1 / -1; height: 150px; }
   @keyframes ldsh { from { background-position: 120% 0; } to { background-position: -120% 0; } }
   @media (prefers-reduced-motion: reduce) { .ldp2 .sp2, .ldsk i { animation-duration: 3s; } }
-  /* Külön töltőoldal (Magán / Vagyon): teljes képernyő; kész állapotban a két fél a középvonaltól széthúzódik, és megnyílik az oldal */
-  .lpage { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; transition: opacity .35s ease; }
-  .lpage.on { opacity: 1; }
-  .lpage .lh { position: absolute; top: 0; bottom: 0; width: 50.2%; background: var(--bg); transition: transform .95s cubic-bezier(.76, 0, .24, 1) .4s; will-change: transform; }
-  .lpage .lh.l { left: 0; } .lpage .lh.r { right: 0; }
-  .lpage.out .lh.l { transform: translateX(-101%); } .lpage.out .lh.r { transform: translateX(101%); }
-  .lpage .ln { position: absolute; left: 50%; top: 50%; width: 2px; margin-left: -1px; height: 46vh; transform: translateY(-50%); background: var(--accent); opacity: .55; border-radius: 2px; transition: height .5s cubic-bezier(.76, 0, .24, 1), opacity .3s ease; }
-  .lpage.out .ln { height: 101vh; opacity: 1; transition: height .5s cubic-bezier(.76, 0, .24, 1), opacity .35s ease 1.1s; }
-  .lpage.out .ln { opacity: 0; }
-  .lpage .lc { position: relative; z-index: 1; width: min(400px, 100%); box-sizing: border-box; padding: 24px 26px; border-radius: 22px; background: var(--card); color: var(--ink); overflow: hidden; transform: translateY(10px) scale(.98); filter: blur(6px); opacity: 0; transition: transform .45s cubic-bezier(.22, 1, .36, 1), filter .45s ease, opacity .35s ease, height .42s cubic-bezier(.22, 1, .36, 1); }
-  .lpage.on .lc { transform: none; filter: none; opacity: 1; }
-  .lpage.out .lc { transform: translateY(-8px) scale(.97); filter: blur(8px); opacity: 0; transition: transform .4s ease, filter .4s ease, opacity .3s ease; }
-  .lpage .lk { margin: 0 0 4px; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-  .lpage .lt { margin: 0 0 14px; font-size: 1.25rem; font-weight: 700; }
-  .lpage .szsteps { margin: 0; max-width: none; }
-  .lpage .lx { margin-top: 16px; display: flex; gap: 8px; } .lpage .lx[hidden] { display: none; }
-  .lpage .lx button { font: inherit; font-weight: 600; padding: 8px 16px; border: 0; border-radius: 999px; background: var(--accent); color: var(--on-accent); cursor: pointer; }
-  @media (prefers-reduced-motion: reduce) { .lpage, .lpage .lc { transition-duration: .01s !important; filter: none !important; transform: none !important; } }
   .szsteps { list-style: none; margin: 12px 0 0; padding: 0; max-width: 340px; display: grid; gap: 7px; }
   .szsteps:empty { display: none; }
   .szsteps li { display: flex; align-items: center; gap: 10px; font-size: .9rem; line-height: 1.3; min-width: 0; animation: szin .28s ease-out both; }
@@ -699,7 +682,7 @@
     $("kp-err").textContent = msg || ""; setTimeout(function () { $("kp-pw").focus(); }, 50);
   }
   var SECS = { oldalterkep: ["Oldaltérkép és jogosultságok", "Húzd a menüpontokat, hozz létre újat, zárd le vagy nyisd meg az oldalakat"], felhasznalok: ["Felhasználók", "Google-fiókkal belépők, szintek és oldalak hozzáférése"], konyveles: ["Könyvelés", "The Financial Company Kft. · 2026"], szamlak: ["Számlák", "Számla, blokk, bizonylat feltöltése (PDF vagy fotó): a bekönyvelést Claude végzi"], kassza: ["Csapatkassza", "Egyenleg és tételek"], flotta: ["OVB flotta", "Flotta tételek, címkék"], iroda: ["Iroda kassza", "Iroda tételek"], kampany: ["Kampánynaptár", "2026 és 2027 · a mezők gépelés közben automatikusan mentődnek, a munkatársi oldal ebből frissül"], asszisztens: ["Asszisztensi feladatok", "Kárbejelentés, nyomtatványok, felülvizsgálatok és minden más teendő"], "asszisztens-ertekesites": ["Feladatok · Értékesítés", "Csak az értékesítési feladatok"], "asszisztens-menedzsment": ["Feladatok · Menedzsment", "Csak a menedzsment feladatok"], "asszisztens-cegvezetes": ["Feladatok · Cégvezetés", "Csak a cégvezetési feladatok"], "asszisztens-osszes": ["Feladatok · Összesített", "Mindhárom terület együtt (az asszisztens nézete)"], elemzesek: ["Elemzések utáni teendők", "Az ügyfelek a munkatársak naptárából érkeznek"], ppt: ["PPT kategóriák", "Húzd a diákat kategóriákba – a munkatársi PPT generátor ebből dolgozik"], webshop: ["Webshop", "Rendelések"], startbonusz: ["Start bónusz", "Új munkatársak mérőszámai: itt szerkeszthető, a munkatársi oldal ebből frissül"], magan: ["Magánköltségvetés", "Minden számla (Revolut, Erste, Erste TFC, Raiffeisen) · költés kategóriánként, hónapokra bontva"], gyakorlo: ["Skillek", "Development center · a munkatársak haladása skillenként"] };
-  var EMB = { oldalterkep: "oldalterkep-szerk.html?v=9&c=2", felhasznalok: "felhasznalok-szerk.html?v=4&c=3", kassza: "csapatkassza.html?c=14#kassza", flotta: "csapatkassza.html?c=14#flotta", iroda: "csapatkassza.html?c=14#iroda", kampany: "kampany-szerk.html?v=8&c=2", asszisztens: "teljesitmeny-szerk.html?v=as&c=17", "asszisztens-osszes": "teljesitmeny-szerk.html?v=as&c=17", "asszisztens-ertekesites": "feladatok-ertekesites.html?v=as&c=5", "asszisztens-menedzsment": "feladatok-menedzsment.html?v=as&c=5", "asszisztens-cegvezetes": "feladatok-cegvezetes.html?v=as&c=5", elemzesek: "teljesitmeny-szerk.html?v=perf&c=2", ppt: "ppt-szerk.html?v=9&c=2", webshop: "webshop.html?c=2", gyakorlo: "gyakorlo.html?c=2#admin" };
+  var EMB = { oldalterkep: "oldalterkep-szerk.html?v=9&c=3", felhasznalok: "felhasznalok-szerk.html?v=4&c=4", kassza: "csapatkassza.html?c=15#kassza", flotta: "csapatkassza.html?c=15#flotta", iroda: "csapatkassza.html?c=15#iroda", kampany: "kampany-szerk.html?v=8&c=3", asszisztens: "teljesitmeny-szerk.html?v=as&c=18", "asszisztens-osszes": "teljesitmeny-szerk.html?v=as&c=18", "asszisztens-ertekesites": "feladatok-ertekesites.html?v=as&c=6", "asszisztens-menedzsment": "feladatok-menedzsment.html?v=as&c=6", "asszisztens-cegvezetes": "feladatok-cegvezetes.html?v=as&c=6", elemzesek: "teljesitmeny-szerk.html?v=perf&c=3", ppt: "ppt-szerk.html?v=9&c=3", webshop: "webshop.html?c=3", gyakorlo: "gyakorlo.html?c=3#admin" };
   var PAH = "de3ed7b298cfb618a5fea46905da7eeca6aefece545520f2b24fd19e86b83bb2", paDone = false;
   function perfAuth() {
     if (paDone) return; paDone = true;
@@ -730,7 +713,7 @@
       nf.setAttribute("data-s", sec); nf.src = EMB[sec]; fr.parentNode.replaceChild(nf, fr);
     } }
     if (sec) perfAuth();
-    if (sec === "startbonusz" && !$("sb-frame").getAttribute("src")) $("sb-frame").src = "startbonusz-szerk.html";
+    if (sec === "startbonusz" && !$("sb-frame").getAttribute("src")) $("sb-frame").src = "startbonusz-szerk.html?c=1";
     if (sec === "szamlak") szOpen();
     if (sec === "magan" && window.mgOpen) window.mgOpen();
   }
@@ -1887,33 +1870,7 @@
     var m = d.getAttribute("data-m"); if (OPEN) OPEN[m] = d.open;
     var t = d.querySelector("table"); if (d.open && t && !t.firstChild && MBY[m]) t.innerHTML = TXH + rowsHtml(MBY[m]);
   }, true);
-  // Töltőoldal: lépések egymás után, az előző pipával zárul, az új sor alatta nyílik; a végén az oldal feltűnik
-  var LP = (function () {
-    var CHK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>', XX = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>';
-    var el = null, ul, card, q = Promise.resolve(), gen = 0;
-    var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
-    function grow(fn) {   // a kártya magassága animálva követi az új sort
-      var h0 = card.offsetHeight; card.style.height = "auto"; fn(); var h1 = card.offsetHeight;
-      card.style.height = h0 + "px"; void card.offsetHeight; card.style.height = h1 + "px";
-      clearTimeout(card._t); card._t = setTimeout(function () { card.style.height = "auto"; }, 460);
-    }
-    function close(kind) { var a = ul && ul.querySelector("li.act"); if (!a) return; a.className = kind || "ok"; a.querySelector(".ic").innerHTML = kind === "err" ? XX : CHK; }
-    function row(t) { var li = document.createElement("li"); li.className = "act"; var ic = document.createElement("span"); ic.className = "ic"; ic.innerHTML = '<i class="spin"></i>'; var tx = document.createElement("span"); tx.className = "tx"; tx.textContent = t; li.appendChild(ic); li.appendChild(tx); ul.appendChild(li); }
-    function hide() { if (!el) return; var e = el; el = null; e.classList.add("out"); setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 1900); }
-    return {
-      open: function (kicker, title) {
-        gen++; if (el && el.parentNode) el.parentNode.removeChild(el); q = Promise.resolve();
-        el = document.createElement("div"); el.className = "lpage"; el.setAttribute("role", "status"); el.setAttribute("aria-live", "polite");
-        el.innerHTML = '<div class="lh l"></div><div class="lh r"></div><div class="ln"></div><div class="lc"><p class="lk"></p><h2 class="lt"></h2><ul class="szsteps"></ul><div class="lx" hidden><button type="button">Bezárás</button></div></div>';
-        el.querySelector(".lk").textContent = kicker; el.querySelector(".lt").textContent = title;
-        card = el.querySelector(".lc"); ul = el.querySelector("ul"); el.querySelector("button").onclick = hide;
-        document.body.appendChild(el); void el.offsetHeight; el.classList.add("on");
-      },
-      step: function (t) { var g = gen; q = q.then(function () { if (g !== gen || !el) return; close(); grow(function () { row(t); }); return wait(420); }); },
-      done: function () { var g = gen; q = q.then(function () { if (g !== gen || !el) return; close(); return wait(480).then(function () { if (g === gen) hide(); }); }); },
-      fail: function (t) { var g = gen; q = q.then(function () { if (g !== gen || !el) return; close("err"); grow(function () { var li = document.createElement("li"); li.className = "err"; li.innerHTML = '<span class="ic">' + XX + '</span><span class="tx"></span>'; li.lastChild.textContent = t; li.lastChild.style.whiteSpace = "normal"; ul.appendChild(li); el.querySelector(".lx").hidden = false; }); }); }
-    };
-  })();
+  var LP = window.CSKLP || { open: function () {}, step: function () {}, done: function () {}, fail: function () {} };   // a töltőoldal a toltes.js-ben van
   function ldOn(id, t) { var m = $(id); m.innerHTML = '<span class="ldp2"><span class="sp2"></span><span></span></span><span class="ldsk"><i></i><i></i><i></i><i></i><i class="w"></i></span>'; m.firstChild.lastChild.textContent = t; m.hidden = false; }
   function load() {
     var first = !loaded;
