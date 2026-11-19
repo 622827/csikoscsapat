@@ -12,11 +12,11 @@
       "html.csk-tolt body>*:not(.lpage){visibility:hidden!important}html.csk-tolt body{overflow:hidden}" +
       ".lpage{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .35s ease;font-family:'Stag Sans','Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif}" +
       ".lpage.on{opacity:1}.lpage.nf{transition:none}" +
-      ".lpage .lh{position:absolute;top:0;bottom:0;width:50.2%;background:var(--bg,#fff);transition:transform .95s cubic-bezier(.76,0,.24,1) .4s;will-change:transform}" +
+      ".lpage .lh{position:absolute;top:0;bottom:0;width:50.2%;background:var(--bg,#fff);transition:transform .55s cubic-bezier(.76,0,.24,1) .05s;will-change:transform}" +
       ".lpage .lh.l{left:0}.lpage .lh.r{right:0}" +
       ".lpage.out .lh.l{transform:translateX(-101%)}.lpage.out .lh.r{transform:translateX(101%)}" +
-      ".lpage .ln{position:absolute;left:50%;top:50%;width:2px;margin-left:-1px;height:46vh;transform:translateY(-50%);background:var(--accent,#036);opacity:.55;border-radius:2px;transition:height .5s cubic-bezier(.76,0,.24,1),opacity .3s ease}" +
-      ".lpage.out .ln{height:101vh;opacity:0;transition:height .5s cubic-bezier(.76,0,.24,1),opacity .35s ease 1.1s}" +
+      ".lpage .ln{position:absolute;left:50%;top:50%;width:2px;margin-left:-1px;height:46vh;transform:translateY(-50%);background:var(--accent,#036);opacity:.55;border-radius:2px;transition:height .35s cubic-bezier(.76,0,.24,1),opacity .3s ease}" +
+      ".lpage.out .ln{height:101vh;opacity:0;transition:height .5s cubic-bezier(.76,0,.24,1),opacity .3s ease .4s}" +
       ".lpage .lc{position:relative;z-index:1;width:min(400px,100%);box-sizing:border-box;padding:24px 26px;border-radius:22px;background:var(--card,#e5e5e5);color:var(--ink,#036);overflow:hidden;transform:translateY(10px) scale(.98);filter:blur(6px);opacity:0;transition:transform .45s cubic-bezier(.22,1,.36,1),filter .45s ease,opacity .35s ease,height .42s cubic-bezier(.22,1,.36,1)}" +
       ".lpage.on .lc{transform:none;filter:none;opacity:1}" +
       ".lpage.out .lc{transform:translateY(-8px) scale(.97);filter:blur(8px);opacity:0;transition:transform .4s ease,filter .4s ease,opacity .3s ease}" +
@@ -38,7 +38,7 @@
     var st = document.createElement("style"); st.id = "csk-lp-css"; st.textContent = CSS; (document.head || de).appendChild(st);
 
     var CHK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>', XX = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>';
-    var el = null, ul = null, card = null, q = Promise.resolve(), gen = 0, DWELL = 320;
+    var el = null, ul = null, card = null, q = Promise.resolve(), gen = 0, DWELL = 90;
     var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
     function release() { de.classList.remove("csk-tolt"); }
     function whenBody(cb) {
@@ -55,7 +55,7 @@
     function row(t) { var li = document.createElement("li"); li.className = "act"; var ic = document.createElement("span"); ic.className = "ic"; ic.innerHTML = '<i class="spin"></i>'; var tx = document.createElement("span"); tx.className = "tx"; tx.textContent = t; li.appendChild(ic); li.appendChild(tx); ul.appendChild(li); }
     function hide() {
       if (!el) return; var e = el; el = null; release(); e.classList.add("out");
-      setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 1900);
+      setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 1000);
     }
     var LP = {
       gen: function () { return gen; },
@@ -70,7 +70,7 @@
         whenBody(function () { if (el !== mine) return; document.body.appendChild(el); void el.offsetHeight; el.classList.add("on"); if (instant) setTimeout(function () { if (mine.classList) mine.classList.remove("nf"); }, 60); });
       },
       step: function (t) { var g = gen; q = q.then(function () { if (g !== gen || !el) return; close(); grow(function () { row(t); }); return wait(DWELL); }); },
-      done: function () { var g = gen; q = q.then(function () { if (g !== gen || !el) return; close(); return wait(420).then(function () { if (g === gen) hide(); }); }); },
+      done: function () { var g = gen; q = q.then(function () { if (g !== gen || !el) return; close(); return wait(120).then(function () { if (g === gen) hide(); }); }); },
       fail: function (t) { var g = gen; q = q.then(function () { if (g !== gen || !el) return; close("err"); grow(function () { var li = document.createElement("li"); li.className = "err"; li.innerHTML = '<span class="ic">' + XX + '</span><span class="tx"></span>'; li.lastChild.textContent = t; li.lastChild.style.whiteSpace = "normal"; ul.appendChild(li); el.querySelector(".lx").hidden = false; }); }); }
     };
     window.CSKLP = LP;
@@ -88,14 +88,14 @@
     var g0 = gen, alive = function () { return g0 === gen && el; };
     (async function () {
       LP.step("Oldal betöltése");
-      if (document.readyState !== "complete") await Promise.race([new Promise(function (r) { window.addEventListener("load", r, { once: true }); }), wait(12000)]);
+      if (document.readyState === "loading") await Promise.race([new Promise(function (r) { document.addEventListener("DOMContentLoaded", r, { once: true }); }), wait(8000)]);
       if (!alive()) return;
       var t0 = Date.now(); while (!window.CSK && Date.now() - t0 < 2500) await wait(60);
       if (!alive()) return;
       if (window.CSK && window.CSK.ready) { LP.step("Belépés ellenőrzése"); await Promise.race([Promise.resolve(window.CSK.ready).catch(function () {}), wait(9000)]); if (!alive()) return; }
       LP.step("Adatok lekérése");
       var t1 = Date.now(); last = Date.now();
-      while ((pend > 0 || Date.now() - last < 600 || Date.now() - t1 < 500) && Date.now() - t1 < 20000) await wait(80);
+      while (pend > 0 && Date.now() - t1 < 1200) await wait(60);   // az adatlekérést legfeljebb rövid ideig várjuk meg, az oldal addig is használható
       if (!alive()) return;
       LP.step("Oldal összeállítása"); LP.done();
     })().catch(function () { release(); });
