@@ -795,6 +795,7 @@
       if (body.id) p = F.setDoc(F.doc(col, body.id), data, { merge: true }); else { data.ord = Date.now(); p = F.addDoc(col, data); }
     } else if (body.op === "del") p = F.deleteDoc(F.doc(col, body.id));
     else if (body.op === "fiz") p = F.updateDoc(F.doc(col, body.id), { fiz: !!body.fiz });
+    else if (body.op === "fizeto") p = F.updateDoc(F.doc(col, body.id), { fizeto: String(body.fizeto || "") });
     else if (body.op === "pay") {
       var cur = FD && FD.rows.filter(function (x) { return x.id === body.id; })[0]; if (!cur) return Promise.reject(new Error("A sor nem található."));
       var nb = cur.bef + body.amount;
@@ -1231,9 +1232,23 @@
       hosts.sort(function (p, q) { return p.localeCompare(q, "hu"); });
       if (x.gazda && hosts.indexOf(x.gazda) < 0) hosts.unshift(x.gazda);
       f.gazda = field("Kié a készülék? (akinek a száma alá kerül)", sel([["", "– válassz gazdát –"]].concat(hosts.map(function (h) { return [h, h]; })), x.gazda || ""));
-      var fzl = [], fzs = {}; ((fcur() && fcur().rows) || []).forEach(function (r) { var q = String(r.fizeto || "").trim(); if (q && !fzs[fpName(q)]) { fzs[fpName(q)] = 1; fzl.push(q); } });
-      f.fizeto = field("Közös fizetés (akikkel együtt fizet, a csoport neve)", inp("text", x.fizeto || "", { placeholder: "pl. Porpáczy – ugyanezt írd a többi taghoz is", list: "f-fizl", maxlength: "60" }));
-      var dl = el("datalist"); dl.id = "f-fizl"; fzl.sort(function (p, q) { return p.localeCompare(q, "hu"); }).forEach(function (q) { var o = el("option"); o.value = q; dl.appendChild(o); }); fields.appendChild(dl);
+      var fzl = [], fzs = {}, fzp = [], fzpn = {}, frows = (fcur() && fcur().rows) || [], hu = function (p, q) { return p.localeCompare(q, "hu"); };
+      frows.forEach(function (r) { var q = String(r.fizeto || "").trim(); if (q && !fzs[fpName(q)]) { fzs[fpName(q)] = 1; fzl.push(q); } });
+      if (x.fizeto && !fzs[fpName(x.fizeto)]) { fzs[fpName(x.fizeto)] = 1; fzl.push(x.fizeto); }
+      frows.forEach(function (r) { var nm = String(r.nev || "").trim(), k = fpName(nm); if (r.tel && nm && !r.fizeto && r.id !== x.id && !fzpn[k] && !fzs[k]) { fzpn[k] = 1; fzp.push(nm); } });
+      fzl.sort(hu); fzp.sort(hu);
+      var fzo = [["", "– nincs közös fizetés –"]].concat(fzl.map(function (q) { return ["g:" + q, q + " (csoport)"]; }), fzp.map(function (q) { return ["p:" + q, q]; }), [["__new", "+ Új csoport létrehozása…"]]);
+      var fz0 = x.fizeto ? (fzl.filter(function (q) { return fpName(q) === fpName(x.fizeto); })[0] || x.fizeto) : "";
+      var fzsel = sel(fzo, fz0 ? "g:" + fz0 : ""), fzin = inp("text", fz0, { placeholder: "A csoport neve, pl. Porpáczy", maxlength: "60" });
+      f.fizeto = fzin; f._attach = "";   // a mentett érték a szövegmező; a legördülő csak kitölti (a csoport vagy személy neve), az "Új csoport" a mezőt nyitja meg
+      var fzlab = el("label", "", "Közös fizetés (akivel együtt fizet: válassz csoportot vagy személyt)"); fzlab.appendChild(fzsel); fzlab.appendChild(fzin); fields.appendChild(fzlab);
+      function fzShow() { fzin.style.display = fzsel.value === "__new" ? "" : "none"; }
+      fzsel.addEventListener("change", function () {
+        var v = fzsel.value; f._attach = "";
+        if (v === "__new") { fzin.value = ""; fzShow(); fzin.focus(); return; }
+        if (v === "") fzin.value = ""; else if (v.indexOf("g:") === 0) fzin.value = v.slice(2); else { fzin.value = v.slice(2); f._attach = v.slice(2); }
+        fzShow();
+      }); fzShow();
       var pk = el("label", "", "Csomag (csak a Csomagok fülön felvitt közül)"), ps = el("select"), pinfo = el("p", "fnote", ""); pk.appendChild(ps); fields.appendChild(pk); fields.appendChild(pinfo);
       f.csomag = inp("text", x.csomag || ""); f.net = inp("text", x.net || ""); f.alap = inp("text", x.alap === 0 ? "0" : (x.alap || "")); f.admin = inp("text", x.admin === 0 ? "0" : (x.admin || ""));
       f.kedv = field("Egyedi kedvezmény (Ft/hó, ennyit levon a csomag árából)", inp("text", x.kedv ? String(x.kedv) : "", { inputmode: "numeric", placeholder: "pl. 476" }));
@@ -1292,7 +1307,11 @@
       var rn = parseInt(f.rest.value, 10); if (rn > 0) row.megj = (row.megj ? row.megj + " · " : "") + "még " + rn + " részlet";
       ["alap", "admin", "kedv", "forg", "tart", "kesz", "bef"].forEach(function (k) { var v = f[k].value.trim(); row[k] = v === "" ? "" : num(v); });
       for (var k in { alap: 1, admin: 1, kedv: 1, forg: 1, tart: 1, kesz: 1, bef: 1 }) if (row[k] !== "" && !isFinite(row[k])) return Promise.reject(new Error("Az összegek számok legyenek."));
-      return fsend({ op: "save", id: x.id || "", chk: row.chk, row: row }).then(function () { toast("Mentve."); });
+      return fsend({ op: "save", id: x.id || "", chk: row.chk, row: row }).then(function () {
+        // Ha személyhez csatoltad, a személy (még csoport nélküli) sorai is bekerülnek ugyanabba a csoportba
+        var nm = f._attach, ps = !nm || !row.fizeto ? [] : ((fcur() && fcur().rows) || []).filter(function (r) { return r.id && r.id !== x.id && r.tel && !r.fizeto && fpName(r.nev) === fpName(nm); });
+        return ps.reduce(function (p, r) { return p.then(function () { return fsend({ op: "fizeto", id: r.id, chk: fkey(r), fizeto: row.fizeto }); }); }, Promise.resolve());
+      }).then(function () { toast("Mentve."); });
     });
   }
   $("f-new").addEventListener("click", function () { if (fcur()) fform(); });
