@@ -2,6 +2,19 @@
    A fejlécben, szinkron töltődik, így frissítéskor sem villan fel előbb az oldal.
    Lépések: oldal → belépés → adatok → összeállítás; a végén a két fél a középvonaltól széthúzódik.
    Kézi használat (pl. admin): window.CSKLP.open(felirat, cím) / step(szöveg) / done() / fail(szöveg). */
+/* Korai indítás minden oldalon (az iframe-es oldalakon is): a Firebase fájlok, a beállításfájl és az Apps Script szerverkapcsolat már az oldal fejlécében elindul,
+   párhuzamosan egymással és az oldal saját kódjával, nem egymás után. (Az auth.js verziója: az anim.js-ben lévő hivatkozással egyezzen.) */
+(function () {
+  try {
+    if (window.__cskPre) return; window.__cskPre = 1;
+    var h = document.head || document.documentElement, V = "https://www.gstatic.com/firebasejs/10.14.1/";
+    var lk = function (rel, href, x) { var l = document.createElement("link"); l.rel = rel; l.href = href; for (var k in (x || {})) l.setAttribute(k, x[k]); h.appendChild(l); };
+    ["https://script.google.com", "https://script.googleusercontent.com", "https://www.gstatic.com", "https://firestore.googleapis.com"].forEach(function (u) { lk("preconnect", u, { crossorigin: "" }); });
+    ["firebase-app.js", "firebase-auth.js", "firebase-firestore.js"].forEach(function (f) { lk("modulepreload", V + f); });
+    lk("modulepreload", "auth.js?v=10");
+    lk("preload", "firebase-config.json", { as: "fetch", crossorigin: "anonymous" });
+  } catch (e) {}
+})();
 (function () {
   try {
     if (window.CSKLP) return;
