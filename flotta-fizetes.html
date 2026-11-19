@@ -93,6 +93,18 @@
       return FBP.then(function (x) { return x.F.getDoc(x.F.doc(x.db, "perf", location.hostname === "localhost" ? "pub-flotta-test" : "pub-flotta-v1", "fl_pub", h)); }).then(function (d) { return d.exists() ? d.data() : null; });
     });
   }
+  // Elírás-tűrés: ha a telefonszám stimmel, a név akár 5 karakternyi eltéréssel is elfogadott (a számhoz tartozó nevek külön, számonkénti dokumentumban vannak)
+  function lev(a, b) { var p = [], i, j; for (j = 0; j <= b.length; j++) p[j] = j; for (i = 1; i <= a.length; i++) { var c = [i]; for (j = 1; j <= b.length; j++) c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1)); p = c; } return p[b.length]; }
+  function lookupFuzzy(digits, nm) {
+    return lookup(digits, nm).then(function (d) {
+      if (d) return d;
+      return sha("csk-tel|" + digits).then(function (h) { return FBP.then(function (x) { return x.F.getDoc(x.F.doc(x.db, "perf", location.hostname === "localhost" ? "pub-flotta-test" : "pub-flotta-v1", "fl_pub", h)); }); }).then(function (t) {
+        var names = t.exists() && t.data().names || [], q = normName(nm), best = null, bd = 6;
+        names.forEach(function (n) { var k = lev(q, n); if (k < bd) { bd = k; best = n; } });
+        return best ? lookup(digits, best) : null;
+      });
+    });
+  }
   function $(i) { return document.getElementById(i); }
   function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " Ft"; }
   function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; }
@@ -161,7 +173,7 @@
     if (digits.length !== 9) { err.textContent = "A számnak 9 számjegyűnek kell lennie, pl. 20 313 3292."; return; }
     v = digits.slice(0, 2) + " " + digits.slice(2, 5) + " " + digits.slice(5);
     btn.disabled = true; btn.textContent = "Keresem…";
-    lookup(digits, nm).then(function (d) {
+    lookupFuzzy(digits, nm).then(function (d) {
       show(d || { found: false }, nm);
     }).catch(function () { err.textContent = "Nem sikerült lekérdezni, próbáld újra."; })
       .then(function () { btn.disabled = false; btn.textContent = "Mutasd"; });

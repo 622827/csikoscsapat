@@ -899,13 +899,17 @@
       var doc = { found: true, total: Math.round(total), items: items, upd: new Date().toISOString() }; if (multi) doc.multi = true;
       c.l9s.forEach(function (l9) { Object.keys(names).forEach(function (nk) { jobs.push(fsha("csk-pub|" + l9 + "|" + nk).then(function (h) { want[h] = doc; })); }); });
     });
+    // számonkénti névlista az elírás-tűrő lekérdezéshez (csak a normalizált nevek, összeg nélkül)
+    var tnames = {};
+    corder.forEach(function (c) { var ns = {}; c.l9s.forEach(function (l9) { groups[l9].forEach(function (x) { if (devRows.indexOf(x) < 0) { var nk = fpName(x.nev); if (nk) ns[nk] = 1; } }); }); c.l9s.forEach(function (l9) { tnames[l9] = Object.keys(ns).sort(); }); });
+    Object.keys(tnames).forEach(function (l9) { jobs.push(fsha("csk-tel|" + l9).then(function (h) { want[h] = { names: tnames[l9], upd: new Date().toISOString() }; })); });
     return Promise.all(jobs).then(function () {
       return F.getDocs(F.collection(db, "perf", FPUB, "fl_pub"));
     }).then(function (snap) {
       var old = {}; snap.docs.forEach(function (d) { old[d.id] = d.data(); });
       var bt = F.writeBatch(db), n = 0;
       Object.keys(want).forEach(function (h) {
-        var o = old[h], same = o && o.total === want[h].total && JSON.stringify(o.items) === JSON.stringify(want[h].items);
+        var o = old[h], same = o && (want[h].names ? JSON.stringify(o.names) === JSON.stringify(want[h].names) : o.total === want[h].total && JSON.stringify(o.items) === JSON.stringify(want[h].items));
         if (!same) { bt.set(F.doc(db, "perf", FPUB, "fl_pub", h), want[h]); n++; }
       });
       Object.keys(old).forEach(function (h) { if (!want[h]) { bt.delete(F.doc(db, "perf", FPUB, "fl_pub", h)); n++; } });
