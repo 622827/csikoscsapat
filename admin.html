@@ -130,6 +130,17 @@
   @keyframes szin { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) { .szprog .tr i { transition: none; } .szprog.run .tr i::after, .szsteps li, .szsteps .ic svg, .szsteps .ic svg path { animation: none; } .szsteps .ic svg path { stroke-dashoffset: 0; } .szsteps .spin { animation-duration: 1.6s; } }
   .szlist td .btn { padding: 6px 10px; font-size: .82rem; }
+  /* Feltöltött számlák hónapokra bontva, lenyitható szakaszokban */
+  details.szm { background: var(--card); border-radius: 14px; margin: 0 0 10px; overflow: hidden; }
+  details.szm > summary { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 13px 16px; cursor: pointer; list-style: none; font-variant-numeric: tabular-nums; }
+  details.szm > summary::-webkit-details-marker { display: none; }
+  details.szm > summary::before { content: "▸"; opacity: .6; transition: transform .15s; width: 12px; }
+  details.szm[open] > summary::before { transform: rotate(90deg); }
+  details.szm > summary b { font-size: 1.02rem; }
+  details.szm > summary span { color: var(--muted); font-size: .88rem; }
+  details.szm > summary .nw { color: var(--gold); font-weight: 700; } details.szm > summary .nw0 { color: var(--ok); }
+  details.szm > summary .nb { background: var(--accent); color: var(--on-accent, #001f3d); border-radius: 999px; padding: 2px 10px; font-weight: 700; font-size: .78rem; }
+  details.szm .tw { padding: 0 10px 8px; }
   .szst { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .78rem; font-weight: 700; background: var(--track); }
   .szst.ok { background: color-mix(in srgb, #1f9d55 22%, transparent); }
   @media (max-width: 760px) { .szup { grid-template-columns: 1fr 1fr; } .szup .szdrop, .szup .btn { grid-column: 1 / -1; } }
@@ -493,7 +504,7 @@
       <p class="msg" id="sz-msg" role="status"></p>
     </form>
     <h2>Feltöltött számlák</h2>
-    <div class="tw"><table class="szlist" id="sz-list"></table></div>
+    <div id="sz-list"></div>
   </section>
 
   <section id="magan" hidden>
@@ -1637,16 +1648,28 @@
       }, function (e) { $("sz-meta").textContent = "Nem sikerült betölteni: " + e.message; });
     }).catch(function (e) { $("sz-meta").textContent = "Nem sikerült csatlakozni: " + (e && e.message || e); });
   }
+  var SZOPEN = {}, SZHN = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"];
+  function szMonthLabel(ho) { var m = /^(\d{4})-(\d{2})/.exec(ho || ""); return m ? m[1] + ". " + (SZHN[+m[2] - 1] || m[2]) : "Beérkező (hónap nélkül)"; }
+  function szRow(f) {
+    return "<tr><td>" + esc(f.szolg) + "</td><td>" + esc(f.name) + ([f.drive ? "Drive: " + (f.folder || "Könyvelés 2026") : "közös tár", f.megj].filter(Boolean).length ? '<br><small style="color:var(--muted)">' + esc([f.drive ? "Drive · " + (f.folder || "Könyvelés 2026") : "közös tár", f.megj].filter(Boolean).join(" · ")) + "</small>" : "") + "</td><td>" + szSize(f.size || 0) + "</td><td>" +
+      esc(f.up ? new Date(f.up).toLocaleString("hu-HU", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "") + '</td><td><span class="szst' + (f.st === "kesz" ? " ok" : "") + '">' + (f.st === "kesz" ? "feldolgozva" : "feldolgozásra vár") + "</span></td>" +
+      '<td style="white-space:nowrap"><button class="btn" type="button" data-op="open" data-id="' + esc(f.id) + '">Megnyitás</button> <button class="btn" type="button" data-op="del" data-id="' + esc(f.id) + '">Törlés</button></td></tr>';
+  }
   function szRender() {
     var t = $("sz-list"), n = SZFILES.length, nw = SZFILES.filter(function (f) { return f.st !== "kesz"; }).length;
     $("sz-meta").textContent = n ? n + " fájl · " + (nw ? nw + " feldolgozásra vár" : "mind feldolgozva") : "Még nincs feltöltött számla.";
     if (!n) { t.innerHTML = ""; return; }
-    t.innerHTML = "<thead><tr><th>Hónap</th><th>Hova</th><th>Fájl</th><th>Méret</th><th>Feltöltve</th><th>Állapot</th><th></th></tr></thead><tbody>" + SZFILES.map(function (f) {
-      return "<tr><td>" + (f.ho ? esc(f.ho) : "Beérkező") + "</td><td>" + esc(f.szolg) + "</td><td>" + esc(f.name) + ([f.drive ? "Drive: " + (f.folder || "Könyvelés 2026") : "közös tár", f.megj].filter(Boolean).length ? '<br><small style="color:var(--muted)">' + esc([f.drive ? "Drive · " + (f.folder || "Könyvelés 2026") : "közös tár", f.megj].filter(Boolean).join(" · ")) + "</small>" : "") + "</td><td>" + szSize(f.size || 0) + "</td><td>" +
-        esc(f.up ? new Date(f.up).toLocaleString("hu-HU", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "") + '</td><td><span class="szst' + (f.st === "kesz" ? " ok" : "") + '">' + (f.st === "kesz" ? "feldolgozva" : "feldolgozásra vár") + "</span></td>" +
-        '<td style="white-space:nowrap"><button class="btn" type="button" data-op="open" data-id="' + esc(f.id) + '">Megnyitás</button> <button class="btn" type="button" data-op="del" data-id="' + esc(f.id) + '">Törlés</button></td></tr>';
-    }).join("") + "</tbody>";
+    // hónapok szerinti csoportok (a legújabb hónap elöl), mindegyik fájl látszik
+    var keys = [], by = {}; SZFILES.forEach(function (f) { var k = f.ho || ""; if (!by[k]) { by[k] = []; keys.push(k); } by[k].push(f); });
+    keys.sort(function (p, q) { return !p ? 1 : !q ? -1 : String(q).localeCompare(String(p)); });
+    var recent = Date.now() - 30 * 60 * 1000;
+    keys.forEach(function (k, i) { if (SZOPEN[k] === undefined) SZOPEN[k] = i === 0 || by[k].some(function (f) { return f.up && new Date(f.up).getTime() > recent; }); });   // alapból a legújabb hónap és az utóbbi 30 percben feltöltött fájlok hónapjai vannak nyitva; amit te nyitsz/csukol, az úgy marad
+    t.innerHTML = keys.map(function (k) {
+      var L = by[k], nW = L.filter(function (f) { return f.st !== "kesz"; }).length, nNew = L.filter(function (f) { return f.up && new Date(f.up).getTime() > recent; }).length;
+      return '<details class="szm" data-m="' + esc(k) + '"' + (SZOPEN[k] ? " open" : "") + "><summary><b>" + esc(szMonthLabel(k)) + "</b><span>" + L.length + " fájl</span>" + (nW ? '<span class="nw">' + nW + " vár</span>" : '<span class="nw0">mind feldolgozva</span>') + (nNew ? '<span class="nb">' + nNew + " új</span>" : "") + '</summary><div class="tw"><table class="szlist"><thead><tr><th>Hova</th><th>Fájl</th><th>Méret</th><th>Feltöltve</th><th>Állapot</th><th></th></tr></thead><tbody>' + L.map(szRow).join("") + "</tbody></table></div></details>";
+    }).join("");
   }
+  $("sz-list").addEventListener("toggle", function (e) { var d = e.target; if (d && d.classList && d.classList.contains("szm")) SZOPEN[d.getAttribute("data-m")] = d.open; }, true);
   // A közös tárba (tartalékként) mentett fájlokat átteszi a Drive havi mappájába, amint a háttér tud Drive-ba menteni.
   var SZMIG = false, SZMIGSTOP = false, SZERR = "";
   function szAtkoltoztet() {
