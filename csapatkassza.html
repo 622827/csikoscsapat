@@ -324,9 +324,13 @@
   .fbal.hd { font-size: .85rem; }
   .fbal .frs { display: block; font-size: .72rem; margin-top: 2px; } .fbal .frs.ok { color: #1f9d55; } .fbal .frs.prev { color: #c98a00; } .fbal .frs.old { color: var(--muted); }
   .fgrp { border-bottom: 1px solid var(--track); } .fgrp .fbal { border-bottom: 0; }
+  /* Közös fizetési család: a gazda és a hozzá csatolt tagok (készülékeikkel) közös keretben, hogy átlátható legyen, kik tartoznak össze */
+  .fgrp.fam { border: 2px solid #7b5cd6; border-radius: 16px; margin: 14px 0; overflow: hidden; background: color-mix(in srgb, #7b5cd6 6%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, #7b5cd6 10%, transparent); }
+  .fgrp.fam .fbal { padding-right: 12px; } .fgrp.fam > .fbal.sum { padding-left: 14px; }
+  .fgrp.fam > .fbal.sum { background: color-mix(in srgb, #7b5cd6 14%, transparent); }
   .fbal.sum { padding: 9px 0; } .fbal.sum:hover { background: color-mix(in srgb, var(--track) 45%, transparent); }
   .fbal.sub { background: color-mix(in srgb, var(--track) 35%, transparent); padding: 8px 0 8px 14px; font-size: .94rem; border-left: 3px solid var(--track); }
-  .fbal.sub.mem { border-left-color: var(--accent); }
+  .fbal.sub.mem { border-left-color: #7b5cd6; }
   .fbal .act button.tg { color: var(--muted); }
 </style>
 <script>try{if(self!==top)document.documentElement.classList.add("emb")}catch(e){}</script><style>html.emb .topnav,html.emb .ldbar{display:none!important}html.emb,html.emb body{background:transparent!important}html.emb body::before{display:none!important}html.emb body{overflow:hidden!important;min-height:0!important}.emb .kgate{min-height:0;padding-top:24px}</style>
@@ -1102,7 +1106,7 @@
       if (g.rows.length === 1) { var w1 = el("div", "fgrp"); w1.appendChild(subRow(g.rows[0], true, g)); host.appendChild(w1); return; }
       var rs = g.rows, open = !!FOPEN[g.key] || (!!qq && rs.length > 0 && false), sum = { hav: 0, tart: 0, ossz: 0, bef: 0, egy: 0, kesz: 0, forg: 0 }, allPaid = true;
       rs.forEach(function (x) { sum.hav += x.hav; sum.forg += x.forg || 0; sum.tart += x.tart; sum.ossz += x.ossz; sum.bef += x.bef; sum.egy += x.egy; sum.kesz += x.kesz || 0; if (!x.fiz) allPaid = false; });
-      var wrap = el("div", "fgrp" + (open ? " open" : ""));
+      var wrap = el("div", "fgrp" + (open ? " open" : "") + (g.hosts || g.pay ? " fam" : ""));
       var r = el("div", "fbal sum" + (allPaid ? " rowpaid" : "")), n = el("div", "nm"), nb = el("b", "", "");
       var names = []; rs.forEach(function (x) { if (!x._dev && x.nev && names.indexOf(x.nev) < 0) names.push(x.nev); });
       nb.appendChild(document.createTextNode(g.pay ? g.pay + " · közös fizetés" : (names[0] || "–"))); var pseen = {}; rs.forEach(function (x) { if (x._dev || pseen[x.fl]) return; pseen[x.fl] = 1; var pe = pill(x); if (pe) nb.appendChild(pe); });
