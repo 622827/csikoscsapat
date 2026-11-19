@@ -90,6 +90,7 @@
 <link rel="icon" type="image/png" sizes="48x48" href="ikon/favicon-48.png">
 <link rel="apple-touch-icon" href="ikon/apple-touch-icon.png">
 <title>Csapatkassza</title>
+<script>try{if(location.hash==="#flotta"){["firebase-app.js","firebase-firestore.js"].forEach(function(f){var l=document.createElement("link");l.rel="modulepreload";l.href="https://www.gstatic.com/firebasejs/10.14.1/"+f;document.head.appendChild(l);});}}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -780,14 +781,17 @@
     FPUBDIRTY = true;
     bt.commit().then(function () { FINFO.fix1 = 1; if (n) toast(n + " One-sor csomagneve és díja frissítve a One-számla szerint."); setTimeout(fpubSync, 800); }).catch(function () {}).then(function () { FFIXING = false; });
   }
+  var FLP = null;
   function fload(force) {
     if (!kt()) { gate(""); return Promise.resolve(); }
     if (FMODE === "live" && FD && !force) { renderF(); return Promise.resolve(); }
+    if (FLP && !force) return FLP;   // már fut (a kassza betöltésével párhuzamosan indul), nem indítjuk újra
     $("f-sub").textContent = "Betöltés…";
-    return fb().then(function () { if (!fid()) return funlock(); }).then(function () {
+    FLP = fb().then(function () { if (!fid()) return funlock(); }).then(function () {
       if (!fid()) { $("f-sub").textContent = "A flotta le van zárva. Nyisd meg újra a Flotta fület, és add meg a jelszót."; rdy(); return; }
       fstart();
-    }).catch(function (e) { $("f-sub").textContent = "Nem sikerült betölteni: " + (e && e.message || e); rdy(); });
+    }).catch(function (e) { $("f-sub").textContent = "Nem sikerült betölteni: " + (e && e.message || e); rdy(); }).then(function () { FLP = null; });
+    return FLP;
   }
   function fsend(body) {
     if (FMODE !== "live" || !FST) return Promise.reject(new Error("A flotta tár még nincs betöltve."));
@@ -1589,6 +1593,7 @@
   var w = $("who"); w.value = ""; try { w.value = localStorage.getItem("kassza_who") || ""; } catch (e) {}
   w.addEventListener("input", function () { try { localStorage.setItem("kassza_who", w.value.trim()); } catch (e) {} });
   load();
+  if (!$("v-flotta").hidden && kt()) fload(false);   // a Flotta adatai a közös tárból (Firestore) jönnek, nem függenek a kassza lekérésétől: párhuzamosan indul
 })();
 </script>
 <script>
