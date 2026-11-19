@@ -218,6 +218,22 @@
   .foot { margin-top: 36px; color: var(--muted); display: flex; gap: 20px; flex-wrap: wrap; align-items: center; justify-content: space-between; font-size: .92rem; }
   .foot input { font: inherit; padding: 6px 10px; border-radius: 8px; border: 2px solid var(--track); background: var(--card); color: var(--ink); width: 150px; }
   .foot a { color: var(--accent); font-weight: 600; }
+  /* témához igazított naptárválasztó (a natív dátumválasztó helyett) */
+  .dp { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238fa8c8' stroke-width='2' stroke-linecap='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='3'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 30px !important; }
+  .dp-pop { position: fixed; z-index: 3000; width: 280px; padding: 12px; border-radius: 16px; background: var(--bg); color: var(--ink); border: 1px solid var(--track, #ddd); box-shadow: 0 12px 34px rgba(0,0,0,.35); animation: dpIn .16s ease; }
+  .dp-pop[hidden] { display: none; }
+  @keyframes dpIn { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+  .dp-h { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .dp-h b { flex: 1; text-align: center; }
+  .dp-h button, .dp-f button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; padding: 4px 10px; border-radius: 8px; cursor: pointer; transition: background .15s, transform .12s; }
+  .dp-h button:hover, .dp-f button:hover { background: var(--card, rgba(127,127,127,.18)); } .dp-h button:active, .dp-f button:active { transform: scale(.9); }
+  .dp-g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .dp-w { text-align: center; font-size: .7rem; font-weight: 700; color: var(--muted); padding: 2px 0; text-transform: uppercase; }
+  .dp-d { aspect-ratio: 1; border: 0; border-radius: 50%; background: transparent; color: inherit; font: inherit; font-size: .85rem; cursor: pointer; transition: background .15s, transform .12s; }
+  .dp-d:hover { background: var(--card, rgba(127,127,127,.2)); } .dp-d:active { transform: scale(.88); }
+  .dp-d.o { color: var(--muted); opacity: .55; } .dp-d.t { box-shadow: inset 0 0 0 2px var(--accent); }
+  .dp-d.s { background: var(--accent); color: var(--on-accent, #fff); opacity: 1; font-weight: 800; }
+  .dp-f { display: flex; justify-content: space-between; margin-top: 8px; }
   dialog { border: 0; border-radius: 20px; padding: 22px; width: min(460px, calc(100vw - 24px)); background: var(--bg); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
   dialog.wide { width: min(980px, calc(100vw - 24px)); max-height: calc(100vh - 40px); overflow: auto; padding: 30px 34px; }
   dialog.wide .pk-h { display: flex; align-items: baseline; justify-content: space-between; margin: 28px 0 8px; padding-bottom: 8px; border-bottom: 1px solid var(--track); }
@@ -572,7 +588,51 @@
   // ---- űrlap ----
   var dlg = $("dlg"), frm = $("frm"), fields = $("dlg-fields"), submitFn = null;
   function field(label, input) { var l = el("label", "", label); l.appendChild(input); fields.appendChild(l); return input; }
-  function inp(type, val, attrs) { var i = el("input"); i.type = type; i.value = val === 0 ? "0" : (val || ""); Object.keys(attrs || {}).forEach(function (k) { i.setAttribute(k, attrs[k]); }); return i; }
+  function inp(type, val, attrs) { var i = el("input"); i.type = type; i.value = val === 0 ? "0" : (val || ""); Object.keys(attrs || {}).forEach(function (k) { i.setAttribute(k, attrs[k]); }); if (type === "date") dpAttach(i); return i; }
+  /* ---- témához igazított mini naptár (a natív dátumválasztó helyett) ---- */
+  var DP = null;
+  function dpIso(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function dpAttach(inp) {
+    inp.type = "text"; inp.readOnly = true; inp.classList.add("dp"); inp.placeholder = "éééé-hh-nn"; inp.setAttribute("autocomplete", "off");
+    inp.addEventListener("click", function () { dpOpen(inp); });
+    inp.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") { e.preventDefault(); dpOpen(inp); } });
+  }
+  function dpOpen(inp) {
+    if (!DP) {
+      DP = el("div", "dp-pop"); DP.hidden = true; document.body.appendChild(DP);
+      document.addEventListener("mousedown", function (e) { if (!DP.hidden && !DP.contains(e.target) && !e.target.classList.contains("dp")) DP.hidden = true; });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !DP.hidden) { DP.hidden = true; e.preventDefault(); e.stopPropagation(); } }, true);
+      window.addEventListener("scroll", function () { if (!DP.hidden && DP._in) dpPlace(DP._in); }, true);
+    }
+    (inp.closest && inp.closest("dialog") || document.body).appendChild(DP);   // modal párbeszédablakon belül a naptárnak is az ablakon belül kell lennie
+    DP._in = inp; var cur = /^\d{4}-\d{2}-\d{2}$/.test(inp.value) ? new Date(inp.value + "T12:00:00") : new Date();
+    DP._y = cur.getFullYear(); DP._m = cur.getMonth(); dpDraw(); DP.hidden = false; dpPlace(inp);
+  }
+  function dpPlace(inp) {
+    var r = inp.getBoundingClientRect(), w = DP.offsetWidth || 280, h = DP.offsetHeight || 320;
+    var top = r.bottom + 6; if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    DP.style.top = top + "px"; DP.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + "px";
+  }
+  function dpDraw() {
+    var MN = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"], inp = DP._in, sel = inp.value, today = dpIso(new Date());
+    DP.textContent = "";
+    var h = el("div", "dp-h"), pv = el("button", "", "‹"), nx = el("button", "", "›"); pv.type = nx.type = "button";
+    pv.addEventListener("click", function () { DP._m--; if (DP._m < 0) { DP._m = 11; DP._y--; } dpDraw(); dpPlace(inp); });
+    nx.addEventListener("click", function () { DP._m++; if (DP._m > 11) { DP._m = 0; DP._y++; } dpDraw(); dpPlace(inp); });
+    h.appendChild(pv); h.appendChild(el("b", "", DP._y + ". " + MN[DP._m])); h.appendChild(nx); DP.appendChild(h);
+    var g = el("div", "dp-g"); ["H", "K", "Sze", "Cs", "P", "Szo", "V"].forEach(function (d) { g.appendChild(el("span", "dp-w", d)); });
+    var off = (new Date(DP._y, DP._m, 1).getDay() + 6) % 7, n = Math.ceil((off + new Date(DP._y, DP._m + 1, 0).getDate()) / 7) * 7;
+    for (var i = 0; i < n; i++) {
+      var d = new Date(DP._y, DP._m, 1 - off + i), iso = dpIso(d), b = el("button", "dp-d" + (d.getMonth() !== DP._m ? " o" : "") + (iso === today ? " t" : "") + (iso === sel ? " s" : ""), String(d.getDate())); b.type = "button";
+      (function (iso) { b.addEventListener("click", function () { inp.value = iso; inp.dispatchEvent(new Event("change", { bubbles: true })); DP.hidden = true; }); })(iso);
+      g.appendChild(b);
+    }
+    DP.appendChild(g);
+    var f = el("div", "dp-f"), t = el("button", "", "Ma"), c = el("button", "", "Törlés"); t.type = c.type = "button";
+    t.addEventListener("click", function () { inp.value = today; inp.dispatchEvent(new Event("change", { bubbles: true })); DP.hidden = true; });
+    c.addEventListener("click", function () { inp.value = ""; inp.dispatchEvent(new Event("change", { bubbles: true })); DP.hidden = true; });
+    f.appendChild(t); f.appendChild(c); DP.appendChild(f);
+  }
   function sel(opts, val) { var s = el("select"); opts.forEach(function (o) { var op = el("option", "", o[1]); op.value = o[0]; s.appendChild(op); }); s.value = val; return s; }
   // Az adminba ágyazva az ablak oda ugorjon, ahol a képernyő éppen áll (ne a hosszú keret közepére)
   function placeDlg() {
