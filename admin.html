@@ -423,6 +423,10 @@
   .fxb .fxc.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
   .fxb .fxc.gr { background: var(--track); color: var(--muted); }
   .fxb .hint { margin-top: 8px; padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--ok) 12%, transparent); }
+  /* Saját lenyíló nyíl: a böngészőé a keret szélére lóg; a nyíl a kereten belül, a szélétől távolabb áll */
+  .szup select, .mg-txh select, table.mg-tb select, .hpf select { -webkit-appearance: none; appearance: none; padding-right: 38px !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23336699' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 15px center; background-size: 10px 6px; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .szup select, :root:not([data-theme="light"]) .mg-txh select, :root:not([data-theme="light"]) table.mg-tb select, :root:not([data-theme="light"]) .hpf select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2399bbdd' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); } }
+  :root[data-theme="dark"] .szup select, :root[data-theme="dark"] .mg-txh select, :root[data-theme="dark"] table.mg-tb select, :root[data-theme="dark"] .hpf select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2399bbdd' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
 </style>
 </head>
 <body>
