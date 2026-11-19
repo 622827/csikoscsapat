@@ -93,6 +93,33 @@
   .szdrop { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 44px; padding: 8px 14px; border: 2px dashed var(--track); border-radius: 12px; cursor: pointer; color: var(--muted); font-weight: 600; font-size: .9rem; }
   .szdrop.on { border-color: var(--accent); color: var(--ink); }
   .szup .msg { grid-column: 1 / -1; margin: 0; font-size: .88rem; color: var(--muted); min-height: 1.1em; }
+  /* Feltöltési folyamatjelző: kis sáv, alatta lépéssorok (forgó ikon, kész után pipa), az újabb lépés új sorban nyílik */
+  .szprog { grid-column: 1 / -1; border: 1px solid var(--track); border-radius: 20px; padding: 12px 16px 12px; background: color-mix(in srgb, var(--bg) 55%, transparent); }
+  .szprog[hidden] { display: none; }
+  .szprog .top { display: flex; align-items: center; justify-content: flex-start; gap: 10px; }
+  .szprog .tr { flex: 0 1 300px; height: 10px; border-radius: 20px; background: var(--track); overflow: hidden; }
+  .szprog .tr i { display: block; height: 100%; width: 0; border-radius: 20px; background: var(--accent); transition: width .45s cubic-bezier(.22, 1, .36, 1), background-color .3s; position: relative; overflow: hidden; }
+  .szprog.run .tr i::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .45), transparent); transform: translateX(-100%); animation: szshine 1.3s ease-in-out infinite; }
+  @keyframes szshine { to { transform: translateX(100%); } }
+  .szprog.ok .tr i { background: var(--ok); } .szprog.err .tr i { background: #ff6b8a; }
+  .szprog .top b { font-size: .8rem; font-variant-numeric: tabular-nums; color: var(--muted); min-width: 2.8em; }
+  .szsteps { list-style: none; margin: 12px 0 0; padding: 0; max-width: 340px; display: grid; gap: 7px; }
+  .szsteps:empty { display: none; }
+  .szsteps li { display: flex; align-items: center; gap: 10px; font-size: .9rem; line-height: 1.3; min-width: 0; animation: szin .28s ease-out both; }
+  .szsteps li .tx { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .szsteps li.hd { font-size: .78rem; color: var(--muted); letter-spacing: .02em; margin-top: 2px; padding-left: 26px; }
+  .szsteps li.ok, .szsteps li.sum { color: var(--muted); } .szsteps li.err { color: #ff8da1; }
+  .szsteps .ic { flex: none; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; }
+  .szsteps .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--track); border-top-color: var(--accent); animation: szspin .7s linear infinite; }
+  .szsteps .ic svg { width: 16px; height: 16px; fill: none; stroke: var(--ok); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; animation: szpop .3s ease-out both; }
+  .szsteps .ic svg path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: szchk .36s .05s ease-out forwards; }
+  .szsteps li.err .ic svg { stroke: #ff6b8a; } .szsteps li.skip .ic svg { stroke: var(--muted); }
+  .szsteps li.skip .ic svg path { stroke-dashoffset: 0; animation: none; }
+  @keyframes szspin { to { transform: rotate(360deg); } }
+  @keyframes szchk { to { stroke-dashoffset: 0; } }
+  @keyframes szpop { 0% { transform: scale(.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+  @keyframes szin { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .szprog .tr i { transition: none; } .szprog.run .tr i::after, .szsteps li, .szsteps .ic svg, .szsteps .ic svg path { animation: none; } .szsteps .ic svg path { stroke-dashoffset: 0; } .szsteps .spin { animation-duration: 1.6s; } }
   .szlist td .btn { padding: 6px 10px; font-size: .82rem; }
   .szst { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .78rem; font-weight: 700; background: var(--track); }
   .szst.ok { background: color-mix(in srgb, #1f9d55 22%, transparent); }
@@ -449,6 +476,7 @@
       <label>Hova tartozik<select id="sz-szolg"><option>TFC könyvelés</option><option>Flotta – Telekom BB</option><option>Flotta – Telekom TFC</option><option>Flotta – One</option><option>Bankszámlakivonat – TFC</option><option>Bankszámlakivonat – BB Irodák Holding</option><option>Bankszámlakivonat – Magán</option><option>Egyéb</option></select></label>
       <label class="szdrop" id="sz-drop" tabindex="0">PDF vagy fotó kiválasztása, vagy ide húzása<input type="file" id="sz-file" accept="application/pdf,.pdf,image/*,.heic,.heif" multiple hidden></label>
       <button class="btn pri" type="submit" id="sz-go">Feltöltés</button>
+      <div class="szprog" id="sz-prog" hidden aria-live="polite"><div class="top"><div class="tr" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i id="sz-bar"></i></div><b id="sz-pp"></b></div><ul class="szsteps" id="sz-steps"></ul></div>
       <p class="msg" id="sz-msg" role="status"></p>
     </form>
     <h2>Feltöltött számlák</h2>
@@ -1636,6 +1664,41 @@
   ["dragenter", "dragover"].forEach(function (t) { $("sz-drop").addEventListener(t, function (e) { e.preventDefault(); $("sz-drop").classList.add("on"); }); });
   $("sz-drop").addEventListener("dragleave", function () { if (!szPick.length) $("sz-drop").classList.remove("on"); });
   $("sz-drop").addEventListener("drop", function (e) { e.preventDefault(); szPick = Array.prototype.slice.call(e.dataTransfer.files || []).filter(function (f) { return /pdf$|^image\//i.test(f.type) || /\.(pdf|jpe?g|png|heic|heif|webp)$/i.test(f.name); }); szShowPick(); });
+  // ---- feltöltési folyamatjelző: kis sáv + lépéssorok (forgó ikon → pipa), az újabb lépés új sorban nyílik ----
+  var SZP = { t: null, pct: 0, cap: 0, hide: null, grp: [] };
+  var SZCHK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>', SZX = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>', SZDASH = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg>';
+  function szpPaint() { var p = Math.max(0, Math.min(100, SZP.pct)); $("sz-bar").style.width = p + "%"; $("sz-pp").textContent = Math.round(p) + " %"; $("sz-prog").querySelector(".tr").setAttribute("aria-valuenow", String(Math.round(p))); }
+  function szpReset() { clearTimeout(SZP.hide); clearInterval(SZP.t); SZP.pct = 0; SZP.cap = 0; SZP.grp = []; $("sz-steps").textContent = ""; $("sz-prog").classList.remove("ok", "err", "run"); szpPaint(); }
+  function szpSet(pct, cap) {
+    var p = $("sz-prog"); p.hidden = false; p.classList.remove("ok", "err"); p.classList.add("run");
+    SZP.pct = Math.max(SZP.pct, Math.min(100, pct)); SZP.cap = Math.max(SZP.pct, cap == null ? SZP.pct : Math.min(99, cap)); szpPaint();
+    clearInterval(SZP.t); SZP.t = setInterval(function () { if (SZP.pct < SZP.cap) { SZP.pct = Math.min(SZP.cap, SZP.pct + 0.5); szpPaint(); } }, 220);
+  }
+  function szpRow(cls, icon, text) {
+    var li = document.createElement("li"); li.className = cls; var ic = document.createElement("span"); ic.className = "ic"; ic.innerHTML = icon;
+    var tx = document.createElement("span"); tx.className = "tx"; tx.textContent = text; tx.title = text; li.appendChild(ic); li.appendChild(tx); $("sz-steps").appendChild(li); SZP.grp.push(li); return li;
+  }
+  function szpClose(kind) {   // az éppen futó lépés lezárása: forgó ikon helyett pipa (vagy hiba)
+    var act = $("sz-steps").querySelector("li.act"); if (!act) return;
+    act.classList.remove("act"); act.classList.add(kind || "ok"); act.querySelector(".ic").innerHTML = kind === "err" ? SZX : SZCHK;
+  }
+  function szpStep(text) { szpClose(); if (text) szpRow("act", '<i class="spin"></i>', text); }
+  function szpGroup(idx, total, name) {   // új fájl: az előző fájl sorai egyetlen kész sorrá húzódnak össze
+    szpClose(); var ul = $("sz-steps");
+    if (SZP.grp.length) { var prevName = SZP.grp[0].getAttribute("data-n") || ""; SZP.grp.forEach(function (li) { if (li.parentNode) ul.removeChild(li); }); SZP.grp = []; szpRow("sum", SZCHK, prevName); SZP.grp = []; }
+    var h = szpRow("hd", "", (total > 1 ? (idx + 1) + "/" + total + " · " : "") + name); h.setAttribute("data-n", name); h.querySelector(".ic").style.display = "none";
+  }
+  function szpFile(idx, total, frac, text, capFrac) { szpSet((idx + frac) / total * 100, (idx + capFrac) / total * 100); if (text) szpStep(text); }
+  function szpSkip(text) { szpClose(); szpRow("skip", SZDASH, text || "Kihagyva, már szerepel"); }
+  function szpEnd(kind, text) {
+    clearInterval(SZP.t); var p = $("sz-prog"); p.hidden = false; p.classList.remove("run", "ok", "err"); p.classList.add(kind);
+    if (kind === "ok") { szpClose(); SZP.pct = 100; szpRow("ok done", SZCHK, text); p.querySelector(".szsteps li:last-child").style.color = "var(--ink)"; }
+    else {   // hiba: a futó sor átalakul hibasorrá, és kiírja a rövid okot
+      var act = $("sz-steps").querySelector("li.act");
+      if (act) { var tx = act.querySelector(".tx"); tx.textContent = text; tx.title = text; szpClose("err"); } else szpRow("err", SZX, text);
+    }
+    szpPaint(); if (kind === "ok") SZP.hide = setTimeout(function () { if (p.classList.contains("ok")) p.hidden = true; }, 12000);
+  }
   $("sz-form").addEventListener("submit", function (e) {
     e.preventDefault(); var msg = $("sz-msg");
     if (!szPick.length) { msg.textContent = "Válassz ki legalább egy fájlt."; return; }
@@ -1643,32 +1706,34 @@
     var big = szPick.filter(function (f) { return f.size > SZMAX; }); if (big.length) { msg.textContent = "Túl nagy fájl (legfeljebb 15 MB): " + big.map(function (f) { return f.name; }).join(", "); return; }
     var F = SZ.F, szolg = $("sz-szolg").value, list = szPick.slice(), done = 0, go = $("sz-go"), ho = "", kiv = /kivonat/i.test(szolg), bank = "";
     var vissza = [];
-    go.disabled = true;
+    go.disabled = true; var total = list.length, idx = 0; szpReset(); msg.textContent = ""; szpSet(1, 3);
     (function next() {
-      if (!list.length) { go.disabled = false; msg.textContent = done + " fájl feltöltve." + (vissza.length ? " Visszadobva, mert már szerepel a könyvelésben: " + vissza.join("; ") : ""); szPick = []; $("sz-file").value = ""; szShowPick(); return; }
-      var f = list.shift(); msg.textContent = "Dátum felismerése: " + f.name + " (" + (done + 1) + "/" + (done + list.length + 1) + ")…";
-      if (SZFILES.some(function (x) { return x.name === f.name && x.size === f.size; })) { vissza.push(f.name + " (ezt a fájlt már feltöltötték)"); next(); return; }
+      if (!list.length) { go.disabled = false; msg.textContent = vissza.length ? "Visszadobva, mert már szerepel a könyvelésben: " + vissza.join("; ") : ""; szpEnd("ok", "Kész: " + done + " fájl feltöltve" + (vissza.length ? ", " + vissza.length + " kimaradt" : "")); szPick = []; $("sz-file").value = ""; szShowPick(); return; }
+      var f = list.shift(); idx = total - list.length - 1; szpGroup(idx, total, f.name); szpFile(idx, total, 0.04, "Beolvasás, dátum felismerése", 0.28);
+      if (SZFILES.some(function (x) { return x.name === f.name && x.size === f.size; })) { vissza.push(f.name + " (ezt a fájlt már feltöltötték)"); szpSkip("Kihagyva: már fel van töltve"); next(); return; }
       szSzoveg(f).then(function (tx) {
         if (kiv) {
           bank = /11600006|erste/i.test(tx) ? "Erste" : /10918001|unicredit/i.test(tx) ? "Unicredit" : /11773|otp\s*bank/i.test(tx) ? "OTP" : /12010|raiffeisen/i.test(tx) ? "Raiffeisen" : /10402|k&h|k\s*&\s*h/i.test(tx) ? "K&H" : /11600006/.test(f.name) ? "Erste" : "Egyéb bank";
-          ho = szDatum(tx) || ""; msg.textContent = "Feltöltés: " + f.name + " → Bankszámlakivonatok / " + bank + "…";
+          ho = szDatum(tx) || ""; szpFile(idx, total, 0.32, "Feltöltés a Drive-ba · " + bank, 0.82);
           return szDrive(f, szolg, ho, bank).then(function (dv) { if (dv && dv.dup) { vissza.push(f.name + " (ez a kivonat már fent van: " + dv.folder + ")"); return "skip"; } if (!dv) throw new Error("a kivonatot nem sikerült a Drive-ba menteni" + (SZERR ? " (" + SZERR + ")" : "")); return dv; });
         }
         var mm = szMarMegvan(tx); if (mm) { vissza.push(f.name + " → " + mm.no + ", " + (mm.p || "") + (mm.d ? ", " + mm.d : "") + (mm.g ? ", " + ft(mm.g) : "")); return "skip"; }
-        ho = szDatum(tx) || ""; msg.textContent = "Feltöltés: " + f.name + (ho ? " → " + ho : " → Beérkező (a hónapot Claude állapítja meg)") + "…";
+        ho = szDatum(tx) || ""; szpFile(idx, total, 0.32, "Feltöltés a Drive-ba · " + (ho || "Beérkező"), 0.82);
         return szDrive(f, szolg, ho);
       }).then(function (dv) {
-        if (dv === "skip") return "skip";
+        if (dv === "skip") { szpSkip("Kihagyva: már szerepel"); return "skip"; }
+        if (dv) szpFile(idx, total, 0.88, "Mentés a listába", 0.97);
         if (dv) return F.setDoc(F.doc(szCol("sz_files")), { name: f.name, size: f.size, type: f.type || "", szolg: kiv ? szolg + " – " + bank : szolg, ho: ho, n: 0, drive: dv.url, folder: dv.folder || "", up: new Date().toISOString(), st: "uj" }).then(function () {
           // A TFC-s telefonszámla automatikusan a TFC könyvelési anyagba is kerül (a BB-s és a One-os nem).
           if (szolg === "Flotta – Telekom TFC") return F.setDoc(F.doc(szCol("sz_files")), { name: f.name, size: f.size, type: f.type || "", szolg: "TFC könyvelés", ho: ho, n: 0, drive: dv.url, folder: dv.folder || "", up: new Date().toISOString(), st: "uj", megj: "TFC-s telefonszámla – automatikusan könyvelésre küldve" });
         });
+        szpFile(idx, total, 0.4, "Mentés a közös tárba", 0.9);
         return f.arrayBuffer().then(function (buf) {
         var u8 = new Uint8Array(buf), ref = F.doc(szCol("sz_files")), n = Math.ceil(u8.length / SZCH) || 1, jobs = [];
         for (var i = 0; i < n; i++) jobs.push(F.setDoc(F.doc(szCol("sz_chunks"), ref.id + "_" + i), { f: ref.id, i: i, d: F.Bytes.fromUint8Array(u8.subarray(i * SZCH, (i + 1) * SZCH)) }));
         return Promise.all(jobs).then(function () { return F.setDoc(ref, { name: f.name, size: f.size, type: f.type || "", szolg: szolg, ho: ho, n: n, up: new Date().toISOString(), st: "uj" }); });
         });
-      }).then(function (r) { if (r !== "skip") done++; next(); }).catch(function (er) { go.disabled = false; msg.textContent = "Hiba a feltöltésnél (" + f.name + "): " + er.message; });
+      }).then(function (r) { if (r !== "skip") done++; szpClose(); szpFile(idx, total, 1, null, 1); next(); }).catch(function (er) { go.disabled = false; msg.textContent = "Hiba a feltöltésnél (" + f.name + "): " + er.message; szpEnd("err", "Hiba: " + String(er.message || er).slice(0, 80)); });
     })();
   });
   // Hónap felismerése: PDF szövegéből a teljesítés dátuma, ha nincs, a kiállítás/kelt dátuma. Fotónál vagy szkennelt PDF-nél "" → Beérkező.
