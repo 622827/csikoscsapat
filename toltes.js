@@ -5,6 +5,7 @@
 (function () {
   try {
     if (window.CSKLP) return;
+    if (self !== top) return;   // beágyazott (iframe) oldalban nincs betöltő: azt a főoldal (admin) teljes ablakos betöltője fedi
     if (/(^|\/)(cegbemutato-nomenu|felbercsapat|teljesitmeny-uj)\.html$/.test(location.pathname)) return;   // nem töltenek be semmit
     var de = document.documentElement;
     var CSS =
