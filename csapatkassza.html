@@ -149,6 +149,8 @@
   .card .sm { color: var(--muted); font-size: .85rem; }
   .fbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0; } .fbar label { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: .9rem; }
   .fbar select { font: inherit; font-size: .9rem; padding: 7px 34px 7px 12px; border-radius: 10px; border: 2px solid var(--track); background: var(--card); color: var(--ink); -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2399bbdd' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; background-size: 10px 6px; }
+  .cards4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } @media (max-width: 900px) { .cards4 { grid-template-columns: 1fr 1fr; } }
+  .fgh { margin: 18px 0 8px; font-size: .95rem; color: var(--muted); font-weight: 700; letter-spacing: .02em; }
   .fst { margin-top: 22px; } .fst .card.profit { outline: 2px solid var(--csk); } .fst .card.loss { outline: 2px solid var(--frk); }
   .lnk { font: inherit; font-size: .82rem; background: none; border: 0; padding: 0 0 0 6px; color: var(--accent); text-decoration: underline; cursor: pointer; }
   section { margin-top: 38px; }
@@ -423,12 +425,19 @@
   <h1 class="bal" id="f-tot">–</h1>
   <p class="balsub" id="f-sub">Betöltés…</p>
   <div class="fbar"><label>Hónap <select id="f-bm" aria-label="Hónap"></select></label><button class="tl" id="f-bill" type="button" title="A hónapra szóló bejövő számlák végösszege (TFC, BB, One)">Számlák beírása</button></div>
-  <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">
-    <div class="card"><span class="k">Flotta díj (a hónap számlái)</span><span class="v" id="f-bill-v">–</span><span class="sm" id="f-bill-s"></span></div>
-    <div class="card"><span class="k">Előfizetések havi díja</span><span class="v" id="f-month">–</span><span class="sm" id="f-month2"></span></div>
-    <div class="card"><span class="k">Készülékek havi díja</span><span class="v" id="f-ksum">–</span><span class="sm" id="f-ksum2"></span></div>
+  <h3 class="fgh">Számlák alapján (amit fizetek)</h3>
+  <div class="cards cards4">
+    <div class="card"><span class="k">Összes költség</span><span class="v" id="f-bill-v">–</span><span class="sm" id="f-bill-s"></span></div>
+    <div class="card"><span class="k">Előfizetések</span><span class="v" id="f-sub-v">–</span><span class="sm" id="f-sub-s"></span></div>
+    <div class="card"><span class="k">Készülékek</span><span class="v" id="f-dev-v">–</span><span class="sm" id="f-dev-s"></span></div>
     <div class="card"><span class="k">Tartozások összesen</span><span class="v out" id="f-debt">–</span><span class="sm" id="f-debt2"></span></div>
-    <div class="card"><span class="k">Különbség</span><span class="v" id="f-diff">–</span><span class="sm" id="f-diff2"></span></div>
+  </div>
+  <h3 class="fgh">Flotta árazás alapján (amit bekérünk)</h3>
+  <div class="cards cards4">
+    <div class="card"><span class="k">Összes bekért díj</span><span class="v" id="f-pt-v">–</span><span class="sm" id="f-pt-s"></span></div>
+    <div class="card"><span class="k">Előfizetések</span><span class="v" id="f-ps-v">–</span><span class="sm" id="f-ps-s"></span></div>
+    <div class="card"><span class="k">Készülékek</span><span class="v" id="f-pd-v">–</span><span class="sm" id="f-pd-s"></span></div>
+    <div class="card" id="f-diffc"><span class="k">Eredmény (bekért díj − számlák)</span><span class="v" id="f-diff">–</span><span class="sm" id="f-diff2"></span></div>
   </div>
   <section class="fst">
     <div class="sh"><h2>Tényleges állás</h2></div>
@@ -1001,13 +1010,22 @@
     }
     sel.value = FBM;
     var bills = (typeof FINFO !== "undefined" && FINFO && FINFO.bills && FINFO.bills[FBM]) || null, bkeys = FS === "ALL" ? ["TFC", "BB", "ONE"] : [FS], bsum = 0, bhave = false, bparts = [], BN = { TFC: "TFC", BB: "BB", ONE: "One" };
-    var auto = fbAuto(FBM);   // a feltöltött számlákból (Számlák oldal) automatikusan kiolvasott összegek; a kézzel beírt érték felülírja
-    bkeys.forEach(function (k) { var mv = bills && bills[k] !== undefined && bills[k] !== "" ? Number(bills[k]) : NaN, v = isFinite(mv) ? mv : (auto[k] > 0 ? auto[k] : NaN); if (isFinite(v)) { bhave = true; bsum += v; } bparts.push(BN[k] + " " + (isFinite(v) ? ft(v) + (isFinite(mv) ? "" : " (számlából)") : "–")); });
+    var auto = fbAuto(FBM), Te = 0, Tk = 0, bkOK = false, bkPart = false;   // a feltöltött számlákból kiolvasott összegek; a kézzel beírt végösszeg felülírja (ekkor a bontás nem ismert)
+    bkeys.forEach(function (k) {
+      var mv = bills && bills[k] !== undefined && bills[k] !== "" ? Number(bills[k]) : NaN, av = auto[k], v = isFinite(mv) ? mv : (av.a > 0 ? av.a : NaN);
+      if (isFinite(v)) { bhave = true; bsum += v; if (!isFinite(mv) && av.a > 0 && av.ek) { Te += av.e; Tk += av.k; bkOK = true; } else bkPart = true; }
+      bparts.push(BN[k] + " " + (isFinite(v) ? ft(v) + (isFinite(mv) ? "" : " (számlából)") : "–"));
+    });
     $("f-bill-v").textContent = bhave ? ft(bsum) : "–"; $("f-bill-s").textContent = bhave ? bparts.join(" · ") : "nincs számla erre a hónapra (töltsd fel a Számlák oldalon, vagy írd be)";
-    $("f-month").textContent = ft(month); $("f-month2").textContent = rows.length + " sor · csomagdíj + admin, kedvezmény után";
-    $("f-ksum").textContent = ft(ksum); $("f-ksum2").textContent = ksum ? "készülékrészletek havonta" : "nincs";
-    var df = bsum - month - ksum, dv = $("f-diff"); dv.textContent = bhave ? ft(df) : "–"; dv.className = "v" + (bhave ? (df > 0 ? " out" : " in") : "");
-    $("f-diff2").textContent = bhave ? (df > 0 ? "ennyivel többet fizetek, mint amennyi a havi díjakból jön" : "a havi díjak fedezik a számlákat") + (fsum ? " · forgalmi díj (" + ft(fsum) + ") nincs beleszámolva" : "") : "számlák − előfizetések − készülékek";
+    $("f-sub-v").textContent = bkOK ? ft(Te) : "–"; $("f-sub-s").textContent = bkOK ? "havi + forgalmi díjak" + (bkPart ? " · nem minden számlából bontható" : "") : (bhave ? "a számlák bontása nem ismert (újra kell tölteni a számlát)" : "");
+    $("f-dev-v").textContent = bkOK ? ft(Tk) : "–"; $("f-dev-s").textContent = bkOK ? "készülékrészletek" + (bkPart ? " · nem minden számlából bontható" : "") : "";
+    var pSub = month + fsum, pTot = pSub + ksum;
+    $("f-pt-v").textContent = ft(pTot); $("f-pt-s").textContent = "előfizetés + forgalmi + készülék";
+    $("f-ps-v").textContent = ft(pSub); $("f-ps-s").textContent = "csomagdíj + admin (kedvezmény után)" + (fsum ? " + forgalmi " + ft(fsum) : "");
+    $("f-pd-v").textContent = ft(ksum); $("f-pd-s").textContent = ksum ? "készülékrészletek havonta" : "nincs";
+    var df = pTot - bsum, dv = $("f-diff"), dc = $("f-diffc"); dc.className = "card" + (bhave ? (df >= 0 ? " profit" : " loss") : "");
+    dv.textContent = bhave ? (df >= 0 ? "+ " : "− ") + ft(Math.abs(df)) : "–"; dv.className = "v" + (bhave ? (df >= 0 ? " in" : " out") : "");
+    $("f-diff2").textContent = bhave ? (df >= 0 ? "Nyereséges: a bekért díj meghaladja a számlákat" : "Veszteséges: a bekért díj ennyivel kevesebb a számlák összegénél") : "bekért díj − számlák összes díja";
     $("f-pay-v").textContent = bhave ? ft(bsum) : "–"; $("f-pay-s").textContent = bhave ? "a hónap számlái (" + bparts.join(" · ") + ")" : "még nincs beírva";
     var res = paid - bsum, rv = $("f-res-v"), rc = $("f-res"); rc.className = "card" + (bhave ? (res >= 0 ? " profit" : " loss") : "");
     rv.textContent = bhave ? (res >= 0 ? "+ " : "− ") + ft(Math.abs(res)) : "–"; rv.className = "v" + (bhave ? (res >= 0 ? " in" : " out") : "");
@@ -1192,8 +1210,8 @@
   // A hónap bejövő számláinak végösszege (TFC, BB, One): fl_meta/info.bills[hónap]
   // A Számlák oldalon feltöltött flotta számlákból kiolvasott összegek (fl_meta/info.bf), hónap és szolgáltató szerint összegezve
   function fbAuto(m) {
-    var o = { TFC: 0, BB: 0, ONE: 0 }; var bf = (typeof FINFO !== "undefined" && FINFO && FINFO.bf) || {};
-    Object.keys(bf).forEach(function (k) { var e = bf[k]; if (e && e.m === m && o[e.p] !== undefined) o[e.p] += Number(e.a) || 0; });
+    var o = { TFC: { a: 0, e: 0, k: 0, ek: true }, BB: { a: 0, e: 0, k: 0, ek: true }, ONE: { a: 0, e: 0, k: 0, ek: true } }; var bf = (typeof FINFO !== "undefined" && FINFO && FINFO.bf) || {};
+    Object.keys(bf).forEach(function (k) { var e = bf[k]; if (e && e.m === m && o[e.p]) { o[e.p].a += Number(e.a) || 0; if (e.k === undefined) o[e.p].ek = false; else { o[e.p].e += Number(e.e) || 0; o[e.p].k += Number(e.k) || 0; } } });
     return o;
   }
   function fbills() {
@@ -1201,7 +1219,7 @@
     var f = {}, b = (FINFO && FINFO.bills && FINFO.bills[FBM]) || {};
     open("Flotta számlák · " + FBM.replace("-", ". "), function () {
       fields.appendChild(el("p", "fnote", "A hónapra szóló bejövő számlák végösszege (Ft). A feltöltött számlákból az oldal magától kiolvassa; csak akkor írj ide, ha felül akarod írni. Üresen hagyva az automatikus összeg érvényes."));
-      var au = fbAuto(FBM), at = function (k) { return au[k] > 0 ? " – a feltöltött számlából: " + ft(au[k]) : ""; };
+      var au = fbAuto(FBM), at = function (k) { return au[k].a > 0 ? " – a feltöltött számlából: " + ft(au[k].a) : ""; };
       f.TFC = field("TFC flotta (Telekom) számla" + at("TFC"), inp("text", b.TFC === undefined ? "" : b.TFC, { inputmode: "numeric", placeholder: "pl. 150000" }));
       f.BB = field("BB flotta (Telekom) számla" + at("BB"), inp("text", b.BB === undefined ? "" : b.BB, { inputmode: "numeric", placeholder: "pl. 120000" }));
       f.ONE = field("One flotta számla" + at("ONE"), inp("text", b.ONE === undefined ? "" : b.ONE, { inputmode: "numeric", placeholder: "pl. 90000" }));
