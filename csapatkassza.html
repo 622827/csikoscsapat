@@ -151,7 +151,7 @@
   .fbar select { font: inherit; font-size: .9rem; padding: 7px 34px 7px 12px; border-radius: 10px; border: 2px solid var(--track); background: var(--card); color: var(--ink); -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2399bbdd' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; background-size: 10px 6px; }
   .cards4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } @media (max-width: 900px) { .cards4 { grid-template-columns: 1fr 1fr; } }
   .fgh { margin: 18px 0 8px; font-size: .95rem; color: var(--muted); font-weight: 700; letter-spacing: .02em; }
-  .fst { margin-top: 22px; } .fst .card.profit { outline: 2px solid var(--csk); } .fst .card.loss { outline: 2px solid var(--frk); }
+  .fst { margin-top: 22px; } .fhist { margin-top: 22px; } .fst .card.profit { outline: 2px solid var(--csk); } .fst .card.loss { outline: 2px solid var(--frk); }
   .lnk { font: inherit; font-size: .82rem; background: none; border: 0; padding: 0 0 0 6px; color: var(--accent); text-decoration: underline; cursor: pointer; }
   section { margin-top: 38px; }
   h2 { font-size: clamp(1.3rem, 3vw, 1.8rem); margin: 0 0 14px; letter-spacing: -.01em; }
@@ -446,6 +446,11 @@
       <div class="card"><span class="k">Befolyt díjak (befizetve)</span><span class="v in" id="f-paid">–</span><span class="sm" id="f-paid2"></span></div>
       <div class="card" id="f-res"><span class="k">Eredmény</span><span class="v" id="f-res-v">–</span><span class="sm" id="f-res-s"></span></div>
     </div>
+  </section>
+  <section class="fhist">
+    <div class="sh"><h2>Elmúlt hónapok eredménye</h2></div>
+    <div class="ovt" id="f-histt"></div>
+    <p class="fnote" id="f-histn"></p>
   </section>
   <section class="fov" id="f-ovw" hidden>
     <div class="sh"><h2>Áttekintés</h2></div>
@@ -1030,6 +1035,7 @@
     var res = paid - bsum, rv = $("f-res-v"), rc = $("f-res"); rc.className = "card" + (bhave ? (res >= 0 ? " profit" : " loss") : "");
     rv.textContent = bhave ? (res >= 0 ? "+ " : "− ") + ft(Math.abs(res)) : "–"; rv.className = "v" + (bhave ? (res >= 0 ? " in" : " out") : "");
     $("f-res-s").textContent = bhave ? (res >= 0 ? "Nyereséges: a befolyt díjak fedezik a számlákat" : "Veszteséges: a befolyt díjak ennyivel kevesebbek a számláknál") : "befolyt díjak − amit fizetek";
+    fhistRender(); fhistSave(d);
     $("f-title").textContent = (FS === "ALL" ? "Flotta" : FS === "BB" ? "BB flotta" : FS === "TFC" ? "TFC flotta" : "One flotta") + " – telefonszámok";
     var host = $("f-bal"); host.textContent = "";
     var qq = plain(fq.trim());
@@ -1213,6 +1219,45 @@
     var o = { TFC: { a: 0, e: 0, k: 0, ek: true }, BB: { a: 0, e: 0, k: 0, ek: true }, ONE: { a: 0, e: 0, k: 0, ek: true } }; var bf = (typeof FINFO !== "undefined" && FINFO && FINFO.bf) || {};
     Object.keys(bf).forEach(function (k) { var e = bf[k]; if (e && e.m === m && o[e.p]) { o[e.p].a += Number(e.a) || 0; if (e.k === undefined) o[e.p].ek = false; else { o[e.p].e += Number(e.e) || 0; o[e.p].k += Number(e.k) || 0; } } });
     return o;
+  }
+  // Havi eredmények: a számlák összege (kézi beírás vagy a feltöltött számlákból) és az akkori flotta árazás (az oldal az aktuális hónap állását magától rögzíti: fl_meta/info.hist)
+  var FHT = 0;
+  function fhistSave(d) {
+    if (FMODE !== "live" || !FST || !d || !d.rows) return;
+    var mk = today().slice(0, 7), mo = 0, fo = 0, ko = 0, pd = 0, db = 0;
+    d.rows.forEach(function (x) { mo += x.hav; fo += x.forg || 0; ko += x.kesz || 0; pd += x.bef; if (x.egy > 0) db += x.egy; });
+    var cur = { pt: Math.round(mo + fo + ko), ps: Math.round(mo + fo), pd: Math.round(ko), paid: Math.round(pd), debt: Math.round(db) }, old = (typeof FINFO !== "undefined" && FINFO && FINFO.hist && FINFO.hist[mk]) || null;
+    if (old && old.pt === cur.pt && old.ps === cur.ps && old.pd === cur.pd && old.paid === cur.paid && old.debt === cur.debt) return;
+    if (Date.now() - FHT < 20000) return; FHT = Date.now();
+    var o = {}; o[mk] = cur;
+    FST.F.setDoc(FST.F.doc(FST.db, "perf", fid(), "fl_meta", "info"), { hist: o }, { merge: true }).catch(function () {});
+  }
+  function fhistRender() {
+    var host = $("f-histt"); if (!host) return; host.textContent = "";
+    var info = (typeof FINFO !== "undefined" && FINFO) || {}, bills = info.bills || {}, bf = info.bf || {}, hist = info.hist || {}, ms = {};
+    Object.keys(bills).forEach(function (m) { ms[m] = 1; }); Object.keys(bf).forEach(function (k) { if (bf[k] && bf[k].m) ms[bf[k].m] = 1; }); Object.keys(hist).forEach(function (m) { ms[m] = 1; });
+    var keys = Object.keys(ms).sort().reverse(), HN = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"];
+    var note = $("f-histn");
+    if (!keys.length) { host.hidden = true; note.textContent = "Még nincs havi adat: töltsd fel a számlákat a Számlák oldalon (vagy írd be őket), a bekért díjat az oldal magától rögzíti."; return; }
+    host.hidden = false;
+    function cell(t, cls) { var e = el("span", cls || "", t); host.appendChild(e); return e; }
+    ["Hónap", "Számlák összes", "Előfizetés (számla)", "Készülék (számla)", "Bekért díj", "Eredmény", "Befolyt díj"].forEach(function (h, i) { cell(h, "hd" + (i > 1 && i < 4 ? " x" : "")); });
+    var tot = 0, totN = 0;
+    keys.forEach(function (m) {
+      var man = bills[m] || {}, au = fbAuto(m), T = 0, E = 0, K = 0, have = false, ek = false, part = false;
+      ["TFC", "BB", "ONE"].forEach(function (k) {
+        var mv = man[k] !== undefined && man[k] !== "" ? Number(man[k]) : NaN, av = au[k], v = isFinite(mv) ? mv : (av.a > 0 ? av.a : NaN);
+        if (isFinite(v)) { have = true; T += v; if (!isFinite(mv) && av.ek) { E += av.e; K += av.k; ek = true; } else part = true; }
+      });
+      var h = hist[m] || null, mm = /^(\d{4})-(\d{2})$/.exec(m), lab = mm ? mm[1] + ". " + (HN[+mm[2] - 1] || mm[2]) : m;
+      var res = have && h ? h.pt - T : NaN;
+      cell(lab, "rw");
+      cell(have ? ft(T) : "–", "rw"); cell(ek ? ft(E) + (part ? "*" : "") : "–", "rw x"); cell(ek ? ft(K) + (part ? "*" : "") : "–", "rw x");
+      cell(h ? ft(h.pt) : "–", "rw"); cell(isFinite(res) ? (res >= 0 ? "+ " : "− ") + ft(Math.abs(res)) : "–", "rw " + (isFinite(res) ? (res >= 0 ? "dv" : "bad") : "")); cell(h && h.paid ? ft(h.paid) : "–", "rw");
+      if (isFinite(res)) { tot += res; totN++; }
+    });
+    cell("Összesen (" + totN + " hónap)", "tt"); cell("", "tt"); cell("", "tt x"); cell("", "tt x"); cell("", "tt"); cell(totN ? (tot >= 0 ? "+ " : "− ") + ft(Math.abs(tot)) : "–", "tt " + (totN ? (tot >= 0 ? "dv" : "bad") : "")); cell("", "tt");
+    note.textContent = "Az eredmény = bekért díj − a hónap számlái. A bekért díj (flotta árazás) havi állását az oldal attól a hónaptól rögzíti, hogy ez a funkció bekerült; a korábbi hónapoknál ott „–” áll. A * jelzi, hogy nem minden számlából bontható az előfizetés és a készülék.";
   }
   function fbills() {
     if (FMODE !== "live" || !FST) { toast("A flotta még nincs betöltve.", true); return; }
