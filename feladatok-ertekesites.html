@@ -1063,13 +1063,19 @@
   var BY_EXTRA = {}, OWN_EXTRA = {};   // OWN_EXTRA: a vezetők (GST, BL) a Felelős listához
   function asOwn() { var o = {}; Object.keys(AS_OWNERS).forEach(function (k) { o[k] = AS_OWNERS[k]; }); Object.keys(OWN_EXTRA).forEach(function (k) { if (!o[k]) o[k] = OWN_EXTRA[k]; }); return o; }
   function asLoadLeaders() {
-    try {
-      FB.F.getDocs(FB.F.collection(FB.db, "users")).then(function (snap) {
-        var n = 0;
-        snap.docs.forEach(function (d) { var u = d.data() || {}; if (u.role === "gts" || u.role === "bl") { BY_EXTRA[String(d.id).toLowerCase()] = OWN_EXTRA[String(d.id).toLowerCase()] = u.name || TEAM[d.id] || d.id; n++; } });
-        if (n) { var ow = asOwn(), team = Object.keys(ow).map(function (k) { return [k, ow[k]]; }), cur = $("as-owner").value; fillSel($("as-owner"), team); $("as-owner").value = cur || AS_OWNER_DEFAULT; fillSel($("as-f-owner"), team, "Minden felelős"); asRender(); }
-      }).catch(function () {});
-    } catch (e) {}
+    /* Minden GST és BL (fő vagy másodlagos pozícióban) a Felelős és a Beadta listába. A felhasználók listáját csak a belépett (admin) kapcsolat olvashatja, ezért az auth.js kapcsolatát használjuk, ha kész. */
+    function got(snap) {
+      var n = 0;
+      snap.docs.forEach(function (d) {
+        var u = d.data() || {}, ls = [u.role].concat((Array.isArray(u.extra) ? u.extra : []).map(function (x) { return x && x.role; }));
+        if (ls.indexOf("gts") > -1 || ls.indexOf("bl") > -1) { var k = String(d.id).toLowerCase(); BY_EXTRA[k] = OWN_EXTRA[k] = u.name || TEAM[k] || d.id; n++; }
+      });
+      var C = window.CSK; if (C && C.ADMIN && !OWN_EXTRA[C.ADMIN]) { BY_EXTRA[C.ADMIN] = OWN_EXTRA[C.ADMIN] = TEAM[C.ADMIN] || "Csikós Máté"; n++; }
+      if (n) { var ow = asOwn(), team = Object.keys(ow).map(function (k) { return [k, ow[k]]; }), cur = $("as-owner").value; fillSel($("as-owner"), team); $("as-owner").value = cur || AS_OWNER_DEFAULT; fillSel($("as-f-owner"), team, "Minden felelős"); asRender(); }
+    }
+    var C = window.CSK, direct = function () { try { FB.F.getDocs(FB.F.collection(FB.db, "users")).then(got).catch(function () {}); } catch (e) {} };
+    if (C && C.ready) Promise.resolve(C.ready).then(function () { if (C.user && C.Fs && C.db) return C.Fs.getDocs(C.Fs.collection(C.db, "users")).then(got); throw 0; }).catch(direct);
+    else direct();
   }
   /* ---- Ki mit lát: az admin mindent; az asszisztens csak azt, ahol ő a felelős, vagy amit ő adott le. ---- */
   var AS_ALL = [], ME = null;
