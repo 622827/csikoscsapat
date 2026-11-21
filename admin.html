@@ -1754,9 +1754,11 @@
     var p = /Telekom TFC/.test(szolg || "") ? "TFC" : /Telekom BB/.test(szolg || "") ? "BB" : /Flotta . One/.test(szolg || "") ? "ONE" : ""; if (!p || !tx) return null;
     var a = 0, inv = "", m, k = 0;
     if (p === "ONE") {
-      m = /Fizetend[őõo]\s+összesen:?\s*([\d.]+,\d{2})/i.exec(tx) || /fizetend[őõo]:\s*([\d.]+)\s*Ft/i.exec(tx); if (m) a = szNum(m[1]);
+      // A "Fizetendő összesen" a korábbi egyenleget és befizetéseket is tartalmazhatja, ezért a számla saját díját számoljuk: a "Számla" sor bruttója + az egyenlegmódosító tételek (készülékrészletek)
+      var sz = /Számla\s+\d{4}\.\d{2}\.\d{2}\.\s+\d{8,}\s+(-?[\d.]+(?:,\d{2})?)/i.exec(tx); if (sz) a = szNum(sz[1]);
+      m = /Egyenlegmódosító\s+tételek\s+összesen\s+([\d.]+,\d{2})/i.exec(tx); if (m) { k = szNum(m[1]); if (sz) a += k; }   // készülékrészletek
+      if (!sz) { m = /Fizetend[őõo]\s+összesen:?\s*([\d.]+,\d{2})/i.exec(tx) || /fizetend[őõo]:\s*([\d.]+)\s*Ft/i.exec(tx); if (m) a = szNum(m[1]); }
       m = /Számlaszám:\s*(\d{8,})(?![\d-])/i.exec(tx); if (m) inv = m[1];
-      m = /Egyenlegmódosító\s+tételek\s+összesen\s+([\d.]+,\d{2})/i.exec(tx); if (m) k = szNum(m[1]);   // készülékrészletek
     } else {
       var re = /Utólag\s+fizetend[őõo]\s+összesen:?\s*([\d.]+),\d{2}\s+([\d.]+),\d{2}/gi; while ((m = re.exec(tx))) a += szNum(m[2]);
       if (!a) { m = /Fizetend[őõo]\s+összeg:?\s*([\d.]+)/i.exec(tx); if (m) a = szNum(m[1]); }
