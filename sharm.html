@@ -81,7 +81,7 @@
 <script type="module">
 "use strict";
 var V = "https://www.gstatic.com/firebasejs/10.14.1/";
-var COL = "sharm";                 // Firestore gyűjtemény (a szabályokat lásd: firestore-szabalyok-sharm.txt)
+var COLP = ["perf", "sharm-v1", "sh_pos"];   // Firestore útvonal: a meglévő nyilvános perf/{id}/{coll}/{doc} szabály alá esik, új szabály nem kell
 var OLD_MS = 15 * 60 * 1000;       // ennyi után "régi" a pont
 var $ = function (i) { return document.getElementById(i); };
 var KAL = /[?&]kal=1/.test(location.search);
@@ -157,7 +157,7 @@ function boot() {
   });
 }
 function listen() {
-  F.onSnapshot(F.collection(db, COL), function (qs) {
+  F.onSnapshot(F.collection.apply(null, [db].concat(COLP)), function (qs) {
     var next = {};
     qs.forEach(function (d) {
       var x = d.data();
@@ -166,7 +166,7 @@ function listen() {
     });
     people = next; render();
     if (!KAL && st.className === "") say("Élő. " + Object.keys(people).length + " ember a térképen.", "ok");
-  }, function (err) { say("Nem tudom olvasni az adatbázist (" + (err && err.code || "hiba") + "). A Firestore szabályt be kell állítani – lásd firestore-szabalyok-sharm.txt.", "err"); });
+  }, function (err) { say("Nem tudom olvasni az adatbázist (" + (err && err.code || "hiba") + ").", "err"); });
 }
 function save(pos) {
   var now = Date.now();
@@ -174,7 +174,7 @@ function save(pos) {
   var moved = lastPos ? dist(lastPos, pos) : 1e9;
   if (now - lastW < 8000 || (moved < 4 && now - lastW < 60000)) return;
   lastW = now; lastPos = { lat: pos.lat, lon: pos.lon };
-  F.setDoc(F.doc(db, COL, myId), { name: myName, lat: pos.lat, lon: pos.lon, acc: Math.round(pos.acc || 0), t: now }).catch(function (e) { say("A helyem mentése nem sikerült (" + (e && e.code || "hiba") + "). Firestore szabály kell – lásd firestore-szabalyok-sharm.txt.", "err"); });
+  F.setDoc(F.doc.apply(null, [db].concat(COLP, myId)), { name: myName, lat: pos.lat, lon: pos.lon, acc: Math.round(pos.acc || 0), t: now }).catch(function (e) { say("A helyem mentése nem sikerült (" + (e && e.code || "hiba") + ").", "err"); });
 }
 
 // ---------- helymeghatározás ----------
@@ -207,7 +207,7 @@ $("rename").onclick = showJoin;
 $("stop").onclick = function () {
   if (stopped) { stopped = false; ls("sharm_stop", null); $("stop").textContent = "Megosztás leállítása"; lastW = 0; startGeo(); say("Megosztás újra indult.", "ok"); return; }
   stopped = true; ls("sharm_stop", "1"); stopGeo(); $("stop").textContent = "Megosztás indítása";
-  if (db && myId) F.deleteDoc(F.doc(db, COL, myId)).catch(function () { }); say("A megosztás leállt, a helyed törölve lett.");
+  if (db && myId) F.deleteDoc(F.doc.apply(null, [db].concat(COLP, myId))).catch(function () { }); say("A megosztás leállt, a helyed törölve lett.");
 };
 
 // ---------- kalibráló mód (?kal=1) ----------
@@ -219,9 +219,9 @@ if (KAL) {
     if (!me) return say("Még nincs GPS-jel, várj egy kicsit.", "err");
     if (me.acc > 40 && !confirm("A GPS most csak ±" + Math.round(me.acc) + " m pontos. Várj még, vagy mentsem így?")) return;
     var np = cal.concat([{ fx: pending.fx, fy: pending.fy, lat: me.lat, lon: me.lon, acc: Math.round(me.acc) }]);
-    F.setDoc(F.doc(db, COL, "kal"), { pts: np, t: Date.now() }).then(function () { pending = null; say("Pont mentve.", "ok"); }).catch(function (e) { say("Nem sikerült menteni (" + (e && e.code || "hiba") + ").", "err"); });
+    F.setDoc(F.doc.apply(null, [db].concat(COLP, "kal")), { pts: np, t: Date.now() }).then(function () { pending = null; say("Pont mentve.", "ok"); }).catch(function (e) { say("Nem sikerült menteni (" + (e && e.code || "hiba") + ").", "err"); });
   };
-  $("kreset").onclick = function () { if (confirm("Törlöm az összes kalibrációs pontot?")) F.setDoc(F.doc(db, COL, "kal"), { pts: [], t: Date.now() }); };
+  $("kreset").onclick = function () { if (confirm("Törlöm az összes kalibrációs pontot?")) F.setDoc(F.doc.apply(null, [db].concat(COLP, "kal")), { pts: [], t: Date.now() }); };
 }
 
 setInterval(render, 20000);
