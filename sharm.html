@@ -139,7 +139,8 @@ function unproject(T, x, y) {           // kép px → {lat, lon}
 window.__sharm = { fitSim: fitSim, project: project, unproject: unproject };
 
 // ---------- állapot ----------
-var F = null, db = null, myId = ls("sharm_id"), myName = ls("sharm_name") || "";
+function nid(n) { var t = String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, ""); return "n_" + (t || "x"); }   // azonos név = azonos személy (böngészőtől, telefontól függetlenül)
+var F = null, db = null, myName = ls("sharm_name") || "", myId = myName ? nid(myName) : null, rawPeople = {};
 var people = {}, cal = [], T = null, me = null, lastW = 0, lastPos = null, stopped = ls("sharm_stop") === "1", didFit = false;
 var calLoaded = false, PW = 0, PH = 0;                         // a hotelterv képének mérete
 var map, sat, planEl = $("mapmsg"), markers = {}, handles = [], planOn = true, planOp = 0.8;
@@ -214,7 +215,8 @@ function renderPts() {
     });
   });
 }
-function myKinds() { var r = {}; Object.keys(pts).forEach(function (id) { if (pts[id].by === myId) r[pts[id].kind] = id; }); return r; }
+var rawPts = {};
+function myKinds() { var r = {}; Object.keys(pts).forEach(function (id) { if (nid(pts[id].name) === myId) r[pts[id].kind] = id; }); return r; }
 function ptRef(kind) { return F.doc.apply(null, [db].concat(COLK, kind + "_" + myId)); }
 function savePt(kind, lat, lon) {
   if (!db || !myId) return say("Előbb add meg a neved.", "err");
@@ -239,14 +241,14 @@ $("mklist").addEventListener("click", function (e) {
     if (me.acc > 50 && !confirm("A GPS most csak ±" + Math.round(me.acc) + " m pontos. Mentsem így?")) return;
     savePt(k, me.lat, me.lon); closeMarks();
   } else if (a === "tap") { tapKind = k; closeMarks(); msg("Koppints a térképen: " + kindOf(k).n + "  (mégse: koppints ide)"); $("mapmsg").style.pointerEvents = "auto"; }
-  else if (a === "del") { F.deleteDoc(ptRef(k)).catch(function () { }); }
+  else if (a === "del") { Object.keys(rawPts).forEach(function (id) { var x = rawPts[id]; if (x.kind === k && nid(x.name) === myId) F.deleteDoc(F.doc.apply(null, [db].concat(COLK, id))).catch(function () { }); }); }
 });
 $("mapmsg").onclick = function () { if (tapKind) { tapKind = null; msg(""); } };
 map.on("click", function (e) { if (!tapKind) return; var k = tapKind; tapKind = null; msg(""); savePt(k, e.latlng.lat, e.latlng.lng); });
 $("lpts").onchange = function () { showPts = this.checked; renderPts(); };
 function listenPts() {
   F.onSnapshot(F.collection.apply(null, [db].concat(COLK)), function (qs) {
-    var n = {}; qs.forEach(function (d) { var x = d.data(); if (x && isFinite(x.lat) && isFinite(x.lon)) n[d.id] = x; });
+    var n = {}; rawPts = {}; qs.forEach(function (d) { var x = d.data(); if (x && isFinite(x.lat) && isFinite(x.lon)) { rawPts[d.id] = x; var key = x.kind + "|" + nid(x.name); if (!n[key] || (x.t || 0) > (n[key].t || 0)) n[key] = x; } });   // személyenként és helyenként egy jelölés (a legfrissebb)
     pts = n; renderPts(); if ($("marks").style.display === "flex") renderMarks();
     ptsReady = true; maybeAsk();
   }, function () { });
@@ -266,12 +268,13 @@ function boot() {
 function listen() {
   listenPts();
   F.onSnapshot(F.collection.apply(null, [db].concat(COLP)), function (qs) {
-    var next = {};
+    var next = {}, raw = {};
     qs.forEach(function (d) {
       var x = d.data();
       if (d.id === "kal") { if (!KAL || !calLoaded) { cal = (x.pts || []).filter(function (p) { return isFinite(p.fx) && isFinite(p.lat); }); if (!KAL) rebuildT(); } return; }
-      if (x && isFinite(x.lat) && isFinite(x.lon)) next[d.id] = { name: x.name || "?", lat: x.lat, lon: x.lon, acc: x.acc, t: x.t || 0 };
+      if (x && isFinite(x.lat) && isFinite(x.lon)) { raw[d.id] = { name: x.name || "?" }; var key = nid(x.name); if (!next[key] || (x.t || 0) > next[key].t) next[key] = { name: x.name || "?", lat: x.lat, lon: x.lon, acc: x.acc, t: x.t || 0 }; }   // azonos nevűek: a legfrissebb marad
     });
+    rawPeople = raw;
     if (KAL && !calLoaded) { calLoaded = true; initHandles(); }
     people = next; render();
     if (!KAL && st.className === "") say("Élő. " + Object.keys(people).length + " ember a térképen.", "ok");
@@ -308,7 +311,8 @@ document.addEventListener("visibilitychange", function () { if (!document.hidden
 function showJoin() { $("join").style.display = "flex"; $("jn").value = myName; setTimeout(function () { $("jn").focus(); }, 50); }
 $("jf").addEventListener("submit", function (e) {
   e.preventDefault(); var n = $("jn").value.trim().slice(0, 24); if (!n) return;
-  myName = n; ls("sharm_name", n); if (!myId) { myId = "u" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); ls("sharm_id", myId); }
+  var oldId = myId; myName = n; ls("sharm_name", n); myId = nid(n); ls("sharm_id", myId);
+  if (oldId && oldId !== myId && db) F.deleteDoc(F.doc.apply(null, [db].concat(COLP, oldId))).catch(function () { });   // névváltoztatásnál a régi pont törlése
   stopped = false; ls("sharm_stop", null); $("join").style.display = "none"; $("me").textContent = n; lastW = 0; startGeo(); if (me) save(me);
   say("Megosztás indult. Hagyd nyitva ezt az oldalt.", "ok"); asked = false; maybeAsk();
 });
@@ -316,7 +320,7 @@ $("rename").onclick = showJoin;
 $("stop").onclick = function () {
   if (stopped) { stopped = false; ls("sharm_stop", null); $("stop").textContent = "Megosztás leállítása"; lastW = 0; startGeo(); say("Megosztás újra indult.", "ok"); return; }
   stopped = true; ls("sharm_stop", "1"); stopGeo(); $("stop").textContent = "Megosztás indítása";
-  if (db && myId) F.deleteDoc(F.doc.apply(null, [db].concat(COLP, myId))).catch(function () { }); say("A megosztás leállt, a helyed törölve lett.");
+  if (db && myId) Object.keys(rawPeople).forEach(function (id) { if (nid(rawPeople[id].name) === myId) F.deleteDoc(F.doc.apply(null, [db].concat(COLP, id))).catch(function () { }); }); say("A megosztás leállt, a helyed törölve lett.");
 };
 
 // ---------- igazító mód (?kal=1): a 3 pont húzása a műholdképen ----------
