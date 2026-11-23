@@ -1062,16 +1062,23 @@
   function asOwn() { var o = {}; Object.keys(AS_OWNERS).forEach(function (k) { o[k] = AS_OWNERS[k]; }); Object.keys(OWN_EXTRA).forEach(function (k) { if (!o[k]) o[k] = OWN_EXTRA[k]; }); return o; }
   function asLoadLeaders() {
     /* Minden GST és BL (fő vagy másodlagos pozícióban) a Felelős és a Beadta listába. A felhasználók listáját csak a belépett (admin) kapcsolat olvashatja, ezért az auth.js kapcsolatát használjuk, ha kész. */
+    function addSelf() {   // a belépett vezető (GST, BL, admin) mindig megadható felelős és beadó, akkor is, ha a felhasználók listája nem olvasható
+      try { var c = window.CSK, m = c && String(c.user || "").toLowerCase(); if (m && (c.isAdmin || c.role === "gts" || c.role === "bl")) BY_EXTRA[m] = OWN_EXTRA[m] = c.name || TEAM[m] || m; } catch (x) {}
+    }
     function got(snap) {
       var n = 0;
       snap.docs.forEach(function (d) {
         var u = d.data() || {}, ls = [u.role].concat((Array.isArray(u.extra) ? u.extra : []).map(function (x) { return x && x.role; }));
         if (ls.indexOf("gts") > -1 || ls.indexOf("bl") > -1) { var k = String(d.id).toLowerCase(); BY_EXTRA[k] = OWN_EXTRA[k] = u.name || TEAM[k] || d.id; n++; }
       });
+      addSelf();
       var C = window.CSK; if (C && C.ADMIN && !OWN_EXTRA[C.ADMIN]) { BY_EXTRA[C.ADMIN] = OWN_EXTRA[C.ADMIN] = TEAM[C.ADMIN] || "Csikós Máté"; n++; }
       if (n) { var ow = asOwn(), team = Object.keys(ow).map(function (k) { return [k, ow[k]]; }), cur = $("as-owner").value; fillSel($("as-owner"), team); $("as-owner").value = cur || AS_OWNER_DEFAULT; fillSel($("as-f-owner"), team, "Minden felelős"); asRender(); }
     }
-    var C = window.CSK, direct = function () { try { FB.F.getDocs(FB.F.collection(FB.db, "users")).then(got).catch(function () {}); } catch (e) {} };
+    var C = window.CSK, self = function (e) {   // ha a felhasználók listája nem olvasható: legalább te és az admin szerepelj, és látszódjon az ok
+      got({ docs: [] }); toast("A többi vezető listája nem tölthető be (" + (e && e.message || e) + "), most csak te és az admin szerepelsz a Felelős listában.");
+    };
+    var direct = function () { try { FB.F.getDocs(FB.F.collection(FB.db, "users")).then(got).catch(self); } catch (e) { self(e); } };
     if (C && C.ready) Promise.resolve(C.ready).then(function () { if (C.user && C.Fs && C.db) return C.Fs.getDocs(C.Fs.collection(C.db, "users")).then(got); throw 0; }).catch(direct);
     else direct();
   }
