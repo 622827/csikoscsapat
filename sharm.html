@@ -74,7 +74,7 @@
 <div id="st">Indítás…</div>
 <div id="mapwrap">
   <div id="map"></div>
-  <div class="lp"><label><input type="checkbox" id="lsat" checked> Műhold</label><label><input type="checkbox" id="lpts" checked> Helyek</label></div>
+  <div class="lp"><label><input type="checkbox" id="lsat" checked> Műhold</label><label><input type="checkbox" id="lpts" checked> Helyek</label><button id="lnew" style="font:inherit;font-weight:700;padding:7px 10px;border-radius:9px;border:0;background:#1a73e8;color:#fff;cursor:pointer">➕ Új hely</button></div>
   <div id="mapmsg"></div>
 </div>
 <div class="kp" id="kp">
@@ -89,7 +89,7 @@
 <div id="marks"><div>
   <button id="mkx" aria-label="Bezárás">✕</button>
   <h2>📍 Segíts feltérképezni a helyeket!</h2>
-  <p>Mindenki jelölje meg ezeket, amikor éppen ott van: így közösen kitöltjük a térképet. A „Itt vagyok" gomb a telefon GPS-ét használja, a „Térképen" gombnál rákoppintasz a térképre.</p>
+  <p>Mindenki jelölje meg ezeket, amikor éppen ott van: így közösen kitöltjük a térképet. Az „Itt vagyok" gomb a telefon GPS-ét használja, a „Térképen" gombnál rákoppintasz a térképre. Saját helyet bárhol felvehetsz: nyomd hosszan a térképet, vagy használd az alábbi „Új hely" részt.</p>
   <div id="mklist" style="display:grid;gap:10px"></div>
   <div class="mk" id="mkadd"><div class="t"><span>➕</span>Új hely felvétele (mindenkinek látszik)</div>
     <input id="mkn" maxlength="40" placeholder="Pl. Bazár, Farsa Café, Kaszinó">
@@ -275,6 +275,13 @@ $("mklist").addEventListener("click", function (e) {
 });
 $("mapmsg").onclick = function () { if (tapKind) { tapKind = null; msg(""); } };
 map.on("click", function (e) { if (!tapKind) return; var k = tapKind; tapKind = null; msg(""); if (k === "egyeb" && tapMeta) addCustom(e.latlng.lat, e.latlng.lng, tapMeta.label, tapMeta.e); else savePt(k, e.latlng.lat, e.latlng.lng); });
+$("lnew").onclick = function () { if (!myId) return showJoin(); openMarks(); setTimeout(function () { $("mkadd").scrollIntoView({ block: "center" }); $("mkn").focus(); }, 60); };
+// hosszú nyomás a térképen: ott helyben új hely felvétele
+map.on("contextmenu", function (e) {
+  if (!myId) return showJoin(); if (tapKind) return;
+  var n = prompt("Mi legyen ennek a helynek a neve? (pl. Bazár, Farsa Café, Kaszinó)"); if (!n || !n.trim()) return;
+  addCustom(e.latlng.lat, e.latlng.lng, n.trim().slice(0, 40), "📍");
+});
 $("lpts").onchange = function () { showPts = this.checked; renderPts(); };
 function listenPts() {
   F.onSnapshot(F.collection.apply(null, [db].concat(COLK)), function (qs) {
