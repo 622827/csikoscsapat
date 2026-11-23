@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Sharm – ki hol van</title>
+<link rel="icon" href="favicon.ico">
+<style>
+  :root { --bg: #f4f5f7; --card: #fff; --ink: #14181f; --muted: #667085; --line: #e2e5ea; --me: #1a73e8; --ok: #12a150; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0f1216; --card: #181d24; --ink: #eef1f5; --muted: #98a2b3; --line: #2a313b; } }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--ink); font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; min-height: 100dvh; }
+  header { padding: 10px 14px; display: flex; align-items: center; gap: 10px; padding-top: max(10px, env(safe-area-inset-top)); }
+  header h1 { font-size: 1.1rem; margin: 0; flex: 1; }
+  header small { color: var(--muted); }
+  #st { font-size: .82rem; color: var(--muted); padding: 0 14px 8px; }
+  #st.err { color: #d92d20; } #st.ok { color: var(--ok); }
+  #mapwrap { position: relative; flex: 1 1 55vh; min-height: 300px; margin: 0 10px; border-radius: 14px; overflow: hidden; background: var(--card); border: 1px solid var(--line); }
+  #scroller { position: absolute; inset: 0; overflow: auto; -webkit-overflow-scrolling: touch; }
+  #inner { position: relative; width: 100%; line-height: 0; touch-action: pan-x pan-y; }
+  #img { width: 100%; height: auto; display: block; user-select: none; -webkit-user-drag: none; }
+  #nomap { display: none; padding: 24px 16px; text-align: center; color: var(--muted); line-height: 1.5; }
+  .zb { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
+  .zb button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font-size: 1.3rem; cursor: pointer; }
+  .pin { position: absolute; transform: translate(-50%, -50%); line-height: 1.2; pointer-events: none; text-align: center; }
+  .pin i { display: block; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 5px rgba(0,0,0,.5); margin: 0 auto; }
+  .pin b { position: absolute; left: 50%; top: 20px; transform: translateX(-50%); white-space: nowrap; font-size: 12px; font-weight: 700; color: #fff; background: rgba(20,24,31,.82); padding: 1px 7px; border-radius: 999px; }
+  .pin.old { opacity: .45; }
+  .pin.me i { box-shadow: 0 0 0 0 rgba(26,115,232,.6), 0 1px 5px rgba(0,0,0,.5); animation: pu 1.8s infinite; }
+  .pin.cal i { background: #f79009; border-radius: 3px; transform: rotate(45deg); }
+  @keyframes pu { 70% { box-shadow: 0 0 0 14px rgba(26,115,232,0), 0 1px 5px rgba(0,0,0,.5); } 100% { box-shadow: 0 0 0 0 rgba(26,115,232,0), 0 1px 5px rgba(0,0,0,.5); } }
+  @media (prefers-reduced-motion: reduce) { .pin.me i { animation: none; } }
+  #list { padding: 10px; display: grid; gap: 6px; }
+  .row { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .row i { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+  .row span { flex: 1; font-weight: 600; }
+  .row small { color: var(--muted); text-align: right; }
+  .row.old { opacity: .55; }
+  footer { padding: 4px 14px calc(14px + env(safe-area-inset-bottom)); font-size: .8rem; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+  footer a { color: var(--muted); cursor: pointer; text-decoration: underline; }
+  #join { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 20; }
+  #join form { background: var(--card); border-radius: 16px; padding: 22px; width: min(380px, 100%); display: grid; gap: 12px; }
+  #join h2 { margin: 0; font-size: 1.25rem; }
+  #join p { margin: 0; color: var(--muted); font-size: .92rem; }
+  #join input { font: inherit; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  #join button, .kp button { font: inherit; font-weight: 700; padding: 12px; border-radius: 10px; border: 0; background: var(--me); color: #fff; cursor: pointer; }
+  .kp { margin: 10px; padding: 12px; background: var(--card); border: 2px solid #f79009; border-radius: 12px; display: none; gap: 8px; }
+  .kp p { margin: 0; font-size: .9rem; }
+  .kp .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .kp button.sec { background: var(--bg); color: var(--ink); border: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<header><h1>📍 Sharm – ki hol van</h1><small id="me"></small></header>
+<div id="st">Indítás…</div>
+<div id="mapwrap">
+  <div id="scroller"><div id="inner"><img id="img" alt="Hotel térkép" src="sharm-terkep.jpg"></div></div>
+  <div id="nomap">A hotel térképe még nincs feltöltve (sharm-terkep.jpg).<br>A lista már működik.</div>
+  <div class="zb"><button id="zi" aria-label="Nagyítás">+</button><button id="zo" aria-label="Kicsinyítés">−</button></div>
+</div>
+<div class="kp" id="kp">
+  <b>Kalibrálás</b>
+  <p>1) Állj egy jól azonosítható helyre (recepció, medence sarka…). 2) Koppints a térképen pontosan arra a pontra. 3) Nyomd meg az „Itt állok" gombot. Ismételd 2–3 egymástól távoli ponton.</p>
+  <p id="kinfo"></p>
+  <div class="btns"><button id="khere">Itt állok</button><button class="sec" id="kreset">Pontok törlése</button></div>
+</div>
+<div id="list"></div>
+<footer><span id="ver"></span><a id="rename">Név módosítása</a><a id="stop">Megosztás leállítása</a></footer>
+
+<div id="join">
+  <form id="jf">
+    <h2>Szia! Hogy hívnak?</h2>
+    <p>A neved megjelenik a térképen a többieknek. Utána a böngésző engedélyét kéri a helyzetedhez – ezt engedd meg. A telefon megjegyzi, nem kell újra megadni.</p>
+    <input id="jn" maxlength="24" placeholder="Név" autocomplete="given-name" required>
+    <button type="submit">Belépek</button>
+  </form>
+</div>
+
+<script type="module">
+"use strict";
+var V = "https://www.gstatic.com/firebasejs/10.14.1/";
+var COL = "sharm";                 // Firestore gyűjtemény (a szabályokat lásd: firestore-szabalyok-sharm.txt)
+var OLD_MS = 15 * 60 * 1000;       // ennyi után "régi" a pont
+var $ = function (i) { return document.getElementById(i); };
+var KAL = /[?&]kal=1/.test(location.search);
+var st = $("st");
+function say(t, c) { st.textContent = t; st.className = c || ""; }
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } return null; }
+
+// ---------- kalibráció: GPS (szél./hossz.) → kép (px) hasonlósági transzformációval ----------
+function fitSim(pts, W, H) {            // pts: [{fx,fy,lat,lon}] ; legalább 2 pont
+  if (!pts || pts.length < 2) return null;
+  var lat0 = 0, lon0 = 0; pts.forEach(function (p) { lat0 += p.lat; lon0 += p.lon; }); lat0 /= pts.length; lon0 /= pts.length;
+  var k = Math.cos(lat0 * Math.PI / 180);
+  var P = pts.map(function (p) { return { u: (p.lon - lon0) * k * 111320, v: -(p.lat - lat0) * 110540, x: p.fx * W, y: p.fy * H }; });
+  var uu = 0, vv = 0, xx = 0, yy = 0; P.forEach(function (p) { uu += p.u; vv += p.v; xx += p.x; yy += p.y; }); uu /= P.length; vv /= P.length; xx /= P.length; yy /= P.length;
+  var D = 0, A = 0, B = 0;
+  P.forEach(function (p) { var du = p.u - uu, dv = p.v - vv, dx = p.x - xx, dy = p.y - yy; D += du * du + dv * dv; A += du * dx + dv * dy; B += du * dy - dv * dx; });
+  if (D < 1) return null;                 // a pontok (majdnem) egy helyen vannak
+  var a = A / D, b = B / D, tx = xx - a * uu + b * vv, ty = yy - b * uu - a * vv;
+  return { lat0: lat0, lon0: lon0, k: k, a: a, b: b, tx: tx, ty: ty, W: W, H: H };
+}
+function project(T, lat, lon) {         // → {fx, fy} a kép törtrészében (0..1)
+  var u = (lon - T.lon0) * T.k * 111320, v = -(lat - T.lat0) * 110540;
+  return { fx: (T.a * u - T.b * v + T.tx) / T.W, fy: (T.b * u + T.a * v + T.ty) / T.H };
+}
+window.__sharm = { fitSim: fitSim, project: project };
+
+// ---------- állapot ----------
+var F = null, db = null, myId = ls("sharm_id"), myName = ls("sharm_name") || "";
+var people = {}, cal = [], T = null, me = null, zoom = 1, lastW = 0, lastT = 0, lastPos = null, stopped = ls("sharm_stop") === "1", pending = null;
+var img = $("img"), inner = $("inner");
+function colorOf(id) { var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0; return "hsl(" + (h % 360) + ",70%,45%)"; }
+function ago(t) { var s = Math.max(0, (Date.now() - t) / 1000); if (s < 45) return "most"; if (s < 3600) return Math.round(s / 60) + " perce"; return Math.round(s / 3600) + " órája"; }
+function dist(a, b) { var k = Math.cos(a.lat * Math.PI / 180), dx = (a.lon - b.lon) * k * 111320, dy = (a.lat - b.lat) * 110540; return Math.sqrt(dx * dx + dy * dy); }
+
+function mapReady() { return img.complete && img.naturalWidth > 0; }
+function rebuildT() { T = mapReady() ? fitSim(cal, img.naturalWidth, img.naturalHeight) : null; }
+
+function render() {
+  [].forEach.call(inner.querySelectorAll(".pin"), function (n) { n.remove(); });
+  var ids = Object.keys(people).sort(function (a, b) { return (people[a].name || "").localeCompare(people[b].name || "", "hu"); });
+  var html = "";
+  ids.forEach(function (id) {
+    var p = people[id], old = Date.now() - p.t > OLD_MS, c = colorOf(id), pos = T ? project(T, p.lat, p.lon) : null;
+    var onMap = pos && pos.fx >= -0.02 && pos.fx <= 1.02 && pos.fy >= -0.02 && pos.fy <= 1.02;
+    if (onMap) {
+      var d = document.createElement("div"); d.className = "pin" + (old ? " old" : "") + (id === myId ? " me" : ""); d.style.left = pos.fx * 100 + "%"; d.style.top = pos.fy * 100 + "%";
+      d.innerHTML = "<i style='background:" + c + "'></i><b>" + esc(p.name) + "</b>"; inner.appendChild(d);
+    }
+    html += "<div class='row" + (old ? " old" : "") + "' data-id='" + id + "'><i style='background:" + c + "'></i><span>" + esc(p.name) + (id === myId ? " (te)" : "") + "</span><small>" + ago(p.t) + (p.acc ? " · ±" + Math.round(p.acc) + " m" : "") + (T && !onMap ? "<br>a térképen kívül" : "") + "</small></div>";
+  });
+  if (KAL) cal.forEach(function (p, i) { var d = document.createElement("div"); d.className = "pin cal"; d.style.left = p.fx * 100 + "%"; d.style.top = p.fy * 100 + "%"; d.innerHTML = "<i></i><b>" + (i + 1) + "</b>"; inner.appendChild(d); });
+  if (KAL && pending) { var q = document.createElement("div"); q.className = "pin cal"; q.style.left = pending.fx * 100 + "%"; q.style.top = pending.fy * 100 + "%"; q.innerHTML = "<i style='background:#d92d20'></i><b>új pont</b>"; inner.appendChild(q); }
+  $("list").innerHTML = html || "<div class='row' style='cursor:default'><span>Még senki nem osztotta meg a helyét.</span></div>";
+  if (KAL) $("kinfo").textContent = cal.length + " kalibrációs pont" + (T ? " – a térkép kalibrálva." : cal.length < 2 ? " – legalább 2 kell." : " – a pontok túl közel vannak egymáshoz.");
+  else if (mapReady() && !T) say("A térkép még nincs kalibrálva (a hely a listában látszik).");
+}
+function focusOn(id) {
+  var p = people[id]; if (!p || !T) return; var pos = project(T, p.lat, p.lon), sc = $("scroller");
+  sc.scrollTo({ left: pos.fx * inner.clientWidth - sc.clientWidth / 2, top: pos.fy * inner.clientHeight - sc.clientHeight / 2, behavior: "smooth" });
+}
+$("list").addEventListener("click", function (e) { var r = e.target.closest(".row[data-id]"); if (r) focusOn(r.getAttribute("data-id")); });
+function setZoom(z) { zoom = Math.max(1, Math.min(4, z)); inner.style.width = zoom * 100 + "%"; }
+$("zi").onclick = function () { setZoom(zoom * 1.5); }; $("zo").onclick = function () { setZoom(zoom / 1.5); };
+img.addEventListener("load", function () { $("nomap").style.display = "none"; $("scroller").style.display = ""; rebuildT(); render(); });
+img.addEventListener("error", function () { $("scroller").style.display = "none"; document.querySelector(".zb").style.display = "none"; $("nomap").style.display = "block"; $("mapwrap").style.flex = "0 0 auto"; });
+if (mapReady()) rebuildT();
+
+// ---------- Firebase ----------
+function boot() {
+  return fetch("firebase-config.json").then(function (r) { return r.json(); }).then(function (cfg) {
+    return Promise.all([import(V + "firebase-app.js"), import(V + "firebase-firestore.js")]).then(function (m) { F = m[1]; db = F.getFirestore(m[0].initializeApp(cfg)); });
+  });
+}
+function listen() {
+  F.onSnapshot(F.collection(db, COL), function (qs) {
+    var next = {};
+    qs.forEach(function (d) {
+      var x = d.data();
+      if (d.id === "kal") { cal = (x.pts || []).filter(function (p) { return isFinite(p.fx) && isFinite(p.lat); }); rebuildT(); return; }
+      if (x && isFinite(x.lat) && isFinite(x.lon)) next[d.id] = { name: x.name || "?", lat: x.lat, lon: x.lon, acc: x.acc, t: x.t || 0 };
+    });
+    people = next; render();
+    if (!KAL && st.className === "") say("Élő. " + Object.keys(people).length + " ember a térképen.", "ok");
+  }, function (err) { say("Nem tudom olvasni az adatbázist (" + (err && err.code || "hiba") + "). A Firestore szabályt be kell állítani – lásd firestore-szabalyok-sharm.txt.", "err"); });
+}
+function save(pos) {
+  var now = Date.now();
+  if (stopped || !db || !myId) return;
+  var moved = lastPos ? dist(lastPos, pos) : 1e9;
+  if (now - lastW < 8000 || (moved < 4 && now - lastW < 60000)) return;
+  lastW = now; lastPos = { lat: pos.lat, lon: pos.lon };
+  F.setDoc(F.doc(db, COL, myId), { name: myName, lat: pos.lat, lon: pos.lon, acc: Math.round(pos.acc || 0), t: now }).catch(function (e) { say("A helyem mentése nem sikerült (" + (e && e.code || "hiba") + "). Firestore szabály kell – lásd firestore-szabalyok-sharm.txt.", "err"); });
+}
+
+// ---------- helymeghatározás ----------
+var watchId = null, wake = null;
+function startGeo() {
+  if (!navigator.geolocation) { say("Ez a böngésző nem tud helyet adni.", "err"); return; }
+  if (watchId != null) return;
+  watchId = navigator.geolocation.watchPosition(function (p) {
+    me = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy };
+    if (people[myId]) { people[myId].lat = me.lat; people[myId].lon = me.lon; people[myId].acc = me.acc; people[myId].t = Date.now(); render(); }
+    save(me);
+  }, function (e) {
+    say(e.code === 1 ? "A helymeghatározás tiltva van. Engedélyezd a böngésző beállításaiban ennél az oldalnál, majd töltsd újra." : "Nem találom a helyedet (" + (e.message || e.code) + ").", "err");
+  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
+  keepAwake();
+}
+function stopGeo() { if (watchId != null) navigator.geolocation.clearWatch(watchId); watchId = null; if (wake) { try { wake.release(); } catch (e) { } wake = null; } }
+function keepAwake() { try { if (navigator.wakeLock && !wake) navigator.wakeLock.request("screen").then(function (w) { wake = w; w.addEventListener("release", function () { wake = null; }); }).catch(function () { }); } catch (e) { } }
+document.addEventListener("visibilitychange", function () { if (!document.hidden && !stopped && watchId != null) { keepAwake(); if (me) { lastW = 0; save(me); } } });
+
+// ---------- belépés ----------
+function showJoin() { $("join").style.display = "flex"; $("jn").value = myName; setTimeout(function () { $("jn").focus(); }, 50); }
+$("jf").addEventListener("submit", function (e) {
+  e.preventDefault(); var n = $("jn").value.trim().slice(0, 24); if (!n) return;
+  myName = n; ls("sharm_name", n); if (!myId) { myId = "u" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); ls("sharm_id", myId); }
+  stopped = false; ls("sharm_stop", null); $("join").style.display = "none"; $("me").textContent = n; lastW = 0; startGeo(); if (me) save(me);
+  say("Megosztás indult. Hagyd nyitva ezt az oldalt.", "ok");
+});
+$("rename").onclick = showJoin;
+$("stop").onclick = function () {
+  if (stopped) { stopped = false; ls("sharm_stop", null); $("stop").textContent = "Megosztás leállítása"; lastW = 0; startGeo(); say("Megosztás újra indult.", "ok"); return; }
+  stopped = true; ls("sharm_stop", "1"); stopGeo(); $("stop").textContent = "Megosztás indítása";
+  if (db && myId) F.deleteDoc(F.doc(db, COL, myId)).catch(function () { }); say("A megosztás leállt, a helyed törölve lett.");
+};
+
+// ---------- kalibráló mód (?kal=1) ----------
+if (KAL) {
+  $("kp").style.display = "grid";
+  inner.addEventListener("click", function (e) { var r = img.getBoundingClientRect(); pending = { fx: (e.clientX - r.left) / r.width, fy: (e.clientY - r.top) / r.height }; render(); });
+  $("khere").onclick = function () {
+    if (!pending) return say("Előbb koppints a térképen arra a pontra, ahol állsz.", "err");
+    if (!me) return say("Még nincs GPS-jel, várj egy kicsit.", "err");
+    if (me.acc > 40 && !confirm("A GPS most csak ±" + Math.round(me.acc) + " m pontos. Várj még, vagy mentsem így?")) return;
+    var np = cal.concat([{ fx: pending.fx, fy: pending.fy, lat: me.lat, lon: me.lon, acc: Math.round(me.acc) }]);
+    F.setDoc(F.doc(db, COL, "kal"), { pts: np, t: Date.now() }).then(function () { pending = null; say("Pont mentve.", "ok"); }).catch(function (e) { say("Nem sikerült menteni (" + (e && e.code || "hiba") + ").", "err"); });
+  };
+  $("kreset").onclick = function () { if (confirm("Törlöm az összes kalibrációs pontot?")) F.setDoc(F.doc(db, COL, "kal"), { pts: [], t: Date.now() }); };
+}
+
+setInterval(render, 20000);
+boot().then(function () {
+  listen();
+  if (myId && myName && !stopped) { $("me").textContent = myName; startGeo(); say("Helyzet keresése…"); }
+  else if (stopped && myId) { $("me").textContent = myName; $("stop").textContent = "Megosztás indítása"; say("A megosztásod ki van kapcsolva."); }
+  else showJoin();
+}).catch(function (e) { say("Nem sikerült csatlakozni az adatbázishoz: " + (e && e.message || e), "err"); });
+</script>
+</body>
+</html>

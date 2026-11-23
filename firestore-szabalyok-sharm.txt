@@ -1,0 +1,9 @@
+// Sharm oldal (sharm.html): ezt a blokkot kell beilleszteni a meglévő Firestore szabályok közé
+// (a "match /databases/{database}/documents { ... }" belsejébe), a meglévő részeket NE töröld.
+// Nyilvános, belépés nélküli olvasás/írás, csak ehhez az egy gyűjteményhez. Az utazás után ezt a blokkot ki kell törölni.
+
+    match /sharm/{d} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().size() < 12;
+      allow delete: if true;
+    }
