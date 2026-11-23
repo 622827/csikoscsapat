@@ -31,6 +31,17 @@
   .pin i { display: block; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 5px rgba(0,0,0,.5); margin: 0 auto; }
   .pin b { position: absolute; left: 50%; top: 20px; transform: translateX(-50%); white-space: nowrap; font-size: 12px; font-weight: 700; color: #fff; background: rgba(20,24,31,.82); padding: 1px 7px; border-radius: 999px; }
   .pin.old { opacity: .45; }
+  .pt { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); text-align: center; pointer-events: none; }
+  .pt span { display: block; width: 30px; height: 30px; line-height: 26px; border-radius: 50%; background: #fff; border: 2px solid #7a5af8; font-size: 16px; margin: 0 auto; box-shadow: 0 1px 5px rgba(0,0,0,.45); }
+  .pt b { position: absolute; left: 50%; top: 32px; transform: translateX(-50%); white-space: nowrap; font-size: 11px; font-weight: 700; color: #fff; background: rgba(79,56,170,.9); padding: 1px 7px; border-radius: 999px; }
+  #marks { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: flex-end; justify-content: center; z-index: 30; }
+  #marks > div { background: var(--card); width: min(520px, 100%); max-height: 90dvh; overflow: auto; border-radius: 18px 18px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); display: grid; gap: 10px; }
+  #marks h2 { margin: 0; font-size: 1.2rem; } #marks p { margin: 0; color: var(--muted); font-size: .9rem; }
+  .mk { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; }
+  .mk .t { display: flex; gap: 8px; align-items: center; font-weight: 700; } .mk .t small { margin-left: auto; font-weight: 600; color: var(--muted); } .mk .t small.ok { color: var(--ok); }
+  .mk .b { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mk button, #marks .x { font: inherit; font-size: .88rem; font-weight: 700; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .mk button.p { background: var(--me); color: #fff; border-color: var(--me); }
   .pin.me i { box-shadow: 0 0 0 0 rgba(26,115,232,.6), 0 1px 5px rgba(0,0,0,.5); animation: pu 1.8s infinite; }
   .pin.cal { pointer-events: auto; cursor: grab; } .pin.cal i { width: 24px; height: 24px; background: rgba(247,144,9,.9); border-radius: 50%; border: 3px solid #fff; } .pin.cal b { background: #b54708; font-size: 13px; top: 26px; }
   @keyframes pu { 70% { box-shadow: 0 0 0 14px rgba(26,115,232,0), 0 1px 5px rgba(0,0,0,.5); } 100% { box-shadow: 0 0 0 0 rgba(26,115,232,0), 0 1px 5px rgba(0,0,0,.5); } }
@@ -60,7 +71,7 @@
 <div id="st">Indítás…</div>
 <div id="mapwrap">
   <div id="map"></div>
-  <div class="lp"><label><input type="checkbox" id="lsat" checked> Műhold</label><label><input type="checkbox" id="lplan" checked> Hotelterv</label><label>Terv: <input type="range" id="lop" min="15" max="100" value="80"></label></div>
+  <div class="lp"><label><input type="checkbox" id="lsat" checked> Műhold</label><label><input type="checkbox" id="lplan" checked> Hotelterv</label><label><input type="checkbox" id="lpts" checked> Helyek</label><label>Terv: <input type="range" id="lop" min="15" max="100" value="80"></label></div>
   <div id="mapmsg"></div>
 </div>
 <div class="kp" id="kp">
@@ -70,8 +81,14 @@
   <div class="btns"><button id="kme">Középre a helyemre</button><button class="sec" id="kreset">Alaphelyzet</button></div>
 </div>
 <div id="list"></div>
-<footer><span id="ver"></span><a id="rename">Név módosítása</a><a id="stop">Megosztás leállítása</a></footer>
+<footer><a id="openmarks" style="font-weight:700;color:var(--me)">📍 Helyek megjelölése</a><span id="ver"></span><a id="rename">Név módosítása</a><a id="stop">Megosztás leállítása</a></footer>
 
+<div id="marks"><div>
+  <h2>📍 Segíts feltérképezni a hotelt!</h2>
+  <p>Mindenki jelölje meg ezeket, amikor éppen ott van: így közösen kitöltjük a térképet. A „Itt vagyok" gomb a telefon GPS-ét használja, a „Térképen" gombnál rákoppintasz a térképre.</p>
+  <div id="mklist" style="display:grid;gap:10px"></div>
+  <button class="x" id="mkclose">Később</button>
+</div></div>
 <div id="join">
   <form id="jf">
     <h2>Szia! Hogy hívnak?</h2>
@@ -174,6 +191,70 @@ function render() {
 }
 $("list").addEventListener("click", function (e) { var r = e.target.closest(".row[data-id]"); if (!r) return; var p = people[r.getAttribute("data-id")]; if (p) map.setView([p.lat, p.lon], Math.max(map.getZoom(), 18)); });
 
+
+// ---------- közösen gyűjtött helyek (ebédlő, recepció, szobák, tengerpart, medence) ----------
+var COLK = ["perf", "sharm-v1", "sh_pts"];
+var KINDS = [ { k: "ebedlo", e: "🍽️", n: "Ebédlő", sh: 1 }, { k: "recepcio", e: "🛎️", n: "Recepció", sh: 1 }, { k: "szoba", e: "🛏️", n: "Saját szobám", sh: 0 }, { k: "tenger", e: "🏖️", n: "Jó tengerparti pont", sh: 1 }, { k: "medence", e: "🏊", n: "Medence", sh: 1 } ];
+var pts = {}, ptMk = [], showPts = true, tapKind = null, ptsReady = false, asked = false;
+function kindOf(k) { for (var i = 0; i < KINDS.length; i++) if (KINDS[i].k === k) return KINDS[i]; return null; }
+function renderPts() {
+  ptMk.forEach(function (m) { map.removeLayer(m); }); ptMk = []; if (!showPts) return;
+  KINDS.forEach(function (K) {
+    var all = Object.keys(pts).map(function (id) { return pts[id]; }).filter(function (q) { return q.kind === K.k; }), out = [];
+    if (!K.sh) out = all.map(function (q) { return { lat: q.lat, lon: q.lon, n: 1, label: K.e + " " + (q.name || "?") }; });
+    else all.forEach(function (q) {                       // közös helyek: 40 m-en belüli jelölések egy ponttá olvadnak (átlag)
+      var c = null; out.forEach(function (o) { if (!c && dist(o, q) < 40) c = o; });
+      if (c) { c.lat = (c.lat * c.n + q.lat) / (c.n + 1); c.lon = (c.lon * c.n + q.lon) / (c.n + 1); c.n++; } else out.push({ lat: q.lat, lon: q.lon, n: 1 });
+    });
+    out.forEach(function (o) {
+      var lab = K.sh ? K.n + (o.n > 1 ? " · " + o.n : "") : o.label.slice(o.label.indexOf(" ") + 1);
+      ptMk.push(L.marker([o.lat, o.lon], { interactive: false, keyboard: false, icon: L.divIcon({ className: "", iconSize: [0, 0], html: "<div class='pt'><span>" + K.e + "</span><b>" + esc(lab) + "</b></div>" }) }).addTo(map));
+    });
+  });
+}
+function myKinds() { var r = {}; Object.keys(pts).forEach(function (id) { if (pts[id].by === myId) r[pts[id].kind] = id; }); return r; }
+function ptRef(kind) { return F.doc.apply(null, [db].concat(COLK, kind + "_" + myId)); }
+function savePt(kind, lat, lon) {
+  if (!db || !myId) return say("Előbb add meg a neved.", "err");
+  F.setDoc(ptRef(kind), { kind: kind, by: myId, name: myName, lat: lat, lon: lon, t: Date.now() }).then(function () { say(kindOf(kind).n + " megjelölve. Köszi!", "ok"); }).catch(function (e) { say("Nem sikerült menteni (" + (e && e.code || "hiba") + ").", "err"); });
+}
+function renderMarks() {
+  var mine = myKinds();
+  $("mklist").innerHTML = KINDS.map(function (K) {
+    var done = !!mine[K.k], cnt = Object.keys(pts).filter(function (id) { return pts[id].kind === K.k; }).length;
+    return "<div class='mk'><div class='t'><span>" + K.e + "</span>" + esc(K.n) + "<small class='" + (done ? "ok" : "") + "'>" + (done ? "✓ megjelölted" : (cnt && K.sh ? cnt + " jelölés" : "")) + "</small></div><div class='b'><button class='p' data-a='gps' data-k='" + K.k + "'>Itt vagyok</button><button data-a='tap' data-k='" + K.k + "'>Térképen</button>" + (done ? "<button data-a='del' data-k='" + K.k + "'>Törlés</button>" : "") + "</div></div>";
+  }).join("");
+}
+function openMarks() { renderMarks(); $("marks").style.display = "flex"; }
+function closeMarks() { $("marks").style.display = "none"; }
+$("openmarks").onclick = function () { if (!myId) return showJoin(); openMarks(); };
+$("mkclose").onclick = closeMarks;
+$("marks").addEventListener("click", function (e) { if (e.target === $("marks")) closeMarks(); });
+$("mklist").addEventListener("click", function (e) {
+  var b = e.target.closest("button[data-a]"); if (!b) return; var a = b.getAttribute("data-a"), k = b.getAttribute("data-k");
+  if (a === "gps") {
+    if (!me) return say("Még nincs GPS-jel, várj egy kicsit, majd próbáld újra.", "err");
+    if (me.acc > 50 && !confirm("A GPS most csak ±" + Math.round(me.acc) + " m pontos. Mentsem így?")) return;
+    savePt(k, me.lat, me.lon); closeMarks();
+  } else if (a === "tap") { tapKind = k; closeMarks(); msg("Koppints a térképen: " + kindOf(k).n + "  (mégse: koppints ide)"); $("mapmsg").style.pointerEvents = "auto"; }
+  else if (a === "del") { F.deleteDoc(ptRef(k)).catch(function () { }); }
+});
+$("mapmsg").onclick = function () { if (tapKind) { tapKind = null; msg(""); } };
+map.on("click", function (e) { if (!tapKind) return; var k = tapKind; tapKind = null; msg(""); savePt(k, e.latlng.lat, e.latlng.lng); });
+$("lpts").onchange = function () { showPts = this.checked; renderPts(); };
+function listenPts() {
+  F.onSnapshot(F.collection.apply(null, [db].concat(COLK)), function (qs) {
+    var n = {}; qs.forEach(function (d) { var x = d.data(); if (x && isFinite(x.lat) && isFinite(x.lon)) n[d.id] = x; });
+    pts = n; renderPts(); if ($("marks").style.display === "flex") renderMarks();
+    ptsReady = true; maybeAsk();
+  }, function () { });
+}
+function maybeAsk() {   // megnyitáskor felhívja a figyelmet, ha van még meg nem jelölt hely
+  if (asked || !ptsReady || !myId || !myName || KAL) return;
+  var mine = myKinds(); if (KINDS.every(function (K) { return mine[K.k]; })) { asked = true; return; }
+  asked = true; setTimeout(openMarks, 1200);
+}
+
 // ---------- Firebase ----------
 function boot() {
   return fetch("firebase-config.json").then(function (r) { return r.json(); }).then(function (cfg) {
@@ -181,6 +262,7 @@ function boot() {
   });
 }
 function listen() {
+  listenPts();
   F.onSnapshot(F.collection.apply(null, [db].concat(COLP)), function (qs) {
     var next = {};
     qs.forEach(function (d) {
@@ -226,7 +308,7 @@ $("jf").addEventListener("submit", function (e) {
   e.preventDefault(); var n = $("jn").value.trim().slice(0, 24); if (!n) return;
   myName = n; ls("sharm_name", n); if (!myId) { myId = "u" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); ls("sharm_id", myId); }
   stopped = false; ls("sharm_stop", null); $("join").style.display = "none"; $("me").textContent = n; lastW = 0; startGeo(); if (me) save(me);
-  say("Megosztás indult. Hagyd nyitva ezt az oldalt.", "ok");
+  say("Megosztás indult. Hagyd nyitva ezt az oldalt.", "ok"); asked = false; maybeAsk();
 });
 $("rename").onclick = showJoin;
 $("stop").onclick = function () {
