@@ -6,6 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Sharm – ki hol van</title>
 <link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
   :root { --bg: #f4f5f7; --card: #fff; --ink: #14181f; --muted: #667085; --line: #e2e5ea; --me: #1a73e8; --ok: #12a150; }
   @media (prefers-color-scheme: dark) { :root { --bg: #0f1216; --card: #181d24; --ink: #eef1f5; --muted: #98a2b3; --line: #2a313b; } }
@@ -17,19 +18,21 @@
   header small { color: var(--muted); }
   #st { font-size: .82rem; color: var(--muted); padding: 0 14px 8px; }
   #st.err { color: #d92d20; } #st.ok { color: var(--ok); }
-  #mapwrap { position: relative; flex: 1 1 55vh; min-height: 300px; margin: 0 10px; border-radius: 14px; overflow: hidden; background: var(--card); border: 1px solid var(--line); }
-  #scroller { position: absolute; inset: 0; overflow: auto; -webkit-overflow-scrolling: touch; }
-  #inner { position: relative; width: 100%; line-height: 0; touch-action: pan-x pan-y; }
-  #img { width: 100%; height: auto; display: block; user-select: none; -webkit-user-drag: none; }
-  #nomap { display: none; padding: 24px 16px; text-align: center; color: var(--muted); line-height: 1.5; }
-  .zb { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
-  .zb button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font-size: 1.3rem; cursor: pointer; }
-  .pin { position: absolute; transform: translate(-50%, -50%); line-height: 1.2; pointer-events: none; text-align: center; }
+  #mapwrap { position: relative; flex: 1 1 55vh; min-height: 320px; margin: 0 10px; border-radius: 14px; overflow: hidden; background: var(--card); border: 1px solid var(--line); }
+  #map { position: absolute; inset: 0; background: #fff; }
+  #planimg { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none !important; mix-blend-mode: multiply; pointer-events: none; display: none; user-select: none; }
+  .lp { position: absolute; right: 8px; top: 8px; z-index: 1000; background: rgba(255,255,255,.92); color: #14181f; border-radius: 10px; padding: 8px 10px; font-size: .85rem; display: grid; gap: 4px; box-shadow: 0 1px 6px rgba(0,0,0,.3); }
+  .lp label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .lp input[type=range] { width: 110px; }
+  #mapmsg { position: absolute; left: 8px; bottom: 8px; z-index: 1000; background: rgba(20,24,31,.82); color: #fff; font-size: .78rem; padding: 4px 9px; border-radius: 8px; max-width: 80%; display: none; }
+  .leaflet-container { font: inherit; }
+  .pin { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); line-height: 1.2; pointer-events: none; text-align: center; }
+  .leaflet-div-icon { background: none; border: 0; }
   .pin i { display: block; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 5px rgba(0,0,0,.5); margin: 0 auto; }
   .pin b { position: absolute; left: 50%; top: 20px; transform: translateX(-50%); white-space: nowrap; font-size: 12px; font-weight: 700; color: #fff; background: rgba(20,24,31,.82); padding: 1px 7px; border-radius: 999px; }
   .pin.old { opacity: .45; }
   .pin.me i { box-shadow: 0 0 0 0 rgba(26,115,232,.6), 0 1px 5px rgba(0,0,0,.5); animation: pu 1.8s infinite; }
-  .pin.cal i { background: #f79009; border-radius: 3px; transform: rotate(45deg); }
+  .pin.cal { pointer-events: auto; cursor: grab; } .pin.cal i { width: 24px; height: 24px; background: rgba(247,144,9,.9); border-radius: 50%; border: 3px solid #fff; } .pin.cal b { background: #b54708; font-size: 13px; top: 26px; }
   @keyframes pu { 70% { box-shadow: 0 0 0 14px rgba(26,115,232,0), 0 1px 5px rgba(0,0,0,.5); } 100% { box-shadow: 0 0 0 0 rgba(26,115,232,0), 0 1px 5px rgba(0,0,0,.5); } }
   @media (prefers-reduced-motion: reduce) { .pin.me i { animation: none; } }
   #list { padding: 10px; display: grid; gap: 6px; }
@@ -56,15 +59,15 @@
 <header><h1>📍 Sharm – ki hol van</h1><small id="me"></small></header>
 <div id="st">Indítás…</div>
 <div id="mapwrap">
-  <div id="scroller"><div id="inner"><img id="img" alt="Hotel térkép" src="sharm-terkep.jpg"></div></div>
-  <div id="nomap">A hotel térképe még nincs feltöltve (sharm-terkep.jpg).<br>A lista már működik.</div>
-  <div class="zb"><button id="zi" aria-label="Nagyítás">+</button><button id="zo" aria-label="Kicsinyítés">−</button></div>
+  <div id="map"></div>
+  <div class="lp"><label><input type="checkbox" id="lsat" checked> Műhold</label><label><input type="checkbox" id="lplan" checked> Hotelterv</label><label>Terv: <input type="range" id="lop" min="15" max="100" value="80"></label></div>
+  <div id="mapmsg"></div>
 </div>
 <div class="kp" id="kp">
-  <b>Kalibrálás</b>
-  <p>1) Állj egy jól azonosítható helyre (recepció, medence sarka…). 2) Koppints a térképen pontosan arra a pontra. 3) Nyomd meg az „Itt állok" gombot. Ismételd 2–3 egymástól távoli ponton.</p>
+  <b>A hotelterv igazítása a műholdképhez</b>
+  <p>Húzd a 3 narancs pontot (1 Reception, 2 Búvárközpont, 3 Lovarda) a műholdképen arra a helyre, ahol a valóságban vannak. A terv együtt mozog, forog és nő/zsugorodik velük. Használd a nagyítást, és a végén ellenőrizd, hogy a többi épület is stimmel-e. A mentés magától megtörténik.</p>
   <p id="kinfo"></p>
-  <div class="btns"><button id="khere">Itt állok</button><button class="sec" id="kreset">Pontok törlése</button></div>
+  <div class="btns"><button id="kme">Középre a helyemre</button><button class="sec" id="kreset">Alaphelyzet</button></div>
 </div>
 <div id="list"></div>
 <footer><span id="ver"></span><a id="rename">Név módosítása</a><a id="stop">Megosztás leállítása</a></footer>
@@ -78,11 +81,14 @@
   </form>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script type="module">
 "use strict";
 var V = "https://www.gstatic.com/firebasejs/10.14.1/";
 var COLP = ["perf", "sharm-v1", "sh_pos"];   // Firestore útvonal: a meglévő nyilvános perf/{id}/{coll}/{doc} szabály alá esik, új szabály nem kell
 var OLD_MS = 15 * 60 * 1000;       // ennyi után "régi" a pont
+var HOTEL = [27.914, 34.329];      // induló nézet (Naama Bay), amíg nincs hely vagy kalibrálás
+var ANCH = [ { n: "1 Reception", fx: 0.16, fy: 0.58 }, { n: "2 Búvárközpont", fx: 0.85, fy: 0.47 }, { n: "3 Lovarda", fx: 0.45, fy: 0.86 } ];
 var $ = function (i) { return document.getElementById(i); };
 var KAL = /[?&]kal=1/.test(location.search);
 var st = $("st");
@@ -90,7 +96,7 @@ function say(t, c) { st.textContent = t; st.className = c || ""; }
 function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } return null; }
 
-// ---------- kalibráció: GPS (szél./hossz.) → kép (px) hasonlósági transzformációval ----------
+// ---------- kalibráció: kép (px) ↔ GPS hasonlósági transzformációval (forgatás + méretezés + eltolás) ----------
 function fitSim(pts, W, H) {            // pts: [{fx,fy,lat,lon}] ; legalább 2 pont
   if (!pts || pts.length < 2) return null;
   var lat0 = 0, lon0 = 0; pts.forEach(function (p) { lat0 += p.lat; lon0 += p.lon; }); lat0 /= pts.length; lon0 /= pts.length;
@@ -103,52 +109,70 @@ function fitSim(pts, W, H) {            // pts: [{fx,fy,lat,lon}] ; legalább 2 
   var a = A / D, b = B / D, tx = xx - a * uu + b * vv, ty = yy - b * uu - a * vv;
   return { lat0: lat0, lon0: lon0, k: k, a: a, b: b, tx: tx, ty: ty, W: W, H: H };
 }
-function project(T, lat, lon) {         // → {fx, fy} a kép törtrészében (0..1)
+function project(T, lat, lon) {         // GPS → {fx, fy} a kép törtrészében (0..1)
   var u = (lon - T.lon0) * T.k * 111320, v = -(lat - T.lat0) * 110540;
   return { fx: (T.a * u - T.b * v + T.tx) / T.W, fy: (T.b * u + T.a * v + T.ty) / T.H };
 }
-window.__sharm = { fitSim: fitSim, project: project };
+function unproject(T, x, y) {           // kép px → {lat, lon}
+  var d = T.a * T.a + T.b * T.b, X = x - T.tx, Y = y - T.ty, u = (T.a * X + T.b * Y) / d, v = (-T.b * X + T.a * Y) / d;
+  return { lat: T.lat0 - v / 110540, lon: T.lon0 + u / (T.k * 111320) };
+}
+window.__sharm = { fitSim: fitSim, project: project, unproject: unproject };
 
 // ---------- állapot ----------
 var F = null, db = null, myId = ls("sharm_id"), myName = ls("sharm_name") || "";
-var people = {}, cal = [], T = null, me = null, zoom = 1, lastW = 0, lastT = 0, lastPos = null, stopped = ls("sharm_stop") === "1", pending = null;
-var img = $("img"), inner = $("inner");
+var people = {}, cal = [], T = null, me = null, lastW = 0, lastPos = null, stopped = ls("sharm_stop") === "1", didFit = false;
+var calLoaded = false, PW = 0, PH = 0;                         // a hotelterv képének mérete
+var map, sat, planEl = $("mapmsg"), markers = {}, handles = [], planOn = true, planOp = 0.8;
 function colorOf(id) { var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0; return "hsl(" + (h % 360) + ",70%,45%)"; }
 function ago(t) { var s = Math.max(0, (Date.now() - t) / 1000); if (s < 45) return "most"; if (s < 3600) return Math.round(s / 60) + " perce"; return Math.round(s / 3600) + " órája"; }
 function dist(a, b) { var k = Math.cos(a.lat * Math.PI / 180), dx = (a.lon - b.lon) * k * 111320, dy = (a.lat - b.lat) * 110540; return Math.sqrt(dx * dx + dy * dy); }
+function msg(t) { var m = $("mapmsg"); m.textContent = t || ""; m.style.display = t ? "block" : "none"; }
 
-function mapReady() { return img.complete && img.naturalWidth > 0; }
-function rebuildT() { T = mapReady() ? fitSim(cal, img.naturalWidth, img.naturalHeight) : null; }
+// ---------- térkép (Leaflet) ----------
+map = L.map("map", { zoomControl: true, zoomAnimation: false, maxZoom: 20, attributionControl: true }).setView(HOTEL, 16);
+sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxNativeZoom: 18, maxZoom: 20, attribution: "Képek: Esri, Maxar, Earthstar Geographics" }).addTo(map);
+var plan = document.createElement("img"); plan.id = "planimg"; plan.alt = ""; plan.draggable = false;
+map.getPanes().overlayPane.appendChild(plan);
+var probe = new Image();
+probe.onload = function () { PW = probe.naturalWidth; PH = probe.naturalHeight; plan.src = probe.src; plan.style.width = PW + "px"; plan.style.height = PH + "px"; plan.style.display = "block"; if (KAL && calLoaded) initHandles(); rebuildT(); render(); };
+probe.onerror = function () { plan.style.display = "none"; };
+probe.src = "sharm-terkep.jpg";
+
+function rebuildT() { T = PW ? fitSim(cal, PW, PH) : null; placePlan(); }
+function placePlan() {
+  if (!T || !planOn || !PW) { plan.style.visibility = "hidden"; return; }
+  var P0 = map.latLngToLayerPoint(unproject(T, 0, 0)), P1 = map.latLngToLayerPoint(unproject(T, PW, 0)), P2 = map.latLngToLayerPoint(unproject(T, 0, PH));
+  var a = (P1.x - P0.x) / PW, b = (P1.y - P0.y) / PW, c = (P2.x - P0.x) / PH, d = (P2.y - P0.y) / PH;
+  plan.style.transform = "matrix(" + [a, b, c, d, P0.x, P0.y].join(",") + ")"; plan.style.opacity = planOp; plan.style.visibility = "visible";
+}
+map.on("zoomend viewreset", placePlan);
+$("lsat").onchange = function () { if (this.checked) sat.addTo(map); else map.removeLayer(sat); $("map").style.background = this.checked ? "#fff" : "#fff"; };
+$("lplan").onchange = function () { planOn = this.checked; placePlan(); };
+$("lop").oninput = function () { planOp = this.value / 100; placePlan(); };
+
+function fitFirst() {
+  if (didFit) return; var pts = [];
+  if (T) [[0, 0], [PW, 0], [0, PH], [PW, PH]].forEach(function (c) { var q = unproject(T, c[0], c[1]); pts.push([q.lat, q.lon]); });
+  Object.keys(people).forEach(function (id) { pts.push([people[id].lat, people[id].lon]); });
+  if (!pts.length) return;
+  didFit = true; map.fitBounds(L.latLngBounds(pts), { padding: [20, 20], maxZoom: 18 });
+}
 
 function render() {
-  [].forEach.call(inner.querySelectorAll(".pin"), function (n) { n.remove(); });
-  var ids = Object.keys(people).sort(function (a, b) { return (people[a].name || "").localeCompare(people[b].name || "", "hu"); });
-  var html = "";
+  Object.keys(markers).forEach(function (id) { map.removeLayer(markers[id]); }); markers = {};
+  var ids = Object.keys(people).sort(function (a, b) { return (people[a].name || "").localeCompare(people[b].name || "", "hu"); }), html = "";
   ids.forEach(function (id) {
-    var p = people[id], old = Date.now() - p.t > OLD_MS, c = colorOf(id), pos = T ? project(T, p.lat, p.lon) : null;
-    var onMap = pos && pos.fx >= -0.02 && pos.fx <= 1.02 && pos.fy >= -0.02 && pos.fy <= 1.02;
-    if (onMap) {
-      var d = document.createElement("div"); d.className = "pin" + (old ? " old" : "") + (id === myId ? " me" : ""); d.style.left = pos.fx * 100 + "%"; d.style.top = pos.fy * 100 + "%";
-      d.innerHTML = "<i style='background:" + c + "'></i><b>" + esc(p.name) + "</b>"; inner.appendChild(d);
-    }
-    html += "<div class='row" + (old ? " old" : "") + "' data-id='" + id + "'><i style='background:" + c + "'></i><span>" + esc(p.name) + (id === myId ? " (te)" : "") + "</span><small>" + ago(p.t) + (p.acc ? " · ±" + Math.round(p.acc) + " m" : "") + (T && !onMap ? "<br>a térképen kívül" : "") + "</small></div>";
+    var p = people[id], old = Date.now() - p.t > OLD_MS, c = colorOf(id);
+    markers[id] = L.marker([p.lat, p.lon], { interactive: false, keyboard: false, zIndexOffset: id === myId ? 1000 : 0, icon: L.divIcon({ className: "", iconSize: [0, 0], html: "<div class='pin" + (old ? " old" : "") + (id === myId ? " me" : "") + "'><i style='background:" + c + "'></i><b>" + esc(p.name) + "</b></div>" }) }).addTo(map);
+    html += "<div class='row" + (old ? " old" : "") + "' data-id='" + id + "'><i style='background:" + c + "'></i><span>" + esc(p.name) + (id === myId ? " (te)" : "") + "</span><small>" + ago(p.t) + (p.acc ? " · ±" + Math.round(p.acc) + " m" : "") + "</small></div>";
   });
-  if (KAL) cal.forEach(function (p, i) { var d = document.createElement("div"); d.className = "pin cal"; d.style.left = p.fx * 100 + "%"; d.style.top = p.fy * 100 + "%"; d.innerHTML = "<i></i><b>" + (i + 1) + "</b>"; inner.appendChild(d); });
-  if (KAL && pending) { var q = document.createElement("div"); q.className = "pin cal"; q.style.left = pending.fx * 100 + "%"; q.style.top = pending.fy * 100 + "%"; q.innerHTML = "<i style='background:#d92d20'></i><b>új pont</b>"; inner.appendChild(q); }
   $("list").innerHTML = html || "<div class='row' style='cursor:default'><span>Még senki nem osztotta meg a helyét.</span></div>";
-  if (KAL) $("kinfo").textContent = cal.length + " kalibrációs pont" + (T ? " – a térkép kalibrálva." : cal.length < 2 ? " – legalább 2 kell." : " – a pontok túl közel vannak egymáshoz.");
-  else if (mapReady() && !T) say("A térkép még nincs kalibrálva (a hely a listában látszik).");
+  if (KAL) $("kinfo").textContent = T ? "A hotelterv igazítva. Ellenőrizd több helyen, és finomíts, ha kell." : "Töltődik…";
+  msg(!KAL && !T && PW ? "A hotelterv még nincs a helyére igazítva" : "");
+  fitFirst();
 }
-function focusOn(id) {
-  var p = people[id]; if (!p || !T) return; var pos = project(T, p.lat, p.lon), sc = $("scroller");
-  sc.scrollTo({ left: pos.fx * inner.clientWidth - sc.clientWidth / 2, top: pos.fy * inner.clientHeight - sc.clientHeight / 2, behavior: "smooth" });
-}
-$("list").addEventListener("click", function (e) { var r = e.target.closest(".row[data-id]"); if (r) focusOn(r.getAttribute("data-id")); });
-function setZoom(z) { zoom = Math.max(1, Math.min(4, z)); inner.style.width = zoom * 100 + "%"; }
-$("zi").onclick = function () { setZoom(zoom * 1.5); }; $("zo").onclick = function () { setZoom(zoom / 1.5); };
-img.addEventListener("load", function () { $("nomap").style.display = "none"; $("scroller").style.display = ""; rebuildT(); render(); });
-img.addEventListener("error", function () { $("scroller").style.display = "none"; document.querySelector(".zb").style.display = "none"; $("nomap").style.display = "block"; $("mapwrap").style.flex = "0 0 auto"; });
-if (mapReady()) rebuildT();
+$("list").addEventListener("click", function (e) { var r = e.target.closest(".row[data-id]"); if (!r) return; var p = people[r.getAttribute("data-id")]; if (p) map.setView([p.lat, p.lon], Math.max(map.getZoom(), 18)); });
 
 // ---------- Firebase ----------
 function boot() {
@@ -161,9 +185,10 @@ function listen() {
     var next = {};
     qs.forEach(function (d) {
       var x = d.data();
-      if (d.id === "kal") { cal = (x.pts || []).filter(function (p) { return isFinite(p.fx) && isFinite(p.lat); }); rebuildT(); return; }
+      if (d.id === "kal") { if (!KAL || !calLoaded) { cal = (x.pts || []).filter(function (p) { return isFinite(p.fx) && isFinite(p.lat); }); if (!KAL) rebuildT(); } return; }
       if (x && isFinite(x.lat) && isFinite(x.lon)) next[d.id] = { name: x.name || "?", lat: x.lat, lon: x.lon, acc: x.acc, t: x.t || 0 };
     });
+    if (KAL && !calLoaded) { calLoaded = true; initHandles(); }
     people = next; render();
     if (!KAL && st.className === "") say("Élő. " + Object.keys(people).length + " ember a térképen.", "ok");
   }, function (err) { say("Nem tudom olvasni az adatbázist (" + (err && err.code || "hiba") + ").", "err"); });
@@ -210,18 +235,29 @@ $("stop").onclick = function () {
   if (db && myId) F.deleteDoc(F.doc.apply(null, [db].concat(COLP, myId))).catch(function () { }); say("A megosztás leállt, a helyed törölve lett.");
 };
 
-// ---------- kalibráló mód (?kal=1) ----------
+// ---------- igazító mód (?kal=1): a 3 pont húzása a műholdképen ----------
+function defaultCal() {
+  var c = me ? L.latLng(me.lat, me.lon) : map.getCenter(), mpp = 0.38, k = Math.cos(c.lat * Math.PI / 180);
+  return ANCH.map(function (a) { var u = (a.fx - 0.5) * PW * mpp, v = (a.fy - 0.5) * PH * mpp; return { fx: a.fx, fy: a.fy, lat: c.lat - v / 110540, lon: c.lng + u / (k * 111320) }; });
+}
+function saveCal() { if (db) F.setDoc(F.doc.apply(null, [db].concat(COLP, "kal")), { pts: cal, t: Date.now() }).then(function () { say("Igazítás mentve.", "ok"); }).catch(function (e) { say("Nem sikerült menteni (" + (e && e.code || "hiba") + ").", "err"); }); }
+function initHandles() {
+  if (!KAL || !PW) return;
+  handles.forEach(function (h) { map.removeLayer(h); }); handles = [];
+  if (cal.length !== 3) cal = defaultCal();
+  rebuildT();
+  cal.forEach(function (p, i) {
+    var h = L.marker([p.lat, p.lon], { draggable: true, zIndexOffset: 2000, icon: L.divIcon({ className: "", iconSize: [0, 0], html: "<div class='pin cal'><i></i><b>" + esc(ANCH[i].n) + "</b></div>" }) }).addTo(map);
+    h.on("drag", function () { var q = h.getLatLng(); cal[i].lat = q.lat; cal[i].lon = q.lng; rebuildT(); });
+    h.on("dragend", saveCal);
+    handles.push(h);
+  });
+  if (!didFit) { didFit = true; map.setView([cal[0].lat * .5 + cal[1].lat * .5, cal[0].lon * .5 + cal[1].lon * .5], 17); }
+}
 if (KAL) {
-  $("kp").style.display = "grid";
-  inner.addEventListener("click", function (e) { var r = img.getBoundingClientRect(); pending = { fx: (e.clientX - r.left) / r.width, fy: (e.clientY - r.top) / r.height }; render(); });
-  $("khere").onclick = function () {
-    if (!pending) return say("Előbb koppints a térképen arra a pontra, ahol állsz.", "err");
-    if (!me) return say("Még nincs GPS-jel, várj egy kicsit.", "err");
-    if (me.acc > 40 && !confirm("A GPS most csak ±" + Math.round(me.acc) + " m pontos. Várj még, vagy mentsem így?")) return;
-    var np = cal.concat([{ fx: pending.fx, fy: pending.fy, lat: me.lat, lon: me.lon, acc: Math.round(me.acc) }]);
-    F.setDoc(F.doc.apply(null, [db].concat(COLP, "kal")), { pts: np, t: Date.now() }).then(function () { pending = null; say("Pont mentve.", "ok"); }).catch(function (e) { say("Nem sikerült menteni (" + (e && e.code || "hiba") + ").", "err"); });
-  };
-  $("kreset").onclick = function () { if (confirm("Törlöm az összes kalibrációs pontot?")) F.setDoc(F.doc.apply(null, [db].concat(COLP, "kal")), { pts: [], t: Date.now() }); };
+  $("kp").style.display = "grid"; $("mapwrap").style.minHeight = "62vh";
+  $("kme").onclick = function () { if (!me) return say("Még nincs GPS-jel, várj egy kicsit.", "err"); map.setView([me.lat, me.lon], 18); };
+  $("kreset").onclick = function () { if (confirm("Visszaállítom az igazítást az alaphelyzetre? A mostani igazítás elvész.")) { cal = []; initHandles(); saveCal(); map.setView([cal[0].lat, cal[0].lon], 17); } };
 }
 
 setInterval(render, 20000);
