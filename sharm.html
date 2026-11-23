@@ -30,7 +30,7 @@
   .leaflet-div-icon { background: none; border: 0; }
   .pin i { display: block; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 5px rgba(0,0,0,.5); margin: 0 auto; }
   .pin b { position: absolute; left: 50%; top: 20px; transform: translateX(-50%); white-space: nowrap; font-size: 12px; font-weight: 700; color: #fff; background: rgba(20,24,31,.82); padding: 1px 7px; border-radius: 999px; }
-  .pin.old { opacity: .45; }
+  .pin.old { opacity: .7; } .pin.old i { filter: grayscale(.6); }
   .pt { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); text-align: center; pointer-events: none; }
   .pt span { display: block; width: 30px; height: 30px; line-height: 26px; border-radius: 50%; background: #fff; border: 2px solid #7a5af8; font-size: 16px; margin: 0 auto; box-shadow: 0 1px 5px rgba(0,0,0,.45); }
   .pt b { position: absolute; left: 50%; top: 32px; transform: translateX(-50%); white-space: nowrap; font-size: 11px; font-weight: 700; color: #fff; background: rgba(79,56,170,.9); padding: 1px 7px; border-radius: 999px; }
@@ -184,7 +184,7 @@ function render() {
   var ids = Object.keys(people).sort(function (a, b) { return (people[a].name || "").localeCompare(people[b].name || "", "hu"); }), html = "";
   ids.forEach(function (id) {
     var p = people[id], old = Date.now() - p.t > OLD_MS, c = colorOf(id);
-    markers[id] = L.marker([p.lat, p.lon], { interactive: false, keyboard: false, zIndexOffset: id === myId ? 1000 : 0, icon: L.divIcon({ className: "", iconSize: [0, 0], html: "<div class='pin" + (old ? " old" : "") + (id === myId ? " me" : "") + "'><i style='background:" + c + "'></i><b>" + esc(p.name) + "</b></div>" }) }).addTo(map);
+    markers[id] = L.marker([p.lat, p.lon], { interactive: false, keyboard: false, zIndexOffset: id === myId ? 1000 : 0, icon: L.divIcon({ className: "", iconSize: [0, 0], html: "<div class='pin" + (old ? " old" : "") + (id === myId ? " me" : "") + "'><i style='background:" + c + "'></i><b>" + esc(p.name) + (old ? " · " + ago(p.t) : "") + "</b></div>" }) }).addTo(map);
     html += "<div class='row" + (old ? " old" : "") + "' data-id='" + id + "'><i style='background:" + c + "'></i><span>" + esc(p.name) + (id === myId ? " (te)" : "") + "</span><small>" + ago(p.t) + (p.acc ? " · ±" + Math.round(p.acc) + " m" : "") + "</small></div>";
   });
   $("list").innerHTML = html || "<div class='row' style='cursor:default'><span>Még senki nem osztotta meg a helyét.</span></div>";
