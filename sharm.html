@@ -38,6 +38,18 @@
   .fab.pri { background: var(--me); color: #fff; font-size: 1.7rem; font-weight: 300; }
   .fab .dot { position: absolute; right: 2px; top: 2px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--err); color: #fff; font-size: .7rem; font-weight: 700; line-height: 18px; text-align: center; display: none; }
 
+  #ticker { position: absolute; left: 10px; right: 10px; top: calc(max(10px, env(safe-area-inset-top)) + 50px); z-index: 999; background: #5b3fd0; color: #fff; border: 0; border-radius: 12px; box-shadow: var(--sh); padding: 9px 12px; font-size: .88rem; font-weight: 600; text-align: left; cursor: pointer; display: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #feed { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: flex-end; justify-content: center; z-index: 3100; }
+  #feed > div { background: var(--card); width: min(520px, 100%); height: 82dvh; border-radius: 20px 20px 0 0; padding: 18px 16px calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
+  #feed h2 { margin: 0; font-size: 1.25rem; padding-right: 44px; }
+  #fdx { position: absolute; right: 0; top: 0; }
+  #feedlist { flex: 1; overflow: auto; display: grid; gap: 8px; align-content: start; }
+  .post { background: var(--bg); border-radius: 14px; padding: 10px 12px; }
+  .post .h { display: flex; gap: 8px; align-items: baseline; font-size: .78rem; color: var(--muted); } .post .h b { color: var(--ink); font-size: .85rem; } .post .h a { margin-left: auto; text-decoration: underline; cursor: pointer; }
+  .post .x { margin-top: 3px; white-space: pre-wrap; word-break: break-word; }
+  .post.new { border: 1px solid #7a5af8; }
+  #fcomp { display: grid; gap: 8px; } #fcomp textarea { resize: none; height: 74px; }
+  .fab .dot.pu { background: #7a5af8; }
   /* markerek */
   .pin, .pt { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); line-height: 1.2; pointer-events: none; text-align: center; }
   .leaflet-div-icon { background: none; border: 0; }
@@ -92,9 +104,11 @@
 <div id="mapwrap">
   <div id="map"></div>
   <div id="top"><div class="pill" id="brand">📍 Sharm</div><button class="pill" id="who" title="Név módosítása"><i></i><span id="me">…</span></button></div>
+  <button id="ticker"></button>
   <div id="st"></div>
   <div id="mapmsg"></div>
   <div id="fabs">
+    <button class="fab" id="ffeed" aria-label="Hírfolyam">📰<span class="dot pu" id="fpdot"></span></button>
     <button class="fab" id="fall" aria-label="Mindenki látszik">👥</button>
     <button class="fab" id="fme" aria-label="Középre a helyemre">🎯</button>
     <button class="fab pri" id="fnew" aria-label="Helyek, új hely">+<span class="dot" id="fdot"></span></button>
@@ -126,6 +140,13 @@
   <button class="btn sec" id="mkclose">Kész</button>
 </div></div>
 
+<div id="feed"><div style="position:relative;display:flex;flex-direction:column;gap:10px;height:100%">
+  <button id="fdx" class="btn sec" style="width:40px;height:40px;padding:0;border-radius:50%" aria-label="Bezárás">✕</button>
+  <h2>📰 Hírfolyam</h2>
+  <div id="feedlist"></div>
+  <div id="fcomp"><textarea class="in" id="ftxt" maxlength="300" placeholder="Pl. Az első program 21:00-kor találkozó a Beach Barban"></textarea><button class="btn" id="fpost">Közzététel</button></div>
+</div></div>
+
 <div id="join">
   <form id="jf">
     <h2>Szia! Hogy hívnak?</h2>
@@ -141,6 +162,7 @@
 var V = "https://www.gstatic.com/firebasejs/10.14.1/";
 var COLP = ["perf", "sharm-v1", "sh_pos"];   // emberek – a meglévő nyilvános perf/{id}/{coll}/{doc} szabály alá esik, új szabály nem kell
 var COLK = ["perf", "sharm-v1", "sh_pts"];   // helyek
+var COLF = ["perf", "sharm-v1", "sh_feed"];  // hírfolyam
 var OLD_MS = 15 * 60 * 1000;                 // ennyi után "régi" a pont
 var HOTEL = [27.914, 34.329];                // induló nézet, amíg nincs hely
 var KINDS = [ { k: "ebedlo", e: "🍽️", n: "Ebédlő", sh: 1 }, { k: "recepcio", e: "🛎️", n: "Recepció", sh: 1 }, { k: "szoba", e: "🛏️", n: "Saját szobám", sh: 0 }, { k: "tenger", e: "🏖️", n: "Jó tengerparti pont", sh: 1 }, { k: "medence", e: "🏊", n: "Medence", sh: 1 } ];
@@ -158,7 +180,7 @@ function msg(t) { var m = $("mapmsg"); m.textContent = t || ""; m.style.display 
 // ---------- állapot ----------
 var F = null, db = null, myName = ls("sharm_name") || "", myId = myName ? nid(myName) : null;
 var people = {}, rawPeople = {}, pts = {}, rawPts = {}, me = null, lastW = 0, lastPos = null, stopped = ls("sharm_stop") === "1", didFit = false;
-var markers = {}, ptMk = [], accCircle = null, tapKind = null, tapMeta = null, ptsReady = false;
+var feed = [], markers = {}, ptMk = [], accCircle = null, tapKind = null, tapMeta = null, ptsReady = false;
 
 // ---------- térkép (Leaflet, műholdkép) ----------
 var map = L.map("map", { zoomControl: false, zoomAnimation: false, maxZoom: 20, attributionControl: true }).setView(HOTEL, 16);
@@ -225,6 +247,10 @@ function listen() {
     });
     rawPeople = raw; people = next; render();
   }, function (err) { say("Nem tudom olvasni az adatbázist (" + (err && err.code || "hiba") + ").", "err"); });
+  F.onSnapshot(F.collection.apply(null, [db].concat(COLF)), function (qs) {
+    var a = []; qs.forEach(function (d) { var x = d.data(); if (x && x.text) a.push({ id: d.id, text: x.text, name: x.name, t: x.t || 0 }); });
+    a.sort(function (p, q) { return q.t - p.t; }); feed = a; renderFeed();
+  }, function () { });
   F.onSnapshot(F.collection.apply(null, [db].concat(COLK)), function (qs) {
     var n = {}; rawPts = {};
     qs.forEach(function (d) { var x = d.data(); if (x && isFinite(x.lat) && isFinite(x.lon)) { rawPts[d.id] = x; var key = x.kind === "egyeb" ? d.id : x.kind + "|" + nid(x.name); if (!n[key] || (x.t || 0) > (n[key].t || 0)) n[key] = x; } });   // személyenként és helyenként egy jelölés (a legfrissebb)
@@ -274,6 +300,28 @@ $("stop").onclick = function () {
   if (db && myId) Object.keys(rawPeople).forEach(function (id) { if (nid(rawPeople[id].name) === myId) F.deleteDoc(ref(COLP, id)).catch(function () { }); });
   say("A megosztás leállt, a helyed törölve lett."); render();
 };
+
+// ---------- hírfolyam ----------
+function fmtT(t) { var d = new Date(t), p = function (n) { return ("0" + n).slice(-2); }, today = new Date(); var hm = p(d.getHours()) + ":" + p(d.getMinutes()); return d.toDateString() === today.toDateString() ? "ma " + hm : p(d.getMonth() + 1) + "." + p(d.getDate()) + ". " + hm; }
+function feedSeen() { return +ls("sharm_feed_seen") || 0; }
+function renderFeed() {
+  var seen = feedSeen(), open = $("feed").style.display === "flex";
+  var unread = feed.filter(function (x) { return x.t > seen && nid(x.name) !== myId; }).length;
+  var d = $("fpdot"); d.style.display = unread ? "block" : "none"; d.textContent = unread;
+  var tk = $("ticker"), last = feed[0];
+  if (last) { tk.style.display = "block"; tk.textContent = "📰 " + last.text.replace(/\s+/g, " "); } else tk.style.display = "none";
+  $("feedlist").innerHTML = feed.length ? feed.map(function (x) { return "<div class='post" + (x.t > seen && nid(x.name) !== myId ? " new" : "") + "'><div class='h'><b>" + esc(x.name || "?") + "</b>" + fmtT(x.t) + (nid(x.name) === myId ? "<a data-id='" + x.id + "'>Törlés</a>" : "") + "</div><div class='x'>" + esc(x.text) + "</div></div>"; }).join("") : "<p style='color:var(--muted)'>Még nincs hír. Írj be valamit, pl. a következő programot.</p>";
+  if (open) ls("sharm_feed_seen", String(Date.now()));
+}
+function openFeed() { $("feed").style.display = "flex"; renderFeed(); $("feedlist").scrollTop = 0; setTimeout(function () { ls("sharm_feed_seen", String(Date.now())); renderFeed(); }, 1500); }
+function closeFeed() { $("feed").style.display = "none"; ls("sharm_feed_seen", String(Date.now())); renderFeed(); }
+$("ffeed").onclick = openFeed; $("ticker").onclick = openFeed; $("fdx").onclick = closeFeed;
+$("feed").addEventListener("click", function (e) { if (e.target === $("feed")) closeFeed(); });
+$("fpost").onclick = function () {
+  var t = $("ftxt").value.trim(); if (!t) return $("ftxt").focus(); if (!myId) { closeFeed(); return showJoin(); }
+  F.setDoc(ref(COLF, "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)), { text: t.slice(0, 300), name: myName, t: Date.now() }).then(function () { $("ftxt").value = ""; }).catch(function (e) { say("Nem sikerült közzétenni (" + (e && e.code || "hiba") + ").", "err"); });
+};
+$("feedlist").addEventListener("click", function (e) { var a = e.target.closest("a[data-id]"); if (a && confirm("Törlöd ezt a hírt?")) F.deleteDoc(ref(COLF, a.getAttribute("data-id"))).catch(function () { }); });
 
 // ---------- alsó lap ----------
 function setSheet(o) { $("sheet").classList.toggle("open", o); ls("sharm_sheet", o ? "1" : "0"); setTimeout(function () { map.invalidateSize(); }, 50); }
