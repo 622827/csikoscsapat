@@ -30,7 +30,7 @@
   #who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #who i { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
   #who.on i { background: var(--ok); box-shadow: 0 0 0 3px rgba(18,161,80,.25); }
-  #st { position: absolute; left: 10px; right: 10px; top: calc(max(10px, env(safe-area-inset-top)) + 50px); z-index: 1000; background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 12px; box-shadow: var(--sh); padding: 8px 12px; font-size: .84rem; color: var(--muted); display: none; }
+  #st { pointer-events: auto; background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 12px; box-shadow: var(--sh); padding: 8px 12px; font-size: .84rem; color: var(--muted); display: none; }
   #st.err { color: var(--err); font-weight: 600; } #st.ok { color: var(--ok); font-weight: 600; }
   #mapmsg { position: absolute; left: 50%; transform: translateX(-50%); top: calc(max(10px, env(safe-area-inset-top)) + 54px); z-index: 1100; background: #14181f; color: #fff; font-weight: 600; font-size: .9rem; padding: 10px 16px; border-radius: 999px; box-shadow: var(--sh); display: none; max-width: 92%; text-align: center; cursor: pointer; }
   #fabs { position: absolute; right: 12px; bottom: 26px; z-index: 1000; display: grid; gap: 10px; }
@@ -38,7 +38,7 @@
   .fab.pri { background: var(--me); color: #fff; font-size: 1.7rem; font-weight: 300; }
   .fab .dot { position: absolute; right: 2px; top: 2px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--err); color: #fff; font-size: .7rem; font-weight: 700; line-height: 18px; text-align: center; display: none; }
 
-  #ticker { position: absolute; left: 10px; right: 10px; top: calc(max(10px, env(safe-area-inset-top)) + 50px); z-index: 999; background: #5b3fd0; color: #fff; border: 0; border-radius: 12px; box-shadow: var(--sh); padding: 9px 12px; font-size: .88rem; font-weight: 600; text-align: left; cursor: pointer; display: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #ticker { pointer-events: auto; width: 100%; background: #5b3fd0; color: #fff; border: 0; border-radius: 12px; box-shadow: var(--sh); padding: 9px 12px; font-size: .88rem; font-weight: 600; text-align: left; cursor: pointer; display: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #feed { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: flex-end; justify-content: center; z-index: 3100; }
   #feed > div { background: var(--card); width: min(520px, 100%); height: 82dvh; border-radius: 20px 20px 0 0; padding: 18px 16px calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
   #feed h2 { margin: 0; font-size: 1.25rem; padding-right: 44px; }
@@ -50,6 +50,15 @@
   .post.new { border: 1px solid #7a5af8; }
   #fcomp { display: grid; gap: 8px; } #fcomp textarea { resize: none; height: 74px; }
   .fab .dot.pu { background: #7a5af8; }
+  #bars { position: absolute; left: 10px; right: 10px; top: calc(max(10px, env(safe-area-inset-top)) + 50px); z-index: 1000; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+  #sosbars { display: flex; flex-direction: column; gap: 6px; }
+  .sosbar { pointer-events: auto; background: #d92d20; color: #fff; border-radius: 12px; padding: 9px 10px 9px 12px; font-weight: 700; font-size: .9rem; display: flex; gap: 8px; align-items: center; box-shadow: var(--sh); animation: sbl 1.4s infinite; }
+  .sosbar span { flex: 1; cursor: pointer; } .sosbar button { border: 0; border-radius: 9px; padding: 7px 10px; font-weight: 700; font-size: .8rem; background: #fff; color: #d92d20; cursor: pointer; }
+  @keyframes sbl { 50% { background: #a8180f; } } @media (prefers-reduced-motion: reduce) { .sosbar { animation: none; } }
+  .fab.sosb { position: absolute; left: 12px; bottom: 26px; z-index: 1000; background: #d92d20; color: #fff; font-size: .9rem; font-weight: 800; letter-spacing: .02em; }
+  .pin.sos i { width: 28px; height: 28px; background: #d92d20 !important; animation: sosp 1s infinite; } .pin.sos b { background: #d92d20; top: 32px; font-size: 13px; }
+  @keyframes sosp { 0% { box-shadow: 0 0 0 0 rgba(217,45,32,.8); } 100% { box-shadow: 0 0 0 24px rgba(217,45,32,0); } }
+  .row small b { color: var(--ink); }
   /* markerek */
   .pin, .pt { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); line-height: 1.2; pointer-events: none; text-align: center; }
   .leaflet-div-icon { background: none; border: 0; }
@@ -104,8 +113,8 @@
 <div id="mapwrap">
   <div id="map"></div>
   <div id="top"><div class="pill" id="brand">📍 Sharm</div><button class="pill" id="who" title="Név módosítása"><i></i><span id="me">…</span></button></div>
-  <button id="ticker"></button>
-  <div id="st"></div>
+  <div id="bars"><div id="sosbars"></div><button id="ticker"></button><div id="st"></div></div>
+  <button class="fab sosb" id="fsos" aria-label="Segítséget kérek">SOS</button>
   <div id="mapmsg"></div>
   <div id="fabs">
     <button class="fab" id="ffeed" aria-label="Hírfolyam">📰<span class="dot pu" id="fpdot"></span></button>
@@ -163,6 +172,7 @@ var V = "https://www.gstatic.com/firebasejs/10.14.1/";
 var COLP = ["perf", "sharm-v1", "sh_pos"];   // emberek – a meglévő nyilvános perf/{id}/{coll}/{doc} szabály alá esik, új szabály nem kell
 var COLK = ["perf", "sharm-v1", "sh_pts"];   // helyek
 var COLF = ["perf", "sharm-v1", "sh_feed"];  // hírfolyam
+var COLS = ["perf", "sharm-v1", "sh_sos"];   // segélykérések
 var OLD_MS = 15 * 60 * 1000;                 // ennyi után "régi" a pont
 var HOTEL = [27.914, 34.329];                // induló nézet, amíg nincs hely
 var KINDS = [ { k: "ebedlo", e: "🍽️", n: "Ebédlő", sh: 1 }, { k: "recepcio", e: "🛎️", n: "Recepció", sh: 1 }, { k: "szoba", e: "🛏️", n: "Saját szobám", sh: 0 }, { k: "tenger", e: "🏖️", n: "Jó tengerparti pont", sh: 1 }, { k: "medence", e: "🏊", n: "Medence", sh: 1 } ];
@@ -175,12 +185,13 @@ function nid(n) { var t = String(n || "").normalize("NFD").replace(/[̀-ͯ]/g, "
 function colorOf(id) { var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0; return "hsl(" + (h % 360) + ",70%,45%)"; }
 function ago(t) { var s = Math.max(0, (Date.now() - t) / 1000); if (s < 45) return "most"; if (s < 3600) return Math.round(s / 60) + " perce"; return Math.round(s / 3600) + " órája"; }
 function dist(a, b) { var k = Math.cos(a.lat * Math.PI / 180), dx = (a.lon - b.lon) * k * 111320, dy = (a.lat - b.lat) * 110540; return Math.sqrt(dx * dx + dy * dy); }
+function fmtD(m) { return m < 1000 ? Math.round(m) + " m" : (m / 1000).toFixed(1).replace(".", ",") + " km"; }
 function msg(t) { var m = $("mapmsg"); m.textContent = t || ""; m.style.display = t ? "block" : "none"; }
 
 // ---------- állapot ----------
 var F = null, db = null, myName = ls("sharm_name") || "", myId = myName ? nid(myName) : null;
 var people = {}, rawPeople = {}, pts = {}, rawPts = {}, me = null, lastW = 0, lastPos = null, stopped = ls("sharm_stop") === "1", didFit = false;
-var feed = [], markers = {}, ptMk = [], accCircle = null, tapKind = null, tapMeta = null, ptsReady = false;
+var feed = [], sos = {}, sosMk = [], markers = {}, ptMk = [], accCircle = null, tapKind = null, tapMeta = null, ptsReady = false;
 
 // ---------- térkép (Leaflet, műholdkép) ----------
 var map = L.map("map", { zoomControl: false, zoomAnimation: false, maxZoom: 20, attributionControl: true }).setView(HOTEL, 16);
@@ -198,11 +209,11 @@ function myKinds() { var r = {}; Object.keys(pts).forEach(function (id) { if (ni
 // ---------- kirajzolás ----------
 function render() {
   Object.keys(markers).forEach(function (id) { map.removeLayer(markers[id]); }); markers = {};
-  var ids = Object.keys(people).sort(function (a, b) { return (people[a].name || "").localeCompare(people[b].name || "", "hu"); }), html = "";
+  var ids = Object.keys(people).sort(function (a, b) { if (me) { if (a === myId) return -1; if (b === myId) return 1; return dist(me, people[a]) - dist(me, people[b]); } return (people[a].name || "").localeCompare(people[b].name || "", "hu"); }), html = "";
   ids.forEach(function (id) {
     var p = people[id], old = Date.now() - p.t > OLD_MS, c = colorOf(id);
     markers[id] = L.marker([p.lat, p.lon], { interactive: false, keyboard: false, zIndexOffset: id === myId ? 1000 : 0, icon: L.divIcon({ className: "", iconSize: [0, 0], html: "<div class='pin" + (old ? " old" : "") + (id === myId ? " me" : "") + "'><i style='background:" + c + "'></i><b>" + esc(p.name) + (old ? " · " + ago(p.t) : "") + "</b></div>" }) }).addTo(map);
-    html += "<div class='row" + (old ? " old" : "") + "' data-id='" + id + "'><i style='background:" + c + "'></i><span>" + esc(p.name) + (id === myId ? " (te)" : "") + "</span><small>" + ago(p.t) + (p.acc ? " · ±" + Math.round(p.acc) + " m" : "") + "</small></div>";
+    html += "<div class='row" + (old ? " old" : "") + "' data-id='" + id + "'><i style='background:" + c + "'></i><span>" + esc(p.name) + (id === myId ? " (te)" : "") + "</span><small>" + (me && id !== myId ? "<b>" + fmtD(dist(me, p)) + "</b> · " : "") + ago(p.t) + (p.acc ? " · ±" + Math.round(p.acc) + " m" : "") + "</small></div>";
   });
   $("list").innerHTML = html || "<div class='row' style='cursor:default'><span>Még senki nem osztotta meg a helyét.</span></div>";
   var nPl = Object.keys(pts).length, miss = myId ? KINDS.filter(function (K) { return !myKinds()[K.k]; }).length : 0;
@@ -212,6 +223,8 @@ function render() {
   var d = $("fdot"); d.style.display = miss ? "block" : "none"; d.textContent = miss;
   if (accCircle) { map.removeLayer(accCircle); accCircle = null; }
   if (me && me.acc) accCircle = L.circle([me.lat, me.lon], { radius: me.acc, color: "#1a73e8", weight: 1, fillOpacity: .1, interactive: false }).addTo(map);
+  if ($("marks").style.display === "flex") renderCustom();
+  renderSos();
   $("who").className = "pill" + (myId && !stopped ? " on" : ""); $("me").textContent = myName || "…";
   fitFirst();
 }
@@ -247,6 +260,12 @@ function listen() {
     });
     rawPeople = raw; people = next; render();
   }, function (err) { say("Nem tudom olvasni az adatbázist (" + (err && err.code || "hiba") + ").", "err"); });
+  var firstSos = true;
+  F.onSnapshot(F.collection.apply(null, [db].concat(COLS)), function (qs) {
+    var n = {}; qs.forEach(function (d) { var x = d.data(); if (x && isFinite(x.lat) && isFinite(x.lon)) n[d.id] = { name: x.name || "?", lat: x.lat, lon: x.lon, t: x.t || 0, u: x.u || 0 }; });
+    Object.keys(n).forEach(function (id) { if (!firstSos && !sos[id] && id !== myId && Date.now() - n[id].t < 120000) { try { if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]); } catch (e) { } say("🆘 " + n[id].name + " segítséget kér!", "err"); } });
+    firstSos = false; sos = n; renderSos();
+  }, function () { });
   F.onSnapshot(F.collection.apply(null, [db].concat(COLF)), function (qs) {
     var a = []; qs.forEach(function (d) { var x = d.data(); if (x && x.text) a.push({ id: d.id, text: x.text, name: x.name, t: x.t || 0 }); });
     a.sort(function (p, q) { return q.t - p.t; }); feed = a; renderFeed();
@@ -264,6 +283,7 @@ function save(pos) {
   if (now - lastW < 8000 || (moved < 4 && now - lastW < 60000)) return;
   lastW = now; lastPos = { lat: pos.lat, lon: pos.lon };
   F.setDoc(ref(COLP, myId), { name: myName, lat: pos.lat, lon: pos.lon, acc: Math.round(pos.acc || 0), t: now }).catch(function (e) { say("A helyem mentése nem sikerült (" + (e && e.code || "hiba") + ").", "err"); });
+  if (mySosOn()) F.setDoc(ref(COLS, myId), { name: myName, lat: pos.lat, lon: pos.lon, acc: Math.round(pos.acc || 0), t: sos[myId].t, u: now }).catch(function () { });   // a segélykérés követi a helyzetemet
 }
 
 // ---------- helymeghatározás ----------
@@ -300,6 +320,31 @@ $("stop").onclick = function () {
   if (db && myId) Object.keys(rawPeople).forEach(function (id) { if (nid(rawPeople[id].name) === myId) F.deleteDoc(ref(COLP, id)).catch(function () { }); });
   say("A megosztás leállt, a helyed törölve lett."); render();
 };
+
+// ---------- segélykérés (SOS) ----------
+var SOS_MS = 6 * 3600 * 1000;
+function mySosOn() { return !!(sos[myId] && Date.now() - sos[myId].t < SOS_MS); }
+function renderSos() {
+  sosMk.forEach(function (m) { map.removeLayer(m); }); sosMk = []; var html = "";
+  Object.keys(sos).forEach(function (id) {
+    var x = sos[id]; if (Date.now() - x.t >= SOS_MS) return; var mine = id === myId;
+    sosMk.push(L.marker([x.lat, x.lon], { interactive: false, keyboard: false, zIndexOffset: 3000, icon: L.divIcon({ className: "", iconSize: [0, 0], html: "<div class='pin sos'><i></i><b>🆘 " + esc(x.name) + "</b></div>" }) }).addTo(map));
+    html += "<div class='sosbar'><span data-id='" + id + "'>🆘 " + (mine ? "Segélykérést adtál le" : esc(x.name) + " segítséget kér") + (me && !mine ? " · " + fmtD(dist(me, x)) : "") + " · " + ago(x.u || x.t) + "</span><button data-id='" + id + "'>" + (mine ? "Rendben vagyok" : "Megoldva") + "</button></div>";
+  });
+  $("sosbars").innerHTML = html; var on = mySosOn(); $("fsos").textContent = on ? "✅" : "SOS"; $("fsos").style.fontSize = on ? "1.4rem" : "";
+}
+$("fsos").onclick = function () {
+  if (!myId) return showJoin();
+  if (mySosOn()) { if (confirm("Már minden rendben? Törlöm a segélykérést.")) F.deleteDoc(ref(COLS, myId)).catch(function () { }); return; }
+  var pos = me || people[myId]; if (!pos) return say("Még nincs GPS-jel, várj egy kicsit.", "err");
+  if (!confirm("🆘 Segítséget kérsz?\nMindenki a csapatból pirosan látni fogja a helyedet a térképen.")) return;
+  var now = Date.now(); F.setDoc(ref(COLS, myId), { name: myName, lat: pos.lat, lon: pos.lon, acc: Math.round(pos.acc || 0), t: now, u: now }).then(function () { say("Segélykérés elküldve. Maradj ott, ahol vagy, ha tudsz.", "ok"); }).catch(function (e) { say("Nem sikerült elküldeni (" + (e && e.code || "hiba") + ").", "err"); });
+};
+$("sosbars").addEventListener("click", function (e) {
+  var el = e.target.closest("[data-id]"), id = el ? el.getAttribute("data-id") : null; if (!id || !sos[id]) return;
+  if (e.target.tagName === "BUTTON") { if (confirm(id === myId ? "Már minden rendben? Törlöm a segélykérést." : "Biztos megoldódott? Törlöm a segélykérést: " + sos[id].name)) F.deleteDoc(ref(COLS, id)).catch(function () { }); }
+  else map.setView([sos[id].lat, sos[id].lon], Math.max(map.getZoom(), 18));
+});
 
 // ---------- hírfolyam ----------
 function fmtT(t) { var d = new Date(t), p = function (n) { return ("0" + n).slice(-2); }, today = new Date(); var hm = p(d.getHours()) + ":" + p(d.getMinutes()); return d.toDateString() === today.toDateString() ? "ma " + hm : p(d.getMonth() + 1) + "." + p(d.getDate()) + ". " + hm; }
@@ -354,7 +399,7 @@ function renderMarks() {
 }
 function renderCustom() {
   var ids = Object.keys(pts).filter(function (id) { return pts[id].kind === "egyeb"; }).sort(function (a, b) { return (pts[a].label || "").localeCompare(pts[b].label || "", "hu"); });
-  $("mkcustom").innerHTML = ids.length ? "<h3 style='margin:0'>Felvett helyek</h3>" + ids.map(function (id) { var q = pts[id]; return "<div class='cu'><b>" + esc(q.e || "📍") + "</b><span>" + esc(q.label || "?") + "</span><button data-a='jump' data-id='" + id + "'>Mutasd</button><button data-a='delx' data-id='" + id + "'>Törlés</button></div>"; }).join("") : "";
+  $("mkcustom").innerHTML = ids.length ? "<h3 style='margin:0'>Felvett helyek</h3>" + ids.map(function (id) { var q = pts[id]; return "<div class='cu'><b>" + esc(q.e || "📍") + "</b><span>" + esc(q.label || "?") + (me ? "<small style='display:block;font-weight:400;color:var(--muted)'>" + fmtD(dist(me, q)) + " · kb. " + Math.max(1, Math.round(dist(me, q) / 80)) + " perc séta</small>" : "") + "</span><button data-a='jump' data-id='" + id + "'>Mutasd</button><button data-a='delx' data-id='" + id + "'>Törlés</button></div>"; }).join("") : "";
 }
 function openMarks() { renderMarks(); $("marks").style.display = "flex"; $("marks").firstElementChild.scrollTop = 0; }
 function closeMarks() { $("marks").style.display = "none"; }
