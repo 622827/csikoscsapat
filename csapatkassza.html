@@ -459,7 +459,7 @@
   </section>
   <section>
     <div class="sh"><h2 id="f-title">Telefonszámok</h2>
-      <div class="tools"><button class="tl" id="f-late" type="button" aria-pressed="false">Csak tartozók</button><button class="tl" id="f-pay" type="button" aria-pressed="false" title="Az együtt fizetők (közös fizetés csoport) egy sorban, összesítve">Fizetők szerint</button><button class="tl" id="f-pkg" type="button">Csomagok</button><button class="tl" id="f-recon" type="button">Számlaegyeztetés</button><button class="tl" id="f-prev" type="button">Díjbekérő előnézet</button><button class="tl" id="f-mail" type="button" title="E-mail címek tömeges beírása telefonszám alapján">E-mail import</button><button class="primary" id="f-new" type="button">+ Új sor</button></div>
+      <div class="tools"><button class="tl" id="f-late" type="button" aria-pressed="false">Csak tartozók</button><button class="tl" id="f-pay" type="button" aria-pressed="false" title="Az együtt fizetők (közös fizetés csoport) egy sorban, összesítve">Fizetők szerint</button><button class="tl" id="f-pkg" type="button">Csomagok</button><button class="tl" id="f-recon" type="button">Számlaegyeztetés</button><button class="tl" id="f-prev" type="button">Díjbekérő előnézet</button><button class="tl" id="f-remail" type="button" title="E-mail minden tartozó családnak (csak a családfőnek)">Fizetési emlékeztető e-mailben</button><button class="tl" id="f-mail" type="button" title="E-mail címek tömeges beírása telefonszám alapján">E-mail import</button><button class="primary" id="f-new" type="button">+ Új sor</button></div>
     </div>
     <p class="fnote">Egy sor = egy telefonszám. Egyenleg = összesen − befizetés: piros = tartozás, zöld = többletbefizetés.</p>
     <input class="srch" id="f-srch" type="search" placeholder="Keresés névre, számra…" aria-label="Keresés">
@@ -976,6 +976,70 @@
   }
   function fact(body, okMsg) { return fsend(body).then(function () { if (okMsg) toast(okMsg); }).catch(function (e) { toast(e.message || "Nem sikerült menteni.", true); }); }
   function fkey(x) { return x.id; }
+  // Számonkénti csoportok (+ készülékek a gazda alá, közös fizetés); pay = fizetők szerint (egy csoport = egy család)
+  function fgroupRows(rows, shown, pay) {
+    var FO = { BB: 1, TFC: 2, ONE: 3 }, groups = {}, order = [];
+    rows.forEach(function (x) { x._dev = false; x._mem = false; });
+    shown.forEach(function (x) {
+      var dg = String(x.tel || "").replace(/\D/g, ""), k = dg || ("id" + x.id);
+      if (!groups[k]) { groups[k] = { key: k, tel: dg, rows: [] }; order.push(groups[k]); }
+      groups[k].rows.push(x);
+    });
+    // Készülékek (telefonszám nélküli sorok): a gazdájuk száma alá kerülnek, külön "Készülék" sorként
+    (function () {
+      var pn = function (v) { return plain(String(v || "").trim()); }, tg = order.filter(function (g) { return g.tel; });
+      function owner(x) {
+        if (x.tel) return null;
+        if (x.tipus === "keszulek") {   // kifejezetten készülék: csak a megadott gazdához tartozhat (előbb ugyanabban a flottában)
+          var og = pn(x.gazda); if (!og) return null;
+          var cs = tg.filter(function (g) { return g.rows.some(function (r) { return pn(r.nev) === og; }); });
+          return cs.filter(function (g) { return g.rows.some(function (r) { return r.fl === x.fl; }); })[0] || cs[0] || null;
+        }
+        if (x.gazda) { var o = pn(x.gazda); for (var i = 0; i < tg.length; i++) if (tg[i].rows.some(function (r) { return pn(r.nev) === o; })) return tg[i]; return null; }
+        var f1 = pn(x.nev).split(" ")[0]; if (!f1) return null;
+        var m = tg.filter(function (g) { return g.rows.some(function (r) { return pn(r.nev).split(" ")[0] === f1; }); });
+        if (m.length === 1) return m[0];
+        if (m.length > 1) {   // ugyanannak a személynek több száma van (pl. BB és TFC): a készülék az elsőhöz kerül
+          var nm = {}; m.forEach(function (g) { g.rows.forEach(function (r) { if (pn(r.nev).split(" ")[0] === f1) nm[pn(r.nev)] = 1; }); });
+          if (Object.keys(nm).length === 1) return m[0];
+        }
+        return null;
+      }
+      order.slice().forEach(function (g) {
+        if (g.tel) return;
+        var moved = [], keep = [];
+        g.rows.forEach(function (x) { var o = owner(x); if (o) { x._dev = true; moved.push([o, x]); } else keep.push(x); });
+        moved.forEach(function (m) { m[0].rows.push(m[1]); });
+        g.rows = keep;
+      });
+      order = order.filter(function (g) { return g.rows.length; });
+    })();
+    order.forEach(function (g) { g.rows.sort(function (p, q) { return (p._dev ? 1 : 0) - (q._dev ? 1 : 0) || (FO[p.fl] || 9) - (FO[q.fl] || 9); }); });
+    if (!pay) {   // személyhez csatolt közös fizetés: a tag sorai (és készülékei) a személy alá kerülnek, mint egy készülék
+      var byName = {}, gone = {};
+      order.forEach(function (g) { g.rows.forEach(function (x) { if (!x._dev && x.tel) { var k0 = fpName(x.nev); if (k0 && !byName[k0]) byName[k0] = g; } }); });
+      order.slice().forEach(function (g) {
+        if (!g.tel || gone[g.key] || g.hosts) return;
+        var lb = ""; g.rows.forEach(function (x) { if (!x._dev && x.fizeto && !lb) lb = x.fizeto; });
+        var h = lb ? byName[fpName(lb)] : null; if (!h || h === g || gone[h.key] || !h.tel) return;
+        g.rows.forEach(function (x) { if (!x._dev) x._mem = true; });
+        h.rows = h.rows.concat(g.rows); (h.tels = h.tels || [h.tel]).push(g.tel); h.hosts = true; gone[g.key] = true;
+      });
+      order = order.filter(function (g) { return !gone[g.key]; });
+    }
+    if (pay) {   // több szám egy fizetőnél: a közös fizetés neve szerint egy csoportba kerülnek (a számonkénti sorok a lenyitható részletben maradnak)
+      var pm = {}, o2 = [];
+      order.forEach(function (g) {
+        var lb = ""; g.rows.forEach(function (x) { if (!x._dev && x.fizeto && !lb) lb = x.fizeto; });
+        var k = lb ? fpName(lb) : ""; if (!k) { o2.push(g); return; }
+        if (!pm[k]) { pm[k] = { key: "p:" + k, tel: g.tel, tels: [], rows: [], pay: lb }; o2.push(pm[k]); }
+        if (g.tel && pm[k].tels.indexOf(g.tel) < 0) pm[k].tels.push(g.tel);
+        pm[k].rows = pm[k].rows.concat(g.rows);
+      });
+      order = o2;
+    }
+    return order;
+  }
   function renderF() {
     var d = fcur(); if (!d) return;
     var fsum = 0, ksum = 0, rows = d.rows.filter(function (x) { return FS === "ALL" || x.fl === FS; }), debt = 0, plus = 0, nd = 0, np2 = 0, month = 0, paid = 0;
@@ -1051,66 +1115,7 @@
       inc.forEach(function (x) { if (x.tel) pnm[plain(String(x.nev || "").trim())] = 1; });
       shown = rows.filter(function (x) { return inc.indexOf(x) > -1 || (!x.tel && x.gazda && pnm[plain(String(x.gazda).trim())]); });
     }
-    var FO = { BB: 1, TFC: 2, ONE: 3 }, groups = {}, order = [];
-    rows.forEach(function (x) { x._dev = false; x._mem = false; });
-    shown.forEach(function (x) {
-      var dg = String(x.tel || "").replace(/\D/g, ""), k = dg || ("id" + x.id);
-      if (!groups[k]) { groups[k] = { key: k, tel: dg, rows: [] }; order.push(groups[k]); }
-      groups[k].rows.push(x);
-    });
-    // Készülékek (telefonszám nélküli sorok): a gazdájuk száma alá kerülnek, külön "Készülék" sorként
-    (function () {
-      var pn = function (v) { return plain(String(v || "").trim()); }, tg = order.filter(function (g) { return g.tel; });
-      function owner(x) {
-        if (x.tel) return null;
-        if (x.tipus === "keszulek") {   // kifejezetten készülék: csak a megadott gazdához tartozhat (előbb ugyanabban a flottában)
-          var og = pn(x.gazda); if (!og) return null;
-          var cs = tg.filter(function (g) { return g.rows.some(function (r) { return pn(r.nev) === og; }); });
-          return cs.filter(function (g) { return g.rows.some(function (r) { return r.fl === x.fl; }); })[0] || cs[0] || null;
-        }
-        if (x.gazda) { var o = pn(x.gazda); for (var i = 0; i < tg.length; i++) if (tg[i].rows.some(function (r) { return pn(r.nev) === o; })) return tg[i]; return null; }
-        var f1 = pn(x.nev).split(" ")[0]; if (!f1) return null;
-        var m = tg.filter(function (g) { return g.rows.some(function (r) { return pn(r.nev).split(" ")[0] === f1; }); });
-        if (m.length === 1) return m[0];
-        if (m.length > 1) {   // ugyanannak a személynek több száma van (pl. BB és TFC): a készülék az elsőhöz kerül
-          var nm = {}; m.forEach(function (g) { g.rows.forEach(function (r) { if (pn(r.nev).split(" ")[0] === f1) nm[pn(r.nev)] = 1; }); });
-          if (Object.keys(nm).length === 1) return m[0];
-        }
-        return null;
-      }
-      order.slice().forEach(function (g) {
-        if (g.tel) return;
-        var moved = [], keep = [];
-        g.rows.forEach(function (x) { var o = owner(x); if (o) { x._dev = true; moved.push([o, x]); } else keep.push(x); });
-        moved.forEach(function (m) { m[0].rows.push(m[1]); });
-        g.rows = keep;
-      });
-      order = order.filter(function (g) { return g.rows.length; });
-    })();
-    order.forEach(function (g) { g.rows.sort(function (p, q) { return (p._dev ? 1 : 0) - (q._dev ? 1 : 0) || (FO[p.fl] || 9) - (FO[q.fl] || 9); }); });
-    if (!FPAY) {   // személyhez csatolt közös fizetés: a tag sorai (és készülékei) a személy alá kerülnek, mint egy készülék
-      var byName = {}, gone = {};
-      order.forEach(function (g) { g.rows.forEach(function (x) { if (!x._dev && x.tel) { var k0 = fpName(x.nev); if (k0 && !byName[k0]) byName[k0] = g; } }); });
-      order.slice().forEach(function (g) {
-        if (!g.tel || gone[g.key] || g.hosts) return;
-        var lb = ""; g.rows.forEach(function (x) { if (!x._dev && x.fizeto && !lb) lb = x.fizeto; });
-        var h = lb ? byName[fpName(lb)] : null; if (!h || h === g || gone[h.key] || !h.tel) return;
-        g.rows.forEach(function (x) { if (!x._dev) x._mem = true; });
-        h.rows = h.rows.concat(g.rows); (h.tels = h.tels || [h.tel]).push(g.tel); h.hosts = true; gone[g.key] = true;
-      });
-      order = order.filter(function (g) { return !gone[g.key]; });
-    }
-    if (FPAY) {   // több szám egy fizetőnél: a közös fizetés neve szerint egy csoportba kerülnek (a számonkénti sorok a lenyitható részletben maradnak)
-      var pm = {}, o2 = [];
-      order.forEach(function (g) {
-        var lb = ""; g.rows.forEach(function (x) { if (!x._dev && x.fizeto && !lb) lb = x.fizeto; });
-        var k = lb ? fpName(lb) : ""; if (!k) { o2.push(g); return; }
-        if (!pm[k]) { pm[k] = { key: "p:" + k, tel: g.tel, tels: [], rows: [], pay: lb }; o2.push(pm[k]); }
-        if (g.tel && pm[k].tels.indexOf(g.tel) < 0) pm[k].tels.push(g.tel);
-        pm[k].rows = pm[k].rows.concat(g.rows);
-      });
-      order = o2;
-    }
+    var order = fgroupRows(rows, shown, FPAY), FO = { BB: 1, TFC: 2, ONE: 3 };
     order.sort(function (p, q) {
       if (!p.tel !== !q.tel) return p.tel ? -1 : 1;
       if (p.tel !== q.tel) return p.tel < q.tel ? -1 : 1;
@@ -1132,6 +1137,11 @@
       var p = String(d).split("-"), dm = (+p[0]) * 12 + (+p[1] - 1), diff = cm - dm;
       e.textContent = "📄 számla szerint: " + String(d).replace(/-/g, ". ") + "." + (diff <= 0 ? " · e-havi" : diff === 1 ? " · múlt havi" : " · " + diff + " hónapos");
       e.className = "frs " + (diff <= 0 ? "ok" : diff === 1 ? "prev" : "old"); return e;
+    }
+    function mlBtn(x) {
+      var b = el("button", "", "E-mail"); b.type = "button"; b.title = "Fizetési emlékeztető e-mail a családfőnek";
+      b.addEventListener("click", function (e) { e.stopPropagation(); fmailDlg(x); });
+      return b;
     }
     function remBtn(g, names, egy) {
       var rb = el("button", "", "Emlékeztető"); rb.type = "button"; rb.title = "Emlékeztető üzenet másolása";
@@ -1158,7 +1168,7 @@
       var fz = el("span", "fz"), cb = el("input"); cb.type = "checkbox"; cb.checked = x.fiz; cb.title = "Fizetve";
       cb.addEventListener("change", function () { fact({ op: "fiz", id: x.id, chk: fkey(x), fiz: cb.checked }, cb.checked ? "Fizetettnek jelölve." : "Visszavonva."); });
       fz.appendChild(cb); r.appendChild(fz);
-      var ac = el("div", "act"); if (single && x.egy > 0) ac.appendChild(remBtn(g, [x.nev || ""], x.egy));
+      var ac = el("div", "act"); if (single && x.egy > 0) { ac.appendChild(remBtn(g, [x.nev || ""], x.egy)); ac.appendChild(mlBtn(x)); }
       var grouped = !single && g && g.rows && g.rows.length > 1;   // csoportban a befizetés a személy során van, nem számonként/készülékenként
       [["+ Befizetés", "pay", function () { fpay(x); }], ["Szerkeszt", "", function () { fform(x); }]].filter(function (c) { return !(grouped && c[1] === "pay"); }).forEach(function (c) {
         var bt = el("button", c[1], c[0]); bt.type = "button"; bt.addEventListener("click", c[2]); ac.appendChild(bt);
@@ -1187,7 +1197,7 @@
       var ac = el("div", "act"), tg = el("button", "tg", open ? "Becsuk ▴" : "Részletek ▾"); tg.type = "button"; tg.setAttribute("aria-expanded", open ? "true" : "false");
       function toggle() { FOPEN[g.key] = !FOPEN[g.key]; renderF(); }
       tg.addEventListener("click", function (e) { e.stopPropagation(); toggle(); }); r.addEventListener("click", toggle); r.style.cursor = "pointer";
-      if (sum.egy > 0) ac.appendChild(remBtn(g, names, sum.egy));
+      if (sum.egy > 0) { ac.appendChild(remBtn(g, names, sum.egy)); ac.appendChild(mlBtn(rs.filter(function (x) { return !x._dev; })[0] || rs[0])); }
       var pb = el("button", "pay", "+ Befizetés"); pb.type = "button"; pb.addEventListener("click", function (e) { e.stopPropagation(); fpayGroup(g, rs, sum, names); }); ac.appendChild(pb);
       ac.appendChild(tg); r.appendChild(ac); wrap.appendChild(r);
       if (open) rs.forEach(function (x) { wrap.appendChild(subRow(x, false, g)); });
@@ -1485,6 +1495,66 @@
     });
   }
   $("f-new").addEventListener("click", function () { if (fcur()) fform(); });
+  // ---- Fizetési emlékeztető e-mail: családonként (közös fizetés / gazda + készülékek) egy levél, mindig csak a családfőnek ----
+  function ffams() { var o = fgroupRows(FD.rows, FD.rows, true); renderF(); return o; }
+  function fhead(g) {
+    var ph = g.rows.filter(function (r) { return !r._dev && String(r.tel || "").replace(/\D/g, "").length >= 9; }), h = null;
+    var nm = ph.map(function (r) { return r.nev || ftel(r.tel); }).join(" / ") || "névtelen";
+    if (!ph.length) return { err: nm + ": nincs telefonszámos sor" };
+    if (g.pay) h = ph.filter(function (r) { return fpName(r.nev) === fpName(g.pay); })[0] || null;
+    if (!h && ph.length === 1) h = ph[0];
+    if (!h) { var em = {}; ph.forEach(function (r) { var k = r.email.toLowerCase(); if (r.email && !em[k]) em[k] = r; }); var ks = Object.keys(em); if (ks.length === 1 && ph.every(function (r) { return !r.email || r.email.toLowerCase() === ks[0]; })) h = em[ks[0]]; }
+    if (!h) return { err: nm + ": nem egyértelmű, ki a családfő (a közös fizetés neve legyen a családfő neve)" };
+    if (!h.email) return { err: (h.nev || ftel(h.tel)) + ": nincs e-mail cím" };
+    return { h: h, nm: nm };
+  }
+  function fmailMsg(h) {
+    var fn = String(h.nev || "").trim().split(/\s+/).pop() || "";
+    return { to: h.email, subject: "Emlékeztető: flotta díjbefizetés", body: "Szia" + (fn ? " " + fn : "") + "!\n\nA nyilvántartásunk szerint elmaradásod van a flottás telefonszámod díjának befizetésével. Hogy pontosan mennyi, és hová kell utalni, itt tudod megnézni:\n" + new URL("flotta-fizetes.html", location.href).href + "\n\nHa időközben már rendezted, kérlek, tekintsd tárgytalannak ezt a levelet.\n\nKöszönöm!\nCsikós Máté" };
+  }
+  function fmailUrl() {
+    var u = String((FINFO && FINFO.mailUrl) || "").trim(); if (u) return Promise.resolve(u);
+    return new Promise(function (res, rej) {
+      var f = {};
+      open("Levélküldő beállítása", function () {
+        fields.appendChild(el("p", "fnote", "Egyszeri beállítás: másold ide a „Flotta levelek” Apps Script webalkalmazás címét (…/exec)."));
+        f.u = field("Webalkalmazás címe", inp("url", "", { placeholder: "https://script.google.com/macros/s/…/exec" }));
+      }, function () {
+        var v = f.u.value.trim(); if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(v)) return Promise.reject(new Error("Ez nem Apps Script webalkalmazás cím (…/exec)."));
+        FINFO.mailUrl = v; return FST.F.setDoc(FST.F.doc(FST.db, "perf", fid(), "fl_meta", "info"), { mailUrl: v }, { merge: true }).then(function () { setTimeout(function () { res(v); }, 60); });   // előbb záródjon be ez az ablak, utána nyílik a küldő
+      });
+      var c = $("dlg-cancel"); function onc() { c.removeEventListener("click", onc); rej(new Error("")); } c.addEventListener("click", onc);
+    });
+  }
+  function fmailDlg(only) {
+    if (FMODE !== "live" || !FD) { toast("A flotta még nincs betöltve.", true); return; }
+    var fams = ffams(), go = [], skip = [], seen = {};
+    if (only) fams = fams.filter(function (g) { return g.rows.indexOf(only) > -1; });
+    fams.forEach(function (g) {
+      var egy = 0; g.rows.forEach(function (r) { egy += r.egy; }); egy = Math.round(egy); if (egy <= 0 && !only) return;
+      var hd = fhead(g); if (hd.err) { skip.push(hd.err); return; }
+      var k = hd.h.email.toLowerCase(); if (seen[k]) { seen[k].egy += egy; return; }
+      seen[k] = { h: hd.h, nm: hd.nm, egy: egy }; go.push(seen[k]);
+    });
+    fmailUrl().then(function (url) {
+      open(only ? "Fizetési emlékeztető e-mail" : "Fizetési emlékeztető minden tartozónak", function () {
+        dlg.classList.add("wide");
+        fields.appendChild(el("p", "fnote", go.length ? "Családonként egy levél megy ki, mindig csak a családfőnek. A levélben nincs összeg, csak a link, ahol megnézheti." : "Nincs kinek küldeni."));
+        go.forEach(function (it) { var p = el("p", "", ""); p.appendChild(el("b", "", (it.h.nev || ftel(it.h.tel)) + " · " + it.h.email)); p.appendChild(document.createTextNode(" — " + (it.egy > 0 ? "tartozás " + ft(it.egy) : "nincs tartozás") + (it.nm !== (it.h.nev || "") ? " (" + it.nm + ")" : ""))); fields.appendChild(p); });
+        if (skip.length) { fields.appendChild(el("p", "fnote", "Kimarad (" + skip.length + "):")); skip.forEach(function (t) { fields.appendChild(el("p", "", "• " + t)); }); }
+        if (go.length) { var pv = el("pre", "", fmailMsg(go[0].h).body); pv.style.cssText = "white-space:pre-wrap;font:inherit;font-size:.9em;opacity:.8;border-left:3px solid var(--track);padding-left:10px"; fields.appendChild(el("p", "fnote", "A levél szövege (példa):")); fields.appendChild(pv); }
+        $("dlg-ok").textContent = go.length ? "Küldés (" + go.length + " levél)" : "Bezár";
+      }, function () {
+        if (!go.length) return Promise.resolve();
+        return fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ k: fid(), from: "Csikós Máté", mails: go.map(function (it) { return fmailMsg(it.h); }) }) })
+          .then(function (r) { return r.json(); }).then(function (o) {
+            if (!o || !o.ok) throw new Error((o && o.err) || "A küldés nem sikerült.");
+            toast(o.sent + " e-mail elküldve." + (o.errs && o.errs.length ? " Hiba: " + o.errs.join("; ") : ""), !!(o.errs && o.errs.length));
+          });
+      });
+    }).catch(function (e) { if (e && e.message) toast(e.message, true); });
+  }
+  $("f-remail").addEventListener("click", function () { fmailDlg(null); });
   // E-mail címek tömeges beírása: soronként egy telefonszám és egy e-mail cím (pl. táblázatból bemásolva); a telefonszám utolsó 9 számjegye alapján párosít
   $("f-mail").addEventListener("click", function () {
     if (FMODE !== "live" || !FD) { toast("A flotta még nincs betöltve.", true); return; }
