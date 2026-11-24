@@ -1620,11 +1620,14 @@
     }
     function wsLoad() {
       if (busyW) return; busyW = true; wsMsg("Betöltés…");
+      var L = null; try { L = window.CSKLP || (parent !== window && parent.CSKLP) || null; } catch (e) {}   // az admin teljes ablakos betöltője (iframe-ben a szülő oldalé)
+      if (L) { L.open("Irodák", "Webshop rendelések"); L.step("Rendelések lekérése"); }
       fetch(IRODA_API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ webshoplist: 1, t: token(), kt: kt() }) })
         .then(function (r) { return r.json(); }).then(function (d) {
           busyW = false;
-          if (d && d.error === "kauth") { gate("A belépés lejárt, add meg újra a jelszót."); return; }
-          if (!d || !d.orders) { wsMsg((d && d.error) || "Nem sikerült betölteni a rendeléseket.", 1); return; }
+          if (d && d.error === "kauth") { if (L) L.done(); gate("A belépés lejárt, add meg újra a jelszót."); return; }
+          if (!d || !d.orders) { wsMsg((d && d.error) || "Nem sikerült betölteni a rendeléseket.", 1); if (L) L.fail((d && d.error) || "Nem sikerült betölteni a rendeléseket."); return; }
+          if (L) L.step("Lista összeállítása");
           loaded = true; window.WSO = d.orders; if (window.fxFill) window.fxFill(); var box = $("ws-list"); box.textContent = "";
           wsMsg(d.orders.length ? d.orders.length + " rendelés (a legújabb elöl)" : "Még nem érkezett rendelés.");
           d.orders.forEach(function (o) {
@@ -1636,7 +1639,8 @@
             var tw = el("div", "wtr"); c.appendChild(tw); wsTrack(tw, o);
             box.appendChild(c);
           });
-        }).catch(function () { busyW = false; wsMsg("Nem sikerült csatlakozni a rendelések betöltéséhez.", 1); });
+          if (L) L.done();
+        }).catch(function () { busyW = false; wsMsg("Nem sikerült csatlakozni a rendelések betöltéséhez.", 1); if (L) L.fail("Nem sikerült csatlakozni a rendelések betöltéséhez."); });
     }
     $("itabs").addEventListener("click", function (ev) { var b = ev.target.closest("button"); if (b && b.getAttribute("data-i") === "ws") wsLoad(); });
     $("ws-ref").addEventListener("click", wsLoad); window.wsReload = wsLoad;
