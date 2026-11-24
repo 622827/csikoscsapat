@@ -1509,7 +1509,9 @@
     return { h: h, nm: nm };
   }
   function fmailMsg(h) {
-    var fn = String(h.nev || "").trim().split(/\s+/).pop() || "";
+    var ws = String(h.nev || "").trim().split(/\s+/).filter(Boolean);   // megszólítás: az utolsó szó, a "nagyi, anya, asszisztense…" jellegű utótagok nélkül, nagybetűvel
+    while (ws.length > 1 && /^(asszisztense|asszisztens|anya|anyu|anyuka|mama|papa|nagyi|apa|apu|net|iroda)$/i.test(ws[ws.length - 1])) ws.pop();
+    var fn = ws.pop() || ""; fn = fn.charAt(0).toUpperCase() + fn.slice(1);
     return { to: h.email, subject: "Emlékeztető: flotta díjbefizetés", body: "Szia" + (fn ? " " + fn : "") + "!\n\nA nyilvántartásunk szerint elmaradásod van a flottás telefonszámod díjának befizetésével. Hogy pontosan mennyi, és hová kell utalni, itt tudod megnézni:\n" + new URL("flotta-fizetes.html", location.href).href + "\n\nHa időközben már rendezted, kérlek, tekintsd tárgytalannak ezt a levelet.\n\nKöszönöm!\nCsikós Máté" };
   }
   function fmailUrl() {
