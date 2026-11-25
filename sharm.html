@@ -74,6 +74,8 @@
   @keyframes pu { 70% { box-shadow: 0 0 0 14px rgba(26,115,232,0), 0 1px 5px rgba(0,0,0,.5); } 100% { box-shadow: 0 0 0 0 rgba(26,115,232,0), 0 1px 5px rgba(0,0,0,.5); } }
   @media (prefers-reduced-motion: reduce) { .pin.me i { animation: none; } }
   .pt span { display: block; width: 22px; height: 22px; line-height: 19px; border-radius: 50%; background: #fff; border: 1.5px solid #7a5af8; font-size: 12px; margin: 0 auto; box-shadow: 0 1px 5px rgba(0,0,0,.5); }
+  .pt span { position: relative; } .pt em { position: absolute; top: -7px; right: -9px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #12b76a; color: #fff; font: 700 10px/16px system-ui, sans-serif; font-style: normal; border: 1.5px solid #fff; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0,0,0,.45); }
+  .pt.busy span { border-color: #12b76a; box-shadow: 0 0 0 3px rgba(18,183,106,.35), 0 1px 5px rgba(0,0,0,.5); }
   .pt b { top: 24px; font-size: 9.5px; color: #fff; background: rgba(79,56,170,.92); }
 
   /* alsó lap: kik vannak itt */
@@ -177,6 +179,7 @@ var COLP = ["perf", "sharm-v1", "sh_pos"];   // emberek – a meglévő nyilván
 var COLK = ["perf", "sharm-v1", "sh_pts"];   // helyek
 var COLF = ["perf", "sharm-v1", "sh_feed"];  // hírfolyam
 var COLS = ["perf", "sharm-v1", "sh_sos"];   // segélykérések
+var HERE_M = 50;                             // ennyi méteren belül "ott van" valaki egy helyen
 var OLD_MS = 90 * 60 * 1000;                 // ennyi után "régi" (szürke) a pont, addig élő és pulzál
 var HOTEL = [27.914, 34.329];                // induló nézet, amíg nincs hely
 var KINDS = [ { k: "ebedlo", e: "🍽️", n: "Ebédlő", sh: 1 }, { k: "recepcio", e: "🛎️", n: "Recepció", sh: 1 }, { k: "szoba", e: "🛏️", n: "Saját szobám", sh: 0 }, { k: "tenger", e: "🏖️", n: "Jó tengerparti pont", sh: 1 }, { k: "medence", e: "🏊", n: "Medence", sh: 1 } ];
@@ -212,6 +215,7 @@ function myKinds() { var r = {}; Object.keys(pts).forEach(function (id) { if (ni
 
 // ---------- kirajzolás ----------
 function render() {
+  if (typeof ptsReady !== "undefined" && ptsReady) renderPts(true);
   Object.keys(markers).forEach(function (id) { map.removeLayer(markers[id]); }); markers = {};
   var ids = Object.keys(people).sort(function (a, b) { if (me) { if (a === myId) return -1; if (b === myId) return 1; return dist(me, people[a]) - dist(me, people[b]); } return (people[a].name || "").localeCompare(people[b].name || "", "hu"); }), html = "";
   ids.forEach(function (id) {
@@ -234,9 +238,10 @@ function render() {
 }
 $("list").addEventListener("click", function (e) { var r = e.target.closest(".row[data-id]"); if (!r) return; var p = people[r.getAttribute("data-id")]; if (p) map.setView([p.lat, p.lon], Math.max(map.getZoom(), 18)); });
 
-function renderPts() {
-  ptMk.forEach(function (m) { map.removeLayer(m); }); ptMk = []; renderCustom();
-  function add(lat, lon, e, lab) { ptMk.push(L.marker([lat, lon], { interactive: false, keyboard: false, icon: L.divIcon({ className: "", iconSize: [0, 0], html: "<div class='pt'><span>" + esc(e) + "</span><b>" + esc(lab) + "</b></div>" }) }).addTo(map)); }
+function renderPts(quiet) {
+  ptMk.forEach(function (m) { map.removeLayer(m); }); ptMk = []; if (!quiet) renderCustom();
+  var P = [];
+  function add(lat, lon, e, lab) { P.push({ lat: lat, lon: lon, e: e, lab: lab, c: 0 }); }
   Object.keys(pts).forEach(function (id) { var q = pts[id]; if (q.kind === "egyeb") add(q.lat, q.lon, q.e || "📍", q.label || "?"); });
   KINDS.forEach(function (K) {
     var all = Object.keys(pts).map(function (id) { return pts[id]; }).filter(function (q) { return q.kind === K.k; }), out = [];
@@ -245,6 +250,15 @@ function renderPts() {
       var c = null; out.forEach(function (o) { if (!c && dist(o, q) < 40) c = o; });
       if (c) { c.lat = (c.lat * c.n + q.lat) / (c.n + 1); c.lon = (c.lon * c.n + q.lon) / (c.n + 1); c.n++; } else out.push({ lat: q.lat, lon: q.lon, n: 1 });
     }); out.forEach(function (o) { add(o.lat, o.lon, K.e, K.n + (o.n > 1 ? " · " + o.n : "")); }); }
+  });
+  // élő emberek száma helyenként: mindenki a legközelebbi, HERE_M-en belüli helyhez számít (egyszer)
+  var now = Date.now();
+  Object.keys(people).forEach(function (id) {
+    var p = people[id]; if (!p || now - p.t > OLD_MS) return;
+    var best = null, bd = HERE_M; P.forEach(function (q) { var d = dist(q, p); if (d <= bd) { bd = d; best = q; } }); if (best) best.c++;
+  });
+  P.forEach(function (q) {
+    ptMk.push(L.marker([q.lat, q.lon], { interactive: false, keyboard: false, zIndexOffset: q.c ? 500 : 0, icon: L.divIcon({ className: "", iconSize: [0, 0], html: "<div class='pt" + (q.c ? " busy" : "") + "'><span>" + esc(q.e) + (q.c ? "<em>" + q.c + "</em>" : "") + "</span><b>" + esc(q.lab) + "</b></div>" }) }).addTo(map));
   });
 }
 
@@ -277,7 +291,7 @@ function listen() {
   F.onSnapshot(F.collection.apply(null, [db].concat(COLK)), function (qs) {
     var n = {}; rawPts = {};
     qs.forEach(function (d) { var x = d.data(); if (x && isFinite(x.lat) && isFinite(x.lon)) { rawPts[d.id] = x; var key = x.kind === "egyeb" ? d.id : x.kind + "|" + nid(x.name); if (!n[key] || (x.t || 0) > (n[key].t || 0)) n[key] = x; } });   // személyenként és helyenként egy jelölés (a legfrissebb)
-    pts = n; ptsReady = true; renderPts(); renderMarks(); render();
+    pts = n; ptsReady = true; renderCustom(); renderMarks(); render();
   }, function () { });
 }
 function save(pos) {
