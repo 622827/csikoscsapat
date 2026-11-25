@@ -66,7 +66,10 @@
   .pin i { display: block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 5px rgba(0,0,0,.55); margin: 0 auto; }
   .pin b, .pt b { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 10px; font-weight: 600; padding: 0 6px; border-radius: 999px; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
   .pin b { top: 17px; color: #fff; background: rgba(20,24,31,.86); }
-  .pin.old { opacity: .72; } .pin.old i { filter: grayscale(.6); }
+  .pin.old { opacity: .5; } .pin.old i { filter: grayscale(1); } .pin.old b { background: rgba(60,64,72,.8); color: #d6d9de; }
+  .pin.live i { position: relative; } .pin.live i::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; background: currentColor; opacity: .55; animation: lv 2.2s ease-out infinite; animation-delay: inherit; z-index: -1; }
+  @keyframes lv { 0% { transform: scale(1); opacity: .55; } 80%, 100% { transform: scale(2.6); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .pin.live i::after { animation: none; opacity: 0; } }
   .pin.me i { box-shadow: 0 0 0 0 rgba(26,115,232,.6), 0 1px 5px rgba(0,0,0,.5); animation: pu 1.8s infinite; }
   @keyframes pu { 70% { box-shadow: 0 0 0 14px rgba(26,115,232,0), 0 1px 5px rgba(0,0,0,.5); } 100% { box-shadow: 0 0 0 0 rgba(26,115,232,0), 0 1px 5px rgba(0,0,0,.5); } }
   @media (prefers-reduced-motion: reduce) { .pin.me i { animation: none; } }
@@ -174,7 +177,7 @@ var COLP = ["perf", "sharm-v1", "sh_pos"];   // emberek – a meglévő nyilván
 var COLK = ["perf", "sharm-v1", "sh_pts"];   // helyek
 var COLF = ["perf", "sharm-v1", "sh_feed"];  // hírfolyam
 var COLS = ["perf", "sharm-v1", "sh_sos"];   // segélykérések
-var OLD_MS = 15 * 60 * 1000;                 // ennyi után "régi" a pont
+var OLD_MS = 90 * 60 * 1000;                 // ennyi után "régi" (szürke) a pont, addig élő és pulzál
 var HOTEL = [27.914, 34.329];                // induló nézet, amíg nincs hely
 var KINDS = [ { k: "ebedlo", e: "🍽️", n: "Ebédlő", sh: 1 }, { k: "recepcio", e: "🛎️", n: "Recepció", sh: 1 }, { k: "szoba", e: "🛏️", n: "Saját szobám", sh: 0 }, { k: "tenger", e: "🏖️", n: "Jó tengerparti pont", sh: 1 }, { k: "medence", e: "🏊", n: "Medence", sh: 1 } ];
 var $ = function (i) { return document.getElementById(i); };
@@ -213,7 +216,7 @@ function render() {
   var ids = Object.keys(people).sort(function (a, b) { if (me) { if (a === myId) return -1; if (b === myId) return 1; return dist(me, people[a]) - dist(me, people[b]); } return (people[a].name || "").localeCompare(people[b].name || "", "hu"); }), html = "";
   ids.forEach(function (id) {
     var p = people[id], old = Date.now() - p.t > OLD_MS, c = colorOf(id);
-    markers[id] = L.marker([p.lat, p.lon], { interactive: false, keyboard: false, zIndexOffset: id === myId ? 1000 : 0, icon: L.divIcon({ className: "", iconSize: [0, 0], html: "<div class='pin" + (old ? " old" : "") + (id === myId ? " me" : "") + "'><i style='background:" + c + "'></i><b>" + esc(p.name) + (old ? " · " + ago(p.t) : "") + "</b></div>" }) }).addTo(map);
+    markers[id] = L.marker([p.lat, p.lon], { interactive: false, keyboard: false, zIndexOffset: id === myId ? 1000 : 0, icon: L.divIcon({ className: "", iconSize: [0, 0], html: "<div class='pin" + (old ? " old" : " live") + (id === myId ? " me" : "") + "'><i style='background:" + c + ";color:" + c + ";animation-delay:-" + ((id.length * 37) % 22) / 10 + "s'></i><b>" + esc(p.name) + (old ? " · " + ago(p.t) : "") + "</b></div>" }) }).addTo(map);
     html += "<div class='row" + (old ? " old" : "") + "' data-id='" + id + "'><i style='background:" + c + "'></i><span>" + esc(p.name) + (id === myId ? " (te)" : "") + "</span><small>" + (me && id !== myId ? "<b>" + fmtD(dist(me, p)) + "</b> · " : "") + ago(p.t) + (p.acc ? " · ±" + Math.round(p.acc) + " m" : "") + "</small></div>";
   });
   $("list").innerHTML = html || "<div class='row' style='cursor:default'><span>Még senki nem osztotta meg a helyét.</span></div>";
