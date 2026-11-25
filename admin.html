@@ -1858,10 +1858,10 @@
   function szMarMegvan(t) {
     if (!t || !D || !D.rows || !D.cols) return null;
     var c = { no: col("Számlaszám"), p: col("Partner"), d: col("Teljesítés dátuma"), g: col("Bruttó (Ft)") }, low = t.toLowerCase(), tight = low.replace(/\s+/g, ""), hit = null;
-    D.rows.some(function (r) {
-      var no = String(r[c.no] || "").trim().toLowerCase(); if (no.length < 5 || /^\d{1,4}$/.test(no)) return false;
-      [low, tight].some(function (x) { var i = x.indexOf(no); while (i > -1) { if (!/[a-z0-9]/.test(x.charAt(i - 1)) && !/[0-9]/.test(x.charAt(i + no.length))) { hit = r; return true; } i = x.indexOf(no, i + 1); } return false; });
-      return !!hit;
+    // Az előtte álló karakter nem lehet betű/szám/kötőjel/perjel/pont/aláhúzás (különben pl. a THE-2026-1 az E-THE-2026-1 része lenne); több találatnál a leghosszabb számlaszám nyer.
+    D.rows.forEach(function (r) {
+      var no = String(r[c.no] || "").trim().toLowerCase(); if (no.length < 5 || /^\d{1,4}$/.test(no) || (hit && String(hit[c.no]).length >= no.length)) return;
+      [low, tight].some(function (x) { var i = x.indexOf(no); while (i > -1) { if (!/[a-z0-9\-_\/.]/.test(x.charAt(i - 1)) && !/[0-9]/.test(x.charAt(i + no.length))) { hit = r; return true; } i = x.indexOf(no, i + 1); } return false; });
     });
     return hit ? { no: hit[c.no], p: hit[c.p], d: hd(hit[c.d]), g: num(hit[c.g]) } : null;
   }
