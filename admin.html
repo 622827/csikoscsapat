@@ -572,6 +572,7 @@
     <div class="bar">
       <p class="meta" id="k-meta"></p>
       <span class="sp"></span>
+      <button class="btn" type="button" id="k-mappa" title="Minden bekönyvelt számla a megfelelő hónapmappában van-e a Drive-on">Mappa-ellenőrzés</button>
       <button class="btn" type="button" id="k-refresh">Frissítés</button>
       <a class="btn" id="k-sheet" target="_blank" rel="noopener" hidden>Táblázat megnyitása</a>
       <a class="btn" href="#" id="k-back">Menük</a>
@@ -581,6 +582,11 @@
 
     <div class="repr" id="k-repr"></div>
     <div class="repr" id="k-telj"></div>
+    <details class="flg" id="mp-det" hidden open>
+      <summary><span>📁</span><span class="meta" id="mp-meta"></span></summary>
+      <p class="note" style="margin-top:4px">A táblázat „Hónap” oszlopa szerinti hónapmappát (Könyvelés 2026 / ÉÉÉÉ-HH) veti össze azzal, ahol a számla PDF-je a Drive-on ténylegesen van.</p>
+      <div id="mp-out"></div>
+    </details>
     <details class="flg" id="fl-det">
       <summary><span id="fl-sum" title="Red flag tételek" aria-label="Red flag tételek">🚩</span><span class="meta" id="fl-meta"></span></summary>
       <p class="note" style="margin-top:4px">Automatikus ellenőrzés a könyvelési táblázatból. Nem kerül ide a banki díj, a kamat, a jutalék, a NAV-befizetés, a tagi kölcsön, a saját számlák közötti átvezetés és a készpénzfelvétel, ezekhez nem kell számla. <b>Kattints egy tételre</b>: lenyílik, mi a probléma, és mit javaslunk.</p>
@@ -1161,6 +1167,65 @@
   }
 
   function col(name) { return D.cols.indexOf(name); }
+  // ---- Mappa-ellenőrzés: a Drive-listát a „Könyvelés mappák” Apps Script adja (apps-script/konyveles-mappak.gs), a címet és a kulcsot ez a böngésző jegyzi meg ----
+  function mpCfg(reset) {
+    var c = null; try { c = JSON.parse(localStorage.getItem("csk_mappa") || "null"); } catch (e) {}
+    if (c && c.u && c.k && !reset) return c;
+    var u = prompt("Mappa-ellenőrzés – egyszeri beállítás.\nA „Könyvelés mappák” Apps Script webalkalmazás címe (…/exec):", (c && c.u) || ""); if (!u) return null;
+    if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(u.trim())) { alert("Ez nem Apps Script webalkalmazás cím (…/exec)."); return null; }
+    var k = prompt("A szkriptben megadott KULCS:", ""); if (!k) return null;
+    c = { u: u.trim(), k: k.trim() }; try { localStorage.setItem("csk_mappa", JSON.stringify(c)); } catch (e) {} return c;
+  }
+  function mpCall(c, body) {
+    body.k = c.k; return fetch(c.u, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) }).then(function (r) { return r.json(); })
+      .then(function (d) { if (!d || !d.ok) { if (d && /kulcs/i.test(d.err || "")) { try { localStorage.removeItem("csk_mappa"); } catch (e) {} } throw new Error((d && d.err) || "ismeretlen hiba"); } return d; });
+  }
+  function mpRun() {
+    if (!D || !D.rows) { alert("Előbb töltsd be a könyvelést."); return; }
+    var c = mpCfg(false); if (!c) return;
+    var det = $("mp-det"), out = $("mp-out"), b = $("k-mappa"); det.hidden = false; det.open = true; $("mp-meta").textContent = "Drive mappák beolvasása…"; out.innerHTML = ""; b.disabled = true;
+    mpCall(c, { action: "lista" }).then(function (d) {
+      var byId = {}; d.files.forEach(function (f) { byId[f.id] = f; });
+      var ci = { no: col("Számlaszám"), p: col("Partner"), lnk: col("PDF link"), ho: col("Hónap"), g: col("Bruttó (Ft)") }, used = {}, bad = [], gone = [], ok = 0, nolink = 0;
+      D.rows.forEach(function (r) {
+        var m = /\/d\/([\w-]{20,})/.exec(String(r[ci.lnk] || "")) || /[?&]id=([\w-]{20,})/.exec(String(r[ci.lnk] || ""));
+        if (!m) { nolink++; return; }
+        used[m[1]] = 1;
+        var hn = parseInt(r[ci.ho], 10); if (!(hn >= 1 && hn <= 12)) return;   // hónap nélküli (pl. 2025-ös) sor: nincs elvárt mappa
+        var want = "2026-" + ("0" + hn).slice(-2), f = byId[m[1]];
+        if (!f) { gone.push({ r: r, want: want }); return; }
+        var top = String(f.p || "").split("/")[0], fm = /^(20\d\d-\d\d)\b/.exec(top);
+        if (fm && fm[1] === want && f.p.indexOf("/") < 0) { ok++; return; }
+        bad.push({ r: r, f: f, want: want, inMonth: !!fm });
+      });
+      var extra = d.files.filter(function (f) { return /^20\d\d-\d\d\b/.test(f.p) && f.p.indexOf("/") < 0 && !used[f.id]; });
+      $("mp-meta").textContent = ok + " rendben · " + bad.length + " rossz mappában · " + gone.length + " nem található · " + extra.length + " hónapmappában, de nincs a könyvelésben";
+      var h = "";
+      function inv(r) { return esc(r[ci.no] || "–") + " · " + esc(r[ci.p] || "") + " · " + ft(r[ci.g]); }
+      if (bad.length) {
+        h += '<h3 style="margin:10px 0 4px">Rossz mappában (' + bad.length + ')</h3><div class="tw"><table class="inv"><thead><tr><th>Számla</th><th>Most itt van</th><th>Ide kellene</th><th></th></tr></thead><tbody>' +
+          bad.map(function (x, i) { return "<tr><td>" + inv(x.r) + '</td><td><a href="' + esc(x.f.u) + '" target="_blank" rel="noopener">' + esc(x.f.p) + "</a>" + (x.inMonth ? "" : " <small>(nem hónapmappa)</small>") + "</td><td>" + x.want + '</td><td><button class="btn" type="button" data-mv="' + i + '" style="padding:4px 10px;font-size:.8rem">Áthelyezés</button></td></tr>'; }).join("") + "</tbody></table></div>";
+        var nm = bad.filter(function (x) { return x.inMonth; }).length;
+        if (nm > 1) h += '<p><button class="btn pri" type="button" id="mp-all">Mind a ' + nm + ' hónapmappás áthelyezése</button> <small>(a nem hónapmappában lévőket, pl. Telekom, OVB, egyenként döntsd el)</small></p>';
+      }
+      if (gone.length) h += '<h3 style="margin:10px 0 4px">A PDF nem található a Könyvelés mappában (' + gone.length + ')</h3><ul>' + gone.map(function (x) { return "<li>" + inv(x.r) + " → " + x.want + "</li>"; }).join("") + "</ul>";
+      if (extra.length) h += '<h3 style="margin:10px 0 4px">Hónapmappában van, de nincs a könyvelésben (' + extra.length + ')</h3><ul>' + extra.map(function (f) { return '<li><a href="' + esc(f.u) + '" target="_blank" rel="noopener">' + esc(f.n) + "</a> · " + esc(f.p) + "</li>"; }).join("") + "</ul>";
+      if (!h) h = "<p>Minden bekönyvelt számla a helyén van. 🎉</p>";
+      if (nolink) h += '<p class="note">' + nolink + " sornál nincs Drive-link (pl. Gmail-melléklet), ezeket nem ellenőrizte.</p>";
+      out.innerHTML = h;
+      function mv(x, btn) {
+        if (btn) { btn.disabled = true; btn.textContent = "…"; }
+        return mpCall(c, { action: "athelyez", id: x.f.id, ho: x.want }).then(function () { if (btn) { btn.textContent = "✓ áthelyezve"; } }, function (e) { if (btn) { btn.disabled = false; btn.textContent = "Áthelyezés"; } throw e; });
+      }
+      Array.prototype.forEach.call(out.querySelectorAll("button[data-mv]"), function (bt) { bt.onclick = function () { var x = bad[+bt.getAttribute("data-mv")]; mv(x, bt).catch(function (e) { alert(x.f.n + ": " + e.message); }); }; });
+      var all = $("mp-all"); if (all) all.onclick = function () {
+        if (!confirm("Áthelyezed a hónapmappákban rossz helyen lévő számlákat a helyes hónapmappába?")) return; all.disabled = true; var errs = [];
+        bad.reduce(function (p, x, i) { if (!x.inMonth) return p; return p.then(function () { return mv(x, out.querySelector('button[data-mv="' + i + '"]')).catch(function (e) { errs.push(x.f.n + ": " + e.message); }); }); }, Promise.resolve())
+          .then(function () { all.textContent = errs.length ? "Kész, " + errs.length + " hiba" : "Kész"; if (errs.length) alert("Nem sikerült:\n" + errs.join("\n")); });
+      };
+    }).catch(function (e) { $("mp-meta").textContent = "Az ellenőrzés nem sikerült: " + e.message; }).then(function () { b.disabled = false; });
+  }
+  $("k-mappa").addEventListener("click", function (e) { if (e.shiftKey) mpCfg(true); mpRun(); });
   // Dátum egységesen "ÉÉÉÉ.HH.NN" alakban; a táblázat belső dátumszámát (pl. 46326) is átírja.
   function hd(v) {
     if (typeof v === "number" || /^\d{5}(\.\d+)?$/.test(String(v || ""))) { var t = new Date(Date.UTC(1899, 11, 30) + Math.floor(Number(v)) * 86400000); return t.getUTCFullYear() + "." + ("0" + (t.getUTCMonth() + 1)).slice(-2) + "." + ("0" + t.getUTCDate()).slice(-2); }
