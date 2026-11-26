@@ -1937,15 +1937,15 @@
         c.strokeStyle = "rgba(102,153,204,.7)"; c.lineWidth = 3; c.beginPath(); c.moveTo(hm.x - 40, hm.y); c.lineTo(st.x, st.y); c.lineTo(hm.x + 40, hm.y); c.stroke();
         var v = launchV();
         if (v.pw >= 0.12) { var gx = st.x, gy = st.y, gvx = v.vx, gvy = v.vy, top = false; c.fillStyle = "rgba(224,102,43,.75)";
-          var gFY = H - 84, nb = 0; for (var i = 1; i <= 200; i++) { var pgy = gy; gvy += G / 60; gx += gvx / 60; gy += gvy / 60; if ((gx < 30 && gvx < 0) || (gx > W - 30 && gvx > 0)) { gvx = -gvx * 0.75; gvy *= 0.95; } if (gy < 30 && gvy < 0) gvy = -gvy * 0.6; if (gy < hy - 12) top = true; if (top && pgy < hy && gy >= hy && Math.abs(gx - hx) < r) { c.beginPath(); c.arc(gx, hy, 5, 0, 7); c.fill(); break; } if (gy > gFY && gvy > 0) { gy = gFY; if (Math.abs(gvy) < 140 || ++nb > 3) break; gvy = -gvy * 0.55; gvx *= 0.82; } if (i % 3 === 0) { c.beginPath(); c.arc(gx, gy, 2.6, 0, 7); c.fill(); } } }
+          var gFY = H - 84, nb = 0; for (var i = 1; i <= 200; i++) { var pgy = gy; gvy += G / 60; gx += gvx / 60; gy += gvy / 60; if ((gx < 30 && gvx < 0) || (gx > W - 30 && gvx > 0)) { if (++nb > 2) break; gvx = -gvx * 0.75; gvy *= 0.95; } if (gy < 30 && gvy < 0) gvy = -gvy * 0.6; if (gy < hy - 12) top = true; if (top && pgy < hy && gy >= hy && Math.abs(gx - hx) < r) { c.beginPath(); c.arc(gx, hy, 5, 0, 7); c.fill(); break; } if (gy > gFY && gvy > 0) { gy = gFY; if (Math.abs(gvy) < 140 || ++nb > 2) break; gvy = -gvy * 0.55; gvx *= 0.82; } if (i % 3 === 0) { c.beginPath(); c.arc(gx, gy, 2.6, 0, 7); c.fill(); } } }
         c.fillStyle = "rgba(102,153,204,.25)"; rr(W / 2 - 70, H - 96, 140, 10, 5); c.fill(); c.fillStyle = pw > 0.85 ? "#e0662b" : "#6699cc"; rr(W / 2 - 70, H - 96, 140 * pw, 10, 5); c.fill();
         c.fillStyle = "#6699cc"; c.font = "700 13px system-ui,sans-serif"; c.textAlign = "center"; c.fillText("Erő: " + Math.round(pw * 100) + "%", W / 2, H - 106);
       }
     }
     function loop(now) { var dt = Math.min(0.033, ((now - (last || now)) / 1000)); last = now; step(dt); draw(); raf = requestAnimationFrame(loop); }
     function launchV() {
-      var hm = { x: st.ax, y: st.ay }, dx = hm.x - st.x, dy = hm.y - st.y, d = Math.hypot(dx, dy) || 1, pw = Math.min(1, d / (st.L || pullMax())), V = 1.45 * Math.sqrt(2 * G * Math.max(60, hm.y - hy));
-      return { pw: pw, vx: dx / d * pw * V * 0.55, vy: dy / d * pw * V };
+      var hm = { x: st.ax, y: st.ay }, dx = hm.x - st.x, dy = hm.y - st.y, d = Math.hypot(dx, dy) || 1, pw = Math.min(1, d / (st.L || pullMax())), V = Math.sqrt(2 * G * H * 1.15);   // teljes erővel a képernyő tetejéig is felrepül (bárhonnan lősz)
+      return { pw: pw, vx: dx / d * pw * V, vy: dy / d * pw * V };   // pontosan a húzással ellentétes irányba indul
     }
     function pull(x, y) { var hm = { x: st.ax, y: st.ay }, dx = x - hm.x, dy = y - hm.y, L = st.L || pullMax(), d = Math.hypot(dx, dy); if (d > L) { dx *= L / d; dy *= L / d; } if (dy < 0) dy = 0; st.x = hm.x + dx; st.y = hm.y + dy; }
     cv.addEventListener("pointerdown", function (e) {
