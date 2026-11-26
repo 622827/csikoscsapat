@@ -1914,8 +1914,8 @@
         if (d < m && d > 0) { var nx = dx / d, ny = dy / d, vn = st.vx * nx + st.vy * ny; if (vn < 0) { st.vx -= 1.55 * vn * nx; st.vy -= 1.55 * vn * ny; st.vr += (st.vx > 0 ? 1 : -1) * 4; hud.textContent = "Gyűrű! 😬"; } st.x = px + nx * m; st.y = hy + ny * m; }
       });
       if (st.inn) st.x += (hx - st.x) * Math.min(1, dt * 10);
-      if (st.x < 30 && st.vx < 0) { st.x = 30; st.vx = -st.vx * 0.65; st.vy *= 0.92; st.vr = -st.vr * 0.7; }   // falak: visszapattan, ~35% energia elvész
-      if (st.x > W - 30 && st.vx > 0) { st.x = W - 30; st.vx = -st.vx * 0.65; st.vy *= 0.92; st.vr = -st.vr * 0.7; }
+      if (st.x < 30 && st.vx < 0) { st.x = 30; st.vx = -st.vx * 0.75; st.vy *= 0.95; st.vr = -st.vr * 0.7; }   // falak: visszapattan, ~35% energia elvész
+      if (st.x > W - 30 && st.vx > 0) { st.x = W - 30; st.vx = -st.vx * 0.75; st.vy *= 0.95; st.vr = -st.vr * 0.7; }
       if (st.y < 30 && st.vy < 0) { st.y = 30; st.vy = -st.vy * 0.6; }   // plafon
       if (!st.inn && st.y > FY && st.vy > 0) {   // padló: felpattan, amíg van benne erő, aztán gurul és megáll
         st.y = FY; st.vy = Math.abs(st.vy) < 140 ? 0 : -st.vy * 0.55; st.vx *= 0.82; st.vr = st.vx * 0.01;
@@ -1937,7 +1937,7 @@
         c.strokeStyle = "rgba(102,153,204,.7)"; c.lineWidth = 3; c.beginPath(); c.moveTo(hm.x - 40, hm.y); c.lineTo(st.x, st.y); c.lineTo(hm.x + 40, hm.y); c.stroke();
         var v = launchV();
         if (v.pw >= 0.12) { var gx = st.x, gy = st.y, gvx = v.vx, gvy = v.vy, top = false; c.fillStyle = "rgba(224,102,43,.75)";
-          for (var i = 1; i <= 140; i++) { var pgy = gy; gvy += G / 60; gx += gvx / 60; gy += gvy / 60; if ((gx < 30 && gvx < 0) || (gx > W - 30 && gvx > 0)) { gvx = -gvx * 0.65; gvy *= 0.92; } if (gy < 30 && gvy < 0) gvy = -gvy * 0.6; if (gy < hy - 12) top = true; if (top && pgy < hy && gy >= hy) { c.beginPath(); c.arc(gx, hy, 5, 0, 7); c.fill(); break; } if (gy > H) break; if (i % 3 === 0) { c.beginPath(); c.arc(gx, gy, 2.6, 0, 7); c.fill(); } } }
+          var gFY = H - 84, nb = 0; for (var i = 1; i <= 200; i++) { var pgy = gy; gvy += G / 60; gx += gvx / 60; gy += gvy / 60; if ((gx < 30 && gvx < 0) || (gx > W - 30 && gvx > 0)) { gvx = -gvx * 0.75; gvy *= 0.95; } if (gy < 30 && gvy < 0) gvy = -gvy * 0.6; if (gy < hy - 12) top = true; if (top && pgy < hy && gy >= hy && Math.abs(gx - hx) < r) { c.beginPath(); c.arc(gx, hy, 5, 0, 7); c.fill(); break; } if (gy > gFY && gvy > 0) { gy = gFY; if (Math.abs(gvy) < 140 || ++nb > 3) break; gvy = -gvy * 0.55; gvx *= 0.82; } if (i % 3 === 0) { c.beginPath(); c.arc(gx, gy, 2.6, 0, 7); c.fill(); } } }
         c.fillStyle = "rgba(102,153,204,.25)"; rr(W / 2 - 70, H - 96, 140, 10, 5); c.fill(); c.fillStyle = pw > 0.85 ? "#e0662b" : "#6699cc"; rr(W / 2 - 70, H - 96, 140 * pw, 10, 5); c.fill();
         c.fillStyle = "#6699cc"; c.font = "700 13px system-ui,sans-serif"; c.textAlign = "center"; c.fillText("Erő: " + Math.round(pw * 100) + "%", W / 2, H - 106);
       }
