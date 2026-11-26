@@ -1937,7 +1937,7 @@
         c.strokeStyle = "rgba(102,153,204,.7)"; c.lineWidth = 3; c.beginPath(); c.moveTo(hm.x - 40, hm.y); c.lineTo(st.x, st.y); c.lineTo(hm.x + 40, hm.y); c.stroke();
         var v = launchV();
         if (v.pw >= 0.12) { var gx = st.x, gy = st.y, gvx = v.vx, gvy = v.vy, top = false; c.fillStyle = "rgba(224,102,43,.75)";
-          var gFY = H - 84, nb = 0; for (var i = 1; i <= 200; i++) { var pgy = gy; gvy += G / 60; gx += gvx / 60; gy += gvy / 60; if ((gx < 30 && gvx < 0) || (gx > W - 30 && gvx > 0)) { if (++nb > 2) break; gvx = -gvx * 0.75; gvy *= 0.95; } if (gy < 30 && gvy < 0) gvy = -gvy * 0.6; if (gy < hy - 12) top = true; if (top && pgy < hy && gy >= hy && Math.abs(gx - hx) < r) { c.beginPath(); c.arc(gx, hy, 5, 0, 7); c.fill(); break; } if (gy > gFY && gvy > 0) { gy = gFY; if (Math.abs(gvy) < 140 || ++nb > 2) break; gvy = -gvy * 0.55; gvx *= 0.82; } if (i % 3 === 0) { c.beginPath(); c.arc(gx, gy, 2.6, 0, 7); c.fill(); } } }
+          var gFY = H - 84, nb = 0; for (var i = 1; i <= 200; i++) { var pgy = gy; gvy += G / 60; gx += gvx / 60; gy += gvy / 60; if ((gx < 30 && gvx < 0) || (gx > W - 30 && gvx > 0)) { if (++nb > 1) break; gvx = -gvx * 0.75; gvy *= 0.95; } if (gy < 30 && gvy < 0) { if (++nb > 1) break; gvy = -gvy * 0.6; } if (gy < hy - 12) top = true; if (top && pgy < hy && gy >= hy && Math.abs(gx - hx) < r) { c.beginPath(); c.arc(gx, hy, 5, 0, 7); c.fill(); break; } if (gy > gFY && gvy > 0) { gy = gFY; if (Math.abs(gvy) < 140 || ++nb > 1) break; gvy = -gvy * 0.55; gvx *= 0.82; } if (i % 3 === 0) { c.beginPath(); c.arc(gx, gy, 2.6, 0, 7); c.fill(); } } }
         c.fillStyle = "rgba(102,153,204,.25)"; rr(W / 2 - 70, H - 96, 140, 10, 5); c.fill(); c.fillStyle = pw > 0.85 ? "#e0662b" : "#6699cc"; rr(W / 2 - 70, H - 96, 140 * pw, 10, 5); c.fill();
         c.fillStyle = "#6699cc"; c.font = "700 13px system-ui,sans-serif"; c.textAlign = "center"; c.fillText("Erő: " + Math.round(pw * 100) + "%", W / 2, H - 106);
       }
@@ -1950,8 +1950,7 @@
     function pull(x, y) { var hm = { x: st.ax, y: st.ay }, dx = x - hm.x, dy = y - hm.y, L = st.L || pullMax(), d = Math.hypot(dx, dy); if (d > L) { dx *= L / d; dy *= L / d; } if (dy < 0) dy = 0; st.x = hm.x + dx; st.y = hm.y + dy; }
     cv.addEventListener("pointerdown", function (e) {
       if (done) return; var b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top, near = Math.hypot(x - st.x, y - st.y) < 75;
-      if (st.fly) {   // repülés vagy pattogás közben is elkapható: onnan lősz tovább, ahol éppen van
-        if (!near) return;
+      if (st.fly) {   // repülés vagy pattogás közben bárhova bökve elkapható: onnan lősz tovább, ahol éppen van
         st.fly = false; st.inn = false; st.up = false; st.vx = st.vy = st.vr = 0; st.rot = 0; st.s = 1; st.t = 0; st.rest = 0;
         st.ax = Math.max(40, Math.min(W - 40, st.x)); st.ay = Math.max(40, Math.min(H - 84, st.y)); st.x = st.ax; st.y = st.ay;
         hud.textContent = "Elkaptad! Húzd le, és lőj újra.";
