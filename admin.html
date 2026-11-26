@@ -1865,13 +1865,14 @@
   }
   function szGame(n, name, go) {
     var ov = document.createElement("div"); ov.className = "szgame play";
-    ov.innerHTML = '<canvas></canvas><div class="hud" aria-live="polite">Húzd meg a fájlt, és lődd fel a kosárba!</div><div class="ctl"><button class="btn pri" type="button" data-a="up">Csak töltsd fel</button><button class="btn" type="button" data-a="x">Mégse</button></div>';
+    ov.innerHTML = '<canvas></canvas><div class="hud" aria-live="polite">Húzd le a fájlt, a pöttyös vonal mutatja, hova repül. Engedd el!</div><div class="ctl"><button class="btn pri" type="button" data-a="up">Csak töltsd fel</button><button class="btn" type="button" data-a="x">Mégse</button></div>';
     document.body.appendChild(ov);
     var cv = ov.querySelector("canvas"), c = cv.getContext("2d"), hud = ov.querySelector(".hud"), dpr = Math.min(2, window.devicePixelRatio || 1);
     var lab = (String(name).split(".").pop() || "PDF").toUpperCase().slice(0, 4), W, H, hx, hy, r, G, st, raf, last = 0, tries = 0, done = false, net = 0, closed = false;
     var MISS = ["Majdnem! Próbáld újra.", "Kicsit erősebben vagy lágyabban!", "Célozz a gyűrű közepére!", "Ez most nem ment, még egyet!"];
     function size() { W = ov.clientWidth; H = ov.clientHeight; cv.width = W * dpr; cv.height = H * dpr; c.setTransform(dpr, 0, 0, dpr, 0, 0); hx = W / 2; hy = Math.max(150, H * 0.3); r = Math.max(36, Math.min(W * 0.11, 62)); G = H * 2.3; }
-    function home() { return { x: W / 2, y: H - 130 }; }
+    function home() { return { x: W / 2, y: H * 0.66 }; }
+    function pullMax() { return Math.max(90, Math.min(H * 0.22, 170)); }
     function reset() { var p = home(); st = { x: p.x, y: p.y, vx: 0, vy: 0, s: 1, rot: 0, vr: 0, t: 0, fly: false, drag: false, up: false, inn: false, pts: [] }; }
     function close(up) { if (closed) return; closed = true; cancelAnimationFrame(raf); window.removeEventListener("resize", size); document.removeEventListener("keydown", kd); ov.remove(); if (up) go(); }
     function kd(e) { if (e.key === "Escape") close(false); }
@@ -1922,23 +1923,37 @@
       if (behind) doc(st.x, st.y, st.s, st.rot, a);
       rimFront();
       if (!behind) doc(st.x, st.y, st.s, st.rot, a);
-      if (!st.fly && !st.drag) { var p = home(), k = (Math.sin(performance.now() / 300) + 1) / 2; c.fillStyle = "rgba(0,51,102," + (0.25 + 0.35 * k) + ")"; c.font = "700 22px system-ui,sans-serif"; c.textAlign = "center"; c.fillText("↑", p.x, p.y - 58 - 6 * k); }
+      var hm = home();
+      if (!st.fly && !st.drag) { var k = (Math.sin(performance.now() / 300) + 1) / 2; c.fillStyle = "rgba(102,153,204," + (0.35 + 0.45 * k) + ")"; c.font = "700 24px system-ui,sans-serif"; c.textAlign = "center"; c.fillText("↓", hm.x, hm.y + 62 + 8 * k); }
+      if (st.drag) {
+        var pw = Math.min(1, Math.hypot(st.x - hm.x, st.y - hm.y) / pullMax());
+        c.strokeStyle = "rgba(102,153,204,.7)"; c.lineWidth = 3; c.beginPath(); c.moveTo(hm.x - 40, hm.y); c.lineTo(st.x, st.y); c.lineTo(hm.x + 40, hm.y); c.stroke();
+        var v = launchV();
+        if (v.pw >= 0.12) { var gx = st.x, gy = st.y, gvx = v.vx, gvy = v.vy, top = false; c.fillStyle = "rgba(224,102,43,.75)";
+          for (var i = 1; i <= 140; i++) { var pgy = gy; gvy += G / 60; gx += gvx / 60; gy += gvy / 60; if (gx < 30 || gx > W - 30) gvx = -gvx * 0.6; if (gy < hy - 12) top = true; if (top && pgy < hy && gy >= hy) { c.beginPath(); c.arc(gx, hy, 5, 0, 7); c.fill(); break; } if (gy > H) break; if (i % 3 === 0) { c.beginPath(); c.arc(gx, gy, 2.6, 0, 7); c.fill(); } } }
+        c.fillStyle = "rgba(102,153,204,.25)"; rr(W / 2 - 70, H - 96, 140, 10, 5); c.fill(); c.fillStyle = pw > 0.85 ? "#e0662b" : "#6699cc"; rr(W / 2 - 70, H - 96, 140 * pw, 10, 5); c.fill();
+        c.fillStyle = "#6699cc"; c.font = "700 13px system-ui,sans-serif"; c.textAlign = "center"; c.fillText("Erő: " + Math.round(pw * 100) + "%", W / 2, H - 106);
+      }
     }
     function loop(now) { var dt = Math.min(0.033, ((now - (last || now)) / 1000)); last = now; step(dt); draw(); raf = requestAnimationFrame(loop); }
+    function launchV() {
+      var hm = home(), dx = hm.x - st.x, dy = hm.y - st.y, d = Math.hypot(dx, dy) || 1, pw = Math.min(1, d / pullMax()), V = 1.45 * Math.sqrt(2 * G * (hm.y - hy));
+      return { pw: pw, vx: dx / d * pw * V * 0.55, vy: dy / d * pw * V };
+    }
+    function pull(x, y) { var hm = home(), dx = x - hm.x, dy = y - hm.y, L = pullMax(), d = Math.hypot(dx, dy); if (d > L) { dx *= L / d; dy *= L / d; } if (dy < 0) dy = 0; st.x = hm.x + dx; st.y = hm.y + dy; }
     cv.addEventListener("pointerdown", function (e) {
       if (st.fly || done) return; var b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
-      if (y < H * 0.5 && Math.hypot(x - st.x, y - st.y) > 90) return;
-      st.drag = true; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing"; st.x = x; st.y = Math.max(H * 0.5, y); st.pts = [{ x: x, y: y, t: performance.now() }];
+      if (y < H * 0.45) return;
+      st.drag = true; st.ox = x - st.x; st.oy = y - st.y; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing";
     });
     cv.addEventListener("pointermove", function (e) {
-      if (!st.drag) return; var b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top, t = performance.now();
-      st.x = x; st.y = Math.max(H * 0.5, y); st.pts.push({ x: x, y: y, t: t }); while (st.pts.length > 2 && t - st.pts[0].t > 110) st.pts.shift();
+      if (!st.drag) return; var b = cv.getBoundingClientRect(); pull(e.clientX - b.left - st.ox, e.clientY - b.top - st.oy);
     });
     function up() {
       if (!st.drag) return; st.drag = false; cv.style.cursor = "grab";
-      var p = st.pts, a = p[0], b = p[p.length - 1], dt = Math.max(16, b.t - a.t) / 1000, vx = (b.x - a.x) / dt, vy = (b.y - a.y) / dt;
-      if (p.length < 2 || vy > -H * 0.5) { var h = home(); st.x = h.x; st.y = h.y; hud.textContent = "Lendületesen húzd felfelé, és engedd el!"; return; }
-      var vmin = Math.sqrt(2 * G * Math.max(60, st.y - hy + r * 0.8)); st.vy = Math.max(-H * 2.5, Math.min(-vmin, vy)); st.vx = Math.max(-W * 1.4, Math.min(W * 1.4, vx)); st.vr = st.vx * 0.004; st.fly = true; st.t = 0;
+      var v = launchV(), hm = home();
+      if (v.pw < 0.12) { st.x = hm.x; st.y = hm.y; hud.textContent = "Húzd lejjebb a fájlt, és engedd el!"; return; }
+      st.vx = v.vx; st.vy = v.vy; st.vr = st.vx * 0.004; st.fly = true; st.t = 0;
     }
     cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
     ov.querySelector(".ctl").addEventListener("click", function (e) { var bt = e.target.closest("[data-a]"); if (bt) close(bt.getAttribute("data-a") === "up"); });
