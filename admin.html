@@ -1907,14 +1907,21 @@
       st.t += dt; st.vy += G * dt; var py = st.y; st.x += st.vx * dt; st.y += st.vy * dt; st.rot += st.vr * dt;
       st.s = Math.max(0.45, 1 - 0.55 * Math.min(1, st.t / 0.55));
       if (st.y < hy - 12) st.up = true;
-      if (st.up && !st.inn && py < hy && st.y >= hy && st.vy > 0) {
-        var dx = st.x - hx, ad = Math.abs(dx);
-        if (ad < r * 0.78) { st.inn = true; st.vx *= 0.2; st.vy *= 0.55; score(); }
-        else if (ad < r * 1.2) { st.y = hy - 1; st.vy = -st.vy * 0.45; st.vx = st.vx * 0.5 + (dx > 0 ? 1 : -1) * r * 2.2; st.vr = -st.vr; hud.textContent = "Gyűrű! 😬"; }
-      }
+      var ir = 14 * st.s, FY = H - 84;
+      if (st.up && !st.inn && py < hy && st.y >= hy && st.vy > 0 && Math.abs(st.x - hx) < r - ir * 0.6) { st.inn = true; st.vx *= 0.2; st.vy *= 0.55; score(); }
+      if (st.up && !st.inn) [hx - r, hx + r].forEach(function (px) {   // a gyűrű két széle kemény pont: rugalmas ütközés, a lendület a felülethez képest tükröződik
+        var dx = st.x - px, dy = st.y - hy, d = Math.hypot(dx, dy), m = ir + 3;
+        if (d < m && d > 0) { var nx = dx / d, ny = dy / d, vn = st.vx * nx + st.vy * ny; if (vn < 0) { st.vx -= 1.55 * vn * nx; st.vy -= 1.55 * vn * ny; st.vr += (st.vx > 0 ? 1 : -1) * 4; hud.textContent = "Gyűrű! 😬"; } st.x = px + nx * m; st.y = hy + ny * m; }
+      });
       if (st.inn) st.x += (hx - st.x) * Math.min(1, dt * 10);
-      if (st.x < 30 && st.vx < 0) st.vx = -st.vx * 0.6; if (st.x > W - 30 && st.vx > 0) st.vx = -st.vx * 0.6;
-      if (!done && (st.y > H + 90 || st.t > 5)) { tries++; hud.textContent = MISS[(tries - 1) % MISS.length] + (tries >= 3 ? " (vagy: Csak töltsd fel)" : ""); reset(); }
+      if (st.x < 30 && st.vx < 0) { st.x = 30; st.vx = -st.vx * 0.65; st.vy *= 0.92; st.vr = -st.vr * 0.7; }   // falak: visszapattan, ~35% energia elvész
+      if (st.x > W - 30 && st.vx > 0) { st.x = W - 30; st.vx = -st.vx * 0.65; st.vy *= 0.92; st.vr = -st.vr * 0.7; }
+      if (st.y < 30 && st.vy < 0) { st.y = 30; st.vy = -st.vy * 0.6; }   // plafon
+      if (!st.inn && st.y > FY && st.vy > 0) {   // padló: felpattan, amíg van benne erő, aztán gurul és megáll
+        st.y = FY; st.vy = Math.abs(st.vy) < 140 ? 0 : -st.vy * 0.55; st.vx *= 0.82; st.vr = st.vx * 0.01;
+      }
+      if (!st.inn && st.y >= FY - 0.5 && st.vy === 0) { st.vx *= Math.pow(0.15, dt); st.rest = (st.rest || 0) + dt; } else st.rest = 0;
+      if (!done && (st.rest > 0.6 || st.t > 9 || st.y > H + 90)) { tries++; hud.textContent = MISS[(tries - 1) % MISS.length] + (tries >= 3 ? " (vagy: Csak töltsd fel)" : ""); reset(); }
     }
     function score() { done = true; net = 1; hud.textContent = "KOSÁR! 🏀 Feltöltés indul…"; if (navigator.vibrate) try { navigator.vibrate(40); } catch (e) {} setTimeout(function () { close(true); }, 1100); }
     function draw() {
@@ -1930,7 +1937,7 @@
         c.strokeStyle = "rgba(102,153,204,.7)"; c.lineWidth = 3; c.beginPath(); c.moveTo(hm.x - 40, hm.y); c.lineTo(st.x, st.y); c.lineTo(hm.x + 40, hm.y); c.stroke();
         var v = launchV();
         if (v.pw >= 0.12) { var gx = st.x, gy = st.y, gvx = v.vx, gvy = v.vy, top = false; c.fillStyle = "rgba(224,102,43,.75)";
-          for (var i = 1; i <= 140; i++) { var pgy = gy; gvy += G / 60; gx += gvx / 60; gy += gvy / 60; if (gx < 30 || gx > W - 30) gvx = -gvx * 0.6; if (gy < hy - 12) top = true; if (top && pgy < hy && gy >= hy) { c.beginPath(); c.arc(gx, hy, 5, 0, 7); c.fill(); break; } if (gy > H) break; if (i % 3 === 0) { c.beginPath(); c.arc(gx, gy, 2.6, 0, 7); c.fill(); } } }
+          for (var i = 1; i <= 140; i++) { var pgy = gy; gvy += G / 60; gx += gvx / 60; gy += gvy / 60; if ((gx < 30 && gvx < 0) || (gx > W - 30 && gvx > 0)) { gvx = -gvx * 0.65; gvy *= 0.92; } if (gy < 30 && gvy < 0) gvy = -gvy * 0.6; if (gy < hy - 12) top = true; if (top && pgy < hy && gy >= hy) { c.beginPath(); c.arc(gx, hy, 5, 0, 7); c.fill(); break; } if (gy > H) break; if (i % 3 === 0) { c.beginPath(); c.arc(gx, gy, 2.6, 0, 7); c.fill(); } } }
         c.fillStyle = "rgba(102,153,204,.25)"; rr(W / 2 - 70, H - 96, 140, 10, 5); c.fill(); c.fillStyle = pw > 0.85 ? "#e0662b" : "#6699cc"; rr(W / 2 - 70, H - 96, 140 * pw, 10, 5); c.fill();
         c.fillStyle = "#6699cc"; c.font = "700 13px system-ui,sans-serif"; c.textAlign = "center"; c.fillText("Erő: " + Math.round(pw * 100) + "%", W / 2, H - 106);
       }
