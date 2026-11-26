@@ -1873,7 +1873,7 @@
     function size() { W = ov.clientWidth; H = ov.clientHeight; cv.width = W * dpr; cv.height = H * dpr; c.setTransform(dpr, 0, 0, dpr, 0, 0); hx = W / 2; hy = Math.max(150, H * 0.3); r = Math.max(36, Math.min(W * 0.11, 62)); G = H * 2.3; }
     function home() { return { x: W / 2, y: H * 0.66 }; }
     function pullMax() { return Math.max(90, Math.min(H * 0.22, 170)); }
-    function reset() { var p = home(); st = { x: p.x, y: p.y, vx: 0, vy: 0, s: 1, rot: 0, vr: 0, t: 0, fly: false, drag: false, up: false, inn: false, pts: [] }; }
+    function reset() { var p = home(); st = { ax: p.x, ay: p.y, x: p.x, y: p.y, vx: 0, vy: 0, s: 1, rot: 0, vr: 0, t: 0, fly: false, drag: false, up: false, inn: false, pts: [] }; }
     function close(up) { if (closed) return; closed = true; cancelAnimationFrame(raf); window.removeEventListener("resize", size); document.removeEventListener("keydown", kd); ov.remove(); if (up) go(); }
     function kd(e) { if (e.key === "Escape") close(false); }
     function rr(x, y, w, h, q) { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, q); else c.rect(x, y, w, h); }
@@ -1930,10 +1930,10 @@
       if (behind) doc(st.x, st.y, st.s, st.rot, a);
       rimFront();
       if (!behind) doc(st.x, st.y, st.s, st.rot, a);
-      var hm = home();
+      var hm = { x: st.ax, y: st.ay };
       if (!st.fly && !st.drag) { var k = (Math.sin(performance.now() / 300) + 1) / 2; c.fillStyle = "rgba(102,153,204," + (0.35 + 0.45 * k) + ")"; c.font = "700 24px system-ui,sans-serif"; c.textAlign = "center"; c.fillText("↓", hm.x, hm.y + 62 + 8 * k); }
       if (st.drag) {
-        var pw = Math.min(1, Math.hypot(st.x - hm.x, st.y - hm.y) / pullMax());
+        var pw = Math.min(1, Math.hypot(st.x - hm.x, st.y - hm.y) / (st.L || pullMax()));
         c.strokeStyle = "rgba(102,153,204,.7)"; c.lineWidth = 3; c.beginPath(); c.moveTo(hm.x - 40, hm.y); c.lineTo(st.x, st.y); c.lineTo(hm.x + 40, hm.y); c.stroke();
         var v = launchV();
         if (v.pw >= 0.12) { var gx = st.x, gy = st.y, gvx = v.vx, gvy = v.vy, top = false; c.fillStyle = "rgba(224,102,43,.75)";
@@ -1944,21 +1944,26 @@
     }
     function loop(now) { var dt = Math.min(0.033, ((now - (last || now)) / 1000)); last = now; step(dt); draw(); raf = requestAnimationFrame(loop); }
     function launchV() {
-      var hm = home(), dx = hm.x - st.x, dy = hm.y - st.y, d = Math.hypot(dx, dy) || 1, pw = Math.min(1, d / pullMax()), V = 1.45 * Math.sqrt(2 * G * (hm.y - hy));
+      var hm = { x: st.ax, y: st.ay }, dx = hm.x - st.x, dy = hm.y - st.y, d = Math.hypot(dx, dy) || 1, pw = Math.min(1, d / (st.L || pullMax())), V = 1.45 * Math.sqrt(2 * G * Math.max(60, hm.y - hy));
       return { pw: pw, vx: dx / d * pw * V * 0.55, vy: dy / d * pw * V };
     }
-    function pull(x, y) { var hm = home(), dx = x - hm.x, dy = y - hm.y, L = pullMax(), d = Math.hypot(dx, dy); if (d > L) { dx *= L / d; dy *= L / d; } if (dy < 0) dy = 0; st.x = hm.x + dx; st.y = hm.y + dy; }
+    function pull(x, y) { var hm = { x: st.ax, y: st.ay }, dx = x - hm.x, dy = y - hm.y, L = st.L || pullMax(), d = Math.hypot(dx, dy); if (d > L) { dx *= L / d; dy *= L / d; } if (dy < 0) dy = 0; st.x = hm.x + dx; st.y = hm.y + dy; }
     cv.addEventListener("pointerdown", function (e) {
-      if (st.fly || done) return; var b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
-      if (y < H * 0.45) return;
-      st.drag = true; st.ox = x - st.x; st.oy = y - st.y; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing";
+      if (done) return; var b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top, near = Math.hypot(x - st.x, y - st.y) < 75;
+      if (st.fly) {   // repülés vagy pattogás közben is elkapható: onnan lősz tovább, ahol éppen van
+        if (!near) return;
+        st.fly = false; st.inn = false; st.up = false; st.vx = st.vy = st.vr = 0; st.rot = 0; st.s = 1; st.t = 0; st.rest = 0;
+        st.ax = Math.max(40, Math.min(W - 40, st.x)); st.ay = Math.max(40, Math.min(H - 84, st.y)); st.x = st.ax; st.y = st.ay;
+        hud.textContent = "Elkaptad! Húzd le, és lőj újra.";
+      } else if (!near && y < H * 0.45) return;
+      st.drag = true; st.ox = x - st.x; st.oy = y - st.y; st.L = Math.max(60, Math.min(pullMax(), H - 8 - y));   // ha alul kapod el, rövidebb húzás is teljes erő cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing";
     });
     cv.addEventListener("pointermove", function (e) {
       if (!st.drag) return; var b = cv.getBoundingClientRect(); pull(e.clientX - b.left - st.ox, e.clientY - b.top - st.oy);
     });
     function up() {
       if (!st.drag) return; st.drag = false; cv.style.cursor = "grab";
-      var v = launchV(), hm = home();
+      var v = launchV(), hm = { x: st.ax, y: st.ay };
       if (v.pw < 0.12) { st.x = hm.x; st.y = hm.y; hud.textContent = "Húzd lejjebb a fájlt, és engedd el!"; return; }
       st.vx = v.vx; st.vy = v.vy; st.vr = st.vx * 0.004; st.fly = true; st.t = 0;
     }
