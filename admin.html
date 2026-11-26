@@ -93,6 +93,16 @@
   .szup select, .szup input[type=month] { font: inherit; padding: 9px 10px; border-radius: 10px; border: 2px solid var(--track); background: var(--bg); color: var(--ink); min-width: 0; }
   .szdrop { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 44px; padding: 8px 14px; border: 2px dashed var(--track); border-radius: 12px; cursor: pointer; color: var(--muted); font-weight: 600; font-size: .9rem; }
   .szdrop.on { border-color: var(--accent); color: var(--ink); }
+  /* Kosárra dobás feltöltés előtt (opcionális játék) */
+  .szgame { position: fixed; inset: 0; z-index: 9999; background: rgba(0, 25, 50, .5); display: flex; align-items: center; justify-content: center; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .szgame.play { background: var(--bg); }
+  .szgame .box { box-sizing: border-box; background: var(--bg); color: var(--ink); border-radius: 16px; padding: 22px 20px; max-width: 360px; width: calc(100% - 32px); text-align: center; box-shadow: 0 12px 40px rgba(0, 0, 0, .3); }
+  .szgame .box h3 { margin: 0 0 6px; font-size: 1.3rem; }
+  .szgame .box p { margin: 0 0 14px; color: var(--muted); }
+  .szgame .box .btn { width: 100%; justify-content: center; margin-top: 8px; }
+  .szgame canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; }
+  .szgame .hud { position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-weight: 800; font-size: 1.15rem; color: var(--ink); pointer-events: none; padding: 0 12px; }
+  .szgame .ctl { position: absolute; left: 0; right: 0; bottom: 18px; display: flex; gap: 8px; justify-content: center; padding: 0 12px; }
   .szup .msg { grid-column: 1 / -1; margin: 0; font-size: .88rem; color: var(--muted); min-height: 1.1em; }
   /* Feltöltési folyamatjelző: kis sáv, alatta lépéssorok (forgó ikon, kész után pipa), az újabb lépés új sorban nyílik */
   .szprog { grid-column: 1 / -1; border: 1px solid var(--track); border-radius: 20px; padding: 12px 16px 12px; background: color-mix(in srgb, var(--bg) 55%, transparent); }
@@ -1840,11 +1850,108 @@
     var key = String(pa.inv || (f.name + "_" + f.size)).replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 60), o = {}; o[key] = { m: String(ho).slice(0, 7), p: pa.p, a: pa.a, e: pa.e, k: pa.k, n: String(f.name).slice(0, 60) };
     return SZ.F.setDoc(SZ.F.doc(SZ.db, "perf", fid, "fl_meta", "info"), { bf: o }, { merge: true }).then(function () { return true; }, function () { return false; });
   }
+  // ===== Kosárra dobás: feltöltés előtt megkérdezi, akarsz-e játszani. Ha igen, a fájlt neked kell belőni a gyűrűbe (húzd meg és engedd el felfelé). =====
+  var szShotOk = false;
+  function szAsk(n, name, go) {
+    var ov = document.createElement("div"); ov.className = "szgame";
+    ov.innerHTML = '<div class="box" role="dialog" aria-modal="true"><h3>🏀 Bedobod?</h3><p>' + n + " fájl vár feltöltésre. Lődd be a kosárba, vagy töltsd fel simán.</p>" +
+      '<button class="btn pri" type="button" data-a="play">Játszom</button><button class="btn" type="button" data-a="up">Csak feltöltés</button><button class="btn" type="button" data-a="x">Mégse</button></div>';
+    document.body.appendChild(ov);
+    function end(a) { document.removeEventListener("keydown", kd); ov.remove(); if (a === "up") go(); else if (a === "play") szGame(n, name, go); }
+    function kd(e) { if (e.key === "Escape") end("x"); }
+    document.addEventListener("keydown", kd);
+    ov.addEventListener("click", function (e) { var b = e.target.closest("[data-a]"); if (b) end(b.getAttribute("data-a")); else if (e.target === ov) end("x"); });
+    ov.querySelector('[data-a="play"]').focus();
+  }
+  function szGame(n, name, go) {
+    var ov = document.createElement("div"); ov.className = "szgame play";
+    ov.innerHTML = '<canvas></canvas><div class="hud" aria-live="polite">Húzd meg a fájlt, és lődd fel a kosárba!</div><div class="ctl"><button class="btn pri" type="button" data-a="up">Csak töltsd fel</button><button class="btn" type="button" data-a="x">Mégse</button></div>';
+    document.body.appendChild(ov);
+    var cv = ov.querySelector("canvas"), c = cv.getContext("2d"), hud = ov.querySelector(".hud"), dpr = Math.min(2, window.devicePixelRatio || 1);
+    var lab = (String(name).split(".").pop() || "PDF").toUpperCase().slice(0, 4), W, H, hx, hy, r, G, st, raf, last = 0, tries = 0, done = false, net = 0, closed = false;
+    var MISS = ["Majdnem! Próbáld újra.", "Kicsit erősebben vagy lágyabban!", "Célozz a gyűrű közepére!", "Ez most nem ment, még egyet!"];
+    function size() { W = ov.clientWidth; H = ov.clientHeight; cv.width = W * dpr; cv.height = H * dpr; c.setTransform(dpr, 0, 0, dpr, 0, 0); hx = W / 2; hy = Math.max(150, H * 0.3); r = Math.max(36, Math.min(W * 0.11, 62)); G = H * 2.3; }
+    function home() { return { x: W / 2, y: H - 130 }; }
+    function reset() { var p = home(); st = { x: p.x, y: p.y, vx: 0, vy: 0, s: 1, rot: 0, vr: 0, t: 0, fly: false, drag: false, up: false, inn: false, pts: [] }; }
+    function close(up) { if (closed) return; closed = true; cancelAnimationFrame(raf); window.removeEventListener("resize", size); document.removeEventListener("keydown", kd); ov.remove(); if (up) go(); }
+    function kd(e) { if (e.key === "Escape") close(false); }
+    function rr(x, y, w, h, q) { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, q); else c.rect(x, y, w, h); }
+    function doc(x, y, s, rot, a) {
+      var w = 54 * s, h = 70 * s; c.save(); c.globalAlpha = a; c.translate(x, y); c.rotate(rot); c.shadowColor = "rgba(0,0,0,.18)"; c.shadowBlur = 10 * s; c.shadowOffsetY = 3 * s;
+      if (n > 1) { c.fillStyle = "#dde3ea"; rr(-w / 2 + 6 * s, -h / 2 - 6 * s, w, h, 6 * s); c.fill(); }
+      c.fillStyle = "#fff"; rr(-w / 2, -h / 2, w, h, 6 * s); c.fill(); c.shadowColor = "transparent"; c.strokeStyle = "#c9d1dc"; c.lineWidth = 1.2; c.stroke();
+      c.fillStyle = lab === "PDF" ? "#d9363e" : "#2f7fd1"; rr(-w / 2 + 7 * s, -h / 2 + 8 * s, w * 0.55, 13 * s, 3 * s); c.fill();
+      c.fillStyle = "#fff"; c.font = "800 " + (9 * s) + "px system-ui,sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(lab, -w / 2 + 7 * s + w * 0.275, -h / 2 + 15 * s);
+      c.fillStyle = "#d5dbe3"; for (var i = 0; i < 4; i++) c.fillRect(-w / 2 + 8 * s, -h / 2 + 30 * s + i * 9 * s, w - 16 * s - (i === 3 ? 14 * s : 0), 3 * s);
+      if (n > 1) { c.fillStyle = "#003366"; c.beginPath(); c.arc(w / 2 - 2 * s, -h / 2 + 2 * s, 11 * s, 0, 7); c.fill(); c.fillStyle = "#fff"; c.font = "800 " + (11 * s) + "px system-ui,sans-serif"; c.fillText(String(n), w / 2 - 2 * s, -h / 2 + 2.5 * s); }
+      c.restore();
+    }
+    function board() {
+      var bw = r * 3.3, bh = r * 2.1, bx = hx - bw / 2, by = hy - bh + r * 0.15;
+      c.fillStyle = "rgba(0,51,102,.04)"; rr(bx, by, bw, bh, 14); c.fill(); c.setLineDash([6, 5]); c.strokeStyle = "rgba(0,51,102,.3)"; c.lineWidth = 2; c.stroke(); c.setLineDash([]);
+      c.fillStyle = "rgba(0,51,102,.65)"; c.font = "700 " + Math.round(r * 0.3) + "px system-ui,sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("Ide lődd", hx, by + r * 0.42);
+      c.strokeStyle = "#e0662b"; c.lineWidth = 3; c.strokeRect(hx - r * 0.7, hy - r * 1.15, r * 1.4, r * 1.0);
+      c.fillStyle = "#c9531c"; c.fillRect(hx - 8, hy - r * 0.12, 16, r * 0.12);
+    }
+    function rimBack() { c.strokeStyle = "#c9531c"; c.lineWidth = 4; c.beginPath(); c.ellipse(hx, hy, r, r * 0.2, 0, Math.PI, 2 * Math.PI); c.stroke(); }
+    function rimFront() {
+      var d = r * 1.35 * (1 + net * 0.35), bwid = r * 0.55 * (1 - net * 0.15); c.strokeStyle = "rgba(120,130,140,.75)"; c.lineWidth = 1.3;
+      for (var i = 0; i <= 10; i++) { var a = Math.PI * i / 10, x1 = hx - Math.cos(a) * r, y1 = hy + Math.sin(a) * r * 0.2, x2 = hx - Math.cos(a) * bwid, y2 = hy + d; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); if (i < 10) { var b = Math.PI * (i + 1) / 10; c.beginPath(); c.moveTo(x1, y1); c.lineTo(hx - Math.cos(b) * bwid, y2); c.stroke(); } }
+      c.beginPath(); c.ellipse(hx, hy + d, bwid, bwid * 0.2, 0, 0, Math.PI); c.stroke();
+      c.strokeStyle = "#e0662b"; c.lineWidth = 5; c.beginPath(); c.ellipse(hx, hy, r, r * 0.2, 0, 0, Math.PI); c.stroke();
+    }
+    function step(dt) {
+      net = Math.max(0, net - dt * 2.2);
+      if (!st.fly) return;
+      st.t += dt; st.vy += G * dt; var py = st.y; st.x += st.vx * dt; st.y += st.vy * dt; st.rot += st.vr * dt;
+      st.s = Math.max(0.45, 1 - 0.55 * Math.min(1, st.t / 0.55));
+      if (st.y < hy - 12) st.up = true;
+      if (st.up && !st.inn && py < hy && st.y >= hy && st.vy > 0) {
+        var dx = st.x - hx, ad = Math.abs(dx);
+        if (ad < r * 0.78) { st.inn = true; st.vx *= 0.2; st.vy *= 0.55; score(); }
+        else if (ad < r * 1.2) { st.y = hy - 1; st.vy = -st.vy * 0.45; st.vx = st.vx * 0.5 + (dx > 0 ? 1 : -1) * r * 2.2; st.vr = -st.vr; hud.textContent = "Gyűrű! 😬"; }
+      }
+      if (st.inn) st.x += (hx - st.x) * Math.min(1, dt * 10);
+      if (st.x < 30 && st.vx < 0) st.vx = -st.vx * 0.6; if (st.x > W - 30 && st.vx > 0) st.vx = -st.vx * 0.6;
+      if (!done && (st.y > H + 90 || st.t > 5)) { tries++; hud.textContent = MISS[(tries - 1) % MISS.length] + (tries >= 3 ? " (vagy: Csak töltsd fel)" : ""); reset(); }
+    }
+    function score() { done = true; net = 1; hud.textContent = "KOSÁR! 🏀 Feltöltés indul…"; if (navigator.vibrate) try { navigator.vibrate(40); } catch (e) {} setTimeout(function () { close(true); }, 1100); }
+    function draw() {
+      c.clearRect(0, 0, W, H); board(); rimBack();
+      var a = st.inn ? Math.max(0, 1 - (st.y - hy) / (r * 2.2)) : 1, behind = st.up && st.y > hy - r * 0.6;
+      if (behind) doc(st.x, st.y, st.s, st.rot, a);
+      rimFront();
+      if (!behind) doc(st.x, st.y, st.s, st.rot, a);
+      if (!st.fly && !st.drag) { var p = home(), k = (Math.sin(performance.now() / 300) + 1) / 2; c.fillStyle = "rgba(0,51,102," + (0.25 + 0.35 * k) + ")"; c.font = "700 22px system-ui,sans-serif"; c.textAlign = "center"; c.fillText("↑", p.x, p.y - 58 - 6 * k); }
+    }
+    function loop(now) { var dt = Math.min(0.033, ((now - (last || now)) / 1000)); last = now; step(dt); draw(); raf = requestAnimationFrame(loop); }
+    cv.addEventListener("pointerdown", function (e) {
+      if (st.fly || done) return; var b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+      if (y < H * 0.5 && Math.hypot(x - st.x, y - st.y) > 90) return;
+      st.drag = true; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing"; st.x = x; st.y = Math.max(H * 0.5, y); st.pts = [{ x: x, y: y, t: performance.now() }];
+    });
+    cv.addEventListener("pointermove", function (e) {
+      if (!st.drag) return; var b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top, t = performance.now();
+      st.x = x; st.y = Math.max(H * 0.5, y); st.pts.push({ x: x, y: y, t: t }); while (st.pts.length > 2 && t - st.pts[0].t > 110) st.pts.shift();
+    });
+    function up() {
+      if (!st.drag) return; st.drag = false; cv.style.cursor = "grab";
+      var p = st.pts, a = p[0], b = p[p.length - 1], dt = Math.max(16, b.t - a.t) / 1000, vx = (b.x - a.x) / dt, vy = (b.y - a.y) / dt;
+      if (p.length < 2 || vy > -H * 0.5) { var h = home(); st.x = h.x; st.y = h.y; hud.textContent = "Lendületesen húzd felfelé, és engedd el!"; return; }
+      var vmin = Math.sqrt(2 * G * Math.max(60, st.y - hy + r * 0.8)); st.vy = Math.max(-H * 2.5, Math.min(-vmin, vy)); st.vx = Math.max(-W * 1.4, Math.min(W * 1.4, vx)); st.vr = st.vx * 0.004; st.fly = true; st.t = 0;
+    }
+    cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+    ov.querySelector(".ctl").addEventListener("click", function (e) { var bt = e.target.closest("[data-a]"); if (bt) close(bt.getAttribute("data-a") === "up"); });
+    window.addEventListener("resize", size); document.addEventListener("keydown", kd);
+    size(); reset(); raf = requestAnimationFrame(loop);
+  }
   $("sz-form").addEventListener("submit", function (e) {
     e.preventDefault(); var msg = $("sz-msg");
     if (!szPick.length) { msg.textContent = "Válassz ki legalább egy fájlt."; return; }
     if (!SZ || !szKey()) { msg.textContent = "A tár még nincs betöltve."; return; }
     var big = szPick.filter(function (f) { return f.size > SZMAX; }); if (big.length) { msg.textContent = "Túl nagy fájl (legfeljebb 15 MB): " + big.map(function (f) { return f.name; }).join(", "); return; }
+    if (!szShotOk) { szAsk(szPick.length, szPick[0].name, function () { szShotOk = true; $("sz-form").dispatchEvent(new Event("submit", { cancelable: true })); }); return; }
+    szShotOk = false;
     var F = SZ.F, szolg = $("sz-szolg").value, list = szPick.slice(), done = 0, go = $("sz-go"), ho = "", kiv = /kivonat/i.test(szolg), bank = "", ftx = "";
     var vissza = [];
     go.disabled = true; var total = list.length, idx = 0; szpReset(); msg.textContent = ""; szpSet(1, 3);
