@@ -48,8 +48,7 @@
   .chain:active { cursor: grabbing; }
   .chain:focus { outline: none; }
   .chain:focus-visible circle { stroke: #fff; stroke-width: 2; }
-  .chain g { transition: transform .35s cubic-bezier(.3, 1.6, .5, 1); }
-  .chain.pull g { transform: translateY(26px); transition: transform .12s ease-out; }
+  .chain { touch-action: none; }
   .hint { position: absolute; left: calc(50% + 70px); top: 47%; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--faint); white-space: nowrap; display: flex; align-items: center; gap: 8px; pointer-events: none; }
   .hint::before { content: ""; width: 26px; height: 1px; background: var(--faint); }
 
@@ -147,10 +146,10 @@
       <rect x="138" y="452" width="24" height="30" rx="5" fill="url(#brass)"/>
       <!-- zsinór -->
       <g class="chain" id="chain" role="button" tabindex="0" aria-label="Lámpa kapcsoló">
-        <rect x="118" y="150" width="50" height="190" fill="transparent"/>
+        <rect x="96" y="220" width="90" height="130" fill="transparent"/>
         <g>
-          <path d="M158 156 C150 200 136 240 136 300" stroke="#d8b26a" stroke-width="1.6" fill="none" stroke-dasharray="2 3"/>
-          <circle cx="136" cy="304" r="5" fill="url(#brass)"/>
+          <path id="cord" d="M158 156 C150 200 136 240 136 300" stroke="#d8b26a" stroke-width="1.6" fill="none" stroke-dasharray="2 3"/>
+          <circle id="knob" cx="136" cy="304" r="5" fill="url(#brass)"/>
         </g>
       </g>
       <!-- háromláb -->
@@ -216,22 +215,53 @@
     bk.appendChild(d);
   }
 
-  /* lámpa ki/be a zsinórral */
-  var on = true, chain = $("chain");
-  function toggle() {
-    chain.classList.add("pull");
-    setTimeout(function () {
-      chain.classList.remove("pull");
-      on = !on;
-      root.style.setProperty("--lit", on ? 1 : 0);
-      body.classList.toggle("off", !on);
-      $("pill").textContent = on ? "LIT" : "DIM";
-      $("hint").textContent = on ? "Pull again to dim" : "Pull to light up";
-      $("tag").textContent = on ? "The light’s on for you." : "Lights out. Pull the cord.";
-    }, 140);
+  /* lámpa ki/be: a zsinórt le kell húzni (egérrel vagy ujjal), elengedéskor kapcsol */
+  var on = true, chain = $("chain"), cord = $("cord"), knob = $("knob"), svg = chain.ownerSVGElement;
+  var MAX = 70, NEED = 34, drag = null, cur = 0, raf = 0;
+  function setPull(y, x) {
+    cur = y; x = x || 0;
+    cord.setAttribute("d", "M158 156 C150 200 " + (136 + x * .5) + " " + (240 + y * .6) + " " + (136 + x) + " " + (300 + y));
+    knob.setAttribute("cx", 136 + x); knob.setAttribute("cy", 304 + y);
   }
-  chain.addEventListener("click", toggle);
-  chain.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+  function svgY(e) { var m = svg.getScreenCTM(); return m ? { y: e.clientY / m.d, x: e.clientX / m.a } : { y: e.clientY, x: e.clientX }; }
+  function flip() {
+    on = !on;
+    root.style.setProperty("--lit", on ? 1 : 0);
+    body.classList.toggle("off", !on);
+    $("pill").textContent = on ? "LIT" : "DIM";
+    $("hint").textContent = on ? "Pull again to dim" : "Pull to light up";
+    $("tag").textContent = on ? "The light’s on for you." : "Lights out. Pull the cord.";
+    if (navigator.vibrate) try { navigator.vibrate(12); } catch (e) {}
+  }
+  function springBack() {   /* rugózva visszaugrik */
+    var y = cur, x = 0, v = 0, vx = 0;
+    cancelAnimationFrame(raf);
+    (function step() {
+      v = (v - y * .22) * .72; y += v;
+      if (Math.abs(y) < .3 && Math.abs(v) < .3) { setPull(0); return; }
+      setPull(y, x); raf = requestAnimationFrame(step);
+    })();
+  }
+  chain.addEventListener("pointerdown", function (e) {
+    e.preventDefault(); cancelAnimationFrame(raf);
+    var p = svgY(e); drag = { y: p.y - cur, x: p.x, done: false };
+    try { chain.setPointerCapture(e.pointerId); } catch (er) {}
+  });
+  chain.addEventListener("pointermove", function (e) {
+    if (!drag) return;
+    var p = svgY(e), dy = p.y - drag.y;
+    dy = dy < 0 ? 0 : dy > MAX ? MAX + (dy - MAX) * .15 : dy;   /* a végén megfeszül */
+    var dx = Math.max(-14, Math.min(14, (p.x - drag.x) * .35));
+    setPull(dy, dx);
+    if (!drag.done && dy >= NEED) { drag.done = true; flip(); }   /* kattanás, amikor elég mélyre húzta */
+  });
+  function release() { if (!drag) return; drag = null; springBack(); }
+  chain.addEventListener("pointerup", release);
+  chain.addEventListener("pointercancel", release);
+  chain.addEventListener("lostpointercapture", release);
+  chain.addEventListener("keydown", function (e) {   /* billentyűzetről: Enter / szóköz */
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPull(NEED + 4); flip(); setTimeout(springBack, 120); }
+  });
 
   /* jelszó megjelenítése */
   $("eye").onclick = function () { var p = $("pw"); p.type = p.type === "password" ? "text" : "password"; };
